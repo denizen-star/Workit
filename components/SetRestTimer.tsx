@@ -9,14 +9,22 @@ import GetToItModal from "./GetToItModal";
 const REST_SECONDS = 60;
 
 interface SetRestTimerProps {
-  disabled?: boolean;
+  startToken: number;
 }
 
-export default function SetRestTimer({ disabled }: SetRestTimerProps) {
+export default function SetRestTimer({ startToken }: SetRestTimerProps) {
   const [remaining, setRemaining] = useState(REST_SECONDS);
   const [running, setRunning] = useState(false);
   const [showGetToIt, setShowGetToIt] = useState(false);
   const completedRef = useRef(false);
+
+  useEffect(() => {
+    if (startToken === 0) return;
+    unlockAudio();
+    completedRef.current = false;
+    setRemaining(REST_SECONDS);
+    setRunning(true);
+  }, [startToken]);
 
   useEffect(() => {
     if (!running) return;
@@ -40,30 +48,42 @@ export default function SetRestTimer({ disabled }: SetRestTimerProps) {
     return () => window.clearInterval(interval);
   }, [running]);
 
-  const startTimer = () => {
-    if (disabled || running) return;
-    unlockAudio();
-    completedRef.current = false;
-    setRemaining(REST_SECONDS);
-    setRunning(true);
-  };
+  if (!running && startToken === 0) return null;
 
   return (
     <>
-      <button
-        type="button"
-        onClick={startTimer}
-        disabled={disabled || running}
-        className={`flex h-11 min-w-16 flex-col items-center justify-center rounded-xl px-2.5 text-xs font-bold transition-colors ${
-          running
-            ? "bg-indigo-600 text-white"
-            : "bg-slate-900 text-white hover:bg-slate-800 disabled:bg-slate-300 disabled:text-slate-500"
-        }`}
-        aria-label="Start 60 second rest timer"
-      >
-        <Timer className="mb-0.5 h-4 w-4" />
-        {running ? formatClock(remaining) : "60s"}
-      </button>
+      {running && (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="glass-card pointer-events-auto mx-auto flex max-w-xl items-center justify-between gap-4 px-5 py-4">
+            <div className="flex items-center gap-3">
+              <Timer className="h-7 w-7 text-white" />
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white">
+                  Rest
+                </p>
+                <p className="text-3xl font-black tabular-nums text-white">
+                  {formatClock(remaining)}
+                </p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setRunning(false);
+                setRemaining(0);
+                if (!completedRef.current) {
+                  completedRef.current = true;
+                  playChime();
+                  setShowGetToIt(true);
+                }
+              }}
+              className="min-h-12 rounded-2xl bg-white px-5 text-base font-black text-black hover:bg-gray-200"
+            >
+              Skip
+            </button>
+          </div>
+        </div>
+      )}
       <GetToItModal open={showGetToIt} onClose={() => setShowGetToIt(false)} />
     </>
   );

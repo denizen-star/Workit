@@ -18,45 +18,45 @@ interface BadgeDisplayProps {
 }
 
 export default function BadgeDisplay({ allBadges, earnedBadges }: BadgeDisplayProps) {
-  const earnedIds = new Set(earnedBadges.map(b => b.id));
+  const earnedIds = new Set(earnedBadges.map((badge) => badge.id));
 
   return (
-    <div className="bg-white rounded-lg shadow-md p-6">
-      <div className="flex items-center gap-2 mb-4">
-        <Award className="w-6 h-6 text-yellow-500" />
-        <h2 className="text-2xl font-bold">Achievements</h2>
-        <span className="ml-auto text-sm text-gray-600">
+    <div className="glass-card p-6">
+      <div className="mb-4 flex items-center gap-2">
+        <Award className="h-6 w-6 text-[#e8c547]" />
+        <h2 className="text-2xl font-black text-white">Achievements</h2>
+        <span className="ml-auto text-sm text-[#f6f1e3]/65">
           {earnedBadges.length} / {allBadges.length}
         </span>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-        {allBadges.map(badge => {
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+        {allBadges.map((badge) => {
           const isEarned = earnedIds.has(badge.id);
-          const earnedBadge = earnedBadges.find(b => b.id === badge.id);
+          const earnedBadge = earnedBadges.find((item) => item.id === badge.id);
 
           return (
             <div
               key={badge.id}
-              className={`relative p-4 rounded-lg border-2 transition-all ${
+              className={`relative rounded-2xl border p-4 transition-all ${
                 isEarned
-                  ? 'border-yellow-400 bg-yellow-50 shadow-md'
-                  : 'border-gray-200 bg-gray-50 opacity-50'
+                  ? 'border-[#e8c547]/60 bg-[#e8c547]/10'
+                  : 'border-white/10 bg-black/20 opacity-55'
               }`}
             >
               <div className="text-center">
-                <div className="text-4xl mb-2">{badge.icon}</div>
-                <h3 className="font-semibold text-sm mb-1">{badge.name}</h3>
-                <p className="text-xs text-gray-600">{badge.description}</p>
-                
+                <div className="mb-2 text-4xl">{badge.icon}</div>
+                <h3 className="mb-1 text-sm font-semibold text-white">{badge.name}</h3>
+                <p className="text-xs text-[#f6f1e3]/65">{badge.description}</p>
+
                 {isEarned && earnedBadge?.earned_at && (
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="mt-2 text-xs text-[#e8c547]">
                     Earned {new Date(earnedBadge.earned_at).toLocaleDateString()}
                   </p>
                 )}
 
                 {!isEarned && (
-                  <p className="text-xs text-gray-500 mt-2">
+                  <p className="mt-2 text-xs text-[#f6f1e3]/50">
                     {badge.requirement_type === 'weight_milestone' && `Lift ${badge.requirement_value} lbs`}
                     {badge.requirement_type === 'streak' && `${badge.requirement_value} week streak`}
                     {badge.requirement_type === 'total_workouts' && `${badge.requirement_value} workouts`}
@@ -69,8 +69,8 @@ export default function BadgeDisplay({ allBadges, earnedBadges }: BadgeDisplayPr
               </div>
 
               {isEarned && (
-                <div className="absolute -top-2 -right-2 bg-yellow-400 text-white rounded-full p-1">
-                  <Award className="w-4 h-4" />
+                <div className="absolute -right-2 -top-2 rounded-full bg-[#e8c547] p-1 text-[#1a1404]">
+                  <Award className="h-4 w-4" />
                 </div>
               )}
             </div>

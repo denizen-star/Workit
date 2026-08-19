@@ -1,31 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw } from 'lucide-react';
 import { workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
+import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import Modal from '@/components/Modal';
 
-export default function WorkoutPage() {
+function WorkoutPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [currentSession, setCurrentSession] = useState<number | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
   const [completedWorkouts, setCompletedWorkouts] = useState<Set<string>>(new Set());
+  const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const autoOpened = useRef(false);
+
+  useWakeLock(!!currentSession);
 
   useEffect(() => {
-    loadCompletedWorkouts();
+    loadSessions().then((rows) => {
+      if (autoOpened.current) return;
+      const sessionId = searchParams.get('session');
+      const week = Number(searchParams.get('week') || '');
+      const day = Number(searchParams.get('day') || '');
+
+      if (sessionId) {
+        autoOpened.current = true;
+        openExistingSession(rows, Number(sessionId));
+        return;
+      }
+
+      if (week && day) {
+        autoOpened.current = true;
+        startWorkout(week, day, rows);
+      }
+    });
   }, []);
 
   useEffect(() => {
@@ -36,29 +60,50 @@ export default function WorkoutPage() {
     return () => window.clearInterval(interval);
   }, [startedAt]);
 
-  const loadCompletedWorkouts = async () => {
+  const loadSessions = async () => {
     try {
       const response = await fetch('/api/sessions?userId=1');
       if (response.ok) {
         const data = await response.json();
-        const completed = new Set<string>(
-          data.sessions
-            .filter((s: any) => s.is_completed)
-            .map((s: any) => `${s.week_number}-${s.day_number}`)
+        const rows: WorkoutSessionRow[] = data.sessions || [];
+        setSessions(rows);
+        setCompletedWorkouts(
+          new Set(
+            rows
+              .filter(isSessionComplete)
+              .map((session) => `${session.week_number}-${session.day_number}`)
+          )
         );
-        setCompletedWorkouts(completed);
+        return rows;
       }
     } catch (error) {
       console.error('Error loading completed workouts:', error);
     }
+    return [] as WorkoutSessionRow[];
   };
 
-  const startWorkout = async (weekNumber: number, dayNumber: number) => {
-    try {
-      const week = workoutProgram.find(w => w.weekNumber === weekNumber);
-      const day = week?.days.find(d => d.dayNumber === dayNumber);
+  const openExistingSession = (rows: WorkoutSessionRow[], sessionId: number) => {
+    const session = rows.find((item) => Number(item.id) === sessionId);
+    if (!session) return;
+    setCurrentSession(Number(session.id));
+    setSelectedWeek(Number(session.week_number));
+    setSelectedDay(Number(session.day_number));
+    const start = new Date(session.started_at || session.created_at || Date.now()).getTime();
+    setStartedAt(start);
+    setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+  };
 
+  const startWorkout = async (weekNumber: number, dayNumber: number, knownSessions?: WorkoutSessionRow[]) => {
+    try {
+      const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
+      const day = week?.days.find((item) => item.dayNumber === dayNumber);
       if (!day) return;
+
+      const open = findIncompleteSession(knownSessions || sessions, weekNumber, dayNumber);
+      if (open) {
+        openExistingSession(knownSessions || sessions, Number(open.id));
+        return;
+      }
 
       const response = await fetch('/api/sessions', {
         method: 'POST',
@@ -68,8 +113,8 @@ export default function WorkoutPage() {
           weekNumber,
           dayNumber,
           workoutType: day.name,
-          scheduledDate: new Date().toISOString().split('T')[0]
-        })
+          scheduledDate: new Date().toISOString().split('T')[0],
+        }),
       });
 
       if (response.ok) {
@@ -90,6 +135,29 @@ export default function WorkoutPage() {
     }
   };
 
+  const restartWorkout = async () => {
+    if (!currentSession) return;
+    try {
+      const response = await fetch(`/api/sessions?sessionId=${currentSession}`, { method: 'DELETE' });
+      if (!response.ok) {
+        setErrorMessage('Could not restart the workout. Try again.');
+        setShowError(true);
+        return;
+      }
+      const week = selectedWeek;
+      const day = selectedDay;
+      const rows = await loadSessions();
+      setCurrentSession(null);
+      setStartedAt(null);
+      setConfirmRestart(false);
+      if (day != null) await startWorkout(week, day, rows);
+    } catch (error) {
+      console.error('Error restarting workout:', error);
+      setErrorMessage('Could not restart the workout. Try again.');
+      setShowError(true);
+    }
+  };
+
   const completeWorkout = async () => {
     if (!currentSession) return;
 
@@ -99,8 +167,8 @@ export default function WorkoutPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId: currentSession,
-          isCompleted: true
-        })
+          isCompleted: true,
+        }),
       });
 
       if (!response.ok) {
@@ -109,7 +177,7 @@ export default function WorkoutPage() {
         return;
       }
 
-      await loadCompletedWorkouts();
+      await loadSessions();
       setCurrentSession(null);
       setSelectedDay(null);
       setStartedAt(null);
@@ -123,8 +191,8 @@ export default function WorkoutPage() {
   };
 
   const getCurrentWorkout = () => {
-    const week = workoutProgram.find(w => w.weekNumber === selectedWeek);
-    return week?.days.find(d => d.dayNumber === selectedDay);
+    const week = workoutProgram.find((item) => item.weekNumber === selectedWeek);
+    return week?.days.find((item) => item.dayNumber === selectedDay);
   };
 
   if (currentSession && selectedDay) {
@@ -132,30 +200,41 @@ export default function WorkoutPage() {
     if (!workout) return null;
 
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-        <header className="bg-white shadow-sm border-b sticky top-0 z-10">
+      <div className="min-h-screen">
+        <header className="glass-header sticky top-0 z-10">
           <div className="container mx-auto px-4 py-4">
             <div className="flex items-center justify-between gap-3">
-              <button
-                onClick={() => setConfirmExit(true)}
-                className="flex items-center gap-2 text-gray-600 hover:text-gray-800"
-              >
-                <ArrowLeft className="w-5 h-5" />
-                Exit Workout
-              </button>
-              <div className="text-center flex-1">
-                <h1 className="text-xl font-bold">Week {selectedWeek} - {workout.name}</h1>
-                <p className="text-sm text-gray-600">{workout.focus}</p>
-                <p className="mt-1 inline-flex items-center gap-1 text-xs font-semibold text-indigo-600">
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setConfirmExit(true)}
+                  className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
+                >
+                  <ArrowLeft className="h-5 w-5" />
+                  <span className="hidden sm:inline">Exit</span>
+                </button>
+                <button
+                  onClick={() => setConfirmRestart(true)}
+                  className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
+                >
+                  <RotateCcw className="h-5 w-5" />
+                  <span className="hidden sm:inline">Restart</span>
+                </button>
+              </div>
+              <div className="flex-1 text-center">
+                <h1 className="text-xl font-black text-[#f5d76e]">
+                  Week {selectedWeek} · {workout.name}
+                </h1>
+                <p className="text-sm text-[#f6f1e3]/65">{workout.focus}</p>
+                <p className="mt-1 inline-flex items-center gap-1 text-sm font-black text-[#e8c547]">
                   <Clock className="h-3.5 w-3.5" />
                   {formatClock(elapsedSeconds)}
                 </p>
               </div>
               <button
                 onClick={() => setConfirmComplete(true)}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition-colors"
+                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
               >
-                Complete Workout
+                Finish
               </button>
             </div>
           </div>
@@ -164,6 +243,7 @@ export default function WorkoutPage() {
         <div className="container mx-auto px-4 py-8">
           <ExerciseTracker
             sessionId={currentSession}
+            weekNumber={selectedWeek}
             exercises={workout.exercises}
             onComplete={() => setConfirmComplete(true)}
           />
@@ -183,7 +263,19 @@ export default function WorkoutPage() {
             setStartedAt(null);
           }}
         >
-          Your sets are already saved. You can pick this session back up anytime.
+          Your sets are saved. Use Resume on the dashboard to pick this session back up.
+        </Modal>
+
+        <Modal
+          open={confirmRestart}
+          title="Restart this workout?"
+          cancelLabel="Cancel"
+          confirmLabel="Restart"
+          variant="danger"
+          onCancel={() => setConfirmRestart(false)}
+          onConfirm={restartWorkout}
+        >
+          This clears the current session and starts fresh for the same day.
         </Modal>
 
         <Modal
@@ -212,85 +304,84 @@ export default function WorkoutPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen">
+      <header className="glass-header">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
-            <Link href="/" className="flex items-center gap-2 text-gray-600 hover:text-gray-800">
-              <ArrowLeft className="w-5 h-5" />
-              Back to Dashboard
+            <Link href="/" className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white">
+              <ArrowLeft className="h-5 w-5" />
+              Dashboard
             </Link>
-            <h1 className="text-2xl font-bold">Select Workout</h1>
-            <div className="w-24"></div>
+            <h1 className="text-2xl font-black text-[#f5d76e]">Select Workout</h1>
+            <div className="w-24" />
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto space-y-4">
-          {workoutProgram.map(week => (
-            <div key={week.weekNumber} className="bg-white rounded-lg shadow-md overflow-hidden">
+        <div className="mx-auto max-w-4xl space-y-4">
+          {workoutProgram.map((week) => (
+            <div key={week.weekNumber} className="glass-card overflow-hidden">
               <button
                 onClick={() => setExpandedWeek(expandedWeek === week.weekNumber ? null : week.weekNumber)}
-                className="w-full px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors"
+                className="flex w-full items-center justify-between px-6 py-4 hover:bg-white/5"
               >
                 <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-bold">Week {week.weekNumber}</h2>
+                  <h2 className="text-xl font-black text-white">Week {week.weekNumber}</h2>
                   {week.isTravel && (
-                    <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm font-semibold">
+                    <span className="rounded-full bg-[#e8c547]/15 px-3 py-1 text-sm font-semibold text-[#e8c547]">
                       Travel Week
                     </span>
                   )}
-                  <span className="text-sm text-gray-600">
-                    {week.days.filter(d => completedWorkouts.has(`${week.weekNumber}-${d.dayNumber}`)).length} / {week.days.length} completed
+                  <span className="text-sm text-[#f6f1e3]/65">
+                    {week.days.filter((day) => completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`)).length} / {week.days.length} completed
                   </span>
                 </div>
                 {expandedWeek === week.weekNumber ? (
-                  <ChevronUp className="w-6 h-6 text-gray-400" />
+                  <ChevronUp className="h-6 w-6 text-[#e8c547]" />
                 ) : (
-                  <ChevronDown className="w-6 h-6 text-gray-400" />
+                  <ChevronDown className="h-6 w-6 text-[#e8c547]" />
                 )}
               </button>
 
               {expandedWeek === week.weekNumber && (
                 <div className="px-6 pb-6">
-                  <p className="text-sm text-gray-600 mb-4">{week.description}</p>
-                  
+                  <p className="mb-4 text-sm text-[#f6f1e3]/65">{week.description}</p>
+
                   <div className="grid gap-3">
-                    {week.days.map(day => {
+                    {week.days.map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
-                      
+                      const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
+
                       return (
                         <div
                           key={day.dayNumber}
-                          className={`border-2 rounded-lg p-4 transition-all ${
-                            isCompleted
-                              ? 'border-green-300 bg-green-50'
-                              : 'border-gray-200 hover:border-blue-300'
+                          className={`rounded-2xl border p-4 ${
+                            incomplete
+                              ? 'border-[#e8c547]/50 bg-[#e8c547]/10'
+                              : isCompleted
+                                ? 'border-[#e8c547]/20 bg-white/5'
+                                : 'border-white/10 bg-black/20'
                           }`}
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex items-center justify-between gap-3">
                             <div className="flex-1">
-                              <div className="flex items-center gap-2 mb-1">
-                                <h3 className="text-lg font-bold">{day.name}</h3>
-                                {isCompleted && (
-                                  <CheckCircle className="w-5 h-5 text-green-600" />
+                              <div className="mb-1 flex items-center gap-2">
+                                <h3 className="text-lg font-black text-white">{day.name}</h3>
+                                {isCompleted && !incomplete && (
+                                  <CheckCircle className="h-5 w-5 text-[#e8c547]" />
                                 )}
                               </div>
-                              <p className="text-sm text-gray-600">{day.focus}</p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
+                              <p className="mt-1 text-xs text-[#f6f1e3]/50">
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
                             </div>
                             <button
                               onClick={() => startWorkout(week.weekNumber, day.dayNumber)}
-                              className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                                isCompleted
-                                  ? 'bg-green-600 hover:bg-green-700 text-white'
-                                  : 'bg-blue-600 hover:bg-blue-700 text-white'
-                              }`}
+                              className="min-h-14 rounded-2xl bg-[#e8c547] px-6 py-3 font-black text-[#1a1404]"
                             >
-                              {isCompleted ? 'Do Again' : 'Start Workout'}
+                              {incomplete ? 'Resume' : isCompleted ? 'Do Again' : 'Start'}
                             </button>
                           </div>
                         </div>
@@ -324,5 +415,19 @@ export default function WorkoutPage() {
         {errorMessage}
       </Modal>
     </div>
+  );
+}
+
+export default function WorkoutPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center text-2xl font-black text-[#e8c547]">
+          Loading...
+        </div>
+      }
+    >
+      <WorkoutPageInner />
+    </Suspense>
   );
 }

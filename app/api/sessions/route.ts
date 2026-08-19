@@ -79,3 +79,20 @@ export async function PUT(request: NextRequest) {
     return NextResponse.json({ error: 'Failed to update workout session' }, { status: 500 });
   }
 }
+
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const sessionId = searchParams.get('sessionId');
+
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    }
+
+    await query('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting workout session:', error);
+    return NextResponse.json({ error: 'Failed to delete workout session' }, { status: 500 });
+  }
+}

@@ -6,10 +6,12 @@ import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Time
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ProgressCharts from '@/components/ProgressCharts';
 import { formatDuration } from '@/lib/formatDuration';
+import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 
 export default function Home() {
   const [stats, setStats] = useState<any>(null);
   const [badges, setBadges] = useState<any>(null);
+  const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [currentWeek, setCurrentWeek] = useState(1);
   const [loading, setLoading] = useState(true);
 
@@ -19,9 +21,10 @@ export default function Home() {
 
   const loadData = async () => {
     try {
-      const [statsRes, badgesRes] = await Promise.all([
+      const [statsRes, badgesRes, sessionsRes] = await Promise.all([
         fetch('/api/stats?userId=1'),
-        fetch('/api/badges?userId=1')
+        fetch('/api/badges?userId=1'),
+        fetch('/api/sessions?userId=1'),
       ]);
 
       if (statsRes.ok && badgesRes.ok) {
@@ -30,9 +33,13 @@ export default function Home() {
         setStats(statsData);
         setBadges(badgesData);
 
-        // Calculate current week based on completed workouts
-        const lastCompletedWeek = statsData.weekly.find((w: any) => w.completed_days > 0)?.week_number || 1;
+        const lastCompletedWeek = statsData.weekly.find((week: any) => week.completed_days > 0)?.week_number || 1;
         setCurrentWeek(lastCompletedWeek);
+      }
+
+      if (sessionsRes.ok) {
+        const sessionData = await sessionsRes.json();
+        setSessions(sessionData.sessions || []);
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -41,31 +48,38 @@ export default function Home() {
     }
   };
 
+  const today = getTodayTarget(sessions);
+  const todayHref =
+    today.type === 'resume' && today.session
+      ? `/workout?session=${today.session.id}`
+      : today.type === 'start' && today.week && today.day
+        ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}`
+        : '/workout';
+
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50 flex items-center justify-center">
-        <div className="text-2xl font-bold text-gray-600">Loading...</div>
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="text-2xl font-black text-[#e8c547]">Loading...</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+    <div className="min-h-screen">
+      <header className="glass-header">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Dumbbell className="w-8 h-8 text-blue-600" />
-              <h1 className="text-2xl font-bold text-gray-800">Work-It Tracker</h1>
+              <Dumbbell className="h-8 w-8 text-[#e8c547]" />
+              <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
             </div>
             <div className="flex items-center gap-4">
-              <span className="text-sm text-gray-600">6-Week Program</span>
+              <span className="hidden text-sm text-[#f6f1e3]/65 sm:inline">6-Week Program</span>
               <Link
-                href="/workout"
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 transition-colors"
+                href={todayHref}
+                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
               >
-                Start Workout
+                {today.type === 'resume' ? 'Resume' : 'Start Workout'}
               </Link>
             </div>
           </div>
@@ -73,86 +87,110 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Calendar className="w-6 h-6 text-blue-600" />
-              <h3 className="font-semibold text-gray-700">Workouts Completed</h3>
+        <Link href={todayHref} className="gold-hero mb-8 block p-6 sm:p-8">
+          {today.type === 'done' ? (
+            <>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Program</p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
+                All 6 weeks complete
+              </h2>
+              <p className="mt-3 text-lg text-[#f6f1e3]/75">Open the list if you want to run a session again.</p>
+            </>
+          ) : (
+            <>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
+                {today.type === 'resume' ? 'Pick back up' : 'Today'}
+              </p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-6xl">
+                Week {today.week?.weekNumber} · {today.day?.name}
+              </h2>
+              <p className="mt-3 text-lg text-[#f6f1e3]/75">{today.day?.focus}</p>
+              {today.week?.isTravel && (
+                <p className="mt-2 text-sm font-semibold text-[#e8c547]">Travel week · hotel-friendly</p>
+              )}
+              <span className="mt-6 inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]">
+                {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
+              </span>
+            </>
+          )}
+        </Link>
+
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Calendar className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Workouts Completed</h3>
             </div>
-            <p className="text-3xl font-bold text-blue-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {stats?.overall?.completed_workouts || 0}
             </p>
-            <p className="text-sm text-gray-500">out of 24 total</p>
+            <p className="text-sm text-[#f6f1e3]/55">out of 24 total</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Activity className="w-6 h-6 text-green-600" />
-              <h3 className="font-semibold text-gray-700">Current Streak</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Activity className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Current Streak</h3>
             </div>
-            <p className="text-3xl font-bold text-green-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {stats?.currentStreak || 0} days
             </p>
-            <p className="text-sm text-gray-500">Keep it going!</p>
+            <p className="text-sm text-[#f6f1e3]/55">Keep it going</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <TrendingUp className="w-6 h-6 text-purple-600" />
-              <h3 className="font-semibold text-gray-700">Total Weight Lifted</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <TrendingUp className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Total Weight Lifted</h3>
             </div>
-            <p className="text-3xl font-bold text-purple-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {Math.round(stats?.overall?.total_weight_lifted || 0).toLocaleString()}
             </p>
-            <p className="text-sm text-gray-500">lbs across all workouts</p>
+            <p className="text-sm text-[#f6f1e3]/55">lbs across all workouts</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Award className="w-6 h-6 text-yellow-500" />
-              <h3 className="font-semibold text-gray-700">Badges Earned</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Award className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Badges Earned</h3>
             </div>
-            <p className="text-3xl font-bold text-yellow-500">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {badges?.earnedBadges?.length || 0}
             </p>
-            <p className="text-sm text-gray-500">of {badges?.allBadges?.length || 0} total</p>
+            <p className="text-sm text-[#f6f1e3]/55">of {badges?.allBadges?.length || 0} total</p>
           </div>
         </div>
 
-        {/* Weekly Progress */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <h2 className="text-2xl font-bold mb-4">Weekly Progress</h2>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            {[1, 2, 3, 4, 5, 6].map(week => {
-              const weekData = stats?.weekly?.find((w: any) => w.week_number === week);
+        <div className="glass-card mb-8 p-6">
+          <h2 className="mb-4 text-2xl font-black text-white">Weekly Progress</h2>
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
+            {[1, 2, 3, 4, 5, 6].map((week) => {
+              const weekData = stats?.weekly?.find((item: any) => item.week_number === week);
               const completed = weekData?.completed_days || 0;
               const total = 4;
               const percentage = (completed / total) * 100;
-              const isCurrentWeek = week === currentWeek;
+              const isCurrentWeek = week === (today.week?.weekNumber || currentWeek);
 
               return (
                 <div
                   key={week}
-                  className={`p-4 rounded-lg border-2 ${
-                    isCurrentWeek ? 'border-blue-500 bg-blue-50' : 'border-gray-200'
+                  className={`rounded-2xl border p-4 ${
+                    isCurrentWeek ? 'border-[#e8c547] bg-[#e8c547]/10' : 'border-white/10 bg-black/20'
                   }`}
                 >
                   <div className="text-center">
-                    <h3 className="font-semibold mb-2">Week {week}</h3>
-                    <div className="text-2xl font-bold mb-2">
+                    <h3 className="mb-2 font-semibold text-[#f6f1e3]/80">Week {week}</h3>
+                    <div className="mb-2 text-2xl font-black text-[#f5d76e]">
                       {completed}/{total}
                     </div>
-                    <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                    <div className="h-2 overflow-hidden rounded-full bg-white/10">
                       <div
-                        className={`h-full ${
-                          percentage === 100 ? 'bg-green-500' : 'bg-blue-500'
-                        } transition-all`}
+                        className="h-full bg-[#e8c547] transition-all"
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
                     {week === 2 && (
-                      <p className="text-xs text-gray-500 mt-1">Travel Week</p>
+                      <p className="mt-1 text-xs text-[#e8c547]">Travel Week</p>
                     )}
                   </div>
                 </div>
@@ -161,76 +199,76 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Clock className="w-6 h-6 text-indigo-600" />
-              <h3 className="font-semibold text-gray-700">Last Workout</h3>
+        <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Clock className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Last Workout</h3>
             </div>
-            <p className="text-3xl font-bold text-indigo-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {formatDuration(stats?.recentDurations?.[0]?.duration_seconds)}
             </p>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-[#f6f1e3]/55">
               {stats?.recentDurations?.[0]
                 ? `Week ${stats.recentDurations[0].week_number} · ${stats.recentDurations[0].workout_type}`
                 : 'Complete a workout to start tracking'}
             </p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Timer className="w-6 h-6 text-blue-600" />
-              <h3 className="font-semibold text-gray-700">Average Duration</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Timer className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Average Duration</h3>
             </div>
-            <p className="text-3xl font-bold text-blue-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {formatDuration(stats?.timing?.avg_seconds)}
             </p>
-            <p className="text-sm text-gray-500">across completed sessions</p>
+            <p className="text-sm text-[#f6f1e3]/55">across completed sessions</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Hourglass className="w-6 h-6 text-purple-600" />
-              <h3 className="font-semibold text-gray-700">Longest Session</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Hourglass className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Longest Session</h3>
             </div>
-            <p className="text-3xl font-bold text-purple-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {formatDuration(stats?.timing?.max_seconds)}
             </p>
-            <p className="text-sm text-gray-500">best time in the gym</p>
+            <p className="text-sm text-[#f6f1e3]/55">best time in the gym</p>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <div className="flex items-center gap-3 mb-2">
-              <Clock className="w-6 h-6 text-emerald-600" />
-              <h3 className="font-semibold text-gray-700">Total Training Time</h3>
+          <div className="glass-card p-6">
+            <div className="mb-2 flex items-center gap-3">
+              <Clock className="h-6 w-6 text-[#e8c547]" />
+              <h3 className="font-semibold text-[#f6f1e3]/80">Total Training Time</h3>
             </div>
-            <p className="text-3xl font-bold text-emerald-600">
+            <p className="text-4xl font-black text-[#f5d76e]">
               {formatDuration(stats?.timing?.total_seconds)}
             </p>
-            <p className="text-sm text-gray-500">start to finish, all workouts</p>
+            <p className="text-sm text-[#f6f1e3]/55">start to finish, all workouts</p>
           </div>
         </div>
 
         {stats?.recentDurations?.length > 0 && (
-          <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-            <h2 className="text-2xl font-bold mb-4">Recent Session Times</h2>
+          <div className="glass-card mb-8 p-6">
+            <h2 className="mb-4 text-2xl font-black text-white">Recent Session Times</h2>
             <div className="space-y-3">
               {stats.recentDurations.map((session: any, index: number) => (
                 <div
                   key={`${session.week_number}-${session.day_number}-${session.ended_at}-${index}`}
-                  className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 px-4 py-3"
+                  className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-4 py-3"
                 >
                   <div>
-                    <p className="font-semibold text-slate-800">
+                    <p className="font-semibold text-white">
                       Week {session.week_number} · {session.workout_type}
                     </p>
-                    <p className="text-sm text-slate-500">
+                    <p className="text-sm text-[#f6f1e3]/55">
                       {session.started_at ? new Date(session.started_at).toLocaleString() : '—'}
                       {' → '}
                       {session.ended_at ? new Date(session.ended_at).toLocaleTimeString() : '—'}
                     </p>
                   </div>
-                  <p className="text-lg font-bold text-indigo-600">
+                  <p className="text-lg font-black text-[#e8c547]">
                     {formatDuration(session.duration_seconds)}
                   </p>
                 </div>
@@ -239,7 +277,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Charts */}
         {stats?.daily && stats.daily.length > 0 && (
           <div className="mb-8">
             <ProgressCharts
@@ -249,7 +286,6 @@ export default function Home() {
           </div>
         )}
 
-        {/* Badges */}
         {badges && (
           <BadgeDisplay
             allBadges={badges.allBadges}
@@ -257,32 +293,29 @@ export default function Home() {
           />
         )}
 
-        {/* Program Info */}
-        <div className="mt-8 bg-white rounded-lg shadow-md p-6">
-          <h2 className="text-2xl font-bold mb-4">Program Information</h2>
-          <div className="prose max-w-none">
-            <h3 className="text-lg font-semibold">4-Day Upper/Lower Split</h3>
-            <p className="text-gray-700 mb-4">
-              This 6-week program features an Upper / Lower / Rest / Upper / Lower weekly schedule,
-              designed to balance high muscle retention with full recovery.
+        <div className="glass-card mt-8 p-6">
+          <h2 className="mb-4 text-2xl font-black text-white">Program Information</h2>
+          <h3 className="text-lg font-semibold text-[#e8c547]">4-Day Upper/Lower Split</h3>
+          <p className="mb-4 text-[#f6f1e3]/75">
+            This 6-week program features an Upper / Lower / Rest / Upper / Lower weekly schedule,
+            designed to balance high muscle retention with full recovery.
+          </p>
+          <ul className="list-inside list-disc space-y-2 text-[#f6f1e3]/75">
+            <li><strong className="text-white">Day 1 (Monday):</strong> Upper Body A - Push Focus</li>
+            <li><strong className="text-white">Day 2 (Tuesday):</strong> Lower Body A - Quad & Glute Focus</li>
+            <li><strong className="text-white">Day 3 (Wednesday):</strong> Rest Day</li>
+            <li><strong className="text-white">Day 4 (Thursday):</strong> Upper Body B - Pull & Shoulder Focus</li>
+            <li><strong className="text-white">Day 5 (Friday):</strong> Lower Body B - Posterior Chain & Unilateral</li>
+            <li><strong className="text-white">Weekend:</strong> Active recovery (walking, yoga, swimming)</li>
+          </ul>
+          <div className="mt-4 rounded-2xl border border-[#e8c547]/20 bg-[#e8c547]/10 p-4">
+            <h4 className="mb-2 font-semibold text-[#e8c547]">Progressive Overload</h4>
+            <p className="text-sm text-[#f6f1e3]/80">
+              <strong>Week 1:</strong> Adaptation - Use conservative weights<br />
+              <strong>Week 2:</strong> Travel week with hotel-friendly exercises<br />
+              <strong>Weeks 3-5:</strong> Building - Add 2.5-5 lbs or 1-2 reps per set<br />
+              <strong>Week 6:</strong> Peak - Aim to match or beat Week 4 levels
             </p>
-            <ul className="list-disc list-inside space-y-2 text-gray-700">
-              <li><strong>Day 1 (Monday):</strong> Upper Body A - Push Focus</li>
-              <li><strong>Day 2 (Tuesday):</strong> Lower Body A - Quad & Glute Focus</li>
-              <li><strong>Day 3 (Wednesday):</strong> Rest Day</li>
-              <li><strong>Day 4 (Thursday):</strong> Upper Body B - Pull & Shoulder Focus</li>
-              <li><strong>Day 5 (Friday):</strong> Lower Body B - Posterior Chain & Unilateral</li>
-              <li><strong>Weekend:</strong> Active recovery (walking, yoga, swimming)</li>
-            </ul>
-            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
-              <h4 className="font-semibold mb-2">Progressive Overload</h4>
-              <p className="text-sm text-gray-700">
-                <strong>Week 1:</strong> Adaptation - Use conservative weights<br />
-                <strong>Week 2:</strong> Travel week with hotel-friendly exercises<br />
-                <strong>Weeks 3-5:</strong> Building - Add 2.5-5 lbs or 1-2 reps per set<br />
-                <strong>Week 6:</strong> Peak - Aim to match or beat Week 4 levels
-              </p>
-            </div>
           </div>
         </div>
       </div>

@@ -27,28 +27,28 @@ export default function Modal({
 
   const confirmClass =
     variant === "success"
-      ? "bg-emerald-600 hover:bg-emerald-700"
+      ? "bg-white text-black hover:bg-gray-200"
       : variant === "danger"
-        ? "bg-rose-600 hover:bg-rose-700"
-        : "bg-blue-600 hover:bg-blue-700";
+        ? "bg-rose-500 text-white hover:bg-rose-400"
+        : "bg-white text-black hover:bg-gray-200";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
-        className="absolute inset-0 bg-slate-900/55 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/70 backdrop-blur-md"
         onClick={onCancel ?? onConfirm}
       />
-      <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl ring-1 ring-black/5">
-        <div className="h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-purple-600" />
+      <div className="glass-card relative w-full max-w-md overflow-hidden">
+        <div className="h-1.5 bg-gradient-to-r from-white/40 via-white to-white/80" />
         <div className="p-6">
-          <h2 className="text-2xl font-bold tracking-tight text-slate-900">{title}</h2>
-          <div className="mt-3 text-slate-600 leading-relaxed">{children}</div>
+          <h2 className="text-2xl font-black tracking-tight text-white">{title}</h2>
+          <div className="mt-3 leading-relaxed text-[#f6f1e3]/80">{children}</div>
           <div className="mt-6 flex justify-end gap-3">
             {cancelLabel && (
               <button
                 type="button"
                 onClick={onCancel}
-                className="rounded-xl px-4 py-2.5 font-semibold text-slate-600 hover:bg-slate-100 transition-colors"
+                className="min-h-12 rounded-2xl px-4 py-2.5 font-semibold text-[#f6f1e3]/80 hover:bg-white/5"
               >
                 {cancelLabel}
               </button>
@@ -56,7 +56,7 @@ export default function Modal({
             <button
               type="button"
               onClick={onConfirm ?? onCancel}
-              className={`rounded-xl px-5 py-2.5 font-semibold text-white transition-colors ${confirmClass}`}
+              className={`min-h-12 rounded-2xl px-5 py-2.5 font-black transition-colors ${confirmClass}`}
             >
               {confirmLabel}
             </button>

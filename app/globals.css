@@ -1,8 +1,9 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f8fafc;
-  --foreground: #0f172a;
+  --background: #07070a;
+  --foreground: #f6f1e3;
+  --gold: #e8c547;
 }
 
 @theme inline {
@@ -10,32 +11,70 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-  --color-gray-400: #475569;
-  --color-gray-500: #334155;
-  --color-gray-600: #1e293b;
-  --color-gray-700: #0f172a;
-  --color-gray-800: #020617;
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  background: var(--background);
-  color: #0f172a;
-  font-family: Arial, Helvetica, sans-serif;
+  min-height: 100%;
+  background:
+    radial-gradient(1200px 500px at 50% -10%, rgba(232, 197, 71, 0.14), transparent 55%),
+    #07070a;
+  color: #f6f1e3;
+  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+}
+
+.glass-card {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(232, 197, 71, 0.16);
+  border-radius: 1.5rem;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.glass-header {
+  background: rgba(7, 7, 10, 0.72);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  border-bottom: 1px solid rgba(232, 197, 71, 0.16);
+}
+
+.gold-hero {
+  background: linear-gradient(135deg, rgba(232, 197, 71, 0.18), rgba(255, 255, 255, 0.04) 45%, rgba(7, 7, 10, 0.4));
+  backdrop-filter: blur(28px);
+  -webkit-backdrop-filter: blur(28px);
+  border: 1px solid rgba(232, 197, 71, 0.35);
+  border-radius: 2rem;
+}
+
+.glass-input {
+  min-height: 3.25rem;
+  border-radius: 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  background: rgba(0, 0, 0, 0.35);
+  padding: 0.75rem 1rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #fff;
+  outline: none;
+}
+
+.glass-input:focus {
+  border-color: #e8c547;
+  box-shadow: 0 0 0 3px rgba(232, 197, 71, 0.2);
+}
+
+.glass-input:disabled {
+  opacity: 0.65;
 }
 
 @keyframes get-to-it {
-  0% {
-    transform: scale(0.86);
-    opacity: 0;
-  }
-  20% {
-    transform: scale(1.06);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 1;
-  }
+  0% { transform: scale(0.86); opacity: 0; }
+  20% { transform: scale(1.06); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
 }
 
 .get-to-it-text {
