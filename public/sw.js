@@ -1,4 +1,4 @@
-const CACHE_NAME = 'work-it-v3';
+const CACHE_NAME = 'work-it-v4';
 const urlsToCache = [
   '/',
   '/workout',
