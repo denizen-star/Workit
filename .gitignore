@@ -53,3 +53,6 @@ workout-tracker/
 # local scratch
 Untitled
 sample.txt
+
+# Local Netlify folder
+.netlify
