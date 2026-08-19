@@ -6,6 +6,7 @@ import SetRestTimer from './SetRestTimer';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
 import { getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
+import { getExerciseImages } from '@/lib/exerciseImages';
 import {
   canCompleteSet,
   getExerciseKind,
@@ -277,6 +278,7 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
     <div className="space-y-6 pb-28">
       {groupedSets.map(({ exercise, sets }) => {
         const media = getExerciseMedia(exercise.name);
+        const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
         const lastWeek = history.lastWeekMax[exercise.name];
         const completedWeights = sets
@@ -313,22 +315,49 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
             </div>
 
             <div className="mb-4 grid grid-cols-2 gap-2">
-              <img
-                src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=start`}
-                alt={`${exercise.name} start`}
-                className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
-              <img
-                src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=end`}
-                alt={`${exercise.name} end`}
-                className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).style.display = 'none';
-                }}
-              />
+              {photos ? (
+                <>
+                  <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                    <img
+                      src={photos.start}
+                      alt={`${exercise.name} start position`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                      Start
+                    </figcaption>
+                  </figure>
+                  <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                    <img
+                      src={photos.end}
+                      alt={`${exercise.name} end position`}
+                      className="aspect-[4/3] w-full object-cover"
+                    />
+                    <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                      End
+                    </figcaption>
+                  </figure>
+                </>
+              ) : (
+                <>
+                  <img
+                    src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=start&v=3`}
+                    alt={`${exercise.name} start`}
+                    className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                  <img
+                    src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=end&v=3`}
+                    alt={`${exercise.name} end`}
+                    className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                </>
+              )}
             </div>
 
             {exercise.notes && (

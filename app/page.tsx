@@ -6,6 +6,7 @@ import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Time
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ProgressCharts from '@/components/ProgressCharts';
 import { formatDuration } from '@/lib/formatDuration';
+import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 
 export default function Home() {
@@ -55,6 +56,12 @@ export default function Home() {
       : today.type === 'start' && today.week && today.day
         ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}`
         : '/workout';
+  const todayEstimate =
+    today.day != null ? formatEstimateMinutes(estimateWorkoutSeconds(today.day)) : null;
+  const restartHref =
+    today.type === 'resume' && today.week && today.day
+      ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
+      : null;
 
   if (loading) {
     return (
@@ -87,7 +94,7 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <Link href={todayHref} className="gold-hero mb-8 block p-6 sm:p-8">
+        <div className="gold-hero mb-8 p-6 sm:p-8">
           {today.type === 'done' ? (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Program</p>
@@ -95,6 +102,12 @@ export default function Home() {
                 All 6 weeks complete
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">Open the list if you want to run a session again.</p>
+              <Link
+                href="/workout"
+                className="mt-6 inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
+              >
+                Browse workouts
+              </Link>
             </>
           ) : (
             <>
@@ -108,12 +121,28 @@ export default function Home() {
               {today.week?.isTravel && (
                 <p className="mt-2 text-sm font-semibold text-[#e8c547]">Travel week · hotel-friendly</p>
               )}
-              <span className="mt-6 inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]">
-                {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
-              </span>
+              {todayEstimate && (
+                <p className="mt-3 text-sm font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
+              )}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href={todayHref}
+                  className="inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
+                >
+                  {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
+                </Link>
+                {restartHref && (
+                  <Link
+                    href={restartHref}
+                    className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                  >
+                    Restart
+                  </Link>
+                )}
+              </div>
             </>
           )}
-        </Link>
+        </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
           <div className="glass-card p-6">

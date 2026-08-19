@@ -2,6 +2,7 @@
 
 import { ExternalLink, X } from "lucide-react";
 import { youtubeEmbedUrl, youtubeWatchUrl } from "@/lib/exerciseMedia";
+import { getExerciseImages } from "@/lib/exerciseImages";
 
 interface VideoModalProps {
   open: boolean;
@@ -12,6 +13,8 @@ interface VideoModalProps {
 
 export default function VideoModal({ open, title, videoId, onClose }: VideoModalProps) {
   if (!open) return null;
+
+  const photos = getExerciseImages(title);
 
   return (
     <div className="fixed inset-0 z-[70] flex items-center justify-center p-4">
@@ -40,28 +43,24 @@ export default function VideoModal({ open, title, videoId, onClose }: VideoModal
             allowFullScreen
           />
         </div>
-        <div className="grid grid-cols-2 gap-px bg-white/10">
-          <div className="aspect-square bg-black">
-            <img
-              src={`/api/exercise-image?name=${encodeURIComponent(title)}&type=start&v=2`}
-              alt={`${title} start position`}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
+        {photos && (
+          <div className="grid grid-cols-2 gap-px bg-white/10">
+            <div className="aspect-square bg-black">
+              <img
+                src={photos.start}
+                alt={`${title} start position`}
+                className="h-full w-full object-cover"
+              />
+            </div>
+            <div className="aspect-square bg-black">
+              <img
+                src={photos.end}
+                alt={`${title} end position`}
+                className="h-full w-full object-cover"
+              />
+            </div>
           </div>
-          <div className="aspect-square bg-black">
-            <img
-              src={`/api/exercise-image?name=${encodeURIComponent(title)}&type=end&v=2`}
-              alt={`${title} end position`}
-              className="h-full w-full object-cover"
-              onError={(e) => {
-                (e.target as HTMLElement).style.display = 'none';
-              }}
-            />
-          </div>
-        </div>
+        )}
         <div className="px-5 py-4">
           <a
             href={youtubeWatchUrl(videoId)}

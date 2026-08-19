@@ -84,12 +84,43 @@ export async function DELETE(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const sessionId = searchParams.get('sessionId');
+    const userId = searchParams.get('userId') || '1';
+    const weekNumber = searchParams.get('weekNumber');
+    const dayNumber = searchParams.get('dayNumber');
+    const resetDay = searchParams.get('resetDay') === '1';
+
+    // Reset a whole day: wipe incomplete sessions (and their sets) for that week/day
+    if (resetDay && weekNumber && dayNumber) {
+      const open = await query(
+        `SELECT id FROM workout_sessions
+         WHERE user_id = ?
+           AND week_number = ?
+           AND day_number = ?
+           AND (is_completed = 0 OR is_completed IS NULL OR is_completed = FALSE)`,
+        [userId, weekNumber, dayNumber]
+      );
+
+      for (const row of open.rows as { id: number }[]) {
+        await query('DELETE FROM exercise_sets WHERE workout_session_id = ?', [row.id]);
+        await query('DELETE FROM workout_sessions WHERE id = ? AND user_id = ?', [row.id, userId]);
+      }
+
+      // Also delete an explicit sessionId if provided (covers edge cases)
+      if (sessionId) {
+        await query('DELETE FROM exercise_sets WHERE workout_session_id = ?', [sessionId]);
+        await query('DELETE FROM workout_sessions WHERE id = ? AND user_id = ?', [sessionId, userId]);
+      }
+
+      return NextResponse.json({ success: true, deleted: open.rows.length });
+    }
 
     if (!sessionId) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    await query('DELETE FROM exercise_sets WHERE workout_session_id = ?', [sessionId]);
     await query('DELETE FROM workout_sessions WHERE id = ?', [sessionId]);
+
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error('Error deleting workout session:', error);

@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw } from 'lucide-react';
 import { workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
+import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
@@ -24,6 +25,7 @@ function WorkoutPageInner() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [confirmRestart, setConfirmRestart] = useState(false);
+  const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showError, setShowError] = useState(false);
@@ -32,12 +34,25 @@ function WorkoutPageInner() {
 
   useWakeLock(!!currentSession);
 
+  const askRestart = (weekNumber: number, dayNumber: number, sessionId?: number) => {
+    setRestartTarget({ weekNumber, dayNumber, sessionId });
+    setConfirmRestart(true);
+  };
+
   useEffect(() => {
     loadSessions().then((rows) => {
       if (autoOpened.current) return;
       const sessionId = searchParams.get('session');
       const week = Number(searchParams.get('week') || '');
       const day = Number(searchParams.get('day') || '');
+      const shouldRestart = searchParams.get('restart') === '1';
+
+      if (shouldRestart && week && day) {
+        autoOpened.current = true;
+        const open = findIncompleteSession(rows, week, day);
+        askRestart(week, day, open ? Number(open.id) : undefined);
+        return;
+      }
 
       if (sessionId) {
         autoOpened.current = true;
@@ -93,16 +108,23 @@ function WorkoutPageInner() {
     setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
   };
 
-  const startWorkout = async (weekNumber: number, dayNumber: number, knownSessions?: WorkoutSessionRow[]) => {
+  const startWorkout = async (
+    weekNumber: number,
+    dayNumber: number,
+    knownSessions?: WorkoutSessionRow[],
+    options?: { forceNew?: boolean }
+  ) => {
     try {
       const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
       const day = week?.days.find((item) => item.dayNumber === dayNumber);
       if (!day) return;
 
-      const open = findIncompleteSession(knownSessions || sessions, weekNumber, dayNumber);
-      if (open) {
-        openExistingSession(knownSessions || sessions, Number(open.id));
-        return;
+      if (!options?.forceNew) {
+        const open = findIncompleteSession(knownSessions || sessions, weekNumber, dayNumber);
+        if (open) {
+          openExistingSession(knownSessions || sessions, Number(open.id));
+          return;
+        }
       }
 
       const response = await fetch('/api/sessions', {
@@ -124,6 +146,7 @@ function WorkoutPageInner() {
         setSelectedDay(dayNumber);
         setStartedAt(Date.now());
         setElapsedSeconds(0);
+        await loadSessions();
       } else {
         setErrorMessage('Could not start this workout. Try again in a moment.');
         setShowError(true);
@@ -136,21 +159,38 @@ function WorkoutPageInner() {
   };
 
   const restartWorkout = async () => {
-    if (!currentSession) return;
+    const weekNumber = restartTarget?.weekNumber ?? selectedWeek;
+    const dayNumber = restartTarget?.dayNumber ?? selectedDay;
+
+    if (dayNumber == null) {
+      setConfirmRestart(false);
+      setRestartTarget(null);
+      return;
+    }
+
     try {
-      const response = await fetch(`/api/sessions?sessionId=${currentSession}`, { method: 'DELETE' });
+      // Wipe in-progress session(s) for this day and return to Start — do not reopen
+      const response = await fetch(
+        `/api/sessions?resetDay=1&userId=1&weekNumber=${weekNumber}&dayNumber=${dayNumber}${
+          restartTarget?.sessionId ? `&sessionId=${restartTarget.sessionId}` : ''
+        }`,
+        { method: 'DELETE' }
+      );
       if (!response.ok) {
         setErrorMessage('Could not restart the workout. Try again.');
         setShowError(true);
         return;
       }
-      const week = selectedWeek;
-      const day = selectedDay;
-      const rows = await loadSessions();
+
+      await loadSessions();
       setCurrentSession(null);
+      setSelectedDay(null);
       setStartedAt(null);
+      setElapsedSeconds(0);
       setConfirmRestart(false);
-      if (day != null) await startWorkout(week, day, rows);
+      setRestartTarget(null);
+      setExpandedWeek(weekNumber);
+      router.replace('/workout');
     } catch (error) {
       console.error('Error restarting workout:', error);
       setErrorMessage('Could not restart the workout. Try again.');
@@ -213,11 +253,15 @@ function WorkoutPageInner() {
                   <span className="hidden sm:inline">Exit</span>
                 </button>
                 <button
-                  onClick={() => setConfirmRestart(true)}
+                  onClick={() => {
+                    if (currentSession && selectedDay != null) {
+                      askRestart(selectedWeek, selectedDay, currentSession);
+                    }
+                  }}
                   className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
                 >
                   <RotateCcw className="h-5 w-5" />
-                  <span className="hidden sm:inline">Restart</span>
+                  Restart
                 </button>
               </div>
               <div className="flex-1 text-center">
@@ -272,10 +316,13 @@ function WorkoutPageInner() {
           cancelLabel="Cancel"
           confirmLabel="Restart"
           variant="danger"
-          onCancel={() => setConfirmRestart(false)}
+          onCancel={() => {
+            setConfirmRestart(false);
+            setRestartTarget(null);
+          }}
           onConfirm={restartWorkout}
         >
-          This clears the current session and starts fresh for the same day.
+          This clears all in-progress sets for that day and returns it to Start. Nothing is opened until you tap Start.
         </Modal>
 
         <Modal
@@ -307,13 +354,17 @@ function WorkoutPageInner() {
     <div className="min-h-screen">
       <header className="glass-header">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <Link href="/" className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white">
+          <div className="relative flex min-h-11 items-center">
+            <Link
+              href="/"
+              className="relative z-10 flex min-h-11 shrink-0 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
+            >
               <ArrowLeft className="h-5 w-5" />
-              Dashboard
+              <span className="text-sm sm:text-base">Dashboard</span>
             </Link>
-            <h1 className="text-2xl font-black text-[#f5d76e]">Select Workout</h1>
-            <div className="w-24" />
+            <h1 className="pointer-events-none absolute inset-x-0 text-center text-lg font-black whitespace-nowrap text-[#f5d76e] sm:text-2xl">
+              Select Workout
+            </h1>
           </div>
         </div>
       </header>
@@ -352,6 +403,7 @@ function WorkoutPageInner() {
                     {week.days.map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
                       const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
+                      const estimate = formatEstimateMinutes(estimateWorkoutSeconds(day));
 
                       return (
                         <div
@@ -364,7 +416,7 @@ function WorkoutPageInner() {
                                 : 'border-white/10 bg-black/20'
                           }`}
                         >
-                          <div className="flex items-center justify-between gap-3">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="flex-1">
                               <div className="mb-1 flex items-center gap-2">
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
@@ -377,12 +429,32 @@ function WorkoutPageInner() {
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
                             </div>
-                            <button
-                              onClick={() => startWorkout(week.weekNumber, day.dayNumber)}
-                              className="min-h-14 rounded-2xl bg-[#e8c547] px-6 py-3 font-black text-[#1a1404]"
-                            >
-                              {incomplete ? 'Resume' : isCompleted ? 'Do Again' : 'Start'}
-                            </button>
+                          </div>
+
+                          <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="inline-flex items-center gap-1.5 text-sm font-black text-[#e8c547]">
+                              <Clock className="h-4 w-4" />
+                              Est. {estimate}
+                            </span>
+                            <div className="flex gap-2">
+                              {incomplete && (
+                                <button
+                                  type="button"
+                                  onClick={() => askRestart(week.weekNumber, day.dayNumber, Number(incomplete.id))}
+                                  className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#e8c547]/50 px-4 font-black text-[#e8c547]"
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                  Restart
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => startWorkout(week.weekNumber, day.dayNumber)}
+                                className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] px-6 font-black text-[#1a1404]"
+                              >
+                                {incomplete ? 'Resume' : isCompleted ? 'Do Again' : 'Start'}
+                              </button>
+                            </div>
                           </div>
                         </div>
                       );
@@ -394,6 +466,21 @@ function WorkoutPageInner() {
           ))}
         </div>
       </div>
+
+      <Modal
+        open={confirmRestart && !currentSession}
+        title="Restart this workout?"
+        cancelLabel="Cancel"
+        confirmLabel="Restart"
+        variant="danger"
+        onCancel={() => {
+          setConfirmRestart(false);
+          setRestartTarget(null);
+        }}
+        onConfirm={restartWorkout}
+      >
+        This clears all in-progress sets for that day and returns it to Start. Nothing is opened until you tap Start.
+      </Modal>
 
       <Modal
         open={showSuccess}
