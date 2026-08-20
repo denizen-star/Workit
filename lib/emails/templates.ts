@@ -2,6 +2,7 @@ import { firstName } from '@/lib/profile';
 import { formatDuration } from '@/lib/formatDuration';
 import {
   appUrl,
+  whoUrl,
   bullets,
   cta,
   emailTextHeader,
@@ -90,7 +91,7 @@ function address(name: string) {
 
 export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const url = appUrl();
+  const url = whoUrl();
   const eyebrow = 'roster';
   const title = "You're mine now";
   const subtitle = '- by invitation only';
@@ -107,7 +108,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
         'Every set logged. Rest when I say. Badges when you earn them.',
         'Your numbers stay on your profile so I can inspect you.',
       ]),
-      cta(url + '/who', 'REPORT IN'),
+      cta(url, 'REPORT IN'),
       iosHomeScreenStepsHtml(),
     ].join(''),
   });
@@ -118,7 +119,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     'I put you on the roster. That was not a suggestion.',
     'Open the app. Pick your name. Punch your PIN. Then get under the bar.',
     '',
-    url + '/who',
+    url,
     '',
     iosHomeScreenStepsText(),
     emailTextSignOff(),
@@ -226,7 +227,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
       statsTable(rows),
       next,
-      cta(appUrl() + '/', input.programComplete ? 'COME HOME' : 'SHOW ME'),
+      cta(whoUrl(), input.programComplete ? 'COME HOME' : 'SHOW ME'),
     ].join(''),
   });
 
@@ -251,7 +252,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
         ? 'Next belongs to me: ' + input.nextLabel
         : '',
     '',
-    appUrl() + '/',
+    whoUrl(),
     emailTextSignOff(),
   ]
     .filter((line) => line !== '')
@@ -271,7 +272,7 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
       address(name),
       p(esc(input.badgeDescription) + '.'),
       p('You earned this because you did what I told you. It stays on your profile so I can see it. Now earn the next one for me.'),
-      cta(appUrl() + '/', 'SHOW ME'),
+      cta(whoUrl(), 'SHOW ME'),
     ].join(''),
   });
   const text = [
@@ -281,7 +282,7 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
     input.badgeDescription + '.',
     'You earned this because you did what I told you. Now earn the next one for me.',
     '',
-    appUrl() + '/',
+    whoUrl(),
     emailTextSignOff(),
   ].join('\n');
   return {
@@ -382,7 +383,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       input.also && input.also.length
         ? p('<strong style="color:#fff;">and you will also:</strong>') + bullets(input.also)
         : '',
-      cta(appUrl() + '/', 'OBEY'),
+      cta(whoUrl(), 'OBEY'),
     ].join(''),
   });
   const text = [
@@ -397,7 +398,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       ? ['', 'And you will also:', ...input.also.map((item) => '  - ' + item)]
       : []),
     '',
-    appUrl() + '/',
+    whoUrl(),
     emailTextSignOff(),
   ].join('\n');
   return {
@@ -431,7 +432,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       dayName: 'Upper Body A',
       focus: 'Push Focus',
       estimate: '~45 min',
-      href: '/workout?week=3&day=1',
+      href: whoUrl(),
     });
   }
   if (template === 'resume') {
@@ -440,7 +441,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       mode: 'resume',
       weekNumber: 3,
       dayName: 'Lower Body A',
-      href: '/workout?session=12',
+      href: whoUrl(),
     });
   }
   if (template === 'complete') return buildWorkoutCompleteEmail(completeBase);

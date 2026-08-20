@@ -26,7 +26,7 @@ A Progressive Web App for tracking a 6-week upper/lower workout split program wi
 
 - Node.js 18+ and npm
 - PlanetScale account and database
-- Domain: work-it.KervinApps.com
+- Domain: workit.kervinapps.com
 
 ## Installation
 
@@ -71,7 +71,7 @@ SENDER_EMAIL=info@kervinapps.com
 SENDER_PASSWORD=your_zoho_app_password
 SMTP_SERVER=smtp.zohocloud.ca
 SMTP_PORT=465
-NEXT_PUBLIC_APP_URL=https://work-it.kervinapps.com
+NEXT_PUBLIC_APP_URL=https://workit.kervinapps.com
 WORKIT_SCOREBOARD_TO=you@example.com
 CRON_SECRET=long-random-string
 ```
@@ -107,12 +107,12 @@ Visit `http://localhost:3000` to see the app.
 
 ## Deployment
 
-Live host is **Netlify** (`netlify.toml`, `@netlify/plugin-nextjs`) at `work-it.kervinapps.com`.
+Live host is **Netlify** (`netlify.toml`, `@netlify/plugin-nextjs`) at `workit.kervinapps.com`.
 
 1. Push to GitHub (Netlify continuous deploy on `main`)
 2. Site configuration → Environment variables — database + mail keys from `.env.example`
 3. Run `database/migrate-email.sql` once on PlanetScale if `email_sends` is missing
-4. Custom domain `work-it.kervinapps.com` in Netlify Domain management
+4. Custom domain `workit.kervinapps.com` in Netlify Domain management
 
 Admin → **Mail** to preview/send samples after deploy.
 
@@ -204,6 +204,7 @@ Notification.requestPermission();
 ```
 
 - Welcome mail (when an admin adds you) includes iPhone steps: Safari → Share → Add to Home Screen
+- Household mail buttons (welcome, nudge, recap, badge, release) open `/who`. Monday scoreboard opens `/admin`.
 
 ## API Endpoints
 

@@ -9,16 +9,14 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '2.0.0',
-  title: 'I mail you now',
+  version: '2.0.1',
+  title: 'Come in through the door',
   wins: [
-    "You're mine. Invitation only. When I put you on the roster, I mail you. No excuse that you did not know.",
-    'Put Work-It on your iPhone home screen. Safari. Share. Add to Home Screen. Browser tabs are for men who go soft.',
-    'Training days I wake you up. Leave a session open and I drag you back under the bar.',
-    'You finish, I recap. Time, volume, sweat, what you owe me next. Badges are praise you earn.',
-    'You answer to Master Workit. I call you man. Obey.',
+    'Every mail I send you opens on the name picker. Pick your name. Punch your PIN. That is how you come in, man.',
+    'The house is workit.kervinapps.com. No hyphen. Bookmark that. The other door is dead.',
+    'Hard-refresh if you are still running the old build. Then get under the bar.',
   ],
   also: [
-    'Hard-refresh if you are still running the old build. Then get under the bar.',
+    'Old mail with a dead link? Throw it out. Use the button in this one.',
   ],
 };

@@ -59,7 +59,7 @@ See DEPLOYMENT.md for icon generation options.
 
 ## Deployment
 
-See DEPLOYMENT.md for full deployment instructions to work-it.kervinapps.com
+See DEPLOYMENT.md for full deployment instructions to workit.kervinapps.com
 
 ### Quick Deploy (Netlify)
 

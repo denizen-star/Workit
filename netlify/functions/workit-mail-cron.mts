@@ -15,7 +15,7 @@ export default async function handler() {
     process.env.NEXT_PUBLIC_APP_URL ||
     process.env.URL ||
     process.env.DEPLOY_PRIME_URL ||
-    'https://work-it.kervinapps.com'
+    'https://workit.kervinapps.com'
   ).replace(/\/$/, '');
 
   const url = base + '/api/cron/mail';

@@ -59,7 +59,7 @@ git push -u origin cursor/workout-tracker-app-67f6
 
 ### 4. Configure Domain
 ```bash
-# work-it.kervinapps.com in Netlify Domain management
+# workit.kervinapps.com in Netlify Domain management
 ```
 
 ## Quick Start for Local Development

@@ -6,7 +6,11 @@ const BG = '#07070a';
 const CARD = '#12121a';
 
 export function appUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'https://work-it.kervinapps.com').replace(/\/$/, '');
+  return (process.env.NEXT_PUBLIC_APP_URL || 'https://workit.kervinapps.com').replace(/\/$/, '');
+}
+
+export function whoUrl() {
+  return appUrl() + '/who';
 }
 
 export function esc(s: string) {

@@ -4,7 +4,7 @@
 
 Complete Progressive Web App (PWA) for tracking a 6-week upper/lower workout split program with badges, progress visualization, rest timer, and detailed exercise tracking.
 
-**Live URL (after deployment)**: work-it.kervinapps.com
+**Live URL (after deployment)**: workit.kervinapps.com
 
 ## Features Implemented
 
@@ -153,7 +153,7 @@ workout-tracker/
 - [ ] Push to GitHub (`main` auto-deploys)
 - [ ] Set Production env vars (database + mail — `.env.example`)
 - [ ] Run `database/migrate-email.sql`
-- [ ] Custom domain `work-it.kervinapps.com`
+- [ ] Custom domain `workit.kervinapps.com`
 - [ ] Admin → Mail sample send
 
 ### Post-Deployment

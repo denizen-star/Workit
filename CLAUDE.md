@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-"Work-It" — a Next.js PWA for tracking a 6-week upper/lower workout split, used by a household of users authenticated via a name + optional 4-digit PIN (no email/password signup). Deployed on **Netlify** at `work-it.kervinapps.com`. Data lives in PlanetScale (MySQL, serverless HTTP driver). Coach voice is **Master Workit**; address the athlete as **man**, not boy.
+"Work-It" — a Next.js PWA for tracking a 6-week upper/lower workout split, used by a household of users authenticated via a name + optional 4-digit PIN (no email/password signup). Deployed on **Netlify** at `workit.kervinapps.com`. Data lives in PlanetScale (MySQL, serverless HTTP driver). Coach voice is **Master Workit**; address the athlete as **man**, not boy.
 
 ## Commands
 
@@ -39,7 +39,7 @@ No test suite.
 
 **Email** (Zoho SMTP, same stack as hit-list/Gowanus):
 - Client: `lib/mailClient.ts` (nodemailer). `EMAIL_ENABLED` empty/true sends; SMTP missing → skip. From display: `Master Workit <SENDER_EMAIL>`. Every send BCCs `info@kervinapps.com`.
-- Layout/templates: `lib/emailLayout.ts`, `lib/emails/templates.ts`. Welcome includes iPhone Safari **Add to Home Screen** steps.
+- Layout/templates: `lib/emailLayout.ts` (`appUrl()`, `whoUrl()`), `lib/emails/templates.ts`. Household CTAs go to `https://workit.kervinapps.com/who`. Scoreboard CTA goes to `/admin`. Welcome includes iPhone Safari **Add to Home Screen** steps.
 - Dedupe: `lib/emails/send.ts` `claimAndSend` inserts `email_sends (template, dedupe_key)` unique.
 - Triggers:
   - Admin creates user → welcome (`queueWelcomeEmail` via `after()`)

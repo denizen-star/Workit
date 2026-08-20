@@ -1,6 +1,6 @@
 # Deployment Guide for Work-It Tracker
 
-This guide covers deploying your workout tracker to work-it.kervinapps.com with PlanetScale MySQL.
+This guide covers deploying your workout tracker to workit.kervinapps.com with PlanetScale MySQL.
 
 ## Prerequisites
 
@@ -122,7 +122,7 @@ SENDER_EMAIL=info@kervinapps.com
 SENDER_PASSWORD=<zoho app password>
 SMTP_SERVER=smtp.zohocloud.ca
 SMTP_PORT=465
-NEXT_PUBLIC_APP_URL=https://work-it.kervinapps.com
+NEXT_PUBLIC_APP_URL=https://workit.kervinapps.com
 WORKIT_SCOREBOARD_TO=<Kevin's email>
 CRON_SECRET=<long random string, match .env.local>
 ```
@@ -141,13 +141,13 @@ Push to `main` or trigger Deploy. Cron: `netlify/functions/workit-mail-cron.mts`
 
 ### 4.1 Add domain in Netlify
 
-1. Site → Domain management → Add `work-it.kervinapps.com`
-2. Follow Netlify's DNS instructions (usually CNAME `work-it` → the Netlify site hostname)
+1. Site → Domain management → Add `workit.kervinapps.com`
+2. Follow Netlify's DNS instructions (usually CNAME `workit` → the Netlify site hostname)
 
 ### 4.2 Verify
 
 1. Wait for DNS
-2. Confirm HTTPS on `https://work-it.kervinapps.com`
+2. Confirm HTTPS on `https://workit.kervinapps.com`
 
 ## Step 5: Generate App Icons
 
@@ -192,7 +192,7 @@ Netlify redeploys on push to `main`.
 
 ### 6.1 Test Website
 
-Visit `https://work-it.kervinapps.com` and verify:
+Visit `https://workit.kervinapps.com` and verify:
 - [ ] Homepage loads
 - [ ] Can navigate to workout page
 - [ ] Dashboard shows stats
@@ -265,10 +265,10 @@ node -e "const { connect } = require('@planetscale/database'); const conn = conn
 
 ### Domain Not Working
 
-**Problem**: work-it.kervinapps.com not loading
+**Problem**: workit.kervinapps.com not loading
 
 **Solutions**:
-1. Check DNS propagation: `dig work-it.kervinapps.com`
+1. Check DNS propagation: `dig workit.kervinapps.com`
 2. Verify CNAME record is correct in DNS settings
 3. Wait up to 48 hours for full propagation
 4. Check the custom domain on the Netlify site
@@ -279,7 +279,7 @@ node -e "const { connect } = require('@planetscale/database'); const conn = conn
 
 **Solutions**:
 1. Verify HTTPS is enabled (required for PWA)
-2. Check manifest.json is accessible: `https://work-it.kervinapps.com/manifest.json`
+2. Check manifest.json is accessible: `https://workit.kervinapps.com/manifest.json`
 3. Ensure icons exist and are valid PNG files
 4. Clear browser cache and reload
 5. Check browser console for service worker errors

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 2.0.1 - 2026-08-19
+
+### Changed
+- Live app is `workit.kervinapps.com` (not `work-it.kervinapps.com`)
+- Household mail buttons open `/who` (pick name, PIN). Monday scoreboard still opens `/admin`
+
 ## 2.0.0 - 2026-08-19
 
 First version shared with household users.

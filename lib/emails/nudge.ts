@@ -1,5 +1,5 @@
 import { query } from '@/lib/db';
-import { appUrl } from '@/lib/emailLayout';
+import { whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimAndSend } from '@/lib/emails/send';
@@ -63,11 +63,6 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     return { sent: false, skipped: 'no-target' };
   }
 
-  const href =
-    target.type === 'resume' && target.session
-      ? '/workout?session=' + target.session.id
-      : '/workout?week=' + target.week.weekNumber + '&day=' + target.day.dayNumber;
-
   const email = buildNudgeEmail({
     name: user.name,
     mode: target.type,
@@ -76,7 +71,7 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     focus: target.day.focus,
     estimate: formatEstimateMinutes(estimateWorkoutSeconds(target.day)),
     isTravel: target.week.isTravel,
-    href: appUrl() + href,
+    href: whoUrl(),
   });
 
   const template = target.type === 'resume' ? 'resume' : 'nudge';
