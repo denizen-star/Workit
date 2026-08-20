@@ -1,15 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || '1';
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
 
-    // Get all badges
+    const userId = user.id;
+
     const allBadges = await query('SELECT * FROM badges ORDER BY requirement_value');
 
-    // Get user's earned badges
     const earnedBadges = await query(
       `SELECT b.*, ub.earned_at 
        FROM user_badges ub
@@ -19,8 +22,7 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    // Check for new badges to award
-    await checkAndAwardBadges(parseInt(userId));
+    await checkAndAwardBadges(userId);
 
     return NextResponse.json({
       allBadges: allBadges.rows,
@@ -34,7 +36,6 @@ export async function GET(request: NextRequest) {
 
 async function checkAndAwardBadges(userId: number) {
   try {
-    // Get user stats
     const statsResult = await query(
       `SELECT 
         COUNT(DISTINCT ws.id) as total_workouts,
@@ -49,7 +50,6 @@ async function checkAndAwardBadges(userId: number) {
 
     const userStats = statsResult.rows[0] as any;
 
-    // Check weekly completion
     const weeklyCompletion = await query(
       `SELECT week_number, COUNT(*) as completed_days
        FROM workout_sessions
@@ -61,7 +61,6 @@ async function checkAndAwardBadges(userId: number) {
 
     const completedWeeks = weeklyCompletion.rows.length;
 
-    // Check consecutive weeks
     let consecutiveWeeks = 0;
     if (weeklyCompletion.rows.length > 0) {
       const weeks = weeklyCompletion.rows.map((r: any) => r.week_number).sort((a: number, b: number) => a - b);
@@ -76,7 +75,6 @@ async function checkAndAwardBadges(userId: number) {
       consecutiveWeeks = streak;
     }
 
-    // Award badges based on conditions
     const badgeConditions = [
       { type: 'first_workout', value: userStats.completed_workouts >= 1 },
       { type: 'week_complete', value: completedWeeks >= 1 },
@@ -102,7 +100,6 @@ async function checkAndAwardBadges(userId: number) {
         }
 
         if (shouldAward) {
-          // Check if already earned
           const existing = await query(
             'SELECT id FROM user_badges WHERE user_id = ? AND badge_id = ?',
             [userId, badge.id]
@@ -118,7 +115,6 @@ async function checkAndAwardBadges(userId: number) {
       }
     }
 
-    // Check for perfect week
     const perfectWeeks = await query(
       `SELECT ws.week_number
        FROM workout_sessions ws

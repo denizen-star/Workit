@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ProgressCharts from '@/components/ProgressCharts';
+import UserHeader from '@/components/UserHeader';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
@@ -14,6 +15,8 @@ export default function Home() {
   const [badges, setBadges] = useState<any>(null);
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [currentWeek, setCurrentWeek] = useState(1);
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -22,11 +25,18 @@ export default function Home() {
 
   const loadData = async () => {
     try {
-      const [statsRes, badgesRes, sessionsRes] = await Promise.all([
-        fetch('/api/stats?userId=1'),
-        fetch('/api/badges?userId=1'),
-        fetch('/api/sessions?userId=1'),
+      const [meRes, statsRes, badgesRes, sessionsRes] = await Promise.all([
+        fetch('/api/me'),
+        fetch('/api/stats'),
+        fetch('/api/badges'),
+        fetch('/api/sessions'),
       ]);
+
+      if (meRes.ok) {
+        const meData = await meRes.json();
+        setUserName(meData.user?.name || '');
+        setUserEmail(meData.user?.email || '');
+      }
 
       if (statsRes.ok && badgesRes.ok) {
         const statsData = await statsRes.json();
@@ -80,8 +90,17 @@ export default function Home() {
               <Dumbbell className="h-8 w-8 text-[#e8c547]" />
               <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
             </div>
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
               <span className="hidden text-sm text-[#f6f1e3]/65 sm:inline">6-Week Program</span>
+              <UserHeader
+                userName={userName}
+                userEmail={userEmail}
+                showAddPerson
+                onProfileSaved={(profile) => {
+                  setUserName(profile.name);
+                  setUserEmail(profile.email || '');
+                }}
+              />
               <Link
                 href={todayHref}
                 className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"

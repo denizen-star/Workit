@@ -93,7 +93,7 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
     const load = async () => {
       const [existingRes, historyRes] = await Promise.all([
         fetch(`/api/exercises?sessionId=${sessionId}`),
-        fetch(`/api/exercises?history=1&userId=1&weekNumber=${weekNumber}&sessionId=${sessionId}`),
+        fetch(`/api/exercises?history=1&weekNumber=${weekNumber}&sessionId=${sessionId}`),
       ]);
 
       let saved: any[] = [];

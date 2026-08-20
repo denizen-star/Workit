@@ -1,12 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
 
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url);
-    const userId = searchParams.get('userId') || '1';
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
 
-    // Get all stats
+    const { searchParams } = new URL(request.url);
+    const userId = user.id;
+
     const overallStatsResult = await query(
       `SELECT 
         COUNT(DISTINCT ws.id) as total_workouts,
@@ -20,7 +25,6 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    // Get weekly completion
     const weeklyStats = await query(
       `SELECT 
         week_number,
@@ -33,7 +37,6 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    // Get daily stats
     const dailyStats = await query(
       `SELECT * FROM daily_stats 
        WHERE user_id = ? 
@@ -42,7 +45,6 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    // Calculate current streak
     const streakResult = await query(
       `SELECT workout_date FROM daily_stats 
        WHERE user_id = ? AND total_exercises_completed > 0

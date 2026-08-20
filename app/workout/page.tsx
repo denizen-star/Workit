@@ -12,6 +12,7 @@ import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover from '@/components/CompleteTakeover';
 import ExitTakeover from '@/components/ExitTakeover';
+import UserHeader from '@/components/UserHeader';
 import Modal from '@/components/Modal';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 
@@ -35,9 +36,21 @@ function WorkoutPageInner() {
   const [completeLine, setCompleteLine] = useState('');
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [userName, setUserName] = useState('');
+  const [userEmail, setUserEmail] = useState('');
   const autoOpened = useRef(false);
 
   useWakeLock(!!currentSession);
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setUserName(data?.user?.name || '');
+        setUserEmail(data?.user?.email || '');
+      })
+      .catch(() => {});
+  }, []);
 
   const askRestart = (weekNumber: number, dayNumber: number, sessionId?: number) => {
     setRestartTarget({ weekNumber, dayNumber, sessionId });
@@ -82,7 +95,7 @@ function WorkoutPageInner() {
 
   const loadSessions = async () => {
     try {
-      const response = await fetch('/api/sessions?userId=1');
+      const response = await fetch('/api/sessions');
       if (response.ok) {
         const data = await response.json();
         const rows: WorkoutSessionRow[] = data.sessions || [];
@@ -136,7 +149,6 @@ function WorkoutPageInner() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          userId: 1,
           weekNumber,
           dayNumber,
           workoutType: day.name,
@@ -176,7 +188,7 @@ function WorkoutPageInner() {
     try {
       // Wipe in-progress session(s) for this day and return to Start — do not reopen
       const response = await fetch(
-        `/api/sessions?resetDay=1&userId=1&weekNumber=${weekNumber}&dayNumber=${dayNumber}${
+        `/api/sessions?resetDay=1&weekNumber=${weekNumber}&dayNumber=${dayNumber}${
           restartTarget?.sessionId ? `&sessionId=${restartTarget.sessionId}` : ''
         }`,
         { method: 'DELETE' }
@@ -280,12 +292,22 @@ function WorkoutPageInner() {
                   {formatClock(elapsedSeconds)}
                 </p>
               </div>
-              <button
-                onClick={() => setConfirmComplete(true)}
-                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
-              >
-                Finish
-              </button>
+              <div className="flex shrink-0 items-center gap-2">
+                <button
+                  onClick={() => setConfirmComplete(true)}
+                  className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
+                >
+                  Finish
+                </button>
+                <UserHeader
+                  userName={userName}
+                  userEmail={userEmail}
+                  onProfileSaved={(profile) => {
+                    setUserName(profile.name);
+                    setUserEmail(profile.email || '');
+                  }}
+                />
+              </div>
             </div>
           </div>
         </header>
@@ -378,6 +400,16 @@ function WorkoutPageInner() {
             <h1 className="pointer-events-none absolute inset-x-0 text-center text-lg font-black whitespace-nowrap text-[#f5d76e] sm:text-2xl">
               Select Workout
             </h1>
+            <div className="relative z-10 ml-auto">
+              <UserHeader
+                userName={userName}
+                userEmail={userEmail}
+                onProfileSaved={(profile) => {
+                  setUserName(profile.name);
+                  setUserEmail(profile.email || '');
+                }}
+              />
+            </div>
           </div>
         </div>
       </header>

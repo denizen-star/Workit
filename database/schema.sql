@@ -1,10 +1,11 @@
 -- Workout Tracker Database Schema for PlanetScale MySQL
 
--- Users table (simple single-user for now, can be expanded)
+-- Users table (household profiles with optional PIN)
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     email VARCHAR(255) UNIQUE,
+    pin_hash VARCHAR(255) NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
@@ -137,4 +138,4 @@ INSERT INTO badges (name, description, icon, requirement_type, requirement_value
 ('Dedication', 'Complete 20 total workouts', '🎗️', 'total_workouts', 20);
 
 -- Insert default user (can be modified)
-INSERT INTO users (name, email) VALUES ('Workout User', 'user@workit.kervinapps.com');
+INSERT INTO users (name, email) VALUES ('Kevin', 'user@workit.kervinapps.com');

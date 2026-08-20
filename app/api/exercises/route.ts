@@ -1,8 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
+
+async function assertSessionOwnership(sessionId: number, userId: number) {
+  const result = await query(
+    'SELECT id FROM workout_sessions WHERE id = ? AND user_id = ?',
+    [sessionId, userId]
+  );
+  return result.rows.length > 0;
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const body = await request.json();
     const id = body.id;
     const workoutSessionId = body.workoutSessionId ?? body.workout_session_id;
@@ -14,9 +28,24 @@ export async function POST(request: NextRequest) {
     const isCompleted = body.isCompleted ?? body.is_completed ?? false;
     const notes = body.notes ?? null;
 
+    const owned = await assertSessionOwnership(Number(workoutSessionId), user.id);
+    if (!owned) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
     let setId = id ?? null;
 
     if (setId) {
+      const setCheck = await query(
+        `SELECT es.id FROM exercise_sets es
+         JOIN workout_sessions ws ON ws.id = es.workout_session_id
+         WHERE es.id = ? AND ws.user_id = ?`,
+        [setId, user.id]
+      );
+      if (setCheck.rows.length === 0) {
+        return NextResponse.json({ error: 'Set not found' }, { status: 404 });
+      }
+
       await query(
         `UPDATE exercise_sets
          SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?
@@ -49,7 +78,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    await updateDailyStats(workoutSessionId);
+    await updateDailyStats(workoutSessionId, user.id);
 
     return NextResponse.json({ success: true, setId });
   } catch (error) {
@@ -60,12 +89,16 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
     const { searchParams } = new URL(request.url);
     const history = searchParams.get('history');
     const sessionId = searchParams.get('sessionId');
 
     if (history) {
-      const userId = searchParams.get('userId') || '1';
       const weekNumber = Number(searchParams.get('weekNumber') || '0');
       const currentSessionId = Number(sessionId || '0');
       const previousWeek = weekNumber > 1 ? weekNumber - 1 : 0;
@@ -78,7 +111,7 @@ export async function GET(request: NextRequest) {
          JOIN workout_sessions ws ON ws.id = es.workout_session_id
          WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.id != ?
          ORDER BY done_at DESC, es.set_number ASC`,
-        [userId, currentSessionId]
+        [user.id, currentSessionId]
       );
 
       const lastSessionByExercise: Record<string, number> = {};
@@ -124,6 +157,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    const owned = await assertSessionOwnership(Number(sessionId), user.id);
+    if (!owned) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
     const result = await query(
       'SELECT * FROM exercise_sets WHERE workout_session_id = ? ORDER BY exercise_name, set_number',
       [sessionId]
@@ -136,11 +174,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-async function updateDailyStats(workoutSessionId: number) {
+async function updateDailyStats(workoutSessionId: number, userId: number) {
   try {
     const sessionResult = await query(
-      'SELECT user_id, DATE(COALESCE(completed_at, NOW())) as workout_date FROM workout_sessions WHERE id = ?',
-      [workoutSessionId]
+      'SELECT user_id, DATE(COALESCE(completed_at, NOW())) as workout_date FROM workout_sessions WHERE id = ? AND user_id = ?',
+      [workoutSessionId, userId]
     );
 
     if (sessionResult.rows.length === 0) return;
