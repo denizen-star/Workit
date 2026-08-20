@@ -10,7 +10,10 @@ import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDur
 import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
+import CompleteTakeover from '@/components/CompleteTakeover';
+import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
+import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 
 function WorkoutPageInner() {
   const router = useRouter();
@@ -24,10 +27,12 @@ function WorkoutPageInner() {
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
+  const [exitLine, setExitLine] = useState('');
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [completeLine, setCompleteLine] = useState('');
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const autoOpened = useRef(false);
@@ -218,10 +223,8 @@ function WorkoutPageInner() {
       }
 
       await loadSessions();
-      setCurrentSession(null);
-      setSelectedDay(null);
-      setStartedAt(null);
       setConfirmComplete(false);
+      setCompleteLine(pickCompleteLine());
       setShowSuccess(true);
     } catch (error) {
       console.error('Error completing workout:', error);
@@ -246,7 +249,10 @@ function WorkoutPageInner() {
             <div className="flex items-center justify-between gap-3">
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setConfirmExit(true)}
+                  onClick={() => {
+                    setExitLine(pickExitLine());
+                    setConfirmExit(true);
+                  }}
                   className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
                 >
                   <ArrowLeft className="h-5 w-5" />
@@ -293,22 +299,29 @@ function WorkoutPageInner() {
           />
         </div>
 
-        <Modal
+        <ExitTakeover
           open={confirmExit}
-          title="Leave this workout?"
-          cancelLabel="Stay"
-          confirmLabel="Exit"
-          variant="danger"
-          onCancel={() => setConfirmExit(false)}
-          onConfirm={() => {
+          line={exitLine}
+          onStay={() => setConfirmExit(false)}
+          onQuit={() => {
             setConfirmExit(false);
             setCurrentSession(null);
             setSelectedDay(null);
             setStartedAt(null);
           }}
-        >
-          Your sets are saved. Use Resume on the dashboard to pick this session back up.
-        </Modal>
+        />
+
+        <CompleteTakeover
+          open={showSuccess}
+          line={completeLine}
+          onClose={() => {
+            setShowSuccess(false);
+            setCurrentSession(null);
+            setSelectedDay(null);
+            setStartedAt(null);
+            router.push('/');
+          }}
+        />
 
         <Modal
           open={confirmRestart}
@@ -482,15 +495,17 @@ function WorkoutPageInner() {
         This clears all in-progress sets for that day and returns it to Start. Nothing is opened until you tap Start.
       </Modal>
 
-      <Modal
+      <CompleteTakeover
         open={showSuccess}
-        title="Workout complete"
-        confirmLabel="Back to dashboard"
-        variant="success"
-        onConfirm={() => router.push('/')}
-      >
-        Great job. Start and end time are saved, and your duration now shows on the dashboard.
-      </Modal>
+        line={completeLine}
+        onClose={() => {
+          setShowSuccess(false);
+          setCurrentSession(null);
+          setSelectedDay(null);
+          setStartedAt(null);
+          router.push('/');
+        }}
+      />
 
       <Modal
         open={showError}

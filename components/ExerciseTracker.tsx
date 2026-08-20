@@ -3,6 +3,9 @@
 import { useState, useEffect } from 'react';
 import { Check, Edit2, Play } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
+import TimedSetTimer from './TimedSetTimer';
+import { pickCoachLine } from '@/lib/coachLines';
+import { playSetChime, unlockAudio } from '@/lib/playChime';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
 import { getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
@@ -10,6 +13,7 @@ import { getExerciseImages } from '@/lib/exerciseImages';
 import {
   canCompleteSet,
   getExerciseKind,
+  parseTimedTarget,
   primaryFieldLabel,
   suggestedNextWeight,
   weightFieldLabel,
@@ -64,6 +68,8 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<{ title: string; videoId: string } | null>(null);
   const [restToken, setRestToken] = useState(0);
+  const [restLine, setRestLine] = useState('Finish it. Make me proud.');
+  const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
 
@@ -222,10 +228,14 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
 
       if (options?.startRest) {
         const remaining = newSets.filter((item) => !item.is_completed).length;
-        if (remaining > 0) setRestToken((token) => token + 1);
+        if (remaining > 0) {
+          const completed = newSets.filter((item) => item.is_completed).length;
+          setRestLine(pickCoachLine(completed, newSets.length));
+          setRestToken((token) => token + 1);
+        }
       }
 
-      const allCompleted = newSets.every((item) => item.is_completed);
+      const allCompleted = newSets.length > 0 && newSets.every((item) => item.is_completed);
       if (allCompleted && onComplete) onComplete();
     } catch (error) {
       console.error('Error saving set:', error);
@@ -238,6 +248,9 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
     const set = exerciseSets[index];
     const kind = kindFor(exercise);
     if (!canCompleteSet(kind, set.actual_reps, set.weight_lbs)) return;
+
+    unlockAudio();
+    playSetChime();
 
     const weight = set.weight_lbs ?? 0;
     const reps = set.actual_reps ?? 0;
@@ -273,6 +286,8 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
     const sets = exerciseSets.filter((item) => item.exercise_name === exercise.name);
     return { exercise, sets };
   });
+  const allSetsComplete =
+    exerciseSets.length > 0 && exerciseSets.every((item) => item.is_completed);
 
   return (
     <div className="space-y-6 pb-28">
@@ -443,6 +458,22 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
                       </div>
                     </div>
 
+                    {kind === 'timed' && !set.is_completed && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setTimedTimer({
+                            index: globalIndex,
+                            target: parseTimedTarget(exercise.reps),
+                          })
+                        }
+                        className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-lg font-black text-white"
+                      >
+                        <Play className="h-5 w-5" />
+                        Start timer
+                      </button>
+                    )}
+
                     <button
                       type="button"
                       onClick={() => {
@@ -507,7 +538,19 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
         </div>
       </div>
 
-      <SetRestTimer startToken={restToken} />
+      <SetRestTimer startToken={restToken} line={restLine} cancelled={allSetsComplete} />
+
+      <TimedSetTimer
+        open={!!timedTimer}
+        targetSeconds={timedTimer?.target ?? 45}
+        onCancel={() => setTimedTimer(null)}
+        onStop={(heldSeconds) => {
+          if (timedTimer) {
+            updateSet(timedTimer.index, { actual_reps: heldSeconds });
+          }
+          setTimedTimer(null);
+        }}
+      />
 
       <VideoModal
         open={!!activeVideo}

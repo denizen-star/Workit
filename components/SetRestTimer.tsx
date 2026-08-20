@@ -3,52 +3,62 @@
 import { useEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import { formatClock } from "@/lib/formatDuration";
-import { playChime, unlockAudio } from "@/lib/playChime";
+import { unlockAudio } from "@/lib/playChime";
 import GetToItModal from "./GetToItModal";
 
 const REST_SECONDS = 60;
 
 interface SetRestTimerProps {
   startToken: number;
+  line: string;
+  cancelled?: boolean;
 }
 
-export default function SetRestTimer({ startToken }: SetRestTimerProps) {
+export default function SetRestTimer({ startToken, line, cancelled = false }: SetRestTimerProps) {
   const [remaining, setRemaining] = useState(REST_SECONDS);
   const [running, setRunning] = useState(false);
   const [showGetToIt, setShowGetToIt] = useState(false);
-  const completedRef = useRef(false);
+  const endAtRef = useRef(0);
+  const finishedRef = useRef(false);
+
+  const closeGetToIt = () => setShowGetToIt(false);
 
   useEffect(() => {
     if (startToken === 0) return;
+
     unlockAudio();
-    completedRef.current = false;
+    finishedRef.current = false;
+    endAtRef.current = Date.now() + REST_SECONDS * 1000;
+    setShowGetToIt(false);
     setRemaining(REST_SECONDS);
     setRunning(true);
   }, [startToken]);
 
   useEffect(() => {
-    if (!running) return;
+    if (!cancelled) return;
+    finishedRef.current = true;
+    setRunning(false);
+    setShowGetToIt(false);
+  }, [cancelled]);
 
-    const interval = window.setInterval(() => {
-      setRemaining((prev) => {
-        if (prev <= 1) {
-          window.clearInterval(interval);
-          setRunning(false);
-          if (!completedRef.current) {
-            completedRef.current = true;
-            playChime();
-            setShowGetToIt(true);
-          }
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
+  useEffect(() => {
+    if (!running || cancelled) return;
 
+    const tick = () => {
+      const left = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
+      setRemaining(left);
+      if (left > 0 || finishedRef.current) return;
+      finishedRef.current = true;
+      setRunning(false);
+      setShowGetToIt(true);
+    };
+
+    tick();
+    const interval = window.setInterval(tick, 200);
     return () => window.clearInterval(interval);
-  }, [running]);
+  }, [running, cancelled]);
 
-  if (!running && startToken === 0) return null;
+  if (!running && startToken === 0 && !showGetToIt) return null;
 
   return (
     <>
@@ -69,13 +79,11 @@ export default function SetRestTimer({ startToken }: SetRestTimerProps) {
             <button
               type="button"
               onClick={() => {
+                if (finishedRef.current) return;
+                finishedRef.current = true;
                 setRunning(false);
                 setRemaining(0);
-                if (!completedRef.current) {
-                  completedRef.current = true;
-                  playChime();
-                  setShowGetToIt(true);
-                }
+                if (!cancelled) setShowGetToIt(true);
               }}
               className="min-h-12 rounded-2xl bg-white px-5 text-base font-black text-black hover:bg-gray-200"
             >
@@ -84,7 +92,7 @@ export default function SetRestTimer({ startToken }: SetRestTimerProps) {
           </div>
         </div>
       )}
-      <GetToItModal open={showGetToIt} onClose={() => setShowGetToIt(false)} />
+      <GetToItModal open={showGetToIt && !cancelled} line={line} onClose={closeGetToIt} />
     </>
   );
 }

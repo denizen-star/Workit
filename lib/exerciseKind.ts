@@ -10,6 +10,12 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
   return "weighted";
 }
 
+export function parseTimedTarget(reps: string): number {
+  const match = reps.toLowerCase().match(/(\d+)\s*seconds?/) || reps.match(/(\d+)/);
+  const value = match ? Number(match[1]) : 45;
+  return Number.isFinite(value) && value > 0 ? value : 45;
+}
+
 export function primaryFieldLabel(kind: ExerciseKind): string {
   if (kind === "timed") return "Seconds";
   if (kind === "distance") return "Meters";

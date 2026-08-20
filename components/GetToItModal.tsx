@@ -1,35 +1,56 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
+import { playHorn } from "@/lib/playChime";
 
 interface GetToItModalProps {
   open: boolean;
+  line: string;
   onClose: () => void;
 }
 
-export default function GetToItModal({ open, onClose }: GetToItModalProps) {
-  useEffect(() => {
-    if (!open) return;
+const DISMISS_MS = 10000;
 
-    try {
-      navigator.vibrate?.([200, 80, 200, 80, 420]);
-    } catch {
-      // Vibration is not available on every phone.
+export default function GetToItModal({ open, line, onClose }: GetToItModalProps) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const openedAtRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!open) {
+      openedAtRef.current = null;
+      return;
     }
 
-    const timeout = window.setTimeout(onClose, 4000);
+    if (openedAtRef.current == null) {
+      openedAtRef.current = Date.now();
+      playHorn();
+      try {
+        navigator.vibrate?.([200, 80, 200, 80, 420]);
+      } catch {
+        // Vibration is not available on every phone.
+      }
+    }
+
+    const interval = window.setInterval(() => {
+      const openedAt = openedAtRef.current;
+      if (openedAt != null && Date.now() - openedAt >= DISMISS_MS) {
+        onCloseRef.current();
+      }
+    }, 200);
+
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        onClose();
+        onCloseRef.current();
       }
     };
 
     window.addEventListener("keydown", onKeyDown);
     return () => {
-      window.clearTimeout(timeout);
+      window.clearInterval(interval);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 
@@ -53,10 +74,9 @@ export default function GetToItModal({ open, onClose }: GetToItModalProps) {
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-white/80">
           Rest is over
         </p>
-        <h2 className="get-to-it-text text-6xl font-black tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-8xl">
-          GET TO IT
+        <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
+          {line}
         </h2>
-        <p className="mt-6 text-lg font-medium text-[#f6f1e3]/85">Next set. Same energy.</p>
         <p className="mt-10 text-sm font-semibold uppercase tracking-[0.25em] text-white/70">
           Tap anywhere to continue
         </p>
