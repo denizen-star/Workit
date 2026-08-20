@@ -26,6 +26,14 @@ export default function WhoPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
+    fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user && !data.user.isAdmin) {
+          router.replace('/');
+        }
+      })
+      .catch(() => {});
     loadUsers();
   }, []);
 

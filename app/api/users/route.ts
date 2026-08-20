@@ -3,7 +3,7 @@ import { query } from '@/lib/db';
 import {
   hashPin,
   isValidPin,
-  requireCurrentUser,
+  requireAdmin,
   AuthError,
 } from '@/lib/auth';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
@@ -32,7 +32,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireCurrentUser();
+    await requireAdmin();
 
     const body = await request.json();
     const name = normalizeName(body.name);
@@ -68,7 +68,7 @@ export async function POST(request: NextRequest) {
         id: result.insertId,
         name,
         email,
-        has_pin: 1,
+        has_pin: true,
       },
     });
   } catch (error) {

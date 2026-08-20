@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
 
-const PUBLIC_PATHS = ['/who', '/api/users', '/api/auth'];
-
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
@@ -18,7 +16,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (PUBLIC_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`))) {
+  if (pathname === '/who' || pathname.startsWith('/api/auth')) {
+    return NextResponse.next();
+  }
+
+  if (pathname === '/api/users' && request.method === 'GET') {
     return NextResponse.next();
   }
 

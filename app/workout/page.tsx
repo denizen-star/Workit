@@ -12,7 +12,6 @@ import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover from '@/components/CompleteTakeover';
 import ExitTakeover from '@/components/ExitTakeover';
-import UserHeader from '@/components/UserHeader';
 import Modal from '@/components/Modal';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 
@@ -36,21 +35,9 @@ function WorkoutPageInner() {
   const [completeLine, setCompleteLine] = useState('');
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
-  const [userName, setUserName] = useState('');
-  const [userEmail, setUserEmail] = useState('');
   const autoOpened = useRef(false);
 
   useWakeLock(!!currentSession);
-
-  useEffect(() => {
-    fetch('/api/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        setUserName(data?.user?.name || '');
-        setUserEmail(data?.user?.email || '');
-      })
-      .catch(() => {});
-  }, []);
 
   const askRestart = (weekNumber: number, dayNumber: number, sessionId?: number) => {
     setRestartTarget({ weekNumber, dayNumber, sessionId });
@@ -292,22 +279,12 @@ function WorkoutPageInner() {
                   {formatClock(elapsedSeconds)}
                 </p>
               </div>
-              <div className="flex shrink-0 items-center gap-2">
-                <button
-                  onClick={() => setConfirmComplete(true)}
-                  className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
-                >
-                  Finish
-                </button>
-                <UserHeader
-                  userName={userName}
-                  userEmail={userEmail}
-                  onProfileSaved={(profile) => {
-                    setUserName(profile.name);
-                    setUserEmail(profile.email || '');
-                  }}
-                />
-              </div>
+              <button
+                onClick={() => setConfirmComplete(true)}
+                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
+              >
+                Finish
+              </button>
             </div>
           </div>
         </header>
@@ -400,16 +377,6 @@ function WorkoutPageInner() {
             <h1 className="pointer-events-none absolute inset-x-0 text-center text-lg font-black whitespace-nowrap text-[#f5d76e] sm:text-2xl">
               Select Workout
             </h1>
-            <div className="relative z-10 ml-auto">
-              <UserHeader
-                userName={userName}
-                userEmail={userEmail}
-                onProfileSaved={(profile) => {
-                  setUserName(profile.name);
-                  setUserEmail(profile.email || '');
-                }}
-              />
-            </div>
           </div>
         </div>
       </header>

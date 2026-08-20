@@ -8,7 +8,14 @@ export type SessionUser = {
   name: string;
   email: string | null;
   hasPin: boolean;
+  isAdmin: boolean;
 };
+
+export const ADMIN_USER_ID = 1;
+
+export function isAdminUser(user: { id: number }) {
+  return user.id === ADMIN_USER_ID;
+}
 
 export {
   createSessionToken,
@@ -66,6 +73,7 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     name: row.name,
     email: row.email,
     hasPin: row.pin_hash != null,
+    isAdmin: row.id === ADMIN_USER_ID,
   };
 }
 
@@ -73,6 +81,14 @@ export async function requireCurrentUser(): Promise<SessionUser> {
   const user = await getCurrentUser();
   if (!user) {
     throw new AuthError('Not authenticated', 401);
+  }
+  return user;
+}
+
+export async function requireAdmin(): Promise<SessionUser> {
+  const user = await requireCurrentUser();
+  if (!isAdminUser(user)) {
+    throw new AuthError('Forbidden', 403);
   }
   return user;
 }

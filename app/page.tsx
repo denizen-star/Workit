@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import ProgressCharts from '@/components/ProgressCharts';
-import UserHeader from '@/components/UserHeader';
+import AppMenu from '@/components/AppMenu';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
@@ -17,6 +17,7 @@ export default function Home() {
   const [currentWeek, setCurrentWeek] = useState(1);
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -36,6 +37,7 @@ export default function Home() {
         const meData = await meRes.json();
         setUserName(meData.user?.name || '');
         setUserEmail(meData.user?.email || '');
+        setIsAdmin(!!meData.user?.isAdmin);
       }
 
       if (statsRes.ok && badgesRes.ok) {
@@ -92,15 +94,16 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm text-[#f6f1e3]/65 sm:inline">6-Week Program</span>
-              <UserHeader
-                userName={userName}
-                userEmail={userEmail}
-                showAddPerson
-                onProfileSaved={(profile) => {
-                  setUserName(profile.name);
-                  setUserEmail(profile.email || '');
-                }}
-              />
+              {isAdmin && (
+                <AppMenu
+                  userName={userName}
+                  userEmail={userEmail}
+                  onProfileSaved={(profile) => {
+                    setUserName(profile.name);
+                    setUserEmail(profile.email || '');
+                  }}
+                />
+              )}
               <Link
                 href={todayHref}
                 className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
