@@ -17,14 +17,7 @@ Copy `.env.example` to `.env.local` and add your PlanetScale credentials:
 cp .env.example .env.local
 ```
 
-Edit `.env.local`:
-```env
-DATABASE_HOST=aws.connect.psdb.cloud
-DATABASE_USERNAME=your_username
-DATABASE_PASSWORD=your_password
-```
-
-Get credentials from PlanetScale dashboard → Your Database → Connect
+Edit `.env.local` — at minimum database + `AUTH_SECRET`. Mail keys are in `.env.example` (copy those if you want local sends).
 
 ### 3. Initialize Database Schema
 
@@ -68,12 +61,12 @@ See DEPLOYMENT.md for icon generation options.
 
 See DEPLOYMENT.md for full deployment instructions to work-it.kervinapps.com
 
-### Quick Deploy to Vercel
+### Quick Deploy (Netlify)
 
-1. Push to GitHub
-2. Import to Vercel
-3. Add environment variables
-4. Deploy!
+1. Push to GitHub (`main` auto-deploys)
+2. Netlify → Environment variables (`.env.example` keys, Production)
+3. Run `database/migrate-email.sql` on PlanetScale once
+4. Deploy / wait for the build
 
 ## Troubleshooting
 

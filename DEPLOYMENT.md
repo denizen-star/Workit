@@ -1,10 +1,10 @@
 # Deployment Guide for Work-It Tracker
 
-This guide covers deploying your workout tracker to work-it.KervinApps.com with PlanetScale MySQL.
+This guide covers deploying your workout tracker to work-it.kervinapps.com with PlanetScale MySQL.
 
 ## Prerequisites
 
-- [Vercel Account](https://vercel.com)
+- [Netlify Account](https://app.netlify.com) (this app's host)
 - [PlanetScale Account](https://planetscale.com)
 - Domain access to KervinApps.com
 - GitHub repository (or Git provider)
@@ -61,7 +61,7 @@ pscale shell workout-tracker production < database/schema.sql
    - Username
    - Password
 
-Keep these for Vercel configuration.
+Keep these for Netlify environment variables.
 
 ### 1.5 Promote Branch to Production
 
@@ -95,75 +95,59 @@ git branch -M main
 git push -u origin main
 ```
 
-## Step 3: Deploy to Vercel
+## Step 3: Deploy to Netlify
 
-### 3.1 Import Project
+### 3.1 Connect the repo
 
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Click "Add New" > "Project"
-3. Import your GitHub repository
-4. Select `workout-tracker`
+1. [Netlify dashboard](https://app.netlify.com) → add site from Git
+2. Select this repository / `main`
+3. Build: `npm run build`, publish `.next`, plugin `@netlify/plugin-nextjs` (see `netlify.toml`)
 
-### 3.2 Configure Build Settings
+### 3.2 Environment variables
 
-Vercel should auto-detect Next.js. Verify these settings:
-
-- **Framework Preset**: Next.js
-- **Root Directory**: `./` (or leave empty)
-- **Build Command**: `npm run build`
-- **Output Directory**: `.next`
-- **Install Command**: `npm install`
-
-### 3.3 Add Environment Variables
-
-In the Vercel project configuration, add these environment variables:
+Site configuration → Environment variables. Scope **Production**. Database:
 
 ```
-DATABASE_HOST=aws.connect.psdb.cloud
-DATABASE_USERNAME=<your-planetscale-username>
-DATABASE_PASSWORD=<your-planetscale-password>
+DATABASE_HOST=...
+DATABASE_USERNAME=...
+DATABASE_PASSWORD=...
+AUTH_SECRET=...
 ```
 
-**Important**: Use the production branch credentials from PlanetScale.
+Mail (same Zoho SMTP as hit-list/Gowanus):
+
+```
+EMAIL_ENABLED=TRUE
+SENDER_EMAIL=info@kervinapps.com
+SENDER_PASSWORD=<zoho app password>
+SMTP_SERVER=smtp.zohocloud.ca
+SMTP_PORT=465
+NEXT_PUBLIC_APP_URL=https://work-it.kervinapps.com
+WORKIT_SCOREBOARD_TO=<Kevin's email>
+CRON_SECRET=<long random string, match .env.local>
+```
+
+Use PlanetScale **production** credentials.
+
+### 3.3 Mail table
+
+Run `database/migrate-email.sql` on PlanetScale once (`email_sends`). Without it, send still works but dedupe may warn.
 
 ### 3.4 Deploy
 
-Click "Deploy" and wait for the build to complete.
+Push to `main` or trigger Deploy. Cron: `netlify/functions/workit-mail-cron.mts` at `0 12 * * *` UTC → `POST /api/cron/mail`.
 
 ## Step 4: Configure Custom Domain
 
-### 4.1 Add Domain in Vercel
+### 4.1 Add domain in Netlify
 
-1. Go to your project > Settings > Domains
-2. Click "Add Domain"
-3. Enter: `work-it.kervinapps.com`
-4. Vercel will provide DNS configuration
+1. Site → Domain management → Add `work-it.kervinapps.com`
+2. Follow Netlify's DNS instructions (usually CNAME `work-it` → the Netlify site hostname)
 
-### 4.2 Update DNS Records
+### 4.2 Verify
 
-Go to your domain provider (where KervinApps.com is registered) and add:
-
-**Option A: CNAME Record (Recommended)**
-```
-Type: CNAME
-Name: work-it
-Value: cname.vercel-dns.com
-TTL: 3600
-```
-
-**Option B: A Record**
-```
-Type: A
-Name: work-it
-Value: 76.76.21.21
-TTL: 3600
-```
-
-### 4.3 Verify Domain
-
-1. Wait for DNS propagation (can take up to 48 hours, usually 5-15 minutes)
-2. Vercel will automatically verify and issue SSL certificate
-3. Check status in Vercel dashboard
+1. Wait for DNS
+2. Confirm HTTPS on `https://work-it.kervinapps.com`
 
 ## Step 5: Generate App Icons
 
@@ -202,7 +186,7 @@ git commit -m "Add PWA icons"
 git push
 ```
 
-Vercel will automatically redeploy.
+Netlify redeploys on push to `main`.
 
 ## Step 6: Test Deployment
 
@@ -213,6 +197,7 @@ Visit `https://work-it.kervinapps.com` and verify:
 - [ ] Can navigate to workout page
 - [ ] Dashboard shows stats
 - [ ] No console errors
+- [ ] Admin → Mail preview loads (Kevin)
 
 ### 6.2 Test Database Connection
 
@@ -224,12 +209,13 @@ Visit `https://work-it.kervinapps.com` and verify:
 
 ### 6.3 Test PWA
 
-**On Mobile (iOS/Android):**
-1. Visit site in Safari/Chrome
-2. Tap share button
-3. Select "Add to Home Screen"
-4. Open the installed app
-5. Verify it works like a native app
+**On Mobile (iOS):**
+1. Open the site in **Safari** (not Chrome)
+2. Tap Share (square + arrow up)
+3. Add to Home Screen → Add
+4. Open the home-screen icon
+
+Welcome mail repeats those steps.
 
 **On Desktop (Chrome/Edge):**
 1. Visit site
@@ -240,11 +226,9 @@ Visit `https://work-it.kervinapps.com` and verify:
 
 ## Step 7: Monitor and Maintain
 
-### 7.1 Set Up Vercel Analytics (Optional)
+### 7.1 Netlify
 
-1. Go to project > Analytics
-2. Enable Web Analytics
-3. Monitor page views and performance
+Deploys and function logs (including `workit-mail-cron`) live in the Netlify site dashboard.
 
 ### 7.2 PlanetScale Monitoring
 
@@ -269,7 +253,7 @@ pscale backup list workout-tracker production
 **Problem**: API routes return 500 errors
 
 **Solutions**:
-1. Verify environment variables in Vercel
+1. Verify environment variables in Netlify (Production)
 2. Check PlanetScale database is not sleeping (upgrade from free tier if needed)
 3. Ensure production branch is promoted
 4. Check PlanetScale connection string is correct
@@ -287,7 +271,7 @@ node -e "const { connect } = require('@planetscale/database'); const conn = conn
 1. Check DNS propagation: `dig work-it.kervinapps.com`
 2. Verify CNAME record is correct in DNS settings
 3. Wait up to 48 hours for full propagation
-4. Check Vercel domain status in project settings
+4. Check the custom domain on the Netlify site
 
 ### PWA Not Installing
 
@@ -299,6 +283,14 @@ node -e "const { connect } = require('@planetscale/database'); const conn = conn
 3. Ensure icons exist and are valid PNG files
 4. Clear browser cache and reload
 5. Check browser console for service worker errors
+
+### Mail not sending
+
+1. Netlify Production env: `EMAIL_ENABLED`, `SENDER_*`, `SMTP_*`, `CRON_SECRET`
+2. Admin → Mail → Send this sample
+3. Check spam; From is `Master Workit <SENDER_EMAIL>`
+4. Confirm `email_sends` exists (`database/migrate-email.sql`)
+5. Function log: `workit-mail-cron` (needs `CRON_SECRET` + site URL)
 
 ### Icons Not Showing
 
@@ -321,7 +313,7 @@ git commit -m "Description of changes"
 git push
 ```
 
-Vercel automatically deploys on push to main branch.
+Netlify deploys on push to `main`.
 
 ### Database Migrations
 
@@ -341,73 +333,25 @@ pscale deploy-request deploy workout-tracker <deploy-request-number>
 
 ## Performance Optimization
 
-### 1. Enable Vercel Edge Cache
-
-Add to `next.config.js`:
-
-```javascript
-async headers() {
-  return [
-    {
-      source: '/(.*)',
-      headers: [
-        {
-          key: 'Cache-Control',
-          value: 'public, max-age=3600, stale-while-revalidate=86400',
-        },
-      ],
-    },
-  ]
-}
-```
-
-### 2. Optimize Database Queries
-
-- Add indexes to frequently queried columns
-- Use connection pooling
-- Cache API responses where appropriate
-
-### 3. Monitor Performance
-
-- Use Vercel Analytics
-- Check Core Web Vitals
-- Monitor API response times in PlanetScale
+- PWA/cache headers live in `next.config.js`
+- Index hot columns; watch PlanetScale insights
+- Mail cron logs: Netlify → Functions → `workit-mail-cron`
 
 ## Security Best Practices
 
-1. **Environment Variables**: Never commit `.env` files
-2. **Database Access**: Use read-only credentials where possible
-3. **API Rate Limiting**: Add rate limiting to API routes
-4. **Input Validation**: Validate all user inputs
-5. **HTTPS Only**: Ensure HTTPS is enforced
-6. **Regular Updates**: Keep dependencies updated
+1. Never commit `.env` / `.env.local`
+2. Scope Netlify mail vars to Production
+3. `CRON_SECRET` required on `/api/cron/mail`
+4. HTTPS only (PWA + SMTP clients)
 
 ## Cost Estimates
 
-### Free Tier Limits
-
-**Vercel Free Tier:**
-- Unlimited deployments
-- 100GB bandwidth/month
-- Generous build minutes
-
-**PlanetScale Free Tier:**
-- 5GB storage
-- 1 billion row reads/month
-- 10 million row writes/month
-
-### When to Upgrade
-
-Upgrade if:
-- Database > 5GB
-- High traffic (>100GB bandwidth/month)
-- Need more database branches
-- Want better support
+Netlify + PlanetScale free tiers are enough for household use. Upgrade PlanetScale if the DB outgrows the free storage/read limits.
 
 ## Support
 
-- Vercel Docs: https://vercel.com/docs
+- Netlify Docs: https://docs.netlify.com
 - PlanetScale Docs: https://planetscale.com/docs
 - Next.js Docs: https://nextjs.org/docs
 
-For app-specific issues, check the main README.md or contact support@kervinapps.com.
+For app-specific issues, see README.md or support@kervinapps.com.

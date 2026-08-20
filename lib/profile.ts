@@ -17,3 +17,9 @@ export function isDuplicateEmailError(error: unknown): boolean {
   const message = error instanceof Error ? error.message : String(error);
   return /duplicate/i.test(message) && /email/i.test(message);
 }
+
+export function firstName(fullName: string | null | undefined): string {
+  const trimmed = (fullName || '').trim();
+  if (!trimmed) return 'there';
+  return trimmed.split(/\s+/)[0];
+}

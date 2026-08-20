@@ -1,0 +1,138 @@
+import { after } from 'next/server';
+import { query } from '@/lib/db';
+import { checkAndAwardBadges } from '@/lib/badges';
+import { pickCompleteLine } from '@/lib/coachLines';
+import { claimAndSend } from '@/lib/emails/send';
+import { buildBadgeEmail, buildWelcomeEmail, buildWorkoutCompleteEmail } from '@/lib/emails/templates';
+import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
+
+const BADGE_EMAIL_TYPES = new Set([
+  'streak',
+  'weight_milestone',
+  'perfect_week',
+  'total_workouts',
+]);
+
+export function queueWelcomeEmail(user: { id: number; name: string; email: string | null }) {
+  if (!user.email) return;
+  after(async () => {
+    const email = buildWelcomeEmail({ name: user.name });
+    await claimAndSend({
+      userId: user.id,
+      template: 'welcome',
+      dedupeKey: 'user:' + user.id,
+      to: user.email as string,
+      email,
+    });
+  });
+}
+
+export function queueWorkoutCompleteEmails(opts: {
+  userId: number;
+  name: string;
+  email: string | null;
+  sessionId: number;
+  weekNumber: number;
+  dayName: string;
+}) {
+  if (!opts.email) return;
+  after(async () => {
+    await sendWorkoutCompleteBundle(opts);
+  });
+}
+
+export async function sendWorkoutCompleteBundle(opts: {
+  userId: number;
+  name: string;
+  email: string | null;
+  sessionId: number;
+  weekNumber: number;
+  dayName: string;
+}) {
+  if (!opts.email) return;
+
+  const totals = await query(
+    `SELECT
+       COALESCE(SUM(CASE WHEN weight_lbs IS NOT NULL AND actual_reps IS NOT NULL
+         THEN weight_lbs * actual_reps ELSE 0 END), 0) as volume,
+       COUNT(*) as set_count,
+       COUNT(DISTINCT exercise_name) as exercise_count
+     FROM exercise_sets
+     WHERE workout_session_id = ?`,
+    [opts.sessionId]
+  );
+  const timing = await query(
+    `SELECT TIMESTAMPDIFF(SECOND, started_at, ended_at) as duration_seconds
+     FROM workout_sessions WHERE id = ? AND user_id = ?`,
+    [opts.sessionId, opts.userId]
+  );
+  const weekDays = await query(
+    `SELECT COUNT(*) as completed_days
+     FROM workout_sessions
+     WHERE user_id = ? AND week_number = ? AND is_completed = 1`,
+    [opts.userId, opts.weekNumber]
+  );
+  const weeks = await query(
+    `SELECT week_number
+     FROM workout_sessions
+     WHERE user_id = ? AND is_completed = 1
+     GROUP BY week_number
+     HAVING COUNT(*) >= 4`,
+    [opts.userId]
+  );
+  const sessions = await query(
+    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at FROM workout_sessions WHERE user_id = ?',
+    [opts.userId]
+  );
+
+  const totalRow = totals.rows[0] as {
+    volume: number;
+    set_count: number;
+    exercise_count: number;
+  };
+  const duration = (timing.rows[0] as { duration_seconds: number | null } | undefined)
+    ?.duration_seconds;
+  const weekComplete = Number((weekDays.rows[0] as { completed_days: number })?.completed_days || 0) >= 4;
+  const programComplete = weeks.rows.length >= 6;
+  const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[]);
+  const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
+
+  const recap = buildWorkoutCompleteEmail({
+    name: opts.name,
+    weekNumber: opts.weekNumber,
+    dayName: opts.dayName,
+    durationSeconds: duration,
+    volumeLbs: Number(totalRow.volume || 0),
+    setCount: Number(totalRow.set_count || 0),
+    exerciseCount: Number(totalRow.exercise_count || 0),
+    completeLine: pickCompleteLine(),
+    weekComplete,
+    programComplete,
+    nextLabel,
+  });
+
+  await claimAndSend({
+    userId: opts.userId,
+    template: programComplete ? 'program' : weekComplete ? 'week' : 'complete',
+    dedupeKey: 'session:' + opts.sessionId,
+    to: opts.email,
+    email: recap,
+  });
+
+  const awarded = await checkAndAwardBadges(opts.userId);
+  for (const badge of awarded) {
+    if (!BADGE_EMAIL_TYPES.has(badge.requirement_type)) continue;
+    const email = buildBadgeEmail({
+      name: opts.name,
+      badgeName: badge.name,
+      badgeDescription: badge.description,
+    });
+    await claimAndSend({
+      userId: opts.userId,
+      template: 'badge',
+      dedupeKey: 'user:' + opts.userId + ':badge:' + badge.id,
+      to: opts.email,
+      email,
+    });
+  }
+}

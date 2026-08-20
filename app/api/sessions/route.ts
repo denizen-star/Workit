@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 
 export async function POST(request: NextRequest) {
   try {
@@ -84,7 +85,7 @@ export async function PUT(request: NextRequest) {
     const { sessionId, isCompleted, notes } = await request.json();
 
     const existing = await query(
-      'SELECT id FROM workout_sessions WHERE id = ? AND user_id = ?',
+      'SELECT id, week_number, workout_type, is_completed FROM workout_sessions WHERE id = ? AND user_id = ?',
       [sessionId, user.id]
     );
 
@@ -92,12 +93,31 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
+    const session = existing.rows[0] as {
+      id: number;
+      week_number: number;
+      workout_type: string;
+      is_completed: number | boolean;
+    };
+    const alreadyComplete = Boolean(Number(session.is_completed));
+
     await query(
       `UPDATE workout_sessions 
        SET is_completed = ?, completed_at = ?, ended_at = ?, notes = ?
        WHERE id = ? AND user_id = ?`,
       [isCompleted, isCompleted ? new Date() : null, isCompleted ? new Date() : null, notes, sessionId, user.id]
     );
+
+    if (isCompleted && !alreadyComplete) {
+      queueWorkoutCompleteEmails({
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        sessionId: Number(sessionId),
+        weekNumber: Number(session.week_number),
+        dayName: session.workout_type,
+      });
+    }
 
     return NextResponse.json({ success: true });
   } catch (error) {

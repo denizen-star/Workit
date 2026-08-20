@@ -58,15 +58,25 @@ mysql -h 127.0.0.1 -P 3306 -u root < database/schema.sql
 
 ### 3. Configure Environment Variables
 
-Create a `.env.local` file in the root directory:
+Create a `.env.local` file in the root directory (copy `.env.example`):
 
 ```env
 DATABASE_HOST=aws.connect.psdb.cloud
 DATABASE_USERNAME=your_username
 DATABASE_PASSWORD=your_password
+AUTH_SECRET=at-least-32-characters
+
+EMAIL_ENABLED=TRUE
+SENDER_EMAIL=info@kervinapps.com
+SENDER_PASSWORD=your_zoho_app_password
+SMTP_SERVER=smtp.zohocloud.ca
+SMTP_PORT=465
+NEXT_PUBLIC_APP_URL=https://work-it.kervinapps.com
+WORKIT_SCOREBOARD_TO=you@example.com
+CRON_SECRET=long-random-string
 ```
 
-Get these credentials from your PlanetScale database's "Connect" page.
+PlanetScale credentials: database "Connect" page. SMTP: same Zoho vars as hit-list/Gowanus. Mail is off if `SENDER_PASSWORD` is missing; `EMAIL_ENABLED=false` also skips send.
 
 ### 4. Generate App Icons
 
@@ -97,50 +107,28 @@ Visit `http://localhost:3000` to see the app.
 
 ## Deployment
 
-### Deploy to Vercel (Recommended)
+Live host is **Netlify** (`netlify.toml`, `@netlify/plugin-nextjs`) at `work-it.kervinapps.com`.
 
-1. Push your code to GitHub:
+1. Push to GitHub (Netlify continuous deploy on `main`)
+2. Site configuration → Environment variables — database + mail keys from `.env.example`
+3. Run `database/migrate-email.sql` once on PlanetScale if `email_sends` is missing
+4. Custom domain `work-it.kervinapps.com` in Netlify Domain management
 
-```bash
-git init
-git add .
-git commit -m "Initial commit"
-git remote add origin <your-repo-url>
-git push -u origin main
-```
-
-2. Go to [Vercel](https://vercel.com/) and import your repository
-
-3. Configure environment variables in Vercel:
-   - `DATABASE_HOST`
-   - `DATABASE_USERNAME`
-   - `DATABASE_PASSWORD`
-
-4. Set up custom domain `work-it.KervinApps.com`:
-   - Go to your project settings > Domains
-   - Add your custom domain
-   - Update your DNS records as instructed by Vercel
-
-### Deploy to Other Platforms
-
-The app can also be deployed to:
-- **Netlify**: Similar to Vercel, supports Next.js
-- **Railway**: Good for full-stack apps with databases
-- **Fly.io**: If you prefer Docker deployment
-- **AWS Amplify**: Enterprise option
+Admin → **Mail** to preview/send samples after deploy.
 
 ## Database Schema
 
-The app uses 6 main tables:
+7 tables that matter:
 
-1. **users** - User information
-2. **workout_sessions** - Each workout session (week/day)
-3. **exercise_sets** - Individual exercise sets with weight/reps
-4. **badges** - Available achievements
-5. **user_badges** - Earned badges
-6. **daily_stats** - Aggregated daily statistics
+1. **users** — household profiles (name, email, PIN hash)
+2. **workout_sessions** — each workout session (week/day)
+3. **exercise_sets** — sets with weight/reps
+4. **badges** / **user_badges** — achievements
+5. **daily_stats** — dashboard aggregates
+6. **exercises** — catalog + images
+7. **email_sends** — mail dedupe (`database/migrate-email.sql`)
 
-See `database/schema.sql` for full schema details.
+See `database/schema.sql` + migrate-*.sql.
 
 ## Usage
 
@@ -215,15 +203,19 @@ To enable rest timer notifications:
 Notification.requestPermission();
 ```
 
+- Welcome mail (when an admin adds you) includes iPhone steps: Safari → Share → Add to Home Screen
+
 ## API Endpoints
 
 - `GET /api/sessions` - Get workout sessions
 - `POST /api/sessions` - Create new workout session
-- `PUT /api/sessions` - Update workout session
+- `PUT /api/sessions` - Complete/update session (queues recap mail)
 - `GET /api/exercises` - Get exercise sets
 - `POST /api/exercises` - Save exercise set
 - `GET /api/stats` - Get user statistics
 - `GET /api/badges` - Get badges and check for new awards
+- `GET|POST /api/cron/mail` - Daily nudges + Monday scoreboard (`Bearer CRON_SECRET`)
+- `GET|POST /api/admin/mail` - Admin preview / sample send (`requireAdmin`)
 
 ## Contributing
 

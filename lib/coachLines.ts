@@ -14,22 +14,22 @@ export const COACH_LINES = {
   final: [
     "Empty the tank. Collapse at my feet later.",
     "Those last two reps belong to me.",
-    "Make it look effortless for your Sir.",
+    "Make it look effortless for Master Workit.",
     "Finish it. Make me proud.",
   ],
 } as const;
 
 export const EXIT_LINES = [
-  "DO NOT RACK THAT WEIGHT. Get back under the bar, boy!",
+  "DO NOT RACK THAT WEIGHT. Get back under the bar, man!",
   "Did I give you permission to quit? Hands back on the bar.",
-  "Excuses don't build muscle. Move your body for Sir NOW!",
-  "Look in the mirror. Are you my good boy, or a quitter?",
+  "Excuses don't build muscle. Move your body for Master Workit NOW!",
+  "Look in the mirror. Are you my good man, or a quitter?",
   "Fatigue is in your head. Give me that extra 20% right now!",
   "Walk out early and carry the shame all day. Pick one!",
   "Break that weak habit right now. You belong under that iron.",
   "Pain is temporary. Quitting is permanent. Pick up those dumbbells!",
   "Stand up, lock in, and drive. I'm watching you.",
-  "You want results? Pay the tax to your Sir. Complete the reps!",
+  "You want results? Pay the tax to Master Workit. Complete the reps!",
   "Stop feeling sorry for yourself. Sweat isn't acid—LIFT!",
   "You came here to suffer and submit to the growth. GET TO WORK!",
   "Stop acting like a spectator. Show me maximum effort!",

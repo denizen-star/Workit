@@ -7,6 +7,7 @@ import {
   AuthError,
 } from '@/lib/auth';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
+import { queueWelcomeEmail } from '@/lib/emails/lifecycle';
 
 export async function GET() {
   try {
@@ -61,6 +62,12 @@ export async function POST(request: NextRequest) {
       'INSERT INTO users (name, email, pin_hash) VALUES (?, ?, ?)',
       [name, email, pinHash]
     );
+
+    queueWelcomeEmail({
+      id: Number(result.insertId),
+      name,
+      email,
+    });
 
     return NextResponse.json({
       success: true,

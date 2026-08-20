@@ -81,8 +81,9 @@ workout-tracker/
 ├── DEPLOYMENT.md                # Deployment guide
 ├── QUICKSTART.md                # Quick start guide
 ├── .env.example                 # Environment variables template
-├── next.config.js               # Next.js configuration
-├── vercel.json                  # Vercel deployment config
+├── next.config.ts               # Active Next config (nodemailer external)
+├── netlify.toml                 # Netlify + scheduled mail cron
+├── vercel.json                  # leftover PWA headers; not the host
 └── package.json                 # Dependencies
 
 ```
@@ -148,38 +149,31 @@ workout-tracker/
 - [ ] Get connection credentials
 - [ ] Promote production branch
 
-### Vercel Deployment Required
-- [ ] Push to GitHub
-- [ ] Import project to Vercel
-- [ ] Configure environment variables
-- [ ] Deploy application
-- [ ] Configure custom domain (work-it.kervinapps.com)
-- [ ] Verify SSL certificate
+### Netlify Deployment Required
+- [ ] Push to GitHub (`main` auto-deploys)
+- [ ] Set Production env vars (database + mail — `.env.example`)
+- [ ] Run `database/migrate-email.sql`
+- [ ] Custom domain `work-it.kervinapps.com`
+- [ ] Admin → Mail sample send
 
 ### Post-Deployment
 - [ ] Test database connection
 - [ ] Test workout tracking
 - [ ] Test badge system
-- [ ] Install PWA on mobile
+- [ ] Install PWA on iPhone (Safari → Add to Home Screen)
 - [ ] Test offline functionality
 - [ ] Replace placeholder icons (optional)
 
 ## Environment Variables
 
-Required for deployment:
-
-```env
-DATABASE_HOST=aws.connect.psdb.cloud
-DATABASE_USERNAME=<your_planetscale_username>
-DATABASE_PASSWORD=<your_planetscale_password>
-```
+See `.env.example`. Required: `DATABASE_*`, `AUTH_SECRET`. Mail: `EMAIL_ENABLED`, `SENDER_*`, `SMTP_*`, `NEXT_PUBLIC_APP_URL`, `WORKIT_SCOREBOARD_TO`, `CRON_SECRET`.
 
 ## Known Limitations
 
-1. **Icons**: Currently using minimal placeholder icons. Replace with custom designed icons before production launch.
-2. **Single User**: App designed for single-user use. Multi-user support would require authentication system.
-3. **Exercise Videos**: Structure supports video URLs but actual videos not included.
-4. **Notifications**: Rest timer notifications require user permission in browser.
+1. **Icons**: Replace placeholders if they still look generic.
+2. **Household PIN login**: no email/password signup; admin adds people.
+3. **Exercise Videos**: structure supports URLs; catalog images live in `exercises`.
+4. **Notifications**: rest timer notifications need browser permission.
 
 ## Future Enhancements (Optional)
 
@@ -221,7 +215,7 @@ Potential features for v2:
 - Export user data periodically
 
 ### Monitoring
-- Vercel Analytics for traffic
+- Netlify function logs for mail cron
 - PlanetScale insights for database performance
 - Error tracking in production
 

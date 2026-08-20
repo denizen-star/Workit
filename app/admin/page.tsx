@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, Mail, Pencil, Plus, Trash2 } from 'lucide-react';
 import UserFormModal, { type AdminUser } from '@/components/UserFormModal';
 import Modal from '@/components/Modal';
 
@@ -100,18 +100,27 @@ export default function AdminPage() {
             <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Household</p>
             <h2 className="mt-1 text-3xl font-black text-white">Users</h2>
           </div>
-          <button
-            type="button"
-            onClick={() => {
-              setFormMode('create');
-              setEditing(null);
-              setFormOpen(true);
-            }}
-            className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#e8c547] px-4 font-black text-[#1a1404]"
-          >
-            <Plus className="h-4 w-4" />
-            Add
-          </button>
+          <div className="flex shrink-0 gap-2">
+            <Link
+              href="/admin/mail"
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/10 px-4 font-semibold text-[#e8c547]"
+            >
+              <Mail className="h-4 w-4" />
+              Mail
+            </Link>
+            <button
+              type="button"
+              onClick={() => {
+                setFormMode('create');
+                setEditing(null);
+                setFormOpen(true);
+              }}
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl bg-[#e8c547] px-4 font-black text-[#1a1404]"
+            >
+              <Plus className="h-4 w-4" />
+              Add
+            </button>
+          </div>
         </div>
 
         {error && (

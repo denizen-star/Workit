@@ -50,17 +50,16 @@ git remote add origin https://github.com/YOUR_USERNAME/workout-tracker.git
 git push -u origin cursor/workout-tracker-app-67f6
 ```
 
-### 3. Deploy to Vercel (3 minutes)
+### 3. Deploy to Netlify
 ```bash
-# Import GitHub repo to Vercel
-# Add environment variables (DATABASE_HOST, etc.)
-# Deploy!
+# Site already on Netlify continuous deploy
+# Add Production env vars from .env.example (database + mail)
+# Run database/migrate-email.sql once
 ```
 
-### 4. Configure Domain (5 minutes)
+### 4. Configure Domain
 ```bash
-# Add work-it.kervinapps.com in Vercel dashboard
-# Update DNS with CNAME record
+# work-it.kervinapps.com in Netlify Domain management
 ```
 
 ## Quick Start for Local Development
