@@ -9,7 +9,7 @@ type HouseholdUser = {
   id: number;
   name: string;
   email?: string | null;
-  has_pin: number | boolean;
+  has_pin: boolean;
 };
 
 type Step = 'pick' | 'login' | 'create-pin' | 'confirm-pin';
@@ -53,8 +53,7 @@ export default function WhoPage() {
   const pickUser = (user: HouseholdUser) => {
     setSelected(user);
     resetPinFlow();
-    const hasPin = Boolean(user.has_pin);
-    setStep(hasPin ? 'login' : 'create-pin');
+    setStep(user.has_pin ? 'login' : 'create-pin');
   };
 
   const goBack = () => {

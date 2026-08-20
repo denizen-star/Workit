@@ -11,10 +11,19 @@ import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/prof
 export async function GET() {
   try {
     const result = await query(
-      'SELECT id, name, email, CASE WHEN pin_hash IS NULL THEN 0 ELSE 1 END AS has_pin FROM users ORDER BY id ASC'
+      'SELECT id, name, email, pin_hash FROM users ORDER BY id ASC'
     );
 
-    return NextResponse.json({ users: result.rows });
+    const users = (result.rows as { id: number; name: string; email: string | null; pin_hash: string | null }[]).map(
+      (row) => ({
+        id: row.id,
+        name: row.name,
+        email: row.email,
+        has_pin: row.pin_hash != null,
+      })
+    );
+
+    return NextResponse.json({ users });
   } catch (error) {
     console.error('Error listing users:', error);
     return NextResponse.json({ error: 'Failed to list users' }, { status: 500 });
