@@ -36,6 +36,9 @@ body {
 }
 
 .glass-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
   background: rgba(7, 7, 10, 0.72);
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
