@@ -94,16 +94,15 @@ export default function Home() {
             </div>
             <div className="flex items-center gap-3">
               <span className="hidden text-sm text-[#f6f1e3]/65 sm:inline">6-Week Program</span>
-              {isAdmin && (
-                <AppMenu
-                  userName={userName}
-                  userEmail={userEmail}
-                  onProfileSaved={(profile) => {
-                    setUserName(profile.name);
-                    setUserEmail(profile.email || '');
-                  }}
-                />
-              )}
+              <AppMenu
+                userName={userName}
+                userEmail={userEmail}
+                isAdmin={isAdmin}
+                onProfileSaved={(profile) => {
+                  setUserName(profile.name);
+                  setUserEmail(profile.email || '');
+                }}
+              />
               <Link
                 href={todayHref}
                 className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"

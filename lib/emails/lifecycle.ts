@@ -2,7 +2,7 @@ import { after } from 'next/server';
 import { query } from '@/lib/db';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { pickCompleteLine } from '@/lib/coachLines';
-import { claimAndSend } from '@/lib/emails/send';
+import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildBadgeEmail, buildWelcomeEmail, buildWorkoutCompleteEmail } from '@/lib/emails/templates';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 
@@ -16,15 +16,41 @@ const BADGE_EMAIL_TYPES = new Set([
 export function queueWelcomeEmail(user: { id: number; name: string; email: string | null }) {
   if (!user.email) return;
   after(async () => {
-    const email = buildWelcomeEmail({ name: user.name });
-    await claimAndSend({
-      userId: user.id,
-      template: 'welcome',
-      dedupeKey: 'user:' + user.id,
-      to: user.email as string,
-      email,
-    });
+    await sendWelcomeEmail(user);
   });
+}
+
+export async function sendWelcomeEmail(user: { id: number; name: string; email: string | null }) {
+  if (!user.email) return { sent: false, skipped: 'no-address' as const };
+  const email = buildWelcomeEmail({ name: user.name });
+  return claimAndSend({
+    userId: user.id,
+    template: 'welcome',
+    dedupeKey: 'user:' + user.id,
+    to: user.email,
+    email,
+  });
+}
+
+export async function resendWelcomeEmails() {
+  const result = await query(
+    `SELECT id, name, email FROM users
+     WHERE email IS NOT NULL AND email != ''
+     ORDER BY id ASC`
+  );
+  const results = [];
+  for (const user of result.rows as { id: number; name: string; email: string }[]) {
+    const email = buildWelcomeEmail({ name: user.name });
+    const id = await sendNow(user.email, email);
+    results.push({
+      userId: user.id,
+      to: user.email,
+      sent: Boolean(id),
+      id,
+      skipped: id ? undefined : 'smtp',
+    });
+  }
+  return results;
 }
 
 export function queueWorkoutCompleteEmails(opts: {

@@ -19,7 +19,7 @@ async function main() {
     process.exitCode = 1;
     return;
   }
-  console.log('[send-scoreboard-email] sent', result.id);
+  console.log('[send-scoreboard-email] sent', JSON.stringify(result.results || result));
 }
 
 main().catch((err) => {

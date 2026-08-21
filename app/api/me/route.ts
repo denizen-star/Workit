@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
-import { getCurrentUser } from '@/lib/auth';
+import { getCurrentUser, hashPin, isValidPin } from '@/lib/auth';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
 
 export async function GET() {
@@ -23,6 +23,7 @@ export async function PATCH(request: NextRequest) {
     const body = await request.json();
     const name = normalizeName(body.name);
     const email = normalizeEmail(body.email);
+    const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -32,7 +33,19 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Enter a valid email address' }, { status: 400 });
     }
 
-    await query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, user.id]);
+    if (pin != null) {
+      if (!isValidPin(pin)) {
+        return NextResponse.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 });
+      }
+      await query('UPDATE users SET name = ?, email = ?, pin_hash = ? WHERE id = ?', [
+        name,
+        email,
+        hashPin(pin),
+        user.id,
+      ]);
+    } else {
+      await query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, user.id]);
+    }
 
     return NextResponse.json({
       success: true,
@@ -40,7 +53,7 @@ export async function PATCH(request: NextRequest) {
         id: user.id,
         name,
         email,
-        hasPin: user.hasPin,
+        hasPin: pin != null || user.hasPin,
       },
     });
   } catch (error) {

@@ -3,15 +3,17 @@ import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildScoreboardEmail, type ScoreboardRow } from '@/lib/emails/templates';
 import { todayInNewYork } from '@/lib/emails/nudge';
 
-export function scoreboardTo() {
-  return (process.env.WORKIT_SCOREBOARD_TO || 'leacock.kervin@gmail.com').trim() || null;
+type RosterUser = { id: number; name: string; email: string | null };
+
+function extraScoreboardTo() {
+  return (process.env.WORKIT_SCOREBOARD_TO || '').trim() || null;
 }
 
 export async function buildLiveScoreboard() {
   const users = await query('SELECT id, name, email FROM users ORDER BY id ASC');
   const rows: ScoreboardRow[] = [];
 
-  for (const user of users.rows as { id: number; name: string; email: string | null }[]) {
+  for (const user of users.rows as RosterUser[]) {
     const weekStats = await query(
       `SELECT
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as workouts,
@@ -66,22 +68,60 @@ export async function buildLiveScoreboard() {
   });
 }
 
-export async function sendScoreboardEmail(opts?: { force?: boolean }) {
-  const to = scoreboardTo();
-  if (!to) return { sent: false, skipped: 'no-scoreboard-to' };
+function scoreboardRecipients(users: RosterUser[]) {
+  const seen = new Set<string>();
+  const recipients: { userId: number | null; email: string }[] = [];
 
-  const email = await buildLiveScoreboard();
-  if (opts?.force) {
-    const id = await sendNow(to, email);
-    return { sent: Boolean(id), id, skipped: id ? undefined : 'smtp' };
+  for (const user of users) {
+    const email = (user.email || '').trim().toLowerCase();
+    if (!email || seen.has(email)) continue;
+    seen.add(email);
+    recipients.push({ userId: user.id, email });
   }
 
+  const extra = extraScoreboardTo()?.toLowerCase();
+  if (extra && !seen.has(extra)) {
+    recipients.push({ userId: null, email: extra });
+  }
+
+  return recipients;
+}
+
+export async function sendScoreboardEmail(opts?: { force?: boolean }) {
+  const users = await query('SELECT id, name, email FROM users ORDER BY id ASC');
+  const recipients = scoreboardRecipients(users.rows as RosterUser[]);
+  if (recipients.length === 0) return { sent: false, skipped: 'no-recipients', results: [] };
+
+  const email = await buildLiveScoreboard();
   const { date } = todayInNewYork();
-  return claimAndSend({
-    userId: null,
-    template: 'scoreboard',
-    dedupeKey: date,
-    to,
-    email,
-  });
+  const results = [];
+
+  for (const recipient of recipients) {
+    if (opts?.force) {
+      const id = await sendNow(recipient.email, email);
+      results.push({
+        to: recipient.email,
+        sent: Boolean(id),
+        id,
+        skipped: id ? undefined : 'smtp',
+      });
+      continue;
+    }
+
+    results.push(
+      await claimAndSend({
+        userId: recipient.userId,
+        template: 'scoreboard',
+        dedupeKey: date + ':user:' + (recipient.userId ?? recipient.email),
+        to: recipient.email,
+        email,
+      })
+    );
+  }
+
+  return {
+    sent: results.some((row) => row.sent),
+    results,
+    skipped: results.every((row) => !row.sent) ? results[0]?.skipped : undefined,
+  };
 }

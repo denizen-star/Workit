@@ -103,6 +103,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
       address(name),
       p('I put you on the roster. That was not a suggestion.'),
       p('Open the app. Pick your name. Punch your PIN. Then get under the bar and show me what you are made of.'),
+      p('Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed. I do not care as long as you show up.'),
       bullets([
         'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
         'Every set logged. Rest when I say. Badges when you earn them.',
@@ -118,6 +119,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     '',
     'I put you on the roster. That was not a suggestion.',
     'Open the app. Pick your name. Punch your PIN. Then get under the bar.',
+    'Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed.',
     '',
     url,
     '',
@@ -335,7 +337,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
         rowsHtml +
         '</table>',
-      cta(appUrl() + '/admin', 'INSPECT THE HOUSE'),
+      cta(whoUrl(), 'REPORT IN'),
     ].join(''),
   });
 
@@ -356,7 +358,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
         .join('\n')
     ),
     '',
-    appUrl() + '/admin',
+    whoUrl(),
     emailTextSignOff(),
   ].join('\n');
 

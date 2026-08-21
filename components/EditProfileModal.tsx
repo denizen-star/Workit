@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import PinPad from '@/components/PinPad';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -21,6 +22,10 @@ export default function EditProfileModal({
   const [email, setEmail] = useState(currentEmail);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [changePin, setChangePin] = useState(false);
+  const [step, setStep] = useState<'details' | 'pin' | 'confirm'>('details');
+  const [pin, setPin] = useState('');
+  const [confirmPin, setConfirmPin] = useState('');
 
   useEffect(() => {
     if (open) {
@@ -28,12 +33,16 @@ export default function EditProfileModal({
       setEmail(currentEmail);
       setError('');
       setSubmitting(false);
+      setChangePin(false);
+      setStep('details');
+      setPin('');
+      setConfirmPin('');
     }
   }, [open, currentName, currentEmail]);
 
   if (!open) return null;
 
-  const save = async () => {
+  const save = async (finalPin: string | null) => {
     if (!name.trim()) {
       setError('Enter a full name');
       return;
@@ -47,10 +56,16 @@ export default function EditProfileModal({
     setError('');
 
     try {
+      const payload: { name: string; email: string; pin?: string } = {
+        name: name.trim(),
+        email: email.trim(),
+      };
+      if (finalPin) payload.pin = finalPin;
+
       const response = await fetch('/api/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name.trim(), email: email.trim() }),
+        body: JSON.stringify(payload),
       });
       const data = await response.json();
 
@@ -68,45 +83,122 @@ export default function EditProfileModal({
     }
   };
 
+  const goToPin = () => {
+    if (!name.trim()) {
+      setError('Enter a full name');
+      return;
+    }
+    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+      setError('Enter a valid email');
+      return;
+    }
+    setError('');
+    if (changePin) {
+      setStep('pin');
+      return;
+    }
+    save(null);
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
       <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#12121a] p-6 shadow-2xl">
-        <h2 className="mb-2 text-2xl font-black text-white">Your profile</h2>
-        <p className="mb-6 text-sm text-[#f6f1e3]/65">Update your name and email anytime.</p>
+        {step === 'details' && (
+          <>
+            <h2 className="mb-2 text-2xl font-black text-white">Your profile</h2>
+            <p className="mb-6 text-sm text-[#f6f1e3]/65">
+              Update your name, email, or PIN. Same four digits is allowed.
+            </p>
 
-        <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Full name</label>
-        <input
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          className="glass-input mb-4 w-full"
-        />
-        <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
-        <input
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="glass-input mb-6 w-full"
-        />
+            <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Full name</label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              className="glass-input mb-4 w-full"
+            />
+            <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="glass-input mb-4 w-full"
+            />
+            <label className="mb-6 flex items-center gap-2 text-sm text-[#f6f1e3]/75">
+              <input
+                type="checkbox"
+                checked={changePin}
+                onChange={(e) => setChangePin(e.target.checked)}
+                className="h-4 w-4 accent-[#e8c547]"
+              />
+              Change PIN
+            </label>
 
-        <div className="flex gap-3">
-          <button
-            type="button"
-            onClick={onClose}
-            className="min-h-12 flex-1 rounded-2xl border border-white/10 font-semibold text-[#f6f1e3]/75"
-          >
-            Cancel
-          </button>
-          <button
-            type="button"
-            disabled={submitting}
-            onClick={save}
-            className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-50"
-          >
-            {submitting ? 'Saving...' : 'Save'}
-          </button>
-        </div>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={onClose}
+                className="min-h-12 flex-1 rounded-2xl border border-white/10 font-semibold text-[#f6f1e3]/75"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={submitting}
+                onClick={goToPin}
+                className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-50"
+              >
+                {changePin ? 'Next' : submitting ? 'Saving...' : 'Save'}
+              </button>
+            </div>
+          </>
+        )}
+
+        {(step === 'pin' || step === 'confirm') && (
+          <>
+            <h2 className="mb-2 text-2xl font-black text-white">
+              {step === 'pin' ? 'New PIN' : 'Confirm PIN'}
+            </h2>
+            <p className="mb-6 text-center text-sm font-semibold text-[#e8c547]">
+              {step === 'pin' ? 'Four digits. Same PIN is allowed.' : 'Enter it again.'}
+            </p>
+            <PinPad
+              value={step === 'pin' ? pin : confirmPin}
+              onChange={(v) => {
+                if (step === 'pin') {
+                  setPin(v);
+                  if (v.length === 4) setTimeout(() => setStep('confirm'), 150);
+                } else {
+                  setConfirmPin(v);
+                  if (v.length === 4) {
+                    if (v !== pin) {
+                      setError('PINs do not match');
+                      setConfirmPin('');
+                      setStep('pin');
+                      setPin('');
+                      return;
+                    }
+                    save(v);
+                  }
+                }
+              }}
+              disabled={submitting}
+            />
+            <button
+              type="button"
+              onClick={() => {
+                setStep('details');
+                setPin('');
+                setConfirmPin('');
+                setError('');
+              }}
+              className="mt-6 min-h-12 w-full rounded-2xl border border-white/10 font-semibold text-[#f6f1e3]/75"
+            >
+              Back
+            </button>
+          </>
+        )}
 
         {error && (
           <p className="mt-4 text-center text-sm font-semibold text-rose-400">{error}</p>

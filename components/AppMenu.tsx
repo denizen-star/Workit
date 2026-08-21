@@ -9,10 +9,16 @@ import EditProfileModal from '@/components/EditProfileModal';
 interface AppMenuProps {
   userName: string;
   userEmail?: string;
+  isAdmin?: boolean;
   onProfileSaved?: (profile: { name: string; email: string | null }) => void;
 }
 
-export default function AppMenu({ userName, userEmail = '', onProfileSaved }: AppMenuProps) {
+export default function AppMenu({
+  userName,
+  userEmail = '',
+  isAdmin = false,
+  onProfileSaved,
+}: AppMenuProps) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -87,17 +93,19 @@ export default function AppMenu({ userName, userEmail = '', onProfileSaved }: Ap
                 <p className="truncate text-xs text-[#f6f1e3]/50">{userEmail}</p>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                router.push('/admin');
-              }}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
-            >
-              <Shield className="h-4 w-4 text-[#e8c547]" />
-              Admin
-            </button>
+            {isAdmin && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  router.push('/admin');
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
+              >
+                <Shield className="h-4 w-4 text-[#e8c547]" />
+                Admin
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {
