@@ -12,11 +12,13 @@ export default async function handler() {
   }
 
   const base = (
-    process.env.NEXT_PUBLIC_APP_URL ||
+    process.env.APP_URL ||
     process.env.URL ||
     process.env.DEPLOY_PRIME_URL ||
     'https://workit.kervinapps.com'
-  ).replace(/\/$/, '');
+  )
+    .replace(/\/$/, '')
+    .replace(/^https?:\/\/work-it\.kervinapps\.com$/i, 'https://workit.kervinapps.com');
 
   const url = base + '/api/cron/mail';
   const res = await fetch(url, {

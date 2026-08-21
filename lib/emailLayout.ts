@@ -5,8 +5,14 @@ const MUTED = '#b9b1a0';
 const BG = '#07070a';
 const CARD = '#12121a';
 
+const LIVE_APP_URL = 'https://workit.kervinapps.com';
+
 export function appUrl() {
-  return (process.env.NEXT_PUBLIC_APP_URL || 'https://workit.kervinapps.com').replace(/\/$/, '');
+  // Do not read NEXT_PUBLIC_APP_URL. Next.js inlines those at build time, so a
+  // later Netlify env fix never reaches already-deployed mail.
+  const raw = (process.env.APP_URL || process.env.URL || LIVE_APP_URL).replace(/\/$/, '');
+  if (/^https?:\/\/work-it\.kervinapps\.com$/i.test(raw)) return LIVE_APP_URL;
+  return raw;
 }
 
 export function whoUrl() {
