@@ -2,7 +2,7 @@
   "name": "Work-It Workout Tracker",
   "short_name": "Work-It",
   "description": "6-week workout tracking app with progressive overload",
-  "start_url": "/",
+  "start_url": "/who",
   "display": "standalone",
   "background_color": "#07070a",
   "theme_color": "#07070a",

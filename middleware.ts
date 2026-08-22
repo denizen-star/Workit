@@ -27,7 +27,7 @@ export async function middleware(request: NextRequest) {
     const userId = token ? await verifySessionToken(token) : null;
     const url = request.nextUrl.clone();
     url.pathname = userId ? '/home' : '/who';
-    return NextResponse.redirect(url);
+    return NextResponse.rewrite(url);
   }
 
   if (pathname === '/who' || pathname.startsWith('/api/auth')) {
