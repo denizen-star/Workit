@@ -123,7 +123,7 @@ export default function EditProfileModal({
   return (
     <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
-      <div className="relative w-full max-w-md rounded-3xl border border-white/10 bg-[#12121a] p-6 shadow-2xl">
+      <div className="relative max-h-[min(90dvh,100%)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#12121a] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl">
         {step === 'details' && (
           <>
             <h2 className="mb-2 text-2xl font-black text-white">Your profile</h2>

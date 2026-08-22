@@ -20,30 +20,66 @@ const MASTER: LinePack = {
     'Heavy load today, total submission tomorrow. Drive.',
     'Control every single rep for me.',
     'Respect the iron. I own you.',
+    'Warm-up is over in your head. Prove it with the first working set.',
+    'Stand tall, brace hard, and give Master Tom Iron a clean opener.',
+    'No wandering eyes. Bar, breath, work.',
+    'You asked to be trained. This is the tax. Pay it.',
+    'Set your feet like you mean it. I am watching the first inch.',
+    'Soft start is for other rooms. Here you lock in.',
+    'That first plate is a promise. Do not make me collect later.',
+    'Unrack with pride. I did not bring you here to negotiate.',
+    'Count the breath, then move. Hesitation is a tell.',
+    'Good men start on time. Be one.',
+    'The floor is yours. Earn the right to stay on it.',
+    'Look at the weight. Then take it from me.',
   ],
   mid: [
     "Earn my praise. Don't waste my time.",
     "You didn't come this far to go soft.",
     "That burn means you're mine. Embrace it.",
     'Perfect form. No excuses. Push!',
+    'Halfway is not a rest stop. It is a test.',
+    'Sweat is the receipt. Keep writing it.',
+    'I want cleaner reps now, not prettier faces.',
+    'The easy sets are gone. This is where I learn your name again.',
+    'Brace harder. I can see the leak in your core.',
+    'Stay mean with the iron. Soft hands lose bars.',
+    'You are not tired. You are being trained. Difference.',
+    'Give me the next set like it owes you money.',
+    'Form first, then violence. In that order.',
+    'I still own this minute. Spend it lifting.',
+    'If you can talk, you can add a rep. Choose.',
+    'Mid-session is where quitters invent stories. Do not.',
   ],
   final: [
     'Empty the tank. Collapse at my feet later.',
     'Those last two reps belong to me.',
-    'Make it look effortless for Master Workit.',
+    'Make it look effortless for Master Tom Iron.',
     'Finish it. Make me proud.',
+    'Last third. This is the part people remember.',
+    'Leave nothing in the rack that I asked for.',
+    'You do not get to coast because the clock is almost done.',
+    'Lock out like you want to come back tomorrow.',
+    'Pain is the door. Walk through it for me.',
+    'One more honest set. I will know if you cheat it.',
+    'Finish ugly if you have to. Finish.',
+    'The last plate is still mine until you put it down right.',
+    'Stand up. Breathe. Then take what is left.',
+    'This is how good men close a session.',
+    'Do not save energy for the car. Spend it here.',
+    'Last call. Deliver, or explain yourself later.',
   ],
   exit: [
     'DO NOT RACK THAT WEIGHT. Get back under the bar, sissy!',
     'Did I give you permission to quit? Hands back on the bar.',
-    "Excuses don't build muscle. Move your body for Master Workit NOW!",
+    "Excuses don't build muscle. Move your body for Master Tom Iron NOW!",
     'Look in the mirror. Are you my good man, or a quitter?',
     "Fatigue is in your head. Give me that extra 20% right now!",
     'Walk out early and carry the shame all day. Pick one!',
     'Break that weak habit right now. You belong under that iron.',
     'Pain is temporary. Quitting is permanent. Pick up those dumbbells!',
     "Stand up, lock in, and drive. I'm watching you.",
-    'You want results? Pay the tax to Master Workit. Complete the reps!',
+    'You want results? Pay the tax to Master Tom Iron. Complete the reps!',
     "Stop feeling sorry for yourself. Sweat isn't acid—LIFT!",
     'You came here to suffer and submit to the growth. GET TO WORK!',
     'Stop acting like a spectator. Show me maximum effort!',
@@ -96,18 +132,54 @@ const SERGEANT: LinePack = {
     'We carry heavy things today so we can drop the weight tomorrow. Flow with it.',
     'Honor your movement. Breathe intention into every rep.',
     'Respect the iron, but stay rooted in your center. You are grounded here.',
+    'Arrive fully. The room can wait. Your breath cannot.',
+    'Start kinder than your thoughts. The work will still be honest.',
+    'Let your shoulders drop away from your ears, then begin.',
+    'This first set is a hello to your body. Make it sincere.',
+    'You do not have to rush to be devoted.',
+    'Plant your feet. Feel the floor answer you.',
+    'Soft eyes, strong center. That is how Luna Meadows wants you to open.',
+    'Give the opener your full attention. The rest will follow.',
+    'Nothing to prove yet. Only something to begin.',
+    'Warmth first, then load. Stay with that order.',
+    'You showed up. That already counts. Now move with care.',
+    'Inhale space. Exhale the day. Then take the weight.',
   ],
   mid: [
     'Stay present in this breath. You are fully capable of this work.',
     'Soften where you can, hold strong where you must.',
     'That warmth in your muscles is just energy moving. Welcome it.',
     'Gentle alignment, pure presence. You are doing so well.',
+    'The middle is where we remember why we started.',
+    'If the mind wanders, bring it back to the next rep only.',
+    'You can be tired and still be kind to the work.',
+    'Steady is enough. Flashy is optional.',
+    'Notice the effort without turning it into a story.',
+    'Keep the ribs quiet and the heart open.',
+    'This set is still yours. Stay inside it.',
+    'Let the burn be information, not a verdict.',
+    'You are allowed to slow the tempo and keep the standard.',
+    'I am right here. One clean breath, then the next lift.',
+    'Midway is not a verdict. It is a checkpoint. Pass through.',
+    'Hold your shape. The strength is already arriving.',
   ],
   final: [
     'Release what no longer serves you. Save nothing for later.',
     'These final moments are where your growth blossoms. Stay with it.',
     'Let your effort feel light, even when the weight is heavy.',
     'Stay in this present moment. Finish this breath, finish this movement.',
+    'Close the practice the way you opened it: awake.',
+    'The last sets are a gift you give your future self.',
+    'You do not have to sprint. You only have to stay.',
+    'Finish with dignity. That is enough and that is plenty.',
+    'Let the last reps be the most honest ones.',
+    'Empty the work, not your kindness.',
+    'One more cycle of breath and iron. Then we rest.',
+    'You have come this far with grace. Keep that grace to the end.',
+    'The session is asking for presence, not punishment.',
+    'Stay soft in the face, strong in the legs.',
+    'Complete the circle. Then thank your body out loud.',
+    'This last effort is a blessing, not a debt. Offer it.',
   ],
   exit: [
     "Breathe, stay present, and stay right here on your mat. You aren't done yet.",
@@ -184,16 +256,35 @@ export const COMPLETE_LINES = MASTER.complete;
 export type WorkoutPhase = 'initial' | 'mid' | 'final';
 
 const lastByKey: Record<string, string> = {};
+const decks: Record<string, string[]> = {};
 
 function packFor(tone?: CoachTone | null): LinePack {
   return PACKS[normalizeCoachTone(tone)];
 }
 
+function shuffle<T>(items: T[]): T[] {
+  const next = [...items];
+  for (let i = next.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [next[i], next[j]] = [next[j], next[i]];
+  }
+  return next;
+}
+
 function pickFrom(pool: readonly string[], key: string): string {
-  const last = lastByKey[key];
-  const choices = pool.filter((line) => line !== last);
-  const source = choices.length > 0 ? choices : pool;
-  const line = source[Math.floor(Math.random() * source.length)];
+  let deck = decks[key];
+  if (!deck || deck.length === 0) {
+    deck = shuffle([...pool]);
+    const last = lastByKey[key];
+    if (last && deck.length > 1 && deck[0] === last) {
+      const swapAt = deck.findIndex((line, index) => index > 0 && line !== last);
+      if (swapAt > 0) {
+        [deck[0], deck[swapAt]] = [deck[swapAt], deck[0]];
+      }
+    }
+    decks[key] = deck;
+  }
+  const line = deck.shift() as string;
   lastByKey[key] = line;
   return line;
 }

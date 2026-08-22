@@ -71,7 +71,7 @@ function withOpsBcc(to: string | string[], bcc?: string | string[]) {
   return bccList.length ? bccList.join(', ') : undefined;
 }
 
-export function defaultFrom(displayName = 'Master Workit') {
+export function defaultFrom(displayName = 'Master Tom Iron') {
   const user = senderUser();
   return user ? `${displayName} <${user}>` : displayName;
 }

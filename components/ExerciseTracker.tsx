@@ -10,7 +10,7 @@ import { playSetChime, unlockAudio } from '@/lib/playChime';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
 import SetProgressFlash from './SetProgressFlash';
-import { getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
+import { exerciseVideos, getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
 import { getExerciseImages } from '@/lib/exerciseImages';
 import {
   canCompleteSet,
@@ -128,7 +128,11 @@ export default function ExerciseTracker({
   const tone = normalizeCoachTone(coachTone);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [editingSet, setEditingSet] = useState<string | null>(null);
-  const [activeVideo, setActiveVideo] = useState<{ title: string; videoId: string } | null>(null);
+  const [activeVideo, setActiveVideo] = useState<{
+    title: string;
+    videoId: string;
+    videos: ReturnType<typeof exerciseVideos>;
+  } | null>(null);
   const [restToken, setRestToken] = useState(0);
   const [restLine, setRestLine] = useState('Finish it. Make me proud.');
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
@@ -190,16 +194,15 @@ export default function ExerciseTracker({
           };
         }
 
-        if (slot.set_number === 1) {
-          const last = historyData.lastSets[slot.exercise_name]?.find((item) => item.set_number === 1)
-            ?? historyData.lastSets[slot.exercise_name]?.[0];
-          if (last) {
-            return {
-              ...slot,
-              actual_reps: last.actual_reps,
-              weight_lbs: last.weight_lbs,
-            };
-          }
+        const last = historyData.lastSets[slot.exercise_name]?.find(
+          (item) => item.set_number === slot.set_number
+        );
+        if (last) {
+          return {
+            ...slot,
+            actual_reps: last.actual_reps,
+            weight_lbs: last.weight_lbs,
+          };
         }
 
         return slot;
@@ -385,7 +388,13 @@ export default function ExerciseTracker({
               </div>
               <button
                 type="button"
-                onClick={() => setActiveVideo({ title: exercise.name, videoId: media.videoId })}
+                onClick={() =>
+                  setActiveVideo({
+                    title: exercise.name,
+                    videoId: media.videoId,
+                    videos: exerciseVideos(media),
+                  })
+                }
                 className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
                 aria-label={`Watch ${exercise.name} video`}
               >
@@ -627,6 +636,7 @@ export default function ExerciseTracker({
         open={!!activeVideo}
         title={activeVideo?.title || ''}
         videoId={activeVideo?.videoId || ''}
+        videos={activeVideo?.videos}
         onClose={() => setActiveVideo(null)}
       />
 

@@ -1,6 +1,12 @@
+export interface ExerciseVideo {
+  id: string;
+  label: string;
+}
+
 export interface ExerciseMedia {
   images: string[];
   videoId: string;
+  videos?: ExerciseVideo[];
 }
 
 const unsplash = (id: string) =>
@@ -71,10 +77,17 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "db chest-supported or bent-over rows": { images: gym.hotel, videoId: "kBWAon7ItDw" },
   "dumbbell lateral raises": { images: gym.dumbbell, videoId: "3VcKaXpzqRo" },
   "db lateral raises": { images: gym.hotel, videoId: "3VcKaXpzqRo" },
-  "face pulls": { images: gym.pull, videoId: "0Po47sVQ6QM" },
+  "face pulls": { images: gym.pull, videoId: "IeOqdw9WI90" },
   "dumbbell biceps curls": { images: gym.dumbbell, videoId: "ykJmrZ5v0Oo" },
   "db biceps curls": { images: gym.hotel, videoId: "ykJmrZ5v0Oo" },
-  "hanging knee raises or ab wheel rollouts": { images: gym.core, videoId: "DweF92d5QHc" },
+  "hanging knee raises or ab wheel rollouts": {
+    images: gym.core,
+    videoId: "hgVidvQzNQo",
+    videos: [
+      { id: "hgVidvQzNQo", label: "Hanging Knee / Leg Raises" },
+      { id: "kISuoI7QCYk", label: "Ab Wheel Rollouts" },
+    ],
+  },
   "trap bar deadlifts or barbell conventional deadlifts": { images: gym.deadlift, videoId: "vl5-f0N5R3o" },
   "bulgarian split squats": { images: gym.squat, videoId: "2C-uNgKwPLE" },
   "db bulgarian split squats": { images: gym.hotel, videoId: "2C-uNgKwPLE" },
@@ -99,6 +112,11 @@ export function getExerciseMedia(name: string): ExerciseMedia {
 
   const match = Object.keys(MEDIA).find((entry) => key.includes(entry) || entry.includes(key));
   return match ? MEDIA[match] : DEFAULT_MEDIA;
+}
+
+export function exerciseVideos(media: ExerciseMedia): ExerciseVideo[] {
+  if (media.videos?.length) return media.videos;
+  return [{ id: media.videoId, label: "Form video" }];
 }
 
 export function youtubeWatchUrl(videoId: string) {

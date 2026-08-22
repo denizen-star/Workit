@@ -11,7 +11,9 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/apple-touch-icon') ||
     pathname.startsWith('/manifest.json') ||
     pathname.startsWith('/sw.js') ||
-    pathname.match(/\.(png|svg|jpg|jpeg|webp|ico)$/)
+    pathname.startsWith('/sounds/') ||
+    pathname.startsWith('/badges/') ||
+    pathname.match(/\.(png|svg|jpg|jpeg|webp|ico|wav)$/)
   ) {
     return NextResponse.next();
   }
@@ -20,7 +22,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === '/' || pathname === '/who' || pathname.startsWith('/api/auth')) {
+  if (pathname === '/') {
+    const token = request.cookies.get(SESSION_COOKIE)?.value;
+    const userId = token ? await verifySessionToken(token) : null;
+    const url = request.nextUrl.clone();
+    url.pathname = userId ? '/home' : '/who';
+    return NextResponse.redirect(url);
+  }
+
+  if (pathname === '/who' || pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
 

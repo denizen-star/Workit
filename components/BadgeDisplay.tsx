@@ -1,6 +1,8 @@
 'use client';
 
-import { Award } from 'lucide-react';
+import { useState } from 'react';
+import { Award, ChevronDown, ChevronUp } from 'lucide-react';
+import BadgeMark from '@/components/BadgeMark';
 
 interface Badge {
   id: number;
@@ -17,66 +19,110 @@ interface BadgeDisplayProps {
   earnedBadges: Badge[];
 }
 
+function requirementLabel(badge: Badge) {
+  switch (badge.requirement_type) {
+    case 'weight_milestone':
+      return `Lift ${badge.requirement_value.toLocaleString()} lbs`;
+    case 'streak':
+      return `${badge.requirement_value} week streak`;
+    case 'total_workouts':
+      return `${badge.requirement_value} workouts`;
+    case 'week_complete':
+      return 'Complete a week';
+    case 'first_workout':
+      return 'Complete first workout';
+    case 'program_complete':
+      return 'Finish 6 weeks';
+    case 'perfect_week':
+      return 'Perfect week';
+    case 'travel_week':
+      return 'Finish travel week';
+    case 'upper_sessions':
+      return `${badge.requirement_value} Upper sessions`;
+    case 'lower_sessions':
+      return `${badge.requirement_value} Lower sessions`;
+    case 'session_volume':
+      return `${badge.requirement_value.toLocaleString()} lb session`;
+    case 'fast_session':
+      return `Finish under ${badge.requirement_value} min`;
+    case 'long_session':
+      return `Train over ${badge.requirement_value} min`;
+    case 'early_bird':
+      return 'Start before 8am';
+    case 'night_owl':
+      return 'Start at or after 8pm';
+    default:
+      return '';
+  }
+}
+
 export default function BadgeDisplay({ allBadges, earnedBadges }: BadgeDisplayProps) {
+  const [open, setOpen] = useState(false);
   const earnedIds = new Set(earnedBadges.map((badge) => badge.id));
 
   return (
     <div className="glass-card p-6">
-      <div className="mb-4 flex items-center gap-2">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center gap-2 text-left"
+        aria-expanded={open}
+      >
         <Award className="h-6 w-6 text-[#e8c547]" />
         <h2 className="text-2xl font-black text-white">Achievements</h2>
         <span className="ml-auto text-sm text-[#f6f1e3]/65">
           {earnedBadges.length} / {allBadges.length}
         </span>
-      </div>
+        {open ? (
+          <ChevronUp className="h-5 w-5 text-[#f6f1e3]/65" />
+        ) : (
+          <ChevronDown className="h-5 w-5 text-[#f6f1e3]/65" />
+        )}
+      </button>
 
-      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
-        {allBadges.map((badge) => {
-          const isEarned = earnedIds.has(badge.id);
-          const earnedBadge = earnedBadges.find((item) => item.id === badge.id);
+      {open && (
+        <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-5">
+          {allBadges.map((badge) => {
+            const isEarned = earnedIds.has(badge.id);
+            const earnedBadge = earnedBadges.find((item) => item.id === badge.id);
 
-          return (
-            <div
-              key={badge.id}
-              className={`relative rounded-2xl border p-4 transition-all ${
-                isEarned
-                  ? 'border-[#e8c547]/60 bg-[#e8c547]/10'
-                  : 'border-white/10 bg-black/20 opacity-55'
-              }`}
-            >
-              <div className="text-center">
-                <div className="mb-2 text-4xl">{badge.icon}</div>
-                <h3 className="mb-1 text-sm font-semibold text-white">{badge.name}</h3>
-                <p className="text-xs text-[#f6f1e3]/65">{badge.description}</p>
+            return (
+              <div
+                key={badge.id}
+                className={`relative rounded-2xl border p-4 transition-all ${
+                  isEarned
+                    ? 'border-[#e8c547]/60 bg-[#e8c547]/10'
+                    : 'border-white/10 bg-black/20 opacity-55'
+                }`}
+              >
+                <div className="text-center">
+                  <div className="mb-2">
+                    <BadgeMark name={badge.name} className="h-16 w-16" />
+                  </div>
+                  <h3 className="mb-1 text-sm font-semibold text-white">{badge.name}</h3>
+                  <p className="text-xs text-[#f6f1e3]/65">{badge.description}</p>
 
-                {isEarned && earnedBadge?.earned_at && (
-                  <p className="mt-2 text-xs text-[#e8c547]">
-                    Earned {new Date(earnedBadge.earned_at).toLocaleDateString()}
-                  </p>
-                )}
+                  {isEarned && earnedBadge?.earned_at && (
+                    <p className="mt-2 text-xs text-[#e8c547]">
+                      Earned {new Date(earnedBadge.earned_at).toLocaleDateString()}
+                    </p>
+                  )}
 
-                {!isEarned && (
-                  <p className="mt-2 text-xs text-[#f6f1e3]/50">
-                    {badge.requirement_type === 'weight_milestone' && `Lift ${badge.requirement_value} lbs`}
-                    {badge.requirement_type === 'streak' && `${badge.requirement_value} week streak`}
-                    {badge.requirement_type === 'total_workouts' && `${badge.requirement_value} workouts`}
-                    {badge.requirement_type === 'week_complete' && 'Complete a week'}
-                    {badge.requirement_type === 'first_workout' && 'Complete first workout'}
-                    {badge.requirement_type === 'program_complete' && 'Finish 6 weeks'}
-                    {badge.requirement_type === 'perfect_week' && 'Perfect week'}
-                  </p>
+                  {!isEarned && (
+                    <p className="mt-2 text-xs text-[#f6f1e3]/50">{requirementLabel(badge)}</p>
+                  )}
+                </div>
+
+                {isEarned && (
+                  <div className="absolute -right-2 -top-2 rounded-full bg-[#e8c547] p-1 text-[#1a1404]">
+                    <Award className="h-4 w-4" />
+                  </div>
                 )}
               </div>
-
-              {isEarned && (
-                <div className="absolute -right-2 -top-2 rounded-full bg-[#e8c547] p-1 text-[#1a1404]">
-                  <Award className="h-4 w-4" />
-                </div>
-              )}
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

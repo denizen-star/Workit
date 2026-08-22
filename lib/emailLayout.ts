@@ -35,7 +35,7 @@ export function wrapEmailHtml(opts: {
   footer?: string;
   signer?: string;
 }) {
-  const signer = opts.signer ?? 'Master Workit';
+  const signer = opts.signer ?? 'Master Tom Iron';
   const footer = opts.footer ?? 'Work-It · you answer to ' + signer;
   const titleBlock = opts.subtitle
     ? '<h1 style="margin:0;font-size:26px;line-height:1.25;font-weight:800;color:#fff;">' +
@@ -139,7 +139,7 @@ export function emailTextHeader(eyebrow: string, title: string) {
   return [eyebrow.toUpperCase(), title, ''].join('\n');
 }
 
-export function emailTextSignOff(signer = 'Master Workit') {
+export function emailTextSignOff(signer = 'Master Tom Iron') {
   return '\n' + signer;
 }
 

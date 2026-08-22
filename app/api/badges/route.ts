@@ -12,6 +12,8 @@ export async function GET() {
 
     const userId = user.id;
 
+    await checkAndAwardBadges(userId);
+
     const allBadges = await query('SELECT * FROM badges ORDER BY requirement_value');
 
     const earnedBadges = await query(
@@ -22,8 +24,6 @@ export async function GET() {
        ORDER BY ub.earned_at DESC`,
       [userId]
     );
-
-    await checkAndAwardBadges(userId);
 
     return NextResponse.json({
       allBadges: allBadges.rows,

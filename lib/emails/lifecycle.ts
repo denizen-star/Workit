@@ -1,6 +1,6 @@
 import { after } from 'next/server';
 import { query } from '@/lib/db';
-import { checkAndAwardBadges } from '@/lib/badges';
+import { checkAndAwardBadges, type AwardedBadge } from '@/lib/badges';
 import { getUserTone } from '@/lib/auth';
 import { pickCompleteLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
@@ -61,6 +61,7 @@ export function queueWorkoutCompleteEmails(opts: {
   sessionId: number;
   weekNumber: number;
   dayName: string;
+  awarded?: AwardedBadge[];
 }) {
   if (!opts.email) return;
   after(async () => {
@@ -75,6 +76,7 @@ export async function sendWorkoutCompleteBundle(opts: {
   sessionId: number;
   weekNumber: number;
   dayName: string;
+  awarded?: AwardedBadge[];
 }) {
   if (!opts.email) return;
 
@@ -148,7 +150,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     email: recap,
   });
 
-  const awarded = await checkAndAwardBadges(opts.userId);
+  const awarded = opts.awarded ?? await checkAndAwardBadges(opts.userId);
   for (const badge of awarded) {
     if (!BADGE_EMAIL_TYPES.has(badge.requirement_type)) continue;
     const email = buildBadgeEmail({

@@ -288,7 +288,7 @@ node -e "const { connect } = require('@planetscale/database'); const conn = conn
 
 1. Netlify Production env: `EMAIL_ENABLED`, `SENDER_*`, `SMTP_*`, `CRON_SECRET`
 2. Admin → Mail → Send this sample
-3. Check spam; From is `Master Workit <SENDER_EMAIL>`
+3. Check spam; From is `Master Tom Iron <SENDER_EMAIL>` (or Luna Meadows if that voice is set)
 4. Confirm `email_sends` exists (`database/migrate-email.sql`)
 5. Function log: `workit-mail-cron` (needs `CRON_SECRET` + site URL)
 

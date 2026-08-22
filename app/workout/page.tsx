@@ -10,12 +10,12 @@ import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDur
 import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
-import CompleteTakeover from '@/components/CompleteTakeover';
+import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { setSoundEnabled } from '@/lib/playChime';
+import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 
 function WorkoutPageInner() {
@@ -36,6 +36,7 @@ function WorkoutPageInner() {
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completeLine, setCompleteLine] = useState('');
+  const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const autoOpened = useRef(false);
@@ -224,6 +225,9 @@ function WorkoutPageInner() {
   const completeWorkout = async () => {
     if (!currentSession) return;
 
+    unlockAudio();
+    playCompleteChime();
+
     try {
       const response = await fetch('/api/sessions', {
         method: 'PUT',
@@ -240,8 +244,10 @@ function WorkoutPageInner() {
         return;
       }
 
+      const data = await response.json().catch(() => ({ awardedBadges: [] }));
       await loadSessions();
       setConfirmComplete(false);
+      setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
       setCompleteLine(pickCompleteLine(coachTone));
       setShowSuccess(true);
     } catch (error) {
@@ -352,8 +358,10 @@ function WorkoutPageInner() {
         <CompleteTakeover
           open={showSuccess}
           line={completeLine}
+          badges={awardedBadges}
           onClose={() => {
             setShowSuccess(false);
+            setAwardedBadges([]);
             setCurrentSession(null);
             setSelectedDay(null);
             setStartedAt(null);
@@ -536,8 +544,10 @@ function WorkoutPageInner() {
       <CompleteTakeover
         open={showSuccess}
         line={completeLine}
+        badges={awardedBadges}
         onClose={() => {
           setShowSuccess(false);
+          setAwardedBadges([]);
           setCurrentSession(null);
           setSelectedDay(null);
           setStartedAt(null);

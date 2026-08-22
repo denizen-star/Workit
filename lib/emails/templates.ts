@@ -389,7 +389,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const ordersLine =
     normalizeCoachTone(input.tone) === 'sergeant'
       ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
-      : 'Do not skim this like a changelog, sissy. These are orders from Master Challenge.';
+      : 'Do not skim this like a changelog, sissy. These are orders from Master Tom Iron.';
   const eyebrow = 'new orders · ' + input.version;
   const html = wrapEmailHtml({
     eyebrow,

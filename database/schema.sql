@@ -139,5 +139,27 @@ INSERT INTO badges (name, description, icon, requirement_type, requirement_value
 ('Perfect Week', 'Complete all exercises in a week with no missed sets', '💎', 'perfect_week', 1),
 ('Dedication', 'Complete 20 total workouts', '🎗️', 'total_workouts', 20);
 
+INSERT IGNORE INTO badges (name, description, icon, requirement_type, requirement_value) VALUES
+('First Five', 'Complete 5 workouts', '🖐️', 'total_workouts', 5),
+('Double Digits', 'Complete 10 workouts', '🔟', 'total_workouts', 10),
+('Half Century', 'Complete 50 workouts', '🏅', 'total_workouts', 50),
+('Century Club', 'Complete 100 workouts', '💯', 'total_workouts', 100),
+('Bronze Iron', 'Lift 1,000 lbs in total', '🥉', 'weight_milestone', 1000),
+('Silver Iron', 'Lift 2,500 lbs in total', '🥈', 'weight_milestone', 2500),
+('Colossus', 'Lift 35,000 lbs in total', '🗿', 'weight_milestone', 35000),
+('Mythic Iron', 'Lift 50,000 lbs in total', '✨', 'weight_milestone', 50000),
+('Atlas', 'Lift 100,000 lbs in total', '🌍', 'weight_milestone', 100000),
+('Four Week Streak', 'Complete 4 consecutive weeks', '📅', 'streak', 4),
+('Five Week Streak', 'Complete 5 consecutive weeks', '🗓️', 'streak', 5),
+('Unbroken Six', 'Complete 6 consecutive weeks', '♾️', 'streak', 6),
+('Travel Survivor', 'Finish all 4 days of travel week', '✈️', 'travel_week', 4),
+('Upper Specialist', 'Complete 8 Upper sessions', '🏋️', 'upper_sessions', 8),
+('Lower Specialist', 'Complete 8 Lower sessions', '🦵', 'lower_sessions', 8),
+('Volume Day', 'Lift 10,000 lbs in one session', '📦', 'session_volume', 10000),
+('Fast Session', 'Finish a workout in under 45 minutes', '⏱️', 'fast_session', 45),
+('Long Haul', 'Train for more than 90 minutes in one session', '⏳', 'long_session', 90),
+('Early Bird', 'Complete a workout started before 8am', '🌅', 'early_bird', 8),
+('Night Owl', 'Complete a workout started at or after 8pm', '🌙', 'night_owl', 20);
+
 -- Insert default user (can be modified)
 INSERT INTO users (name, email) VALUES ('Kevin', 'user@workit.kervinapps.com');

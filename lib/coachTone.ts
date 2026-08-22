@@ -11,12 +11,12 @@ export const COACH_TONE_OPTIONS: Array<{
 }> = [
   {
     id: 'master',
-    label: 'Master Challenge',
+    label: 'Master Tom Iron',
     blurb: 'The original voice. Direct. I own you. I call you sissy. Good man stays good man.',
   },
   {
     id: 'sergeant',
-    label: 'Soft Encouragement',
+    label: 'Luna Meadows',
     blurb: 'A warm, grounded guide. Present. Gentle. She keeps you in the work.',
   },
 ];
@@ -30,5 +30,5 @@ export function normalizeCoachTone(value: unknown): CoachTone {
 }
 
 export function coachDisplayName(tone: CoachTone) {
-  return tone === 'sergeant' ? 'Soft Encouragement' : 'Master Challenge';
+  return tone === 'sergeant' ? 'Luna Meadows' : 'Master Tom Iron';
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { checkAndAwardBadges } from '@/lib/badges';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 
 export async function POST(request: NextRequest) {
@@ -108,6 +109,10 @@ export async function PUT(request: NextRequest) {
       [isCompleted, isCompleted ? new Date() : null, isCompleted ? new Date() : null, notes, sessionId, user.id]
     );
 
+    const awardedBadges = isCompleted && !alreadyComplete
+      ? await checkAndAwardBadges(user.id)
+      : [];
+
     if (isCompleted && !alreadyComplete) {
       queueWorkoutCompleteEmails({
         userId: user.id,
@@ -116,10 +121,11 @@ export async function PUT(request: NextRequest) {
         sessionId: Number(sessionId),
         weekNumber: Number(session.week_number),
         dayName: session.workout_type,
+        awarded: awardedBadges,
       });
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, awardedBadges });
   } catch (error) {
     console.error('Error updating workout session:', error);
     return NextResponse.json({ error: 'Failed to update workout session' }, { status: 500 });

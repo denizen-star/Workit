@@ -1,11 +1,19 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { playCompleteChime } from "@/lib/playChime";
+import { useEffect, useRef, useState } from "react";
+import BadgeMark from "@/components/BadgeMark";
+
+export type TakeoverBadge = {
+  id: number;
+  name: string;
+  description: string;
+  icon: string | null;
+};
 
 interface CompleteTakeoverProps {
   open: boolean;
   line: string;
+  badges?: TakeoverBadge[];
   onClose: () => void;
 }
 
@@ -15,21 +23,30 @@ function splitLine(line: string) {
   return { title: match[1], body: match[2] };
 }
 
-export default function CompleteTakeover({ open, line, onClose }: CompleteTakeoverProps) {
+export default function CompleteTakeover({
+  open,
+  line,
+  badges = [],
+  onClose,
+}: CompleteTakeoverProps) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const [step, setStep] = useState(0);
   const { title, body } = splitLine(line);
+  const totalSteps = badges.length + 1;
+  const showingBadge = step < badges.length;
+  const badge = showingBadge ? badges[step] : null;
 
   useEffect(() => {
-    if (!open) return;
-
-    playCompleteChime();
-
-    try {
-      navigator.vibrate?.([40, 50, 70]);
-    } catch {
-      // Vibration is not available on every phone.
+    if (!open) {
+      setStep(0);
+      return;
     }
+    setStep(0);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || showingBadge) return;
 
     const timeout = window.setTimeout(() => onCloseRef.current(), 10000);
     const onKeyDown = (event: KeyboardEvent) => {
@@ -43,7 +60,15 @@ export default function CompleteTakeover({ open, line, onClose }: CompleteTakeov
       window.clearTimeout(timeout);
       window.removeEventListener("keydown", onKeyDown);
     };
-  }, [open]);
+  }, [open, showingBadge, step]);
+
+  const advance = () => {
+    if (step + 1 >= totalSteps) {
+      onClose();
+      return;
+    }
+    setStep((current) => current + 1);
+  };
 
   if (!open) return null;
 
@@ -51,10 +76,10 @@ export default function CompleteTakeover({ open, line, onClose }: CompleteTakeov
     <div
       role="button"
       tabIndex={0}
-      onClick={onClose}
+      onClick={advance}
       onKeyDown={(event) => {
         if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
-          onClose();
+          advance();
         }
       }}
       className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-[#07070a]/95 px-6"
@@ -64,17 +89,38 @@ export default function CompleteTakeover({ open, line, onClose }: CompleteTakeov
         <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
       </div>
       <div className="relative max-w-xl text-center">
-        <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
-          Workout complete
-        </p>
-        <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
-          {title}
-        </h2>
-        {body ? (
-          <p className="mt-6 text-lg font-medium leading-relaxed text-[#f6f1e3]/85 sm:text-xl">
-            {body}
-          </p>
-        ) : null}
+        {badge ? (
+          <>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
+              Badge earned · {step + 1} of {badges.length}
+            </p>
+            <div className="mb-6">
+              <BadgeMark name={badge.name} className="h-28 w-28" />
+            </div>
+            <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
+              {badge.name}
+            </h2>
+            {badge.description ? (
+              <p className="mt-6 text-lg font-medium leading-relaxed text-[#f6f1e3]/85 sm:text-xl">
+                {badge.description}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
+            <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
+              Workout complete
+            </p>
+            <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
+              {title}
+            </h2>
+            {body ? (
+              <p className="mt-6 text-lg font-medium leading-relaxed text-[#f6f1e3]/85 sm:text-xl">
+                {body}
+              </p>
+            ) : null}
+          </>
+        )}
         <p className="mt-10 text-sm font-semibold uppercase tracking-[0.25em] text-white/70">
           Tap anywhere to continue
         </p>

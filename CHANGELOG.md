@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 3.0.0 - 2026-08-22
+
+### Added
+- Home scoreboard card (folded, above Weekly Progress): last 7 days, 30 days, or all time. Only people who finished a workout in that window
+- 20 more badges. Medal SVGs instead of emoji. Finish screen taps through new badges, then the completion line
+- Two form videos on Hanging Knee / Leg Raises and Ab Wheel Rollouts. New Face Pulls video
+
+### Changed
+- Coach names: **Master Tom Iron** and **Luna Meadows** (edit profile, mail From, sign-off, lines)
+- `workit.kervinapps.com/` goes to `/who` if you are logged out, `/home` if you are logged in
+- Achievements on Home stay at the bottom and start folded
+- Last workout’s weight and reps prefill every set for that person, not only set 1
+- Rest lines: ~16 per phase per voice; shuffle plays the whole bank before a repeat
+- Edit profile sheet scrolls on a phone
+
+### Fixed
+- Workout chimes and horn actually play (sound files + unlock on tap + Finish chime on the confirm tap)
+
 ## 2.0.1 - 2026-08-19
 
 ### Changed

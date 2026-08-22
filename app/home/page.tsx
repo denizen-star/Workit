@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
+import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ProgressCharts from '@/components/ProgressCharts';
 import AppMenu from '@/components/AppMenu';
 import { formatDuration } from '@/lib/formatDuration';
@@ -224,6 +225,8 @@ export default function Home() {
             <p className="text-sm text-[#f6f1e3]/55">of {badges?.allBadges?.length || 0} total</p>
           </div>
         </div>
+
+        <HouseholdScoreboard />
 
         <div className="glass-card mb-8 p-6">
           <h2 className="mb-4 text-2xl font-black text-white">Weekly Progress</h2>
