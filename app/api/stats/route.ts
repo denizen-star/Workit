@@ -53,7 +53,7 @@ export async function GET() {
     );
 
     const currentStreak = countCurrentStreak(
-      streakResult.rows.map((row: { workout_date: unknown }) => row.workout_date)
+      streakResult.rows.map((row) => row.workout_date)
     );
 
     const durationStats = await query(
@@ -84,7 +84,7 @@ export async function GET() {
 
     const household = await householdHomeStats(
       userId,
-      dailyStats.rows.map((row: { workout_date: unknown }) => row.workout_date)
+      dailyStats.rows.map((row) => row.workout_date)
     );
 
     return NextResponse.json({
