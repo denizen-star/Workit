@@ -161,5 +161,28 @@ INSERT IGNORE INTO badges (name, description, icon, requirement_type, requiremen
 ('Early Bird', 'Complete a workout started before 8am', '🌅', 'early_bird', 8),
 ('Night Owl', 'Complete a workout started at or after 8pm', '🌙', 'night_owl', 20);
 
+CREATE TABLE IF NOT EXISTS coach_voices (
+    id VARCHAR(32) PRIMARY KEY,
+    display_name VARCHAR(64) NOT NULL,
+    description TEXT NOT NULL,
+    blurb VARCHAR(255) NOT NULL,
+    from_name VARCHAR(64) NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS coach_lines (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    voice_id VARCHAR(32) NOT NULL,
+    bucket VARCHAR(32) NOT NULL,
+    sort_order INT NOT NULL DEFAULT 0,
+    title VARCHAR(120) NULL,
+    body TEXT NOT NULL,
+    is_active TINYINT(1) NOT NULL DEFAULT 1,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY unique_voice_bucket_order (voice_id, bucket, sort_order),
+    INDEX idx_voice_bucket (voice_id, bucket, is_active, sort_order)
+);
+
 -- Insert default user (can be modified)
 INSERT INTO users (name, email) VALUES ('Kevin', 'user@workit.kervinapps.com');

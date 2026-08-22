@@ -1,4 +1,5 @@
 import { getUserTone } from '@/lib/auth';
+import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
@@ -64,6 +65,7 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     return { sent: false, skipped: 'no-target' };
   }
 
+  await loadCoachCatalogFromDb();
   const email = buildNudgeEmail({
     name: user.name,
     mode: target.type,

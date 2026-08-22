@@ -16,7 +16,8 @@ import {
 } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
 import { pickCoachLine, pickExitLine } from '@/lib/coachLines';
-import { coachDisplayName, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
+import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { CURRENT_RELEASE } from '@/lib/emails/currentRelease';
 import type { MailTemplateId } from '@/lib/emails/ids';
 
@@ -89,7 +90,7 @@ export type ReleaseEmailInput = {
 };
 
 function fromFor(tone?: CoachTone | null) {
-  return defaultFrom(coachDisplayName(normalizeCoachTone(tone)));
+  return defaultFrom(voiceFromName(normalizeCoachTone(tone)));
 }
 
 function address(name: string) {
@@ -139,7 +140,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
 export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const shout = input.mode === 'resume' ? pickExitLine(input.tone) : pickCoachLine(0, 3, input.tone);
-  const signer = coachDisplayName(normalizeCoachTone(input.tone));
+  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = input.mode === 'resume' ? 'unfinished' : 'get to it';
   const title =
     input.mode === 'resume'
@@ -205,7 +206,7 @@ function formatLbs(value: number | null | undefined) {
 
 export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = coachDisplayName(normalizeCoachTone(input.tone));
+  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = input.programComplete ? 'program complete' : input.weekComplete ? 'week locked' : 'paid';
   const title = input.programComplete
     ? 'Six weeks. You did not break.'
@@ -276,7 +277,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
 
 export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = coachDisplayName(normalizeCoachTone(input.tone));
+  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = 'earned';
   const title = 'Good man. ' + input.badgeName + '.';
   const html = wrapEmailHtml({
@@ -385,7 +386,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
 
 export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = coachDisplayName(normalizeCoachTone(input.tone));
+  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
   const ordersLine =
     normalizeCoachTone(input.tone) === 'sergeant'
       ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'

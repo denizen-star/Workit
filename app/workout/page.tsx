@@ -14,6 +14,7 @@ import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeo
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
+import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
@@ -46,15 +47,18 @@ function WorkoutPageInner() {
   useWakeLock(!!currentSession);
 
   useEffect(() => {
-    fetch('/api/me')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+    Promise.all([
+      fetch('/api/me').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/coach-catalog').then((res) => (res.ok ? res.json() : null)),
+    ])
+      .then(([data, catalog]) => {
         if (data?.user) {
           setCoachTone(normalizeCoachTone(data.user.coachTone));
           const enabled = normalizeSoundOn(data.user.soundOn);
           setSoundOn(enabled);
           setSoundEnabled(enabled);
         }
+        if (catalog) hydrateCoachCatalog(catalog);
       })
       .catch(() => {});
   }, []);

@@ -1,3 +1,4 @@
+import { getLinePack, packIsUsable } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 
 export type { CoachTone };
@@ -244,6 +245,8 @@ const PACKS: Record<CoachTone, LinePack> = {
   sergeant: SERGEANT,
 };
 
+export const FALLBACK_LINE_PACKS = PACKS;
+
 export const COACH_LINES = {
   initial: MASTER.initial,
   mid: MASTER.mid,
@@ -259,6 +262,8 @@ const lastByKey: Record<string, string> = {};
 const decks: Record<string, string[]> = {};
 
 function packFor(tone?: CoachTone | null): LinePack {
+  const live = getLinePack(tone);
+  if (packIsUsable(live)) return live as LinePack;
   return PACKS[normalizeCoachTone(tone)];
 }
 

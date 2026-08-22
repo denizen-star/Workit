@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import PinPad from '@/components/PinPad';
-import { COACH_TONE_OPTIONS, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { getCoachToneOptions } from '@/lib/coachCatalog';
+import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 
@@ -160,24 +161,25 @@ export default function EditProfileModal({
               />
               <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
               <div className="mb-4 grid gap-2">
-                {COACH_TONE_OPTIONS.map((option) => {
-                  const selected = tone === option.id;
-                  return (
-                    <button
-                      key={option.id}
-                      type="button"
-                      onClick={() => setTone(option.id)}
-                      className={`rounded-2xl border px-4 py-3 text-left ${
-                        selected
-                          ? 'border-[#e8c547] bg-[#e8c547]/15'
-                          : 'border-white/10 bg-black/25'
-                      }`}
-                    >
-                      <span className="block text-sm font-black text-white">{option.label}</span>
-                      <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
-                    </button>
-                  );
-                })}
+                {getCoachToneOptions().map((option) => {
+                const selected = tone === option.id;
+                return (
+                  <button
+                    key={option.id}
+                    type="button"
+                    onClick={() => setTone(option.id)}
+                    className={`rounded-2xl border px-4 py-3 text-left ${
+                      selected
+                        ? 'border-[#e8c547] bg-[#e8c547]/15'
+                        : 'border-white/10 bg-black/25'
+                    }`}
+                  >
+                    <span className="block text-sm font-black text-white">{option.label}</span>
+                    <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
+                    <span className="mt-2 block text-xs leading-relaxed text-[#f6f1e3]/45">{option.description}</span>
+                  </button>
+                );
+              })}
               </div>
               <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Workout sound</p>
               <div className="mb-4 grid grid-cols-2 gap-2">

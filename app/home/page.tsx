@@ -10,6 +10,7 @@ import AppMenu from '@/components/AppMenu';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
@@ -32,11 +33,12 @@ export default function Home() {
 
   const loadData = async () => {
     try {
-      const [meRes, statsRes, badgesRes, sessionsRes] = await Promise.all([
+      const [meRes, statsRes, badgesRes, sessionsRes, catalogRes] = await Promise.all([
         fetch('/api/me'),
         fetch('/api/stats'),
         fetch('/api/badges'),
         fetch('/api/sessions'),
+        fetch('/api/coach-catalog'),
       ]);
 
       if (meRes.ok) {
@@ -63,6 +65,11 @@ export default function Home() {
       if (sessionsRes.ok) {
         const sessionData = await sessionsRes.json();
         setSessions(sessionData.sessions || []);
+      }
+
+      if (catalogRes.ok) {
+        const catalog = await catalogRes.json();
+        hydrateCoachCatalog(catalog);
       }
     } catch (error) {
       console.error('Error loading data:', error);
