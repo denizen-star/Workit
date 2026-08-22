@@ -25,8 +25,11 @@ export async function middleware(request: NextRequest) {
   if (pathname === '/') {
     const token = request.cookies.get(SESSION_COOKIE)?.value;
     const userId = token ? await verifySessionToken(token) : null;
+    if (!userId) {
+      return NextResponse.next();
+    }
     const url = request.nextUrl.clone();
-    url.pathname = userId ? '/home' : '/who';
+    url.pathname = '/home';
     return NextResponse.rewrite(url);
   }
 

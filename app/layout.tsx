@@ -62,8 +62,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                   return caches.keys().then(function(keys) {
                     return Promise.all(keys.map(function(key) { return caches.delete(key); }));
                   });
-                }).then(function() {
-                  return navigator.serviceWorker.register('/sw.js');
                 }).catch(function() {});
               });
             }
