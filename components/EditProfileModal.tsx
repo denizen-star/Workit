@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import PinPad from '@/components/PinPad';
 import { COACH_TONE_OPTIONS, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
@@ -35,6 +36,11 @@ export default function EditProfileModal({
   const [step, setStep] = useState<'details' | 'pin' | 'confirm'>('details');
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (open) {
@@ -48,10 +54,14 @@ export default function EditProfileModal({
       setStep('details');
       setPin('');
       setConfirmPin('');
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
     }
+    return () => {
+      document.body.style.overflow = '';
+    };
   }, [open, currentName, currentEmail, currentTone, currentSoundOn]);
-
-  if (!open) return null;
 
   const save = async (finalPin: string | null) => {
     if (!name.trim()) {
@@ -120,86 +130,131 @@ export default function EditProfileModal({
     save(null);
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end justify-center p-4 sm:items-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-md" onClick={onClose} />
-      <div className="relative max-h-[min(90dvh,100%)] w-full max-w-md overflow-y-auto overscroll-contain rounded-3xl border border-white/10 bg-[#12121a] p-6 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl">
-        {step === 'details' && (
-          <>
-            <h2 className="mb-2 text-2xl font-black text-white">Your profile</h2>
-            <p className="mb-6 text-sm text-[#f6f1e3]/65">
-              Update your name, email, or PIN. Same four digits is allowed.
-            </p>
+  if (!open || !mounted) return null;
 
-            <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Full name</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="glass-input mb-4 w-full"
-            />
-            <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="glass-input mb-4 w-full"
-            />
-            <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
-            <div className="mb-4 grid gap-2">
-              {COACH_TONE_OPTIONS.map((option) => {
-                const selected = tone === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setTone(option.id)}
-                    className={`rounded-2xl border px-4 py-3 text-left ${
-                      selected
-                        ? 'border-[#e8c547] bg-[#e8c547]/15'
-                        : 'border-white/10 bg-black/25'
-                    }`}
-                  >
-                    <span className="block text-sm font-black text-white">{option.label}</span>
-                    <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
-                  </button>
-                );
-              })}
-            </div>
-            <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Workout sound</p>
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setSoundOn(true)}
-                className={`rounded-2xl border px-4 py-3 text-left ${
-                  soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
-                }`}
-              >
-                <span className="block text-sm font-black text-white">On</span>
-                <span className="mt-1 block text-xs text-[#f6f1e3]/60">Chimes and horn</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setSoundOn(false)}
-                className={`rounded-2xl border px-4 py-3 text-left ${
-                  !soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
-                }`}
-              >
-                <span className="block text-sm font-black text-white">Off</span>
-                <span className="mt-1 block text-xs text-[#f6f1e3]/60">Silent sets</span>
-              </button>
-            </div>
-            <label className="mb-6 flex items-center gap-2 text-sm text-[#f6f1e3]/75">
+  const sheet = (
+    <div className="fixed inset-0 z-[300] flex items-stretch justify-center sm:items-center sm:p-4">
+      <div className="absolute inset-0 bg-black/80" onClick={onClose} />
+      <div className="relative flex h-full min-h-0 w-full max-w-md flex-col bg-[#12121a] sm:h-auto sm:max-h-[min(88dvh,760px)] sm:rounded-3xl sm:border sm:border-white/10 sm:shadow-2xl">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-4 pt-[max(1.25rem,env(safe-area-inset-top))]">
+          {step === 'details' && (
+            <>
+              <h2 className="mb-2 text-2xl font-black text-white">Your profile</h2>
+              <p className="mb-6 text-sm text-[#f6f1e3]/65">
+                Update your name, email, or PIN. Same four digits is allowed.
+              </p>
+
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Full name</label>
               <input
-                type="checkbox"
-                checked={changePin}
-                onChange={(e) => setChangePin(e.target.checked)}
-                className="h-4 w-4 accent-[#e8c547]"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="glass-input mb-4 w-full"
               />
-              Change PIN
-            </label>
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
+              <div className="mb-4 grid gap-2">
+                {COACH_TONE_OPTIONS.map((option) => {
+                  const selected = tone === option.id;
+                  return (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => setTone(option.id)}
+                      className={`rounded-2xl border px-4 py-3 text-left ${
+                        selected
+                          ? 'border-[#e8c547] bg-[#e8c547]/15'
+                          : 'border-white/10 bg-black/25'
+                      }`}
+                    >
+                      <span className="block text-sm font-black text-white">{option.label}</span>
+                      <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
+                    </button>
+                  );
+                })}
+              </div>
+              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Workout sound</p>
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setSoundOn(true)}
+                  className={`rounded-2xl border px-4 py-3 text-left ${
+                    soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                  }`}
+                >
+                  <span className="block text-sm font-black text-white">On</span>
+                  <span className="mt-1 block text-xs text-[#f6f1e3]/60">Chimes and horn</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSoundOn(false)}
+                  className={`rounded-2xl border px-4 py-3 text-left ${
+                    !soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                  }`}
+                >
+                  <span className="block text-sm font-black text-white">Off</span>
+                  <span className="mt-1 block text-xs text-[#f6f1e3]/60">Silent sets</span>
+                </button>
+              </div>
+              <label className="mb-2 flex items-center gap-2 text-sm text-[#f6f1e3]/75">
+                <input
+                  type="checkbox"
+                  checked={changePin}
+                  onChange={(e) => setChangePin(e.target.checked)}
+                  className="h-4 w-4 accent-[#e8c547]"
+                />
+                Change PIN
+              </label>
+            </>
+          )}
 
-            <div className="flex gap-3">
+          {(step === 'pin' || step === 'confirm') && (
+            <>
+              <h2 className="mb-2 text-2xl font-black text-white">
+                {step === 'pin' ? 'New PIN' : 'Confirm PIN'}
+              </h2>
+              <p className="mb-6 text-center text-sm font-semibold text-[#e8c547]">
+                {step === 'pin' ? 'Four digits. Same PIN is allowed.' : 'Enter it again.'}
+              </p>
+              <PinPad
+                value={step === 'pin' ? pin : confirmPin}
+                onChange={(v) => {
+                  if (step === 'pin') {
+                    setPin(v);
+                    if (v.length === 4) setTimeout(() => setStep('confirm'), 150);
+                  } else {
+                    setConfirmPin(v);
+                    if (v.length === 4) {
+                      if (v !== pin) {
+                        setError('PINs do not match');
+                        setConfirmPin('');
+                        setStep('pin');
+                        setPin('');
+                        return;
+                      }
+                      save(v);
+                    }
+                  }
+                }}
+                disabled={submitting}
+              />
+            </>
+          )}
+
+          {error && (
+            <p className="mt-4 text-center text-sm font-semibold text-rose-400">{error}</p>
+          )}
+        </div>
+
+        <div className="flex shrink-0 gap-3 border-t border-white/10 px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          {step === 'details' ? (
+            <>
               <button
                 type="button"
                 onClick={onClose}
@@ -215,40 +270,8 @@ export default function EditProfileModal({
               >
                 {changePin ? 'Next' : submitting ? 'Saving...' : 'Save'}
               </button>
-            </div>
-          </>
-        )}
-
-        {(step === 'pin' || step === 'confirm') && (
-          <>
-            <h2 className="mb-2 text-2xl font-black text-white">
-              {step === 'pin' ? 'New PIN' : 'Confirm PIN'}
-            </h2>
-            <p className="mb-6 text-center text-sm font-semibold text-[#e8c547]">
-              {step === 'pin' ? 'Four digits. Same PIN is allowed.' : 'Enter it again.'}
-            </p>
-            <PinPad
-              value={step === 'pin' ? pin : confirmPin}
-              onChange={(v) => {
-                if (step === 'pin') {
-                  setPin(v);
-                  if (v.length === 4) setTimeout(() => setStep('confirm'), 150);
-                } else {
-                  setConfirmPin(v);
-                  if (v.length === 4) {
-                    if (v !== pin) {
-                      setError('PINs do not match');
-                      setConfirmPin('');
-                      setStep('pin');
-                      setPin('');
-                      return;
-                    }
-                    save(v);
-                  }
-                }
-              }}
-              disabled={submitting}
-            />
+            </>
+          ) : (
             <button
               type="button"
               onClick={() => {
@@ -257,17 +280,15 @@ export default function EditProfileModal({
                 setConfirmPin('');
                 setError('');
               }}
-              className="mt-6 min-h-12 w-full rounded-2xl border border-white/10 font-semibold text-[#f6f1e3]/75"
+              className="min-h-12 w-full rounded-2xl border border-white/10 font-semibold text-[#f6f1e3]/75"
             >
               Back
             </button>
-          </>
-        )}
-
-        {error && (
-          <p className="mt-4 text-center text-sm font-semibold text-rose-400">{error}</p>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
+
+  return createPortal(sheet, document.body);
 }

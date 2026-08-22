@@ -119,10 +119,16 @@ export default function Home() {
                 }}
               />
               <Link
+                href="/workout"
+                className="min-h-11 rounded-2xl border border-[#e8c547]/50 px-3 py-2 text-sm font-black text-[#e8c547]"
+              >
+                Select
+              </Link>
+              <Link
                 href={todayHref}
                 className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
               >
-                {today.type === 'resume' ? 'Resume' : 'Start Workout'}
+                {today.type === 'resume' ? 'Resume' : 'Start'}
               </Link>
             </div>
           </div>
@@ -167,10 +173,16 @@ export default function Home() {
                 >
                   {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
                 </Link>
+                <Link
+                  href="/workout"
+                  className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                >
+                  Select Workout
+                </Link>
                 {restartHref && (
                   <Link
                     href={restartHref}
-                    className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                    className="inline-flex min-h-14 items-center rounded-2xl border border-white/15 px-6 text-lg font-black text-[#f6f1e3]/80"
                   >
                     Restart
                   </Link>
