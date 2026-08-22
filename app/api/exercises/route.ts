@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { exerciseHistoryKey } from '@/lib/exerciseKey';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
   const result = await query(
@@ -120,7 +121,7 @@ export async function GET(request: NextRequest) {
       const lastWeekMax: Record<string, number> = {};
 
       for (const row of result.rows as any[]) {
-        const name = row.exercise_name;
+        const name = exerciseHistoryKey(row.exercise_name);
         if (!lastSessionByExercise[name]) {
           lastSessionByExercise[name] = row.session_id;
         }
@@ -140,7 +141,7 @@ export async function GET(request: NextRequest) {
       }
 
       for (const row of result.rows as any[]) {
-        const name = row.exercise_name;
+        const name = exerciseHistoryKey(row.exercise_name);
         if (row.session_id !== lastSessionByExercise[name]) continue;
         if (!lastSets[name]) lastSets[name] = [];
         lastSets[name].push({

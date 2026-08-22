@@ -6,6 +6,7 @@ import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
 import { pickCoachLine, setProgressCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
@@ -84,10 +85,25 @@ function priorSetFor(
     }
   }
 
-  const last = history.lastSets[exerciseName];
-  if (!last?.length) return null;
+  const last = lastSetsFor(exerciseName, history);
+  if (!last.length) return null;
   const match = last.find((item) => item.set_number === setNumber) ?? last[0];
   return { weight_lbs: match.weight_lbs, actual_reps: match.actual_reps };
+}
+
+function lastSetsFor(
+  exerciseName: string,
+  history: HistoryPayload
+): Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }> {
+  const key = exerciseHistoryKey(exerciseName);
+  return history.lastSets[key] || history.lastSets[exerciseName] || [];
+}
+
+function pickLastSet(
+  historySets: Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }>,
+  setNumber: number
+) {
+  return historySets.find((item) => item.set_number === setNumber) ?? historySets[0] ?? null;
 }
 
 function setDirection(
@@ -183,20 +199,26 @@ export default function ExerciseTracker({
             row.exercise_name === slot.exercise_name && Number(row.set_number) === slot.set_number
         );
 
+        const last = pickLastSet(lastSetsFor(slot.exercise_name, historyData), slot.set_number);
+
         if (found) {
+          const completed = Boolean(Number(found.is_completed));
+          let actual_reps = asNumber(found.actual_reps);
+          let weight_lbs = asNumber(found.weight_lbs);
+          if (!completed && last) {
+            if (actual_reps == null) actual_reps = last.actual_reps;
+            if (weight_lbs == null || weight_lbs === 0) weight_lbs = last.weight_lbs;
+          }
           return {
             ...slot,
             id: found.id,
-            actual_reps: asNumber(found.actual_reps),
-            weight_lbs: asNumber(found.weight_lbs),
-            is_completed: Boolean(Number(found.is_completed)),
+            actual_reps,
+            weight_lbs,
+            is_completed: completed,
             notes: found.notes,
           };
         }
 
-        const last = historyData.lastSets[slot.exercise_name]?.find(
-          (item) => item.set_number === slot.set_number
-        );
         if (last) {
           return {
             ...slot,
@@ -320,7 +342,10 @@ export default function ExerciseTracker({
 
     const weight = set.weight_lbs ?? 0;
     const reps = set.actual_reps ?? 0;
-    const record = history.personalRecords[exercise.name] || { weight: 0, reps: 0 };
+    const record =
+      history.personalRecords[exerciseHistoryKey(exercise.name)] ||
+      history.personalRecords[exercise.name] ||
+      { weight: 0, reps: 0 };
     const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight > record.weight;
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
@@ -341,7 +366,7 @@ export default function ExerciseTracker({
         ...current,
         personalRecords: {
           ...current.personalRecords,
-          [exercise.name]: {
+          [exerciseHistoryKey(exercise.name)]: {
             weight: Math.max(record.weight, weight),
             reps: Math.max(record.reps, reps),
           },
@@ -369,13 +394,14 @@ export default function ExerciseTracker({
         const media = getExerciseMedia(exercise.name);
         const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
-        const lastWeek = history.lastWeekMax[exercise.name];
+        const lastWeek =
+          history.lastWeekMax[exerciseHistoryKey(exercise.name)] ?? history.lastWeekMax[exercise.name];
         const completedWeights = sets
           .filter((item) => item.is_completed && item.weight_lbs != null)
           .map((item) => Number(item.weight_lbs));
         const currentMax = completedWeights.length ? Math.max(...completedWeights) : 0;
         const beatLastWeek = lastWeek != null && currentMax > lastWeek;
-        const lastTime = history.lastSets[exercise.name]?.[0];
+        const lastTime = lastSetsFor(exercise.name, history)[0];
 
         return (
           <div key={exercise.name} className="glass-card p-5">
