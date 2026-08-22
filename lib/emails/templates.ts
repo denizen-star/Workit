@@ -18,7 +18,7 @@ import { defaultFrom } from '@/lib/mailClient';
 import { pickCoachLine, pickExitLine } from '@/lib/coachLines';
 import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { CURRENT_RELEASE } from '@/lib/emails/currentRelease';
+import { CURRENT_RELEASE, type ReleaseGroup } from '@/lib/emails/currentRelease';
 import type { MailTemplateId } from '@/lib/emails/ids';
 
 export type BuiltEmail = {
@@ -84,9 +84,34 @@ export type ReleaseEmailInput = {
   version: string;
   title: string;
   wins: string[];
+  groups?: ReleaseGroup[];
   also?: string[];
   tone?: CoachTone | null;
 };
+
+function releaseGroups(input: ReleaseEmailInput): ReleaseGroup[] {
+  if (input.groups && input.groups.length) return input.groups;
+  if (input.wins.length) return [{ heading: 'what I just took control of', wins: input.wins }];
+  return [];
+}
+
+function releaseGroupsHtml(groups: ReleaseGroup[]) {
+  return groups
+    .map(
+      (group) =>
+        p('<strong style="color:#e8c547;">' + esc(group.heading) + '</strong>') +
+        bullets(group.wins)
+    )
+    .join('');
+}
+
+function releaseGroupsText(groups: ReleaseGroup[]) {
+  return groups.flatMap((group) => [
+    group.heading.toUpperCase(),
+    ...group.wins.map((item) => '  - ' + item),
+    '',
+  ]);
+}
 
 function fromFor(tone?: CoachTone | null) {
   return defaultFrom(voiceFromName(normalizeCoachTone(tone)));
@@ -387,6 +412,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
       : 'Do not skim this like a changelog, sissy. These are orders from Master Tom Iron.';
   const eyebrow = 'new orders · ' + input.version;
+  const groups = releaseGroups(input);
   const html = wrapEmailHtml({
     eyebrow,
     title: input.title,
@@ -395,12 +421,12 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       address(name),
       p(ordersLine),
       p('Hard-refresh if you are still running the old build. Then get under the bar.'),
-      p('<strong style="color:#fff;">what I just took control of:</strong>'),
-      bullets(input.wins),
+      releaseGroupsHtml(groups),
       input.also && input.also.length
         ? p('<strong style="color:#fff;">and you will also:</strong>') + bullets(input.also)
         : '',
-      cta(whoUrl(), 'OBEY'),
+      cta(whoUrl(), 'REPORT IN'),
+      iosHomeScreenStepsHtml(),
     ].join(''),
   });
   const text = [
@@ -409,13 +435,13 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     '',
     ordersLine,
     '',
-    'What I just took control of:',
-    ...input.wins.map((item) => '  - ' + item),
+    ...releaseGroupsText(groups),
     ...(input.also && input.also.length
-      ? ['', 'And you will also:', ...input.also.map((item) => '  - ' + item)]
+      ? ['And you will also:', ...input.also.map((item) => '  - ' + item), '']
       : []),
-    '',
     whoUrl(),
+    '',
+    iosHomeScreenStepsText(),
     emailTextSignOff(signer),
   ].join('\n');
   return {

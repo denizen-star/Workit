@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 3.3.1 - 2026-08-22
+
+### Changed
+- Admin hamburger: Analytics, Users, Feedback, Mail. `/admin` opens Analytics. Add stays on Users. No more pill pile in the phone header
+- Release orders group by feature so a long day is readable
+- Release mail includes the iPhone Safari Add to Home Screen steps from welcome
+
 ## 3.3.0 - 2026-08-22
 
 ### Added

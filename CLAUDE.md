@@ -33,10 +33,13 @@ No test suite.
 - `app/home/page.tsx` — dashboard (scoreboard folded, Achievements folded). Stat cards + progress charts show you / household avg of others who finished a workout in the last 7 days (`GET /api/stats` `household`; null if nobody else trained). Enjoyment charts if the athlete has session ratings
 - `app/workout/page.tsx` — logging. Finish and quit require 1–5 stars (`POST /api/session-ratings`). Exercise thumbs via `ExerciseThumbs`
 - `app/who/page.tsx` — profile picker + PIN
-- `app/admin/page.tsx` — household users (Kevin-only); links to Analytics, Feedback, Mail
+- `app/admin/layout.tsx` — shared chrome: Dashboard back, title, hamburger
+- `app/admin/page.tsx` — redirects to `/admin/analytics`
 - `app/admin/analytics/page.tsx` — Kevin-only Traffic charts + people (name/email)
+- `app/admin/users/page.tsx` — household users; Add stays on this page
 - `app/admin/feedback/page.tsx` — Kevin-only notes, thumbs, household enjoyment
 - `app/admin/mail/page.tsx` — mail preview / sample send / run nudges / force scoreboard
+- Admin hamburger (home + admin chrome): Analytics, Users, Feedback, Mail
 - `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all`, `GET /api/stats` (includes `household`), `GET /api/coach-catalog`, `GET /api/ratings/stats`, `GET|POST /api/feedback`, `POST /api/session-ratings`, `GET /api/admin/analytics` are session-gated; analytics / admin feedback / household ratings also `requireAdmin`)
 - `POST /api/analytics/event` — **not** session-gated; production only; stamps `user_*` from session when present
 - `app/api/cron/mail` — GET/POST; **not** session-gated; requires `Authorization: Bearer $CRON_SECRET`

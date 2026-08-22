@@ -1,9 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft } from 'lucide-react';
 import { MAIL_TEMPLATES, type MailTemplateId } from '@/lib/emails/ids';
 
 type PreviewResponse = {
@@ -80,25 +78,7 @@ export default function AdminMailPage() {
   };
 
   return (
-    <div className="min-h-screen">
-      <header className="glass-header">
-        <div className="container mx-auto px-4 py-4">
-          <div className="relative flex min-h-11 items-center">
-            <Link
-              href="/admin"
-              className="relative z-10 flex min-h-11 shrink-0 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
-            >
-              <ArrowLeft className="h-5 w-5" />
-              <span className="text-sm sm:text-base">Admin</span>
-            </Link>
-            <h1 className="pointer-events-none absolute inset-x-0 text-center text-lg font-black whitespace-nowrap text-[#f5d76e] sm:text-2xl">
-              Mail
-            </h1>
-          </div>
-        </div>
-      </header>
-
-      <div className="container mx-auto max-w-3xl px-4 py-8">
+    <div className="container mx-auto max-w-3xl px-4 py-8">
         <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Mailing suite</p>
         <h2 className="mt-1 text-3xl font-black text-white">Preview and send</h2>
         <p className="mt-2 text-sm text-[#f6f1e3]/60">
@@ -169,7 +149,6 @@ export default function AdminMailPage() {
             />
           </div>
         )}
-      </div>
     </div>
   );
 }

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
-import { useRouter } from 'next/navigation';
-import { Menu, X, Shield, UserRound, LogOut } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, LogOut } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { trackAction } from '@/lib/analytics';
@@ -31,6 +31,7 @@ export default function AppMenu({
   onProfileSaved,
 }: AppMenuProps) {
   const router = useRouter();
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -52,7 +53,7 @@ export default function AppMenu({
         position: 'fixed',
         top: rect.bottom + 8,
         right: Math.max(16, window.innerWidth - rect.right),
-        width: 224,
+        width: 240,
       });
     };
 
@@ -106,17 +107,39 @@ export default function AppMenu({
               )}
             </div>
             {isAdmin && (
-              <button
-                type="button"
-                onClick={() => {
-                  setOpen(false);
-                  router.push('/admin');
-                }}
-                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
-              >
-                <Shield className="h-4 w-4 text-[#e8c547]" />
-                Admin
-              </button>
+              <div className="border-b border-white/10 py-1">
+                <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">
+                  Admin
+                </p>
+                {(
+                  [
+                    { href: '/admin/analytics', label: 'Analytics', Icon: BarChart3 },
+                    { href: '/admin/users', label: 'Users', Icon: Users },
+                    { href: '/admin/feedback', label: 'Feedback', Icon: MessageSquare },
+                    { href: '/admin/mail', label: 'Mail', Icon: Mail },
+                  ] as const
+                ).map(({ href, label, Icon }) => {
+                  const active = pathname === href || pathname.startsWith(href + '/');
+                  return (
+                    <button
+                      key={href}
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        router.push(href);
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
+                        active
+                          ? 'bg-white/5 text-[#e8c547]'
+                          : 'text-[#f6f1e3]/85 hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 text-[#e8c547]" />
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
             )}
             <button
               type="button"
