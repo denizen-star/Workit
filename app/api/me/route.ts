@@ -1,6 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { query } from '@/lib/db';
-import { getCurrentUser, hashPin, isValidPin } from '@/lib/auth';
+import {
+  getCurrentUser,
+  hashPin,
+  isValidPin,
+  soundCookieOptions,
+  toneCookieOptions,
+  updateCoachTone,
+  updateSoundOn,
+} from '@/lib/auth';
+import { isCoachTone } from '@/lib/coachTone';
+import { normalizeSoundOn } from '@/lib/soundPref';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
 
 export async function GET() {
@@ -21,9 +32,24 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
+    const soundOnly = typeof body.soundOn === 'boolean' && body.name == null;
+    if (soundOnly) {
+      const soundOn = normalizeSoundOn(body.soundOn);
+      await updateSoundOn(user.id, soundOn);
+      const cookieStore = await cookies();
+      const soundCookie = soundCookieOptions(soundOn);
+      cookieStore.set(soundCookie.name, soundCookie.value, soundCookie);
+      return NextResponse.json({
+        success: true,
+        user: { ...user, soundOn },
+      });
+    }
+
     const name = normalizeName(body.name);
     const email = normalizeEmail(body.email);
     const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
+    const coachTone = isCoachTone(body.coachTone) ? body.coachTone : user.coachTone;
+    const soundOn = body.soundOn === undefined ? user.soundOn : normalizeSoundOn(body.soundOn);
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -47,6 +73,14 @@ export async function PATCH(request: NextRequest) {
       await query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, user.id]);
     }
 
+    await updateCoachTone(user.id, coachTone);
+    await updateSoundOn(user.id, soundOn);
+    const cookieStore = await cookies();
+    const toneCookie = toneCookieOptions(coachTone);
+    cookieStore.set(toneCookie.name, toneCookie.value, toneCookie);
+    const soundCookie = soundCookieOptions(soundOn);
+    cookieStore.set(soundCookie.name, soundCookie.value, soundCookie);
+
     return NextResponse.json({
       success: true,
       user: {
@@ -54,6 +88,8 @@ export async function PATCH(request: NextRequest) {
         name,
         email,
         hasPin: pin != null || user.hasPin,
+        coachTone,
+        soundOn,
       },
     });
   } catch (error) {

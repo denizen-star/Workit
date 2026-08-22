@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
@@ -14,6 +14,9 @@ import CompleteTakeover from '@/components/CompleteTakeover';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
+import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { setSoundEnabled } from '@/lib/playChime';
+import { normalizeSoundOn } from '@/lib/soundPref';
 
 function WorkoutPageInner() {
   const router = useRouter();
@@ -36,8 +39,24 @@ function WorkoutPageInner() {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const autoOpened = useRef(false);
+  const [coachTone, setCoachTone] = useState<CoachTone>('master');
+  const [soundOn, setSoundOn] = useState(true);
 
   useWakeLock(!!currentSession);
+
+  useEffect(() => {
+    fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.user) {
+          setCoachTone(normalizeCoachTone(data.user.coachTone));
+          const enabled = normalizeSoundOn(data.user.soundOn);
+          setSoundOn(enabled);
+          setSoundEnabled(enabled);
+        }
+      })
+      .catch(() => {});
+  }, []);
 
   const askRestart = (weekNumber: number, dayNumber: number, sessionId?: number) => {
     setRestartTarget({ weekNumber, dayNumber, sessionId });
@@ -223,7 +242,7 @@ function WorkoutPageInner() {
 
       await loadSessions();
       setConfirmComplete(false);
-      setCompleteLine(pickCompleteLine());
+      setCompleteLine(pickCompleteLine(coachTone));
       setShowSuccess(true);
     } catch (error) {
       console.error('Error completing workout:', error);
@@ -249,7 +268,7 @@ function WorkoutPageInner() {
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => {
-                    setExitLine(pickExitLine());
+                    setExitLine(pickExitLine(coachTone));
                     setConfirmExit(true);
                   }}
                   className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
@@ -279,12 +298,31 @@ function WorkoutPageInner() {
                   {formatClock(elapsedSeconds)}
                 </p>
               </div>
-              <button
-                onClick={() => setConfirmComplete(true)}
-                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
-              >
-                Finish
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
+                  onClick={() => {
+                    const next = !soundOn;
+                    setSoundOn(next);
+                    setSoundEnabled(next);
+                    fetch('/api/me', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ soundOn: next }),
+                    }).catch(() => {});
+                  }}
+                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
+                >
+                  {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </button>
+                <button
+                  onClick={() => setConfirmComplete(true)}
+                  className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
+                >
+                  Finish
+                </button>
+              </div>
             </div>
           </div>
         </header>
@@ -294,6 +332,7 @@ function WorkoutPageInner() {
             sessionId={currentSession}
             weekNumber={selectedWeek}
             exercises={workout.exercises}
+            coachTone={coachTone}
             onComplete={() => setConfirmComplete(true)}
           />
         </div>
@@ -318,7 +357,7 @@ function WorkoutPageInner() {
             setCurrentSession(null);
             setSelectedDay(null);
             setStartedAt(null);
-            router.push('/');
+            router.push('/home');
           }}
         />
 
@@ -368,7 +407,7 @@ function WorkoutPageInner() {
         <div className="container mx-auto px-4 py-4">
           <div className="relative flex min-h-11 items-center">
             <Link
-              href="/"
+              href="/home"
               className="relative z-10 flex min-h-11 shrink-0 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -502,7 +541,7 @@ function WorkoutPageInner() {
           setCurrentSession(null);
           setSelectedDay(null);
           setStartedAt(null);
-          router.push('/');
+          router.push('/home');
         }}
       />
 

@@ -20,7 +20,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname === '/who' || pathname.startsWith('/api/auth')) {
+  if (pathname === '/' || pathname === '/who' || pathname.startsWith('/api/auth')) {
     return NextResponse.next();
   }
 

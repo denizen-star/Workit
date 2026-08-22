@@ -1,6 +1,7 @@
 import { after } from 'next/server';
 import { query } from '@/lib/db';
 import { checkAndAwardBadges } from '@/lib/badges';
+import { getUserTone } from '@/lib/auth';
 import { pickCompleteLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildBadgeEmail, buildWelcomeEmail, buildWorkoutCompleteEmail } from '@/lib/emails/templates';
@@ -123,6 +124,7 @@ export async function sendWorkoutCompleteBundle(opts: {
   const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[]);
   const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
 
+  const tone = await getUserTone(opts.userId);
   const recap = buildWorkoutCompleteEmail({
     name: opts.name,
     weekNumber: opts.weekNumber,
@@ -131,10 +133,11 @@ export async function sendWorkoutCompleteBundle(opts: {
     volumeLbs: Number(totalRow.volume || 0),
     setCount: Number(totalRow.set_count || 0),
     exerciseCount: Number(totalRow.exercise_count || 0),
-    completeLine: pickCompleteLine(),
+    completeLine: pickCompleteLine(tone),
     weekComplete,
     programComplete,
     nextLabel,
+    tone,
   });
 
   await claimAndSend({
@@ -152,6 +155,7 @@ export async function sendWorkoutCompleteBundle(opts: {
       name: opts.name,
       badgeName: badge.name,
       badgeDescription: badge.description,
+      tone,
     });
     await claimAndSend({
       userId: opts.userId,

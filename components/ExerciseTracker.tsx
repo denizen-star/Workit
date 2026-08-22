@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react';
 import { Check, Edit2, Play } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
-import { pickCoachLine } from '@/lib/coachLines';
+import { pickCoachLine, setProgressCopy } from '@/lib/coachLines';
+import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
+import SetProgressFlash from './SetProgressFlash';
 import { getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
 import { getExerciseImages } from '@/lib/exerciseImages';
 import {
@@ -48,6 +50,7 @@ interface ExerciseTrackerProps {
   sessionId: number;
   weekNumber: number;
   exercises: Exercise[];
+  coachTone?: CoachTone | string | null;
   onComplete?: () => void;
 }
 
@@ -63,7 +66,66 @@ function asNumber(value: unknown): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-export default function ExerciseTracker({ sessionId, weekNumber, exercises, onComplete }: ExerciseTrackerProps) {
+function priorSetFor(
+  exerciseName: string,
+  setNumber: number,
+  currentSets: ExerciseSet[],
+  history: HistoryPayload
+): { weight_lbs: number | null; actual_reps: number | null } | null {
+  if (setNumber > 1) {
+    const previous = currentSets.find(
+      (item) =>
+        item.exercise_name === exerciseName &&
+        item.set_number === setNumber - 1 &&
+        item.is_completed
+    );
+    if (previous) {
+      return { weight_lbs: previous.weight_lbs, actual_reps: previous.actual_reps };
+    }
+  }
+
+  const last = history.lastSets[exerciseName];
+  if (!last?.length) return null;
+  const match = last.find((item) => item.set_number === setNumber) ?? last[0];
+  return { weight_lbs: match.weight_lbs, actual_reps: match.actual_reps };
+}
+
+function setDirection(
+  kind: ExerciseKind,
+  current: { weight_lbs: number | null; actual_reps: number | null },
+  prior: { weight_lbs: number | null; actual_reps: number | null } | null
+): 'up' | 'down' | null {
+  if (!prior) return null;
+
+  const currentReps = current.actual_reps ?? 0;
+  const priorReps = prior.actual_reps ?? 0;
+
+  if (kind === 'timed' || kind === 'distance') {
+    if (currentReps > priorReps) return 'up';
+    if (currentReps < priorReps) return 'down';
+    return null;
+  }
+
+  const currentWeight = current.weight_lbs ?? 0;
+  const priorWeight = prior.weight_lbs ?? 0;
+  const weightUp = currentWeight > priorWeight;
+  const weightDown = currentWeight < priorWeight;
+  const repsUp = currentReps > priorReps;
+  const repsDown = currentReps < priorReps;
+
+  if ((weightUp || repsUp) && !weightDown && !repsDown) return 'up';
+  if ((weightDown || repsDown) && !weightUp && !repsUp) return 'down';
+  return null;
+}
+
+export default function ExerciseTracker({
+  sessionId,
+  weekNumber,
+  exercises,
+  coachTone,
+  onComplete,
+}: ExerciseTrackerProps) {
+  const tone = normalizeCoachTone(coachTone);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<{ title: string; videoId: string } | null>(null);
@@ -72,6 +134,7 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
+  const [setFlash, setSetFlash] = useState<{ variant: 'up' | 'down'; title: string; body: string } | null>(null);
 
   useEffect(() => {
     const template: ExerciseSet[] = [];
@@ -230,7 +293,7 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
         const remaining = newSets.filter((item) => !item.is_completed).length;
         if (remaining > 0) {
           const completed = newSets.filter((item) => item.is_completed).length;
-          setRestLine(pickCoachLine(completed, newSets.length));
+          setRestLine(pickCoachLine(completed, newSets.length, tone));
           setRestToken((token) => token + 1);
         }
       }
@@ -258,11 +321,19 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
     const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight > record.weight;
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
-    if (isWeightPr || isTimedPr) {
+    const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
+    const direction = setDirection(kind, set, prior);
+    if (direction) {
+      const copy = setProgressCopy(direction, tone);
+      setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+    } else if (isWeightPr || isTimedPr) {
       setPrFlash({
         exerciseName: exercise.name,
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
+    }
+
+    if (isWeightPr || isTimedPr) {
       setHistory((current) => ({
         ...current,
         personalRecords: {
@@ -560,10 +631,18 @@ export default function ExerciseTracker({ sessionId, weekNumber, exercises, onCo
       />
 
       <PrFlash
-        open={!!prFlash}
+        open={!!prFlash && !setFlash}
         exerciseName={prFlash?.exerciseName || ''}
         valueLabel={prFlash?.valueLabel || ''}
         onClose={() => setPrFlash(null)}
+      />
+
+      <SetProgressFlash
+        open={!!setFlash}
+        title={setFlash?.title || ''}
+        body={setFlash?.body || ''}
+        variant={setFlash?.variant || 'up'}
+        onClose={() => setSetFlash(null)}
       />
     </div>
   );

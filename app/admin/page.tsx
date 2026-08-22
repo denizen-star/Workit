@@ -27,7 +27,7 @@ export default function AdminPage() {
       }
       const meData = await meRes.json();
       if (!meData.user?.isAdmin) {
-        router.replace('/');
+        router.replace('/home');
         return;
       }
       setMeId(meData.user?.id ?? null);
@@ -81,7 +81,7 @@ export default function AdminPage() {
         <div className="container mx-auto px-4 py-4">
           <div className="relative flex min-h-11 items-center">
             <Link
-              href="/"
+              href="/home"
               className="relative z-10 flex min-h-11 shrink-0 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
             >
               <ArrowLeft className="h-5 w-5" />

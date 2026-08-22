@@ -1,0 +1,2 @@
+ALTER TABLE users
+  ADD COLUMN coach_tone VARCHAR(32) NOT NULL DEFAULT 'master';

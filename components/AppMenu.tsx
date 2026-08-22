@@ -5,17 +5,27 @@ import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Menu, X, Shield, UserRound, LogOut } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
+import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 
 interface AppMenuProps {
   userName: string;
   userEmail?: string;
+  userTone?: CoachTone | string | null;
+  userSoundOn?: boolean | null;
   isAdmin?: boolean;
-  onProfileSaved?: (profile: { name: string; email: string | null }) => void;
+  onProfileSaved?: (profile: {
+    name: string;
+    email: string | null;
+    coachTone: CoachTone;
+    soundOn: boolean;
+  }) => void;
 }
 
 export default function AppMenu({
   userName,
   userEmail = '',
+  userTone = 'master',
+  userSoundOn = true,
   isAdmin = false,
   onProfileSaved,
 }: AppMenuProps) {
@@ -150,6 +160,8 @@ export default function AppMenu({
         open={showEdit}
         currentName={userName}
         currentEmail={userEmail}
+        currentTone={normalizeCoachTone(userTone)}
+        currentSoundOn={userSoundOn}
         onClose={() => setShowEdit(false)}
         onSaved={(profile) => {
           onProfileSaved?.(profile);

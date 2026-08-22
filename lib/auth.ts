@@ -1,6 +1,8 @@
 import { randomBytes, scryptSync, timingSafeEqual } from 'crypto';
 import { cookies } from 'next/headers';
 import { query } from '@/lib/db';
+import { normalizeCoachTone, TONE_COOKIE, type CoachTone } from '@/lib/coachTone';
+import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
 
 export type SessionUser = {
@@ -9,7 +11,83 @@ export type SessionUser = {
   email: string | null;
   hasPin: boolean;
   isAdmin: boolean;
+  coachTone: CoachTone;
+  soundOn: boolean;
 };
+
+let userSelectMode: 'full' | 'tone' | 'base' | null = null;
+
+type UserRow = {
+  id: number;
+  name: string;
+  email: string | null;
+  pin_hash: string | null;
+  coach_tone?: string | null;
+  sound_on?: number | boolean | string | null;
+};
+
+const USER_SELECTS = {
+  full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
+  tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
+  base: 'SELECT id, name, email, pin_hash FROM users WHERE id = ? LIMIT 1',
+} as const;
+
+async function selectUserRow(userId: number): Promise<UserRow | undefined> {
+  const order: Array<'full' | 'tone' | 'base'> =
+    userSelectMode === 'base' ? ['base'] : userSelectMode === 'tone' ? ['tone', 'base'] : ['full', 'tone', 'base'];
+
+  for (const mode of order) {
+    try {
+      const result = await query(USER_SELECTS[mode], [userId]);
+      userSelectMode = mode;
+      return result.rows[0] as UserRow | undefined;
+    } catch {
+      userSelectMode = null;
+    }
+  }
+
+  return undefined;
+}
+
+function toSessionUser(
+  row: UserRow,
+  prefs?: { tone?: string | null; sound?: string | null }
+): SessionUser {
+  return {
+    id: row.id,
+    name: row.name,
+    email: row.email,
+    hasPin: row.pin_hash != null,
+    isAdmin: row.id === ADMIN_USER_ID,
+    coachTone: normalizeCoachTone(row.coach_tone ?? prefs?.tone),
+    soundOn: row.sound_on != null ? normalizeSoundOn(row.sound_on) : normalizeSoundOn(prefs?.sound),
+  };
+}
+
+export async function updateCoachTone(userId: number, tone: CoachTone): Promise<boolean> {
+  try {
+    await query('UPDATE users SET coach_tone = ? WHERE id = ?', [tone, userId]);
+    if (userSelectMode === 'base') userSelectMode = 'tone';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateSoundOn(userId: number, soundOn: boolean): Promise<boolean> {
+  try {
+    await query('UPDATE users SET sound_on = ? WHERE id = ?', [soundOn ? 1 : 0, userId]);
+    userSelectMode = 'full';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function getUserTone(userId: number): Promise<CoachTone> {
+  const row = await selectUserRow(userId);
+  return normalizeCoachTone(row?.coach_tone);
+}
 
 export const ADMIN_USER_ID = 1;
 
@@ -55,25 +133,36 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const userId = await getSessionUserId();
   if (!userId) return null;
 
-  const result = await query(
-    'SELECT id, name, email, pin_hash FROM users WHERE id = ? LIMIT 1',
-    [userId]
-  );
-
-  const row = result.rows[0] as {
-    id: number;
-    name: string;
-    email: string | null;
-    pin_hash: string | null;
-  } | undefined;
+  const row = await selectUserRow(userId);
   if (!row) return null;
+  const cookieStore = await cookies();
+  return toSessionUser(row, {
+    tone: cookieStore.get(TONE_COOKIE)?.value,
+    sound: cookieStore.get(SOUND_COOKIE)?.value,
+  });
+}
 
+export function toneCookieOptions(tone: CoachTone) {
   return {
-    id: row.id,
-    name: row.name,
-    email: row.email,
-    hasPin: row.pin_hash != null,
-    isAdmin: row.id === ADMIN_USER_ID,
+    name: TONE_COOKIE,
+    value: tone,
+    httpOnly: false,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 180,
+  };
+}
+
+export function soundCookieOptions(soundOn: boolean) {
+  return {
+    name: SOUND_COOKIE,
+    value: soundOn ? '1' : '0',
+    httpOnly: false,
+    sameSite: 'lax' as const,
+    secure: process.env.NODE_ENV === 'production',
+    path: '/',
+    maxAge: 60 * 60 * 24 * 180,
   };
 }
 
@@ -129,14 +218,5 @@ export function clearFailedAttempts(userId: number): void {
 }
 
 export async function getUserById(userId: number) {
-  const result = await query(
-    'SELECT id, name, email, pin_hash FROM users WHERE id = ? LIMIT 1',
-    [userId]
-  );
-  return result.rows[0] as {
-    id: number;
-    name: string;
-    email: string | null;
-    pin_hash: string | null;
-  } | undefined;
+  return selectUserRow(userId);
 }

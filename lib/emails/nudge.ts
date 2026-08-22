@@ -1,3 +1,4 @@
+import { getUserTone } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
@@ -72,6 +73,7 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     estimate: formatEstimateMinutes(estimateWorkoutSeconds(target.day)),
     isTravel: target.week.isTravel,
     href: whoUrl(),
+    tone: await getUserTone(user.id),
   });
 
   const template = target.type === 'resume' ? 'resume' : 'nudge';

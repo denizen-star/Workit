@@ -37,7 +37,7 @@ export default function AdminMailPage() {
   const load = async (next: MailTemplateId) => {
     const response = await fetch('/api/admin/mail?template=' + next + (next === 'scoreboard' ? '&live=1' : ''));
     if (response.status === 401 || response.status === 403) {
-      router.replace('/');
+      router.replace('/home');
       return;
     }
     if (!response.ok) {

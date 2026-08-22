@@ -16,6 +16,7 @@ import {
 } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
 import { pickCoachLine, pickExitLine } from '@/lib/coachLines';
+import { coachDisplayName, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { CURRENT_RELEASE } from '@/lib/emails/currentRelease';
 import type { MailTemplateId } from '@/lib/emails/ids';
 
@@ -39,6 +40,7 @@ export type NudgeEmailInput = {
   estimate?: string | null;
   isTravel?: boolean;
   href: string;
+  tone?: CoachTone | null;
 };
 
 export type WorkoutCompleteEmailInput = {
@@ -53,12 +55,14 @@ export type WorkoutCompleteEmailInput = {
   weekComplete?: boolean;
   programComplete?: boolean;
   nextLabel?: string | null;
+  tone?: CoachTone | null;
 };
 
 export type BadgeEmailInput = {
   name: string;
   badgeName: string;
   badgeDescription: string;
+  tone?: CoachTone | null;
 };
 
 export type ScoreboardRow = {
@@ -81,9 +85,12 @@ export type ReleaseEmailInput = {
   title: string;
   wins: string[];
   also?: string[];
+  tone?: CoachTone | null;
 };
 
-const FROM = () => defaultFrom('Master Workit');
+function fromFor(tone?: CoachTone | null) {
+  return defaultFrom(coachDisplayName(normalizeCoachTone(tone)));
+}
 
 function address(name: string) {
   return p(esc(name) + '.');
@@ -126,12 +133,13 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     iosHomeScreenStepsText(),
     emailTextSignOff(),
   ].join('\n');
-  return { from: FROM(), subject: "You're mine. Work-It.", html, text };
+  return { from: fromFor(), subject: "You're mine. Work-It.", html, text };
 }
 
 export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const shout = input.mode === 'resume' ? pickExitLine() : pickCoachLine(0, 3);
+  const shout = input.mode === 'resume' ? pickExitLine(input.tone) : pickCoachLine(0, 3, input.tone);
+  const signer = coachDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = input.mode === 'resume' ? 'unfinished' : 'get to it';
   const title =
     input.mode === 'resume'
@@ -147,6 +155,7 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const html = wrapEmailHtml({
     eyebrow,
     title,
+    signer,
     childrenHtml: [
       address(name),
       p('<strong style="color:#fff;">' + esc(shout) + '</strong>'),
@@ -184,9 +193,9 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
       : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. I own that session.',
     '',
     href,
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ].join('\n');
-  return { from: FROM(), subject, html, text };
+  return { from: fromFor(input.tone), subject, html, text };
 }
 
 function formatLbs(value: number | null | undefined) {
@@ -196,6 +205,7 @@ function formatLbs(value: number | null | undefined) {
 
 export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): BuiltEmail {
   const name = firstName(input.name);
+  const signer = coachDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = input.programComplete ? 'program complete' : input.weekComplete ? 'week locked' : 'paid';
   const title = input.programComplete
     ? 'Six weeks. You did not break.'
@@ -224,6 +234,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
   const html = wrapEmailHtml({
     eyebrow,
     title,
+    signer,
     childrenHtml: [
       address(name),
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
@@ -255,21 +266,23 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
         : '',
     '',
     whoUrl(),
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ]
     .filter((line) => line !== '')
     .join('\n');
 
-  return { from: FROM(), subject, html, text };
+  return { from: fromFor(input.tone), subject, html, text };
 }
 
 export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
+  const signer = coachDisplayName(normalizeCoachTone(input.tone));
   const eyebrow = 'earned';
   const title = 'Good man. ' + input.badgeName + '.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
+    signer,
     childrenHtml: [
       address(name),
       p(esc(input.badgeDescription) + '.'),
@@ -285,10 +298,10 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
     'You earned this because you did what I told you. Now earn the next one for me.',
     '',
     whoUrl(),
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ].join('\n');
   return {
-    from: FROM(),
+    from: fromFor(input.tone),
     subject: 'Good man. You earned ' + input.badgeName + '.',
     html,
     text,
@@ -363,7 +376,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   ].join('\n');
 
   return {
-    from: FROM(),
+    from: fromFor(),
     subject: 'Inspection — who obeyed this week',
     html,
     text,
@@ -372,13 +385,19 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
 
 export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const name = firstName(input.name);
+  const signer = coachDisplayName(normalizeCoachTone(input.tone));
+  const ordersLine =
+    normalizeCoachTone(input.tone) === 'sergeant'
+      ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
+      : 'Do not skim this like a changelog, sissy. These are orders from Master Challenge.';
   const eyebrow = 'new orders · ' + input.version;
   const html = wrapEmailHtml({
     eyebrow,
     title: input.title,
+    signer,
     childrenHtml: [
       address(name),
-      p('Do not skim this like a changelog, man. These are orders from Master Workit.'),
+      p(ordersLine),
       p('Hard-refresh if you are still running the old build. Then get under the bar.'),
       p('<strong style="color:#fff;">what I just took control of:</strong>'),
       bullets(input.wins),
@@ -392,7 +411,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     emailTextHeader(eyebrow, input.title),
     name + '.',
     '',
-    'Do not skim this like a changelog, man. These are orders from Master Workit.',
+    ordersLine,
     '',
     'What I just took control of:',
     ...input.wins.map((item) => '  - ' + item),
@@ -401,10 +420,10 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       : []),
     '',
     whoUrl(),
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ].join('\n');
   return {
-    from: defaultFrom('Master Workit'),
+    from: fromFor(input.tone),
     subject: 'New orders — ' + input.title,
     html,
     text,

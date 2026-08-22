@@ -33,8 +33,10 @@ export function wrapEmailHtml(opts: {
   subtitle?: string;
   childrenHtml: string;
   footer?: string;
+  signer?: string;
 }) {
-  const footer = opts.footer ?? 'Work-It · you answer to Master Workit';
+  const signer = opts.signer ?? 'Master Workit';
+  const footer = opts.footer ?? 'Work-It · you answer to ' + signer;
   const titleBlock = opts.subtitle
     ? '<h1 style="margin:0;font-size:26px;line-height:1.25;font-weight:800;color:#fff;">' +
       esc(opts.title) +
@@ -62,7 +64,9 @@ export function wrapEmailHtml(opts: {
     '</p>' +
     titleBlock +
     opts.childrenHtml +
-    '<p style="margin:20px 0 0;font-size:17px;font-weight:800;color:#e8c547;">Master Workit</p>' +
+    '<p style="margin:20px 0 0;font-size:17px;font-weight:800;color:#e8c547;">' +
+    esc(signer) +
+    '</p>' +
     '<p style="margin:14px 0 0;font-size:12px;color:' +
     MUTED +
     ';">' +
@@ -135,8 +139,8 @@ export function emailTextHeader(eyebrow: string, title: string) {
   return [eyebrow.toUpperCase(), title, ''].join('\n');
 }
 
-export function emailTextSignOff() {
-  return '\nMaster Workit';
+export function emailTextSignOff(signer = 'Master Workit') {
+  return '\n' + signer;
 }
 
 function stepNumber(n: number) {

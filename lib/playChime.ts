@@ -1,3 +1,29 @@
+import { readStoredSoundOn, storeSoundOn } from '@/lib/soundPref';
+
+let soundEnabled = true;
+let soundHydrated = false;
+
+export function setSoundEnabled(enabled: boolean) {
+  soundEnabled = enabled;
+  soundHydrated = true;
+  storeSoundOn(enabled);
+}
+
+export function getSoundEnabled() {
+  if (!soundHydrated) {
+    const stored = readStoredSoundOn();
+    if (stored != null) {
+      soundEnabled = stored;
+      soundHydrated = true;
+    }
+  }
+  return soundEnabled;
+}
+
+function soundAllowed() {
+  return getSoundEnabled();
+}
+
 let sharedContext: AudioContext | null = null;
 let hornBuffer: AudioBuffer | null = null;
 let hornLoad: Promise<AudioBuffer | null> | null = null;
@@ -115,6 +141,7 @@ function playBuffer(
     const source = audioCtx.createBufferSource();
     const gain = audioCtx.createGain();
     source.buffer = buffer;
+    source.loop = true;
     gain.gain.value = volume;
     source.connect(gain);
     gain.connect(audioCtx.destination);
@@ -122,11 +149,14 @@ function playBuffer(
     source.onended = () => {
       if (getActive() === source) setActive(null);
     };
-    source.start();
+    const now = audioCtx.currentTime;
+    source.start(now);
+    source.stop(now + buffer.duration * 2);
   });
 }
 
 export function unlockAudio() {
+  if (!soundAllowed()) return;
   const ctx = getAudioContext();
   if (ctx && ctx.state === "suspended") {
     void ctx.resume();
@@ -137,24 +167,28 @@ export function unlockAudio() {
 }
 
 export function playHorn() {
+  if (!soundAllowed()) return;
   playBuffer(loadHornBuffer, () => activeHorn, (node) => {
     activeHorn = node;
   }, 0.95);
 }
 
 export function playCompleteChime() {
+  if (!soundAllowed()) return;
   playBuffer(loadCompleteBuffer, () => activeComplete, (node) => {
     activeComplete = node;
   }, 0.7);
 }
 
 export function playSetChime() {
+  if (!soundAllowed()) return;
   playBuffer(loadSetBuffer, () => activeSet, (node) => {
     activeSet = node;
   }, 0.62);
 }
 
 export function playChime() {
+  if (!soundAllowed()) return;
   const ctx = getAudioContext();
   if (!ctx) return;
   if (ctx.state === "suspended") {
@@ -163,20 +197,23 @@ export function playChime() {
 
   const now = ctx.currentTime;
   const notes = [523.25, 659.25, 783.99];
+  const passGap = 0.5;
 
-  notes.forEach((freq, index) => {
-    const oscillator = ctx.createOscillator();
-    const gain = ctx.createGain();
-    oscillator.type = "sine";
-    oscillator.frequency.value = freq;
-    oscillator.connect(gain);
-    gain.connect(ctx.destination);
+  [0, 1].forEach((pass) => {
+    notes.forEach((freq, index) => {
+      const oscillator = ctx.createOscillator();
+      const gain = ctx.createGain();
+      oscillator.type = "sine";
+      oscillator.frequency.value = freq;
+      oscillator.connect(gain);
+      gain.connect(ctx.destination);
 
-    const start = now + index * 0.12;
-    gain.gain.setValueAtTime(0.0001, start);
-    gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
-    gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
-    oscillator.start(start);
-    oscillator.stop(start + 0.3);
+      const start = now + pass * passGap + index * 0.12;
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.exponentialRampToValueAtTime(0.18, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + 0.28);
+      oscillator.start(start);
+      oscillator.stop(start + 0.3);
+    });
   });
 }
