@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Dumbbell, ArrowLeft } from 'lucide-react';
 import PinPad from '@/components/PinPad';
+import { trackAction } from '@/lib/analytics';
 
 type HouseholdUser = {
   id: number;
@@ -51,6 +52,7 @@ export default function WhoPage() {
   };
 
   const pickUser = (user: HouseholdUser) => {
+    trackAction('who_pick', { category: 'who', article_context: user.name });
     setSelected(user);
     resetPinFlow();
     setStep(user.has_pin ? 'login' : 'create-pin');
@@ -83,6 +85,7 @@ export default function WhoPage() {
         return;
       }
 
+      trackAction('login', { category: 'who', cta_type: 'pin' });
       router.push('/home');
       router.refresh();
     } catch {
@@ -128,6 +131,7 @@ export default function WhoPage() {
         return;
       }
 
+      trackAction('login', { category: 'who', cta_type: 'set-pin' });
       router.push('/home');
       router.refresh();
     } catch {

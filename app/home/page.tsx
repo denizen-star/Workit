@@ -16,6 +16,7 @@ import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { trackAction } from '@/lib/analytics';
 
 export default function Home() {
   const [stats, setStats] = useState<any>(null);
@@ -141,6 +142,12 @@ export default function Home() {
               </Link>
               <Link
                 href={todayHref}
+                onClick={() =>
+                  trackAction(today.type === 'resume' ? 'workout_resume' : 'workout_start', {
+                    category: 'home',
+                    cta_type: todayMode,
+                  })
+                }
                 className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
               >
                 {today.type === 'resume' ? 'Resume' : 'Start'}
@@ -186,6 +193,12 @@ export default function Home() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href={todayHref}
+                  onClick={() =>
+                    trackAction(today.type === 'resume' ? 'workout_resume' : 'workout_start', {
+                      category: 'home',
+                      cta_type: todayMode,
+                    })
+                  }
                   className="inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
                 >
                   {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
@@ -199,6 +212,7 @@ export default function Home() {
                 {restartHref && (
                   <Link
                     href={restartHref}
+                    onClick={() => trackAction('workout_restart', { category: 'home' })}
                     className="inline-flex min-h-14 items-center rounded-2xl border border-white/15 px-6 text-lg font-black text-[#f6f1e3]/80"
                   >
                     Restart

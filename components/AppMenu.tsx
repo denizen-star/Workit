@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Menu, X, Shield, UserRound, LogOut } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { trackAction } from '@/lib/analytics';
 
 interface AppMenuProps {
   userName: string;
@@ -83,6 +84,7 @@ export default function AppMenu({
 
   const switchUser = async () => {
     setOpen(false);
+    trackAction('logout', { category: 'home' });
     await fetch('/api/auth/logout', { method: 'POST' });
     router.push('/who');
     router.refresh();

@@ -19,6 +19,7 @@ import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { trackAction } from '@/lib/analytics';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -46,7 +47,12 @@ function ModeToggle({
           key={value}
           type="button"
           disabled={locked}
-          onClick={() => onChange(value)}
+          onClick={() => {
+            if (value !== mode) {
+              trackAction('workout_mode', { category: 'workout', cta_type: value });
+            }
+            onChange(value);
+          }}
           className={`rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${
             mode === value ? 'bg-[#e8c547] text-[#1a1404]' : 'text-[#f6f1e3]/55'
           }`}
@@ -193,6 +199,10 @@ function WorkoutPageInner() {
       if (!options?.forceNew) {
         const open = findIncompleteSession(knownSessions || sessions, weekNumber, dayNumber);
         if (open) {
+          trackAction('workout_resume', {
+            category: 'workout',
+            cta_type: normalizeWorkoutMode(open.workout_mode),
+          });
           openExistingSession(knownSessions || sessions, Number(open.id));
           return;
         }
@@ -213,6 +223,8 @@ function WorkoutPageInner() {
 
       if (response.ok) {
         const data = await response.json();
+        trackAction('workout_start', { category: 'workout', cta_type: mode });
+        trackAction('workout_mode', { category: 'workout', cta_type: mode });
         setCurrentSession(data.sessionId);
         setSelectedWeek(weekNumber);
         setSelectedDay(dayNumber);
@@ -255,6 +267,7 @@ function WorkoutPageInner() {
         return;
       }
 
+      trackAction('workout_restart', { category: 'workout' });
       await loadSessions();
       setCurrentSession(null);
       setSelectedDay(null);

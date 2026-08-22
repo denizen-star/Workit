@@ -18,7 +18,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith('/api/cron')) {
+  if (pathname.startsWith('/api/cron') || pathname === '/api/analytics/event') {
     return NextResponse.next();
   }
 

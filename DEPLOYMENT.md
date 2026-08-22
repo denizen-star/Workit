@@ -125,6 +125,7 @@ SMTP_PORT=465
 NEXT_PUBLIC_APP_URL=https://workit.kervinapps.com
 WORKIT_SCOREBOARD_TO=<Kevin's email>
 CRON_SECRET=<long random string, match .env.local>
+APP_NAME=workit
 ```
 
 Use PlanetScale **production** credentials.
@@ -132,6 +133,8 @@ Use PlanetScale **production** credentials.
 ### 3.3 Mail table
 
 Run `database/migrate-email.sql` on PlanetScale once (`email_sends`). Without it, send still works but dedupe may warn.
+
+Telemetry identity columns: `database/migrate-app-events-user.sql` on shared `app_events` (already applied on prod). Client tracking is production-only.
 
 ### 3.4 Deploy
 

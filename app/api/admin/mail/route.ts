@@ -6,6 +6,7 @@ import { sampleEmail } from '@/lib/emails/templates';
 import { MAIL_TEMPLATES, type MailTemplateId } from '@/lib/emails/ids';
 import { sendDailyNudges } from '@/lib/emails/nudge';
 import { sendScoreboardEmail, buildLiveScoreboard } from '@/lib/emails/scoreboard';
+import { trackServerEvent } from '@/lib/trackServerEvent';
 
 function isTemplate(value: string): value is MailTemplateId {
   return (MAIL_TEMPLATES as readonly string[]).includes(value);
@@ -25,6 +26,13 @@ export async function GET(request: NextRequest) {
       templateParam === 'scoreboard' && live
         ? await buildLiveScoreboard()
         : sampleEmail(templateParam);
+
+    void trackServerEvent({
+      eventType: 'admin_mail',
+      pageCategory: 'admin-mail',
+      ctaType: 'preview',
+      articleSlug: templateParam,
+    });
 
     return NextResponse.json({
       enabled: isEmailEnabled(),
@@ -51,11 +59,21 @@ export async function POST(request: NextRequest) {
 
     if (action === 'nudge') {
       const results = await sendDailyNudges();
+      void trackServerEvent({
+        eventType: 'admin_mail',
+        pageCategory: 'admin-mail',
+        ctaType: 'nudge',
+      });
       return NextResponse.json({ ok: true, results });
     }
 
     if (action === 'scoreboard') {
       const result = await sendScoreboardEmail({ force: true });
+      void trackServerEvent({
+        eventType: 'admin_mail',
+        pageCategory: 'admin-mail',
+        ctaType: 'scoreboard',
+      });
       return NextResponse.json({ ok: true, result });
     }
 
@@ -74,6 +92,12 @@ export async function POST(request: NextRequest) {
     if (!id) {
       return NextResponse.json({ error: 'Send failed — check SMTP' }, { status: 500 });
     }
+    void trackServerEvent({
+      eventType: 'admin_mail',
+      pageCategory: 'admin-mail',
+      ctaType: 'sample',
+      articleSlug: template,
+    });
     return NextResponse.json({ ok: true, id, to, subject: email.subject });
   } catch (error) {
     if (error instanceof AuthError) {

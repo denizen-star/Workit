@@ -8,6 +8,7 @@ import {
 } from '@/lib/auth';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
 import { queueWelcomeEmail } from '@/lib/emails/lifecycle';
+import { trackServerEvent } from '@/lib/trackServerEvent';
 
 export async function GET() {
   try {
@@ -62,6 +63,12 @@ export async function POST(request: NextRequest) {
       'INSERT INTO users (name, email, pin_hash) VALUES (?, ?, ?)',
       [name, email, pinHash]
     );
+
+    void trackServerEvent({
+      eventType: 'admin_user',
+      pageCategory: 'admin',
+      ctaType: 'create',
+    });
 
     queueWelcomeEmail({
       id: Number(result.insertId),

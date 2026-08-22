@@ -9,15 +9,14 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '3.1.0',
-  title: 'Hotel room. Still work.',
+  version: '3.2.0',
+  title: 'I see you now.',
   wins: [
-    'Any week. Any day. Open Select Workout, man. Small Gym / Travel switch. Travel is no iron. Floor. Doorframe. Chair. You still train.',
-    'Home Start Workout is Gym. I do not ask. Resume is locked to the mode you started. Restart if you want to pick again. A finished day gets no switch. Do Again is Gym.',
-    'Travel Survivor is four travel sessions. Not Week 2. Four times you finished without a rack. Earn it.',
+    'You tap a name. You log a set. You pick Gym or Travel. I see it, man. No hiding behind a quiet week.',
+    'You finish, I know who finished. You back out at the PIN, I still know who you reached for. Report in like you mean it.',
+    'Hard-refresh. Then get under the bar. I am watching the next session, not your excuses.',
   ],
   also: [
-    'Trap bar / conventional deadlift has a new form video. Watch it. Then lift.',
-    'Hard-refresh if you are still running the old build. Then get under the bar.',
+    'Same program. Same PIN. Same coach in your ear. The only new thing is I do not miss a tap.',
   ],
 };

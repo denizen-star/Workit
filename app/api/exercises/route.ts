@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
+import { trackServerEvent } from '@/lib/trackServerEvent';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
   const result = await query(
@@ -80,6 +81,14 @@ export async function POST(request: NextRequest) {
     }
 
     await updateDailyStats(workoutSessionId, user.id);
+
+    if (isCompleted) {
+      void trackServerEvent({
+        eventType: 'set_logged',
+        pageCategory: 'workout',
+        articleSlug: typeof exerciseName === 'string' ? exerciseName : null,
+      });
+    }
 
     return NextResponse.json({ success: true, setId });
   } catch (error) {

@@ -7,6 +7,7 @@ import { getCoachToneOptions } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { trackAction } from '@/lib/analytics';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -100,6 +101,7 @@ export default function EditProfileModal({
 
       const nextSoundOn = normalizeSoundOn(data.user.soundOn);
       setSoundEnabled(nextSoundOn);
+      trackAction('profile_edit', { category: 'home' });
       onSaved({
         name: data.user.name,
         email: data.user.email,

@@ -8,6 +8,7 @@ import {
 } from '@/lib/auth';
 import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
 import { deleteUserAndData } from '@/lib/users';
+import { trackServerEvent } from '@/lib/trackServerEvent';
 
 type RouteContext = {
   params: Promise<{ id: string }>;
@@ -62,6 +63,12 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     const hasPin = pin != null || existing.rows[0].pin_hash != null;
 
+    void trackServerEvent({
+      eventType: 'admin_user',
+      pageCategory: 'admin',
+      ctaType: 'edit',
+    });
+
     return NextResponse.json({
       success: true,
       user: { id, name, email, has_pin: hasPin },
@@ -98,6 +105,12 @@ export async function DELETE(_request: NextRequest, context: RouteContext) {
     }
 
     await deleteUserAndData(id);
+
+    void trackServerEvent({
+      eventType: 'admin_user',
+      pageCategory: 'admin',
+      ctaType: 'delete',
+    });
 
     return NextResponse.json({ success: true });
   } catch (error) {

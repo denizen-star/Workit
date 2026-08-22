@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 3.2.0 - 2026-08-22
+
+### Added
+- Kevin-only **Analytics** under Admin: who reported in, what they tapped, gym vs travel, sets, badges, mail actions
+- Production tracking of household use (name and email on Kevin’s screen only; kervinapps.com dashboard stays anonymous)
+
 ## 3.1.0 - 2026-08-22
 
 ### Added

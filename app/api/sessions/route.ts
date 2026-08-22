@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
+import { trackServerEvent } from '@/lib/trackServerEvent';
 
 export async function POST(request: NextRequest) {
   try {
@@ -115,6 +116,18 @@ export async function PUT(request: NextRequest) {
       : [];
 
     if (isCompleted && !alreadyComplete) {
+      void trackServerEvent({
+        eventType: 'workout_complete',
+        pageCategory: 'workout',
+      });
+      for (const badge of awardedBadges) {
+        void trackServerEvent({
+          eventType: 'badge_awarded',
+          pageCategory: 'workout',
+          articleSlug: badge.requirement_type,
+          articleContext: badge.name,
+        });
+      }
       queueWorkoutCompleteEmails({
         userId: user.id,
         name: user.name,

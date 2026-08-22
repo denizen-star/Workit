@@ -217,6 +217,8 @@ Notification.requestPermission();
 - `GET /api/badges` - Get badges and check for new awards
 - `GET|POST /api/cron/mail` - Daily nudges + Monday scoreboard (`Bearer CRON_SECRET`)
 - `GET|POST /api/admin/mail` - Admin preview / sample send (`requireAdmin`)
+- `POST /api/analytics/event` - Production telemetry write (session optional)
+- `GET /api/admin/analytics` - Kevin-only analytics payload (`requireAdmin`)
 
 ## Contributing
 

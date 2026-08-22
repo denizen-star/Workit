@@ -166,7 +166,7 @@ workout-tracker/
 
 ## Environment Variables
 
-See `.env.example`. Required: `DATABASE_*`, `AUTH_SECRET`. Mail: `EMAIL_ENABLED`, `SENDER_*`, `SMTP_*`, `NEXT_PUBLIC_APP_URL`, `WORKIT_SCOREBOARD_TO`, `CRON_SECRET`.
+See `.env.example`. Required: `DATABASE_*`, `AUTH_SECRET`. Mail: `EMAIL_ENABLED`, `SENDER_*`, `SMTP_*`, `NEXT_PUBLIC_APP_URL`, `WORKIT_SCOREBOARD_TO`, `CRON_SECRET`. Telemetry: `APP_NAME=workit` (production).
 
 ## Known Limitations
 
