@@ -1,18 +1,20 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
+import StarRating from "@/components/StarRating";
 import { playHorn } from "@/lib/playChime";
 
 interface ExitTakeoverProps {
   open: boolean;
   line: string;
   onStay: () => void;
-  onQuit: () => void;
+  onQuit: (stars: number) => void;
 }
 
 export default function ExitTakeover({ open, line, onStay, onQuit }: ExitTakeoverProps) {
   const onStayRef = useRef(onStay);
   onStayRef.current = onStay;
+  const [stars, setStars] = useState<number | null>(null);
 
   useEffect(() => {
     if (!open) return;
@@ -37,6 +39,10 @@ export default function ExitTakeover({ open, line, onStay, onQuit }: ExitTakeove
     };
   }, [open]);
 
+  useEffect(() => {
+    if (open) setStars(null);
+  }, [open]);
+
   if (!open) return null;
 
   return (
@@ -52,11 +58,22 @@ export default function ExitTakeover({ open, line, onStay, onQuit }: ExitTakeove
         <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
           {line}
         </h2>
+        <div className="mt-8 w-full">
+          <StarRating
+            value={stars}
+            onChange={setStars}
+            label="Before you walk, score this session. One is trash. Five means you still felt it."
+          />
+        </div>
         <div className="mt-10 flex w-full flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={onQuit}
-            className="min-h-14 flex-1 rounded-2xl border border-white/20 bg-white/5 px-5 text-lg font-black text-white/80 hover:bg-white/10"
+            disabled={stars == null}
+            onClick={() => {
+              if (stars == null) return;
+              onQuit(stars);
+            }}
+            className="min-h-14 flex-1 rounded-2xl border border-white/20 bg-white/5 px-5 text-lg font-black text-white/80 hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Quitter
           </button>

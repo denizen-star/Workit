@@ -8,6 +8,7 @@ import { pickCoachLine, setProgressCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
+import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
 import SetProgressFlash from './SetProgressFlash';
@@ -155,6 +156,7 @@ export default function ExerciseTracker({
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
   const [setFlash, setSetFlash] = useState<{ variant: 'up' | 'down'; title: string; body: string } | null>(null);
+  const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
 
   useEffect(() => {
     const template: ExerciseSet[] = [];
@@ -242,6 +244,24 @@ export default function ExerciseTracker({
       cancelled = true;
     };
   }, [sessionId, weekNumber, exercises]);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/feedback?sessionId=' + sessionId)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.thumbs) return;
+        const next: Record<string, ExerciseThumb> = {};
+        for (const thumb of data.thumbs as ExerciseThumb[]) {
+          next[thumb.exerciseName] = thumb;
+        }
+        setThumbs(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   const persistSet = async (set: ExerciseSet) => {
     const response = await fetch('/api/exercises', {
@@ -480,6 +500,13 @@ export default function ExerciseTracker({
                 </>
               )}
             </div>
+
+            <ExerciseThumbs
+              sessionId={sessionId}
+              exerciseName={exercise.name}
+              saved={thumbs[exercise.name]}
+              onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
+            />
 
             {exercise.notes && (
               <p className="mb-4 text-sm italic text-white/90">{exercise.notes}</p>

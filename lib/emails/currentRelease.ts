@@ -9,14 +9,16 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '3.2.0',
-  title: 'I see you now.',
+  version: '3.3.0',
+  title: 'Talk to me, man.',
   wins: [
-    'You tap a name. You log a set. You pick Gym or Travel. I see it, man. No hiding behind a quiet week.',
-    'You finish, I know who finished. You back out at the PIN, I still know who you reached for. Report in like you mean it.',
-    'Hard-refresh. Then get under the bar. I am watching the next session, not your excuses.',
+    'You see that gold mouth on the right? That is me. Tap it. Roast the app. Thank me. Pitch the next lift. I want the truth. Do not make me guess.',
+    'On the workout, thumbs are under the photos. Up if it is clean. Down if the video is dead, the picture is a lie, or something else is wrong. Something else means you write it. One vote this session. Next session you can flip.',
+    'You do not finish and you do not quit until you score it. One is weak. Five is you want it again. Stay for More and I throw that score in the trash.',
+    'Home now shows your numbers next to the household. You see who is ahead. You see who is soft. I already know.',
   ],
   also: [
-    'Same program. Same PIN. Same coach in your ear. The only new thing is I do not miss a tap.',
+    'Your enjoyment charts show up on Home once you have scored a session. Empty boards stay hidden. I do not decorate silence.',
+    'Hard-refresh. Then get under the bar, man.',
   ],
 };

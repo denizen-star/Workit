@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import AudioUnlock from "@/components/AudioUnlock";
 import AnalyticsProvider from "@/components/AnalyticsProvider";
+import FeedbackWidget from "@/components/FeedbackWidget";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -51,6 +52,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <AudioUnlock />
         <AnalyticsProvider />
         {children}
+        <FeedbackWidget />
         {process.env.NODE_ENV === "production" && (
           <script
             dangerouslySetInnerHTML={{

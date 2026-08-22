@@ -1,15 +1,15 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { countCurrentStreak, householdHomeStats } from '@/lib/statsHousehold';
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const user = await getCurrentUser();
     if (!user) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { searchParams } = new URL(request.url);
     const userId = user.id;
 
     const overallStatsResult = await query(
@@ -52,25 +52,9 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    let currentStreak = 0;
-    if (streakResult.rows.length > 0) {
-      const dates = streakResult.rows.map((r: any) => new Date(r.workout_date));
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-      
-      for (let i = 0; i < dates.length; i++) {
-        const date = new Date(dates[i]);
-        date.setHours(0, 0, 0, 0);
-        const expectedDate = new Date(today);
-        expectedDate.setDate(today.getDate() - i);
-        
-        if (date.getTime() === expectedDate.getTime()) {
-          currentStreak++;
-        } else {
-          break;
-        }
-      }
-    }
+    const currentStreak = countCurrentStreak(
+      streakResult.rows.map((row: { workout_date: unknown }) => row.workout_date)
+    );
 
     const durationStats = await query(
       `SELECT
@@ -98,13 +82,19 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
+    const household = await householdHomeStats(
+      userId,
+      dailyStats.rows.map((row: { workout_date: unknown }) => row.workout_date)
+    );
+
     return NextResponse.json({
       overall: overallStatsResult.rows[0],
       weekly: weeklyStats.rows,
       daily: dailyStats.rows,
       currentStreak,
       timing: durationStats.rows[0],
-      recentDurations: recentDurations.rows
+      recentDurations: recentDurations.rows,
+      household,
     });
   } catch (error) {
     console.error('Error getting stats:', error);

@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, BarChart3, Mail, Pencil, Plus, Trash2 } from 'lucide-react';
+import { ArrowLeft, BarChart3, Mail, MessageSquare, Pencil, Plus, Trash2 } from 'lucide-react';
 import UserFormModal, { type AdminUser } from '@/components/UserFormModal';
 import Modal from '@/components/Modal';
 
@@ -107,6 +107,13 @@ export default function AdminPage() {
             >
               <BarChart3 className="h-4 w-4" />
               Analytics
+            </Link>
+            <Link
+              href="/admin/feedback"
+              className="inline-flex min-h-11 items-center gap-2 rounded-2xl border border-white/10 px-4 font-semibold text-[#e8c547]"
+            >
+              <MessageSquare className="h-4 w-4" />
+              Feedback
             </Link>
             <Link
               href="/admin/mail"

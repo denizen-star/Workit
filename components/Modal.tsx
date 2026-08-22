@@ -10,6 +10,7 @@ interface ModalProps {
   cancelLabel?: string;
   onConfirm?: () => void;
   onCancel?: () => void;
+  confirmDisabled?: boolean;
   variant?: "info" | "success" | "danger";
 }
 
@@ -21,6 +22,7 @@ export default function Modal({
   cancelLabel,
   onConfirm,
   onCancel,
+  confirmDisabled = false,
   variant = "info",
 }: ModalProps) {
   if (!open) return null;
@@ -55,8 +57,9 @@ export default function Modal({
             )}
             <button
               type="button"
+              disabled={confirmDisabled}
               onClick={onConfirm ?? onCancel}
-              className={`min-h-12 rounded-2xl px-5 py-2.5 font-black transition-colors ${confirmClass}`}
+              className={`min-h-12 rounded-2xl px-5 py-2.5 font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${confirmClass}`}
             >
               {confirmLabel}
             </button>

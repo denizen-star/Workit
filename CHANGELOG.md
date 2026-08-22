@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 3.3.0 - 2026-08-22
+
+### Added
+- Home stat cards show **you / household**. Household is everyone else who finished a workout in the last 7 days. Hidden if you are the only one who showed up
+- Last workout vs their last-session average. Longest session vs their single longest. Total time vs the average of their totals
+- Daily weight chart: household average on your last 14 workout days (skip zeros). Weekly completion: household average days per program week
+- Talk to me: gold speech tab on the right (hidden on the workout). Optional topic. Note emails Kevin
+- Thumbs under each exercise’s photos. Down: broken video, image doesn’t match, something else (something else needs a written note). One vote per exercise this session
+- Required 1–5 stars on Complete it and Quitter. Stay for More discards the score
+- Enjoyment charts on Home (yours) and Admin → Feedback (household). Empty charts stay hidden. Email digest from that page
+
 ## 3.2.0 - 2026-08-22
 
 ### Added

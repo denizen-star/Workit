@@ -14,6 +14,7 @@ import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
+import StarRating from '@/components/StarRating';
 import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
@@ -80,6 +81,7 @@ function WorkoutPageInner() {
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
+  const [completeStars, setCompleteStars] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completeLine, setCompleteLine] = useState('');
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
@@ -284,13 +286,30 @@ function WorkoutPageInner() {
     }
   };
 
+  const saveSessionRating = async (stars: number, outcome: 'complete' | 'quit') => {
+    if (!currentSession) return false;
+    const response = await fetch('/api/session-ratings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sessionId: currentSession, stars, outcome }),
+    });
+    return response.ok;
+  };
+
   const completeWorkout = async () => {
-    if (!currentSession) return;
+    if (!currentSession || completeStars == null) return;
 
     unlockAudio();
     playCompleteChime();
 
     try {
+      const rated = await saveSessionRating(completeStars, 'complete');
+      if (!rated) {
+        setErrorMessage('Could not save your score. Try again.');
+        setShowError(true);
+        return;
+      }
+
       const response = await fetch('/api/sessions', {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -309,6 +328,7 @@ function WorkoutPageInner() {
       const data = await response.json().catch(() => ({ awardedBadges: [] }));
       await loadSessions();
       setConfirmComplete(false);
+      setCompleteStars(null);
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
       setCompleteLine(pickCompleteLine(coachTone));
       setShowSuccess(true);
@@ -418,7 +438,13 @@ function WorkoutPageInner() {
           open={confirmExit}
           line={exitLine}
           onStay={() => setConfirmExit(false)}
-          onQuit={() => {
+          onQuit={async (stars) => {
+            const rated = await saveSessionRating(stars, 'quit');
+            if (!rated) {
+              setErrorMessage('Could not save your score. Try again.');
+              setShowError(true);
+              return;
+            }
             setConfirmExit(false);
             setCurrentSession(null);
             setSelectedDay(null);
@@ -461,10 +487,21 @@ function WorkoutPageInner() {
           cancelLabel="Not yet"
           confirmLabel="Complete it"
           variant="success"
-          onCancel={() => setConfirmComplete(false)}
+          confirmDisabled={completeStars == null}
+          onCancel={() => {
+            setConfirmComplete(false);
+            setCompleteStars(null);
+          }}
           onConfirm={completeWorkout}
         >
-          Nice work. We will save the end time and add this session to your dashboard stats.
+          <p>Nice work. We will save the end time and add this session to your dashboard stats.</p>
+          <div className="mt-5">
+            <StarRating
+              value={completeStars}
+              onChange={setCompleteStars}
+              label="How did that sit with you, man? One is weak. Five is you want it again."
+            />
+          </div>
         </Modal>
 
         <Modal

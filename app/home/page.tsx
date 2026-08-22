@@ -6,6 +6,8 @@ import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Time
 import BadgeDisplay from '@/components/BadgeDisplay';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ProgressCharts from '@/components/ProgressCharts';
+import EnjoymentCharts from '@/components/EnjoymentCharts';
+import type { RatingStats } from '@/lib/ratings';
 import AppMenu from '@/components/AppMenu';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
@@ -18,6 +20,37 @@ import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { trackAction } from '@/lib/analytics';
 
+function ComparedValue({
+  value,
+  household,
+  format,
+}: {
+  value: number | null | undefined;
+  household?: number | null;
+  format: (n: number | null | undefined) => string;
+}) {
+  return (
+    <p className="flex flex-wrap items-baseline gap-x-1.5 text-3xl font-black leading-tight text-[#f5d76e] sm:text-4xl">
+      <span>{format(value)}</span>
+      {household != null && (
+        <span className="text-xl font-bold text-[#f5d76e]/60 sm:text-2xl">/ {format(household)}</span>
+      )}
+    </p>
+  );
+}
+
+function formatCount(value: number | null | undefined) {
+  return String(Math.round(Number(value || 0)));
+}
+
+function formatWeight(value: number | null | undefined) {
+  return Math.round(Number(value || 0)).toLocaleString();
+}
+
+function formatStreak(value: number | null | undefined) {
+  return `${formatCount(value)} days`;
+}
+
 export default function Home() {
   const [stats, setStats] = useState<any>(null);
   const [badges, setBadges] = useState<any>(null);
@@ -29,6 +62,7 @@ export default function Home() {
   const [userSoundOn, setUserSoundOn] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
 
   useEffect(() => {
     loadData();
@@ -36,12 +70,13 @@ export default function Home() {
 
   const loadData = async () => {
     try {
-      const [meRes, statsRes, badgesRes, sessionsRes, catalogRes] = await Promise.all([
+      const [meRes, statsRes, badgesRes, sessionsRes, catalogRes, ratingsRes] = await Promise.all([
         fetch('/api/me'),
         fetch('/api/stats'),
         fetch('/api/badges'),
         fetch('/api/sessions'),
         fetch('/api/coach-catalog'),
+        fetch('/api/ratings/stats'),
       ]);
 
       if (meRes.ok) {
@@ -73,6 +108,10 @@ export default function Home() {
       if (catalogRes.ok) {
         const catalog = await catalogRes.json();
         hydrateCoachCatalog(catalog);
+      }
+
+      if (ratingsRes.ok) {
+        setRatingStats(await ratingsRes.json());
       }
     } catch (error) {
       console.error('Error loading data:', error);
@@ -229,9 +268,11 @@ export default function Home() {
               <Calendar className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Workouts Completed</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {stats?.overall?.completed_workouts || 0}
-            </p>
+            <ComparedValue
+              value={stats?.overall?.completed_workouts || 0}
+              household={stats?.household?.workoutsCompleted}
+              format={formatCount}
+            />
             <p className="text-sm text-[#f6f1e3]/55">out of 24 total</p>
           </div>
 
@@ -240,9 +281,11 @@ export default function Home() {
               <Activity className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Current Streak</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {stats?.currentStreak || 0} days
-            </p>
+            <ComparedValue
+              value={stats?.currentStreak || 0}
+              household={stats?.household?.currentStreak}
+              format={formatStreak}
+            />
             <p className="text-sm text-[#f6f1e3]/55">Keep it going</p>
           </div>
 
@@ -251,9 +294,11 @@ export default function Home() {
               <TrendingUp className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Total Weight Lifted</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {Math.round(stats?.overall?.total_weight_lifted || 0).toLocaleString()}
-            </p>
+            <ComparedValue
+              value={stats?.overall?.total_weight_lifted || 0}
+              household={stats?.household?.totalWeightLifted}
+              format={formatWeight}
+            />
             <p className="text-sm text-[#f6f1e3]/55">lbs across all workouts</p>
           </div>
 
@@ -262,9 +307,11 @@ export default function Home() {
               <Award className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Badges Earned</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {badges?.earnedBadges?.length || 0}
-            </p>
+            <ComparedValue
+              value={badges?.earnedBadges?.length || 0}
+              household={stats?.household?.badgesEarned}
+              format={formatCount}
+            />
             <p className="text-sm text-[#f6f1e3]/55">of {badges?.allBadges?.length || 0} total</p>
           </div>
         </div>
@@ -312,9 +359,11 @@ export default function Home() {
               <Clock className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Last Workout</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {formatDuration(stats?.recentDurations?.[0]?.duration_seconds)}
-            </p>
+            <ComparedValue
+              value={stats?.recentDurations?.[0]?.duration_seconds}
+              household={stats?.household?.lastWorkoutSeconds}
+              format={formatDuration}
+            />
             <p className="text-sm text-[#f6f1e3]/55">
               {stats?.recentDurations?.[0]
                 ? `Week ${stats.recentDurations[0].week_number} · ${stats.recentDurations[0].workout_type}`
@@ -327,9 +376,11 @@ export default function Home() {
               <Timer className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Average Duration</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {formatDuration(stats?.timing?.avg_seconds)}
-            </p>
+            <ComparedValue
+              value={stats?.timing?.avg_seconds}
+              household={stats?.household?.avgSeconds}
+              format={formatDuration}
+            />
             <p className="text-sm text-[#f6f1e3]/55">across completed sessions</p>
           </div>
 
@@ -338,9 +389,11 @@ export default function Home() {
               <Hourglass className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Longest Session</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {formatDuration(stats?.timing?.max_seconds)}
-            </p>
+            <ComparedValue
+              value={stats?.timing?.max_seconds}
+              household={stats?.household?.maxSeconds}
+              format={formatDuration}
+            />
             <p className="text-sm text-[#f6f1e3]/55">best time in the gym</p>
           </div>
 
@@ -349,9 +402,11 @@ export default function Home() {
               <Clock className="h-6 w-6 text-[#e8c547]" />
               <h3 className="font-semibold text-[#f6f1e3]/80">Total Training Time</h3>
             </div>
-            <p className="text-4xl font-black text-[#f5d76e]">
-              {formatDuration(stats?.timing?.total_seconds)}
-            </p>
+            <ComparedValue
+              value={stats?.timing?.total_seconds}
+              household={stats?.household?.totalSeconds}
+              format={formatDuration}
+            />
             <p className="text-sm text-[#f6f1e3]/55">start to finish, all workouts</p>
           </div>
         </div>
@@ -384,11 +439,19 @@ export default function Home() {
           </div>
         )}
 
+        {ratingStats && ratingStats.overall.count > 0 && (
+          <div className="mb-8">
+            <EnjoymentCharts stats={ratingStats} scope="personal" />
+          </div>
+        )}
+
         {stats?.daily && stats.daily.length > 0 && (
           <div className="mb-8">
             <ProgressCharts
               dailyStats={stats.daily}
               weeklyStats={stats.weekly || []}
+              householdDaily={stats.household?.daily}
+              householdWeekly={stats.household?.weekly}
             />
           </div>
         )}
