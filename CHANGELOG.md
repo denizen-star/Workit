@@ -2,6 +2,27 @@
 
 ## Unreleased
 
+## 3.1.0 - 2026-08-22
+
+### Added
+- Gym / Travel switch on Select Workout (any week, any day). Travel swaps the day for no-equipment hotel-room work with form photos, video, and notes
+- `workout_sessions.workout_mode` (`gym` default). Home Start Workout always starts Gym
+- Scoreboard rows now show workouts, volume, sets, heaviest lift, best day, average time, medals, last workout, plus a Master Tom Iron line
+- Select Workout next to Start / Resume (header and hero)
+
+### Changed
+- Week 2 is a normal gym week. No Travel Week label
+- Travel Survivor: finish 4 travel-mode sessions (not Week 2)
+- Trap Bar / Conventional Deadlifts form video
+- Coach voices and rest / exit / complete lines load from `coach_voices` + `coach_lines`. Edit profile shows the tone description. Code banks are fallback only
+- Badges stay once each. No repeat counts
+
+### Removed
+- Week-locked hotel-dumbbell travel list
+
+### Fixed
+- Edit profile on iPhone: sheet portals over the full screen so it is no longer trapped in the sticky header
+
 ## 3.0.0 - 2026-08-22
 
 ### Added

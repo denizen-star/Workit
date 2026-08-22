@@ -36,7 +36,7 @@ function requirementLabel(badge: Badge) {
     case 'perfect_week':
       return 'Perfect week';
     case 'travel_week':
-      return 'Finish travel week';
+      return 'Finish 4 travel sessions';
     case 'upper_sessions':
       return `${badge.requirement_value} Upper sessions`;
     case 'lower_sessions':

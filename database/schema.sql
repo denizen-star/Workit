@@ -59,6 +59,7 @@ CREATE TABLE workout_sessions (
     week_number INT NOT NULL,
     day_number INT NOT NULL,
     workout_type VARCHAR(100) NOT NULL, -- 'Upper Body A', 'Lower Body B', etc.
+    workout_mode VARCHAR(16) NOT NULL DEFAULT 'gym', -- 'gym' | 'travel'
     scheduled_date DATE,
     started_at TIMESTAMP NULL,
     completed_at TIMESTAMP,
@@ -152,7 +153,7 @@ INSERT IGNORE INTO badges (name, description, icon, requirement_type, requiremen
 ('Four Week Streak', 'Complete 4 consecutive weeks', '📅', 'streak', 4),
 ('Five Week Streak', 'Complete 5 consecutive weeks', '🗓️', 'streak', 5),
 ('Unbroken Six', 'Complete 6 consecutive weeks', '♾️', 'streak', 6),
-('Travel Survivor', 'Finish all 4 days of travel week', '✈️', 'travel_week', 4),
+('Travel Survivor', 'Finish 4 travel-mode sessions', '✈️', 'travel_week', 4),
 ('Upper Specialist', 'Complete 8 Upper sessions', '🏋️', 'upper_sessions', 8),
 ('Lower Specialist', 'Complete 8 Lower sessions', '🦵', 'lower_sessions', 8),
 ('Volume Day', 'Lift 10,000 lbs in one session', '📦', 'session_volume', 10000),

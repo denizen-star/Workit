@@ -4,9 +4,32 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
   const n = name.toLowerCase();
   const r = reps.toLowerCase();
 
-  if (r.includes("second") || n.includes("plank")) return "timed";
+  if (r.includes("second") || (n.includes("plank") && !n.includes("iso"))) return "timed";
   if (r.includes("meter") || r.includes("walk") || n.includes("carry")) return "distance";
-  if (n.includes("push-up") || r === "max") return "bodyweight";
+  if (
+    n.includes("push-up") ||
+    n.includes("bodyweight") ||
+    n.includes("towel") ||
+    n.includes("doorframe") ||
+    n.includes("floor slide") ||
+    n.includes("hamstring floor") ||
+    n.includes("pike") ||
+    n.includes("dip") ||
+    n.includes("iso") ||
+    n.includes("prone y") ||
+    n.includes("leg raise") ||
+    n.includes("glute bridge") ||
+    n.includes("good morning") ||
+    n.includes("sissy") ||
+    n.includes("step-up") ||
+    n.includes("tempo squat") ||
+    n.includes("inverted row") ||
+    n.includes("wall rollout") ||
+    n.includes("backpack") ||
+    r === "max"
+  ) {
+    return "bodyweight";
+  }
   return "weighted";
 }
 

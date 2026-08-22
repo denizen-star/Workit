@@ -9,7 +9,9 @@ import ProgressCharts from '@/components/ProgressCharts';
 import AppMenu from '@/components/AppMenu';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
+import { applyWorkoutMode } from '@/lib/workoutData';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { normalizeWorkoutMode, workoutModeLabel } from '@/lib/workoutMode';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
@@ -85,8 +87,14 @@ export default function Home() {
       : today.type === 'start' && today.week && today.day
         ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}`
         : '/workout';
+  const todayMode =
+    today.type === 'resume' && today.session
+      ? normalizeWorkoutMode(today.session.workout_mode)
+      : 'gym';
+  const todayDay =
+    today.day != null ? applyWorkoutMode(today.day, todayMode) : null;
   const todayEstimate =
-    today.day != null ? formatEstimateMinutes(estimateWorkoutSeconds(today.day)) : null;
+    todayDay != null ? formatEstimateMinutes(estimateWorkoutSeconds(todayDay)) : null;
   const restartHref =
     today.type === 'resume' && today.week && today.day
       ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
@@ -167,8 +175,10 @@ export default function Home() {
                 Week {today.week?.weekNumber} · {today.day?.name}
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">{today.day?.focus}</p>
-              {today.week?.isTravel && (
-                <p className="mt-2 text-sm font-semibold text-[#e8c547]">Travel week · hotel-friendly</p>
+              {today.type === 'resume' && todayMode === 'travel' && (
+                <p className="mt-2 text-sm font-semibold text-[#e8c547]">
+                  {workoutModeLabel(todayMode)} · no equipment
+                </p>
               )}
               {todayEstimate && (
                 <p className="mt-3 text-sm font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
@@ -275,9 +285,6 @@ export default function Home() {
                         style={{ width: `${percentage}%` }}
                       />
                     </div>
-                    {week === 2 && (
-                      <p className="mt-1 text-xs text-[#e8c547]">Travel Week</p>
-                    )}
                   </div>
                 </div>
               );
@@ -397,10 +404,10 @@ export default function Home() {
           <div className="mt-4 rounded-2xl border border-[#e8c547]/20 bg-[#e8c547]/10 p-4">
             <h4 className="mb-2 font-semibold text-[#e8c547]">Progressive Overload</h4>
             <p className="text-sm text-[#f6f1e3]/80">
-              <strong>Week 1:</strong> Adaptation - Use conservative weights<br />
-              <strong>Week 2:</strong> Travel week with hotel-friendly exercises<br />
+              <strong>Weeks 1-2:</strong> Adaptation - Use conservative weights<br />
               <strong>Weeks 3-5:</strong> Building - Add 2.5-5 lbs or 1-2 reps per set<br />
-              <strong>Week 6:</strong> Peak - Aim to match or beat Week 4 levels
+              <strong>Week 6:</strong> Peak - Aim to match or beat Week 4 levels<br />
+              Any day can be Gym or Travel (no equipment). Home Start uses Gym.
             </p>
           </div>
         </div>

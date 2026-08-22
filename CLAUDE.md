@@ -24,9 +24,9 @@ No test suite.
 
 **Auth flow**: Session-based, not NextAuth. `lib/session.ts` issues/verifies an HS256 JWT (`jose`) in the `workit_session` cookie, signed with `AUTH_SECRET` (≥32 chars). `lib/auth.ts` wraps PIN hashing (scrypt), in-memory lockout (resets on redeploy), and `requireCurrentUser`/`requireAdmin`. `middleware.ts` gates every request except static assets (incl. `/sounds/`, `/badges/`, `.wav`), `/api/cron/*`, `/who`, `/api/auth/*`, and `GET /api/users`. `/` redirects: session → `/home`, else `/who`. Other unauthenticated pages → `/who`; unauthenticated APIs → 401 JSON. User id `1` is the sole admin (`ADMIN_USER_ID`).
 
-**Database**: `lib/db.ts` `query(sql, params)` via `@planetscale/database` HTTP `connect()`. Schema in `database/schema.sql` (users, workout_sessions, exercise_sets, badges, user_badges, daily_stats, exercises). Incremental SQL is applied by hand: `migrate-pin.sql`, `migrate-timing.sql`, `migrate-email.sql` (`email_sends` dedupe table), `migrate-tone.sql` (`users.coach_tone`; already on prod — re-run = duplicate column), `migrate-sound.sql` (`users.sound_on`), `migrate-badges-20.sql` (20 extra badge rows), `migrate-coach-lines.sql` (`coach_voices` + `coach_lines`; no per-user last-line table). No migration runner.
+**Database**: `lib/db.ts` `query(sql, params)` via `@planetscale/database` HTTP `connect()`. Schema in `database/schema.sql` (users, workout_sessions, exercise_sets, badges, user_badges, daily_stats, exercises, coach_voices, coach_lines). Incremental SQL is applied by hand: `migrate-pin.sql`, `migrate-timing.sql`, `migrate-email.sql` (`email_sends` dedupe table), `migrate-tone.sql` (`users.coach_tone`; already on prod — re-run = duplicate column), `migrate-sound.sql` (`users.sound_on`), `migrate-badges-20.sql` (20 extra badge rows), `migrate-coach-lines.sql` (`coach_voices` + `coach_lines`; no per-user last-line table), `migrate-workout-mode.sql` (`workout_sessions.workout_mode` gym/travel + Travel Survivor copy). No migration runner. `users.coach_tone` stays `master`/`sergeant`. Lines/descriptions live in those two tables; `GET /api/coach-catalog` hydrates the client. Shuffle is in-memory only. Code banks in `lib/coachLines.ts` / `lib/coachCatalog.ts` are fallback if the tables are empty.
 
-**Workout program is static**: `lib/workoutData.ts` is the 6-week plan. DB stores logged sessions/sets plus the `exercises` catalog (images/video).
+**Workout program is static**: `lib/workoutData.ts` is the 6-week gym plan (Week 2 is gym, not a travel week). Travel is a per-session mode: `lib/travelExercises.ts` substitutions via `applyWorkoutMode()`. Home **Start Workout** POSTs `workout_mode=gym`. Select Workout shows a Gym/Travel pill on unstarted days; resume locks the started mode; completed days hide the pill; Restart returns to Start so they can pick again. Session column `workout_sessions.workout_mode` (`gym`|`travel`). Travel Survivor (`travel_week`) = 4 completed travel-mode sessions. DB also stores logged sets plus the `exercises` catalog (images/video). Media maps: `lib/exerciseImages.ts`, `lib/exerciseMedia.ts`.
 
 **Routes**:
 - `app/page.tsx` — backup redirect to `/who` (middleware usually handles `/`)
@@ -35,11 +35,11 @@ No test suite.
 - `app/who/page.tsx` — profile picker + PIN
 - `app/admin/page.tsx` — household users (Kevin-only)
 - `app/admin/mail/page.tsx` — mail preview / sample send / run nudges / force scoreboard
-- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all` is session-gated)
+- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all` and `GET /api/coach-catalog` are session-gated)
 - `app/api/cron/mail` — GET/POST; **not** session-gated; requires `Authorization: Bearer $CRON_SECRET`
 
 **Email** (Zoho SMTP, same stack as hit-list/Gowanus):
-- Client: `lib/mailClient.ts` (nodemailer). `EMAIL_ENABLED` empty/true sends; SMTP missing → skip. From display: `Master Tom Iron` or `Luna Meadows` via `coachDisplayName` (default Master Tom Iron). Every send BCCs `info@kervinapps.com`.
+- Client: `lib/mailClient.ts` (nodemailer). `EMAIL_ENABLED` empty/true sends; SMTP missing → skip. From display: `voiceFromName()` from `coach_voices` (fallback Master Tom Iron / Luna Meadows). Every send BCCs `info@kervinapps.com`.
 - Layout/templates: `lib/emailLayout.ts` (`appUrl()`, `whoUrl()`), `lib/emails/templates.ts`. Household CTAs go to `https://workit.kervinapps.com/who`. Scoreboard CTA goes to `/admin`. Welcome includes iPhone Safari **Add to Home Screen** steps.
 - Dedupe: `lib/emails/send.ts` `claimAndSend` inserts `email_sends (template, dedupe_key)` unique.
 - Triggers:

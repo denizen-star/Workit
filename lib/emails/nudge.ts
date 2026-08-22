@@ -73,7 +73,6 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     dayName: target.day.name,
     focus: target.day.focus,
     estimate: formatEstimateMinutes(estimateWorkoutSeconds(target.day)),
-    isTravel: target.week.isTravel,
     href: whoUrl(),
     tone: await getUserTone(user.id),
   });

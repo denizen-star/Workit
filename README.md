@@ -9,7 +9,7 @@ A Progressive Web App for tracking a 6-week upper/lower workout split program wi
 - **Rest Timer**: Built-in timer between sets with customizable duration
 - **Badge System**: Earn achievements for milestones (first workout, streaks, weight lifted, etc.)
 - **Progress Charts**: Visualize daily weight lifted and weekly completion
-- **Travel Week Support**: Special Week 5 with hotel-friendly exercises
+- **Gym / Travel**: any day can run gym or no-equipment travel substitutions
 - **PWA Support**: Install on mobile/desktop, works offline
 - **Responsive Design**: Works on all devices
 
@@ -151,9 +151,9 @@ See `database/schema.sql` + migrate-*.sql.
 ### Progressive Overload
 
 - Weeks 1-2: Adaptation phase (conservative weights)
-- Weeks 3-4: Building phase (add 2.5-5 lbs or 1-2 reps)
-- Week 5: Travel week (hotel-friendly exercises)
+- Weeks 3-5: Building phase (add 2.5-5 lbs or 1-2 reps)
 - Week 6: Peak phase (match or beat Week 4)
+- Any day: Gym (default from Home Start) or Travel (no equipment) from Select Workout
 
 ## Customization
 
@@ -163,7 +163,7 @@ Edit `lib/workoutData.ts` to customize:
 - Exercise names
 - Set/rep schemes
 - Weekly progression
-- Travel week exercises
+- Travel substitutions (`lib/travelExercises.ts`)
 
 ### Add More Badges
 

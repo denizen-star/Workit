@@ -4,10 +4,11 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
-import { workoutProgram } from '@/lib/workoutData';
+import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { normalizeWorkoutMode, workoutModeLabel, type WorkoutMode } from '@/lib/workoutMode';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
@@ -18,6 +19,44 @@ import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+
+function dayModeKey(weekNumber: number, dayNumber: number) {
+  return `${weekNumber}-${dayNumber}`;
+}
+
+function ModeToggle({
+  mode,
+  onChange,
+  locked,
+}: {
+  mode: WorkoutMode;
+  onChange: (mode: WorkoutMode) => void;
+  locked?: boolean;
+}) {
+  return (
+    <div
+      role="group"
+      aria-label={locked ? `Workout type locked to ${workoutModeLabel(mode)}` : 'Workout type'}
+      className={`inline-flex shrink-0 rounded-full border border-white/15 bg-black/35 p-0.5 ${
+        locked ? 'opacity-70' : ''
+      }`}
+    >
+      {(['gym', 'travel'] as const).map((value) => (
+        <button
+          key={value}
+          type="button"
+          disabled={locked}
+          onClick={() => onChange(value)}
+          className={`rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${
+            mode === value ? 'bg-[#e8c547] text-[#1a1404]' : 'text-[#f6f1e3]/55'
+          }`}
+        >
+          {value === 'gym' ? 'Gym' : 'Travel'}
+        </button>
+      ))}
+    </div>
+  );
+}
 
 function WorkoutPageInner() {
   const router = useRouter();
@@ -43,6 +82,8 @@ function WorkoutPageInner() {
   const autoOpened = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [soundOn, setSoundOn] = useState(true);
+  const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
+  const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
 
   useWakeLock(!!currentSession);
 
@@ -91,7 +132,7 @@ function WorkoutPageInner() {
 
       if (week && day) {
         autoOpened.current = true;
-        startWorkout(week, day, rows);
+        startWorkout(week, day, rows, { mode: normalizeWorkoutMode(searchParams.get('mode')) });
       }
     });
   }, []);
@@ -132,6 +173,7 @@ function WorkoutPageInner() {
     setCurrentSession(Number(session.id));
     setSelectedWeek(Number(session.week_number));
     setSelectedDay(Number(session.day_number));
+    setWorkoutMode(normalizeWorkoutMode(session.workout_mode));
     const start = new Date(session.started_at || session.created_at || Date.now()).getTime();
     setStartedAt(start);
     setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
@@ -141,7 +183,7 @@ function WorkoutPageInner() {
     weekNumber: number,
     dayNumber: number,
     knownSessions?: WorkoutSessionRow[],
-    options?: { forceNew?: boolean }
+    options?: { forceNew?: boolean; mode?: WorkoutMode }
   ) => {
     try {
       const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
@@ -156,6 +198,7 @@ function WorkoutPageInner() {
         }
       }
 
+      const mode = normalizeWorkoutMode(options?.mode);
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -163,6 +206,7 @@ function WorkoutPageInner() {
           weekNumber,
           dayNumber,
           workoutType: day.name,
+          workoutMode: mode,
           scheduledDate: new Date().toISOString().split('T')[0],
         }),
       });
@@ -172,6 +216,7 @@ function WorkoutPageInner() {
         setCurrentSession(data.sessionId);
         setSelectedWeek(weekNumber);
         setSelectedDay(dayNumber);
+        setWorkoutMode(mode);
         setStartedAt(Date.now());
         setElapsedSeconds(0);
         await loadSessions();
@@ -263,7 +308,13 @@ function WorkoutPageInner() {
 
   const getCurrentWorkout = () => {
     const week = workoutProgram.find((item) => item.weekNumber === selectedWeek);
-    return week?.days.find((item) => item.dayNumber === selectedDay);
+    const day = week?.days.find((item) => item.dayNumber === selectedDay);
+    return day ? applyWorkoutMode(day, workoutMode) : undefined;
+  };
+
+  const pickedMode = (weekNumber: number, dayNumber: number, incomplete?: WorkoutSessionRow | null) => {
+    if (incomplete) return normalizeWorkoutMode(incomplete.workout_mode);
+    return pickModes[dayModeKey(weekNumber, dayNumber)] ?? 'gym';
   };
 
   if (currentSession && selectedDay) {
@@ -302,7 +353,10 @@ function WorkoutPageInner() {
                 <h1 className="text-xl font-black text-[#f5d76e]">
                   Week {selectedWeek} · {workout.name}
                 </h1>
-                <p className="text-sm text-[#f6f1e3]/65">{workout.focus}</p>
+                <p className="text-sm text-[#f6f1e3]/65">
+                  {workout.focus}
+                  {workoutMode === 'travel' ? ' · Travel' : ''}
+                </p>
                 <p className="mt-1 inline-flex items-center gap-1 text-sm font-black text-[#e8c547]">
                   <Clock className="h-3.5 w-3.5" />
                   {formatClock(elapsedSeconds)}
@@ -442,11 +496,6 @@ function WorkoutPageInner() {
               >
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-black text-white">Week {week.weekNumber}</h2>
-                  {week.isTravel && (
-                    <span className="rounded-full bg-[#e8c547]/15 px-3 py-1 text-sm font-semibold text-[#e8c547]">
-                      Travel Week
-                    </span>
-                  )}
                   <span className="text-sm text-[#f6f1e3]/65">
                     {week.days.filter((day) => completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`)).length} / {week.days.length} completed
                   </span>
@@ -466,7 +515,9 @@ function WorkoutPageInner() {
                     {week.days.map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
                       const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
-                      const estimate = formatEstimateMinutes(estimateWorkoutSeconds(day));
+                      const mode = pickedMode(week.weekNumber, day.dayNumber, incomplete);
+                      const planned = applyWorkoutMode(day, mode);
+                      const estimate = formatEstimateMinutes(estimateWorkoutSeconds(planned));
 
                       return (
                         <div
@@ -480,7 +531,7 @@ function WorkoutPageInner() {
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
-                            <div className="flex-1">
+                            <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-center gap-2">
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
                                 {isCompleted && !incomplete && (
@@ -492,6 +543,18 @@ function WorkoutPageInner() {
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
                             </div>
+                            {(!isCompleted || incomplete) && (
+                              <ModeToggle
+                                mode={mode}
+                                locked={!!incomplete}
+                                onChange={(next) =>
+                                  setPickModes((current) => ({
+                                    ...current,
+                                    [dayModeKey(week.weekNumber, day.dayNumber)]: next,
+                                  }))
+                                }
+                              />
+                            )}
                           </div>
 
                           <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
@@ -512,7 +575,7 @@ function WorkoutPageInner() {
                               )}
                               <button
                                 type="button"
-                                onClick={() => startWorkout(week.weekNumber, day.dayNumber)}
+                                onClick={() => startWorkout(week.weekNumber, day.dayNumber, undefined, { mode })}
                                 className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] px-6 font-black text-[#1a1404]"
                               >
                                 {incomplete ? 'Resume' : isCompleted ? 'Do Again' : 'Start'}

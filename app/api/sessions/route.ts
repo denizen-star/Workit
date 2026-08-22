@@ -11,12 +11,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { weekNumber, dayNumber, workoutType, scheduledDate } = await request.json();
+    const { weekNumber, dayNumber, workoutType, scheduledDate, workoutMode } = await request.json();
+    const mode = String(workoutMode || '').trim().toLowerCase() === 'travel' ? 'travel' : 'gym';
 
     const result = await query(
-      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, scheduled_date, started_at) 
-       VALUES (?, ?, ?, ?, ?, NOW())`,
-      [user.id, weekNumber, dayNumber, workoutType, scheduledDate]
+      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, scheduled_date, started_at) 
+       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
+      [user.id, weekNumber, dayNumber, workoutType, mode, scheduledDate]
     );
 
     return NextResponse.json({ 

@@ -5,6 +5,7 @@ export interface WorkoutSessionRow {
   week_number: number;
   day_number: number;
   workout_type: string;
+  workout_mode?: string | null;
   is_completed: number | boolean;
   started_at?: string | null;
   created_at?: string | null;

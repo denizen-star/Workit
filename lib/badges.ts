@@ -74,7 +74,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
 
     const extraStats = await query(
       `SELECT
-         SUM(CASE WHEN is_completed = 1 AND week_number = 2 THEN 1 ELSE 0 END) as week2_days,
+         SUM(CASE WHEN is_completed = 1 AND workout_mode = 'travel' THEN 1 ELSE 0 END) as travel_days,
          SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Upper%' THEN 1 ELSE 0 END) as upper_days,
          SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Lower%' THEN 1 ELSE 0 END) as lower_days
        FROM workout_sessions
@@ -82,7 +82,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       [userId]
     );
     const extra = extraStats.rows[0] as {
-      week2_days: number;
+      travel_days: number;
       upper_days: number;
       lower_days: number;
     };
@@ -126,7 +126,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'weight_milestone', value: userStats.total_weight_lifted, comparison: 'gte' },
       { type: 'total_workouts', value: userStats.completed_workouts, comparison: 'gte' },
       { type: 'program_complete', value: completedWeeks >= 6 },
-      { type: 'travel_week', value: Number(extra?.week2_days || 0) >= 4 },
+      { type: 'travel_week', value: Number(extra?.travel_days || 0) >= 4 },
       { type: 'upper_sessions', value: Number(extra?.upper_days || 0), comparison: 'gte' },
       { type: 'lower_sessions', value: Number(extra?.lower_days || 0), comparison: 'gte' },
       { type: 'session_volume', value: maxSessionVolume, comparison: 'gte' },

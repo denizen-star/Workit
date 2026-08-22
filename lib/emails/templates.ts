@@ -39,7 +39,6 @@ export type NudgeEmailInput = {
   dayName: string;
   focus?: string | null;
   estimate?: string | null;
-  isTravel?: boolean;
   href: string;
   tone?: CoachTone | null;
 };
@@ -146,9 +145,6 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
     input.mode === 'resume'
       ? 'Did I give you permission to quit?'
       : input.dayName + '. Now.';
-  const travel = input.isTravel
-    ? p('Travel week. Hotel room. Floor. Doorframe. I do not care. You still work.')
-    : '';
   const estimate = input.estimate
     ? p(esc(input.estimate) + '. That time belongs to me.')
     : '';
@@ -174,7 +170,6 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
               (input.focus ? ' · ' + esc(input.focus) : '') +
               '. I own that session.'
       ),
-      travel,
       estimate,
       cta(href, input.mode === 'resume' ? 'FINISH IT' : 'GET TO IT'),
     ].join(''),
