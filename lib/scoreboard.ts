@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { sqlSetVolume } from '@/lib/exerciseKind';
 import { type HouseholdScoreboardRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 function periodFilter(period: ScoreboardPeriod, column: string) {
@@ -19,8 +20,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
        u.id,
        u.name,
        COUNT(DISTINCT ws.id) as workouts,
-       COALESCE(SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL
-         THEN es.weight_lbs * es.actual_reps ELSE 0 END), 0) as volume,
+       COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume,
        COUNT(CASE WHEN es.is_completed = 1 THEN es.id END) as sets,
        COALESCE(MAX(es.weight_lbs), 0) as heaviest,
        AVG(CASE WHEN ws.started_at IS NOT NULL AND ws.ended_at IS NOT NULL
@@ -63,8 +63,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
      FROM (
        SELECT
          ws.user_id,
-         COALESCE(SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL
-           THEN es.weight_lbs * es.actual_reps ELSE 0 END), 0) as session_volume
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as session_volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
        WHERE ws.is_completed = 1 ${sessionWindow}

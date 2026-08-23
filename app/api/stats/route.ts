@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { sqlSetVolume } from '@/lib/exerciseKind';
 import { countCurrentStreak, householdHomeStats } from '@/lib/statsHousehold';
 
 export async function GET() {
@@ -17,8 +18,7 @@ export async function GET() {
         COUNT(DISTINCT ws.id) as total_workouts,
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
         COUNT(DISTINCT es.exercise_name) as unique_exercises,
-        SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL 
-            THEN es.weight_lbs * es.actual_reps ELSE 0 END) as total_weight_lifted
+        SUM(${sqlSetVolume('es')}) as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id = ?`,
@@ -83,7 +83,6 @@ export async function GET() {
     );
 
     const household = await householdHomeStats(
-      userId,
       dailyStats.rows.map((row) => row.workout_date)
     );
 

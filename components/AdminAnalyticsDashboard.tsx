@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import {
   Bar,
   BarChart,
@@ -13,8 +14,10 @@ import {
   XAxis,
   YAxis,
 } from 'recharts';
+import ExerciseCompareCells from '@/components/ExerciseCompareCells';
 import type { AdminAnalyticsPayload } from '@/lib/adminAnalytics';
 import type { AnalyticsRangeId, DeviceFilter } from '@/lib/analyticsTime';
+import type { ExerciseCompareRow } from '@/lib/exerciseCompare';
 
 const tooltipStyle = {
   backgroundColor: 'rgba(12, 12, 16, 0.92)',
@@ -61,6 +64,9 @@ export default function AdminAnalyticsDashboard() {
   const [unknownGeo, setUnknownGeo] = useState(false);
   const [person, setPerson] = useState('');
   const [data, setData] = useState<AdminAnalyticsPayload | null>(null);
+  const [compareRows, setCompareRows] = useState<ExerciseCompareRow[]>([]);
+  const [compareReady, setCompareReady] = useState(false);
+  const [compareOpen, setCompareOpen] = useState(false);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
 
@@ -100,6 +106,27 @@ export default function AdminAnalyticsDashboard() {
       cancelled = true;
     };
   }, [range, device, country, unknownGeo, person]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setCompareReady(false);
+    fetch('/api/exercise-compare?range=' + range)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled) return;
+        setCompareRows(Array.isArray(json?.rows) ? json.rows : []);
+        setCompareReady(true);
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setCompareRows([]);
+          setCompareReady(true);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [range]);
 
   const series = useMemo(() => {
     if (!data) return [];
@@ -182,6 +209,53 @@ export default function AdminAnalyticsDashboard() {
 
       {error && <p className="text-sm font-semibold text-rose-400">{error}</p>}
       {loading && <p className="text-sm text-[#f6f1e3]/55">Loading…</p>}
+
+      {compareReady && (
+        <section className="glass-card p-5">
+          <button
+            type="button"
+            onClick={() => setCompareOpen((current) => !current)}
+            className="flex w-full items-center gap-2 text-left"
+            aria-expanded={compareOpen}
+          >
+            <h3 className="text-lg font-black text-white">Vs the house</h3>
+            <span className="ml-auto text-sm text-[#f6f1e3]/65">
+              {compareRows.length ? `${compareRows.length} athletes` : 'Empty'}
+            </span>
+            {compareOpen ? (
+              <ChevronUp className="h-5 w-5 text-[#f6f1e3]/65" />
+            ) : (
+              <ChevronDown className="h-5 w-5 text-[#f6f1e3]/65" />
+            )}
+          </button>
+          {compareOpen && (
+            <div className="mt-4">
+              <p className="mb-4 text-sm text-[#f6f1e3]/60">
+                Best day per lift, weight and reps as separate boards. Follows the range above.
+              </p>
+              {compareRows.length === 0 ? (
+                <p className="text-sm text-[#f6f1e3]/55">No finished workouts in this range.</p>
+              ) : (
+                <div className="space-y-4">
+                  {compareRows.map((row) => (
+                    <div key={row.userId} className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4">
+                      <p className="mb-3 text-lg font-black text-white">{row.name}</p>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.16em] text-[#e8c547]">
+                        By weight
+                      </p>
+                      <ExerciseCompareCells trio={row.weight} athleteName={row.name} layout="row" />
+                      <p className="mb-2 mt-4 text-xs font-black uppercase tracking-[0.16em] text-[#e8c547]">
+                        By reps
+                      </p>
+                      <ExerciseCompareCells trio={row.reps} athleteName={row.name} layout="row" />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {data && (
         <>

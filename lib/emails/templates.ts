@@ -72,22 +72,27 @@ export type ScoreboardRow = {
   lastWorkout: string | null;
   volumeThisWeek: number;
   openSession: string | null;
+  standing?: string[];
 };
 
 export type ScoreboardEmailInput = {
   rangeLabel: string;
   rows: ScoreboardRow[];
+  yoursName?: string | null;
+  yours?: string[];
 };
 
 export type ReleaseEmailInput = {
   name?: string;
   version: string;
   title: string;
+  subject?: string;
   lead?: string;
   wins: string[];
   groups?: ReleaseGroup[];
   also?: string[];
   tone?: CoachTone | null;
+  signer?: string;
 };
 
 function releaseGroups(input: ReleaseEmailInput): ReleaseGroup[] {
@@ -333,9 +338,26 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
 export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   const eyebrow = 'inspection';
   const title = 'Who obeyed · ' + input.rangeLabel;
+  const yoursName = input.yoursName ? firstName(input.yoursName) : null;
+  const yoursHtml =
+    input.yours && input.yours.length
+      ? p(
+          '<strong style="color:#e8c547;">Your standing' +
+            (yoursName ? ', ' + esc(yoursName) : '') +
+            '.</strong>'
+        ) + bullets(input.yours)
+      : '';
   const rowsHtml = input.rows
     .map((row) => {
       const noShow = Number(row.workoutsThisWeek) === 0;
+      const standingHtml = (row.standing || [])
+        .map(
+          (line) =>
+            '<div style="font-size:12px;color:#b9b1a0;margin-top:4px;line-height:1.4;">' +
+            esc(line) +
+            '</div>'
+        )
+        .join('');
       return (
         '<tr>' +
         '<td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">' +
@@ -350,6 +372,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
             esc(row.openSession) +
             '</div>'
           : '') +
+        standingHtml +
         '</td>' +
         '<td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);text-align:right;color:#f6f1e3;font-size:13px;line-height:1.45;">' +
         esc(String(row.workoutsThisWeek)) +
@@ -369,6 +392,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     childrenHtml: [
       p('I do not care about feelings. I care who showed up and who went soft.'),
       p('Open sessions are unfinished business. I see them.'),
+      yoursHtml,
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
         rowsHtml +
         '</table>',
@@ -381,6 +405,9 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     '',
     'I do not care about feelings. I care who showed up and who went soft.',
     '',
+    ...(input.yours && input.yours.length
+      ? ['Your standing' + (yoursName ? ', ' + yoursName : '') + '.', ...input.yours.map((line) => '  ' + line), '']
+      : []),
     ...input.rows.map((row) =>
       [
         row.name,
@@ -388,6 +415,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
         '  last: ' + (row.lastWorkout || 'nothing'),
         Number(row.workoutsThisWeek) === 0 ? '  NO SHOW' : '',
         row.openSession ? '  LEFT OPEN: ' + row.openSession : '',
+        ...(row.standing || []).map((line) => '  ' + line),
       ]
         .filter(Boolean)
         .join('\n')
@@ -407,7 +435,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
 
 export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
+  const signer = input.signer || voiceDisplayName(normalizeCoachTone(input.tone));
   const ordersLine =
     normalizeCoachTone(input.tone) === 'sergeant'
       ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
@@ -449,7 +477,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   ].join('\n');
   return {
     from: fromFor(input.tone),
-    subject: 'New orders — ' + input.title,
+    subject: input.subject || 'New orders — ' + input.title,
     html,
     text,
   };
@@ -520,6 +548,17 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
   if (template === 'scoreboard') {
     return buildScoreboardEmail({
       rangeLabel: 'last 7 days',
+      yoursName: 'Kevin',
+      yours: [
+        'Weight',
+        '  Lead: Standing Calf Raises · 80 lb · +12% vs Peter',
+        '  Behind: Barbell Hip Thrusts or Glute Bridges · 135 lb · 18% vs Mike',
+        '  In the pack: Trap Bar Deadlifts or Barbell Conventional Deadlifts · 185 lb · 4% from pack avg',
+        'Reps',
+        '  Lead: Dumbbell Biceps Curls · 45 reps · +8% vs Peter',
+        '  Behind: Walking Lunges · 24 reps · 15% vs Mike',
+        '  In the pack: Face Pulls · 36 reps · 3% from pack avg',
+      ],
       rows: [
         {
           name: 'Kevin',
@@ -528,6 +567,16 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
           lastWorkout: 'Upper Body A · yesterday',
           volumeThisWeek: 28400,
           openSession: null,
+          standing: [
+            'Weight',
+            '  Lead: Standing Calf Raises · 80 lb · +12% vs Peter',
+            '  Behind: Barbell Hip Thrusts or Glute Bridges · 135 lb · 18% vs Mike',
+            '  In the pack: Trap Bar Deadlifts or Barbell Conventional Deadlifts · 185 lb · 4% from pack avg',
+            'Reps',
+            '  Lead: Dumbbell Biceps Curls · 45 reps · +8% vs Peter',
+            '  Behind: Walking Lunges · 24 reps · 15% vs Mike',
+            '  In the pack: Face Pulls · 36 reps · 3% from pack avg',
+          ],
         },
         {
           name: 'Peter',
@@ -536,6 +585,16 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
           lastWorkout: 'Lower Body B · Mon',
           volumeThisWeek: 9100,
           openSession: 'Upper Body B',
+          standing: [
+            'Weight',
+            '  Lead: —',
+            '  Behind: Standing Calf Raises · 70 lb · 14% vs Kevin',
+            '  In the pack: Face Pulls · 25 lb · 2% from pack avg',
+            'Reps',
+            '  Lead: Triceps Cable Pushdowns or Overhead Extensions · 45 reps · +8% vs Kevin',
+            '  Behind: —',
+            '  In the pack: Lat Pulldowns or Cable Rows · 36 reps · 2% from pack avg',
+          ],
         },
       ],
     });

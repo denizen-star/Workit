@@ -9,12 +9,21 @@ import { query } from '../lib/db';
 import { isEmailEnabled, sendEmail } from '../lib/mailClient';
 import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
 import { buildReleaseEmail } from '../lib/emails/templates';
+import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
 
 async function householdRecipients() {
+  const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
   const result = await query(
-    `SELECT name, email FROM users
-     WHERE email IS NOT NULL AND email != ''
-     ORDER BY id ASC`
+    onlyWorked
+      ? `SELECT DISTINCT u.id, u.name, u.email
+         FROM users u
+         INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
+         WHERE u.email IS NOT NULL AND u.email != ''
+           AND ${SQL_EXCLUDE_TEST_USER}
+         ORDER BY u.id ASC`
+      : `SELECT name, email FROM users
+         WHERE email IS NOT NULL AND email != ''
+         ORDER BY id ASC`
   );
   const rows = (result.rows as { name: string; email: string | null }[]).filter(
     (row) => row.email

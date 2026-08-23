@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
+import ExerciseCompare from '@/components/ExerciseCompare';
 import ProgressCharts from '@/components/ProgressCharts';
 import EnjoymentCharts from '@/components/EnjoymentCharts';
 import type { RatingStats } from '@/lib/ratings';
@@ -20,6 +21,7 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { trackAction } from '@/lib/analytics';
+import { isTestUserName } from '@/lib/householdUsers';
 
 function ComparedValue({
   value,
@@ -336,6 +338,8 @@ export default function Home() {
         </div>
 
         <HouseholdScoreboard />
+
+        {!isTestUserName(userName) && <ExerciseCompare />}
 
         <div className="glass-card mb-8 p-6">
           <h2 className="mb-4 text-2xl font-black text-white">Weekly Progress</h2>

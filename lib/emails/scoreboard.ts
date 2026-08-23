@@ -1,4 +1,7 @@
 import { query } from '@/lib/db';
+import { householdExerciseCompare, standingSummary } from '@/lib/exerciseCompare';
+import { sqlSetVolume } from '@/lib/exerciseKind';
+import { isTestUserName } from '@/lib/householdUsers';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildScoreboardEmail, type ScoreboardRow } from '@/lib/emails/templates';
 import { todayInNewYork } from '@/lib/emails/nudge';
@@ -9,16 +12,21 @@ function extraScoreboardTo() {
   return (process.env.WORKIT_SCOREBOARD_TO || '').trim() || null;
 }
 
-export async function buildLiveScoreboard() {
+async function loadScoreboardBoard() {
   const users = await query('SELECT id, name, email FROM users ORDER BY id ASC');
+  const roster = users.rows as RosterUser[];
+  const compare = await householdExerciseCompare({ kind: 'scoreboard', period: '7' });
+  const standingByName = new Map(
+    compare.map((row) => [row.name.trim().toLowerCase(), standingSummary(row)])
+  );
+  const compareById = new Map(compare.map((row) => [row.userId, row]));
   const rows: ScoreboardRow[] = [];
 
-  for (const user of users.rows as RosterUser[]) {
+  for (const user of roster) {
     const weekStats = await query(
       `SELECT
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as workouts,
-         COALESCE(SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL
-           THEN es.weight_lbs * es.actual_reps ELSE 0 END), 0) as volume
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
        WHERE ws.user_id = ?
@@ -59,12 +67,23 @@ export async function buildLiveScoreboard() {
         ? 'Week ' + lastRow.week_number + ' · ' + lastRow.workout_type
         : null,
       openSession: openRow ? openRow.workout_type : null,
+      standing: isTestUserName(user.name)
+        ? undefined
+        : standingByName.get(user.name.trim().toLowerCase()),
     });
   }
 
+  return { roster, rows, compareById };
+}
+
+export async function buildLiveScoreboard(opts?: { userId?: number | null }) {
+  const { rows, compareById } = await loadScoreboardBoard();
+  const yours = opts?.userId != null ? compareById.get(opts.userId) ?? null : null;
   return buildScoreboardEmail({
     rangeLabel: 'last 7 days',
     rows,
+    yoursName: yours?.name,
+    yours: yours ? standingSummary(yours) : undefined,
   });
 }
 
@@ -92,11 +111,19 @@ export async function sendScoreboardEmail(opts?: { force?: boolean }) {
   const recipients = scoreboardRecipients(users.rows as RosterUser[]);
   if (recipients.length === 0) return { sent: false, skipped: 'no-recipients', results: [] };
 
-  const email = await buildLiveScoreboard();
+  const board = await loadScoreboardBoard();
   const { date } = todayInNewYork();
   const results = [];
 
   for (const recipient of recipients) {
+    const yours =
+      recipient.userId != null ? board.compareById.get(recipient.userId) ?? null : null;
+    const email = buildScoreboardEmail({
+      rangeLabel: 'last 7 days',
+      rows: board.rows,
+      yoursName: yours?.name,
+      yours: yours ? standingSummary(yours) : undefined,
+    });
     if (opts?.force) {
       const id = await sendNow(recipient.email, email);
       results.push({

@@ -88,8 +88,10 @@ function normalizeName(name: string): string {
 }
 
 const KEY_BY_NAME = new Map<string, string>();
+const CANONICAL_BY_KEY = new Map<string, string>();
 for (const group of GROUPS) {
   const key = normalizeName(group[0]);
+  CANONICAL_BY_KEY.set(key, group[0]);
   for (const name of group) {
     KEY_BY_NAME.set(normalizeName(name), key);
   }
@@ -98,4 +100,9 @@ for (const group of GROUPS) {
 export function exerciseHistoryKey(name: string): string {
   const normalized = normalizeName(name);
   return KEY_BY_NAME.get(normalized) ?? normalized;
+}
+
+export function exerciseCanonicalName(name: string): string {
+  const key = exerciseHistoryKey(name);
+  return CANONICAL_BY_KEY.get(key) ?? name.trim();
 }

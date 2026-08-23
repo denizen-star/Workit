@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.5.0 - 2026-08-23
+
+### Added
+- **Vs the house** on Home (starts folded, under Scoreboard): two boards — best-day **weight** and best-day **reps**. Who you lead, who you are behind, who you sit with. 7 / 30 / All
+- Same board on Admin → Analytics (starts folded). Follows the Analytics range
+- Scoreboard email includes each athlete’s standing on both boards
+
+### Changed
+- Household “you / household” numbers include you. Test is out of household averages and Vs the house
+- Timed holds and Farmer’s / distance count the weight once, not seconds or meters. Old daily chart days stay as they were
+- Vs the house compares you to people in your pack (within 1 SD), not a blowout vs another class
+- Copy is a sentence: “Mike leads on Hip Thrusts, closest Christine.” “Mike is behind Kevin on Calf Raises.”
+
+### Fixed
+- Home hamburger menu no longer clips off the left side of the phone (Select and Start sit to the right of the button)
+
 ## 3.4.0 - 2026-08-23
 
 ### Added

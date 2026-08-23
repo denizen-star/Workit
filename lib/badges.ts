@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { sqlSetVolume } from '@/lib/exerciseKind';
 
 export type AwardedBadge = {
   id: number;
@@ -32,8 +33,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       `SELECT 
         COUNT(DISTINCT ws.id) as total_workouts,
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
-        SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL 
-            THEN es.weight_lbs * es.actual_reps ELSE 0 END) as total_weight_lifted
+        SUM(${sqlSetVolume('es')}) as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id = ?`,
@@ -91,8 +91,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       `SELECT
          ws.started_at,
          TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) as duration_seconds,
-         COALESCE(SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL
-           THEN es.weight_lbs * es.actual_reps ELSE 0 END), 0) as volume
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
        WHERE ws.user_id = ? AND ws.is_completed = 1

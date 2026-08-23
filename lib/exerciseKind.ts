@@ -86,3 +86,36 @@ export function suggestedNextWeight(lastWeight: number): number {
   const bump = lastWeight >= 100 ? 5 : 2.5;
   return Math.round((lastWeight + bump) * 2) / 2;
 }
+
+/** Timed and distance count the load once, not seconds or meters. */
+export function setVolume(
+  name: string,
+  targetReps: string | null | undefined,
+  weightLbs: number | null | undefined,
+  actualReps: number | null | undefined
+): number {
+  if (weightLbs == null || actualReps == null) return 0;
+  const weight = Number(weightLbs);
+  const reps = Number(actualReps);
+  if (!Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
+  const kind = getExerciseKind(name, targetReps || "");
+  if (kind === "timed" || kind === "distance") return weight;
+  return weight * reps;
+}
+
+/** Same timed/distance rules as getExerciseKind, for SUM() in SQL. */
+export function sqlSetVolume(alias?: string): string {
+  const col = (column: string) => (alias ? `${alias}.${column}` : column);
+  const name = `LOWER(COALESCE(${col("exercise_name")}, ''))`;
+  const reps = `LOWER(COALESCE(${col("target_reps")}, ''))`;
+  return `CASE
+    WHEN ${col("weight_lbs")} IS NULL OR ${col("actual_reps")} IS NULL THEN 0
+    WHEN ${reps} LIKE '%second%'
+      OR (${name} LIKE '%plank%' AND ${name} NOT LIKE '%iso%')
+      OR ${reps} LIKE '%meter%'
+      OR ${reps} LIKE '%walk%'
+      OR ${name} LIKE '%carry%'
+    THEN ${col("weight_lbs")}
+    ELSE ${col("weight_lbs")} * ${col("actual_reps")}
+  END`;
+}

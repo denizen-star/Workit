@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { sqlSetVolume } from '@/lib/exerciseKind';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
@@ -239,8 +240,7 @@ async function updateDailyStats(workoutSessionId: number, userId: number) {
       `SELECT 
         COUNT(DISTINCT exercise_name) as total_exercises,
         COUNT(*) as total_sets,
-        SUM(CASE WHEN weight_lbs IS NOT NULL AND actual_reps IS NOT NULL 
-            THEN weight_lbs * actual_reps ELSE 0 END) as total_weight
+        SUM(${sqlSetVolume()}) as total_weight
        FROM exercise_sets es
        JOIN workout_sessions ws ON es.workout_session_id = ws.id
        WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ? AND es.is_completed = true`,

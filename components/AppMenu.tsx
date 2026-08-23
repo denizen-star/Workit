@@ -49,11 +49,16 @@ export default function AppMenu({
     const place = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
+      const width = Math.min(240, window.innerWidth - 32);
+      const left = Math.min(
+        Math.max(16, rect.right - width),
+        window.innerWidth - width - 16
+      );
       setPanelStyle({
         position: 'fixed',
         top: rect.bottom + 8,
-        right: Math.max(16, window.innerWidth - rect.right),
-        width: 240,
+        left,
+        width,
       });
     };
 

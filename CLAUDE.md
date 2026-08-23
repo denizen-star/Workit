@@ -30,18 +30,18 @@ No test suite.
 
 **Routes**:
 - `app/page.tsx` — backup redirect to `/who` (middleware usually handles `/`)
-- `app/home/page.tsx` — dashboard (scoreboard folded, Achievements folded, Completed log folded under Weekly Progress). Week cards / **Completed** open that log. Stat cards + progress charts show you / household avg of others who finished a workout in the last 7 days (`GET /api/stats` `household`; null if nobody else trained). Enjoyment charts if the athlete has session ratings
+- `app/home/page.tsx` — dashboard (scoreboard folded, **Vs the house** folded, Achievements folded, Completed log folded under Weekly Progress). Week cards / **Completed** open that log. Stat cards + progress charts show you / household avg of people who finished a workout in the last 7 days, **including you**, minus Test (`GET /api/stats` `household`; null if nobody trained). **Vs the house** (`GET /api/exercise-compare?period=7|30|all`): current athlete only; two boards (best-day weight, best-day reps); hidden for Test. Enjoyment charts if the athlete has session ratings
 - `app/workout/page.tsx` — Select + logging. Finish and quit require 1–5 stars (`POST /api/session-ratings`). Exercise thumbs via `ExerciseThumbs`. Finished days share `CompletedSessionCard` with the Home log
 - `app/history/page.tsx` — standalone completed log (`/history?week=&day=` still used by View leftovers)
 - `app/who/page.tsx` — profile picker + PIN
 - `app/admin/layout.tsx` — shared chrome: Dashboard back, title, hamburger
 - `app/admin/page.tsx` — redirects to `/admin/analytics`
-- `app/admin/analytics/page.tsx` — Kevin-only Traffic charts + people (name/email)
+- `app/admin/analytics/page.tsx` — Kevin-only Traffic charts + people (name/email). Folded **Vs the house** for every athlete except Test; follows the Analytics range (`GET /api/exercise-compare?range=`)
 - `app/admin/users/page.tsx` — household users; Add stays on this page
 - `app/admin/feedback/page.tsx` — Kevin-only notes, thumbs, household enjoyment
 - `app/admin/mail/page.tsx` — mail preview / sample send / run nudges / force scoreboard
 - Admin hamburger (home + admin chrome): Analytics, Users, Feedback, Mail
-- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all`, `GET /api/stats` (includes `household`), `GET /api/sessions?history=1` (completed sessions + completed sets), `GET /api/coach-catalog`, `GET /api/ratings/stats`, `GET|POST /api/feedback`, `POST /api/session-ratings`, `DELETE /api/exercises?id=` (uncompleted extras only), `GET /api/admin/analytics` are session-gated; analytics / admin feedback / household ratings also `requireAdmin`)
+- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all`, `GET /api/stats` (includes `household`), `GET /api/exercise-compare?period=7|30|all` (current athlete; `?range=` is admin all-athlete), `GET /api/sessions?history=1` (completed sessions + completed sets), `GET /api/coach-catalog`, `GET /api/ratings/stats`, `GET|POST /api/feedback`, `POST /api/session-ratings`, `DELETE /api/exercises?id=` (uncompleted extras only), `GET /api/admin/analytics` are session-gated; analytics / admin feedback / household ratings / exercise-compare `?range=` also `requireAdmin`)
 - `POST /api/analytics/event` — **not** session-gated; production only; stamps `user_*` from session when present
 - `app/api/cron/mail` — GET/POST; **not** session-gated; requires `Authorization: Bearer $CRON_SECRET`
 
@@ -56,7 +56,7 @@ No test suite.
   - Session marked complete → `checkAndAwardBadges` in the PUT (returned to the finish takeover) + recap (week/program folded in) + badge mail for streak/weight/perfect_week/total_workouts only
   - Netlify `netlify/functions/workit-mail-cron.mts` daily `0 12 * * *` UTC (8am Eastern in EDT) POSTs `/api/cron/mail`
   - Nudges: Mon/Tue/Thu/Fri if they still owe a workout; resume mail any day if a session is open; skip if already trained that NY date
-  - Scoreboard: Mondays only, to `WORKIT_SCOREBOARD_TO` (Kevin)
+  - Scoreboard: Mondays only, to `WORKIT_SCOREBOARD_TO` (Kevin). Each athlete’s mail includes their Vs the house standing (weight + reps) plus the household table
   - Talk to me note → Kevin immediately (`WORKIT_SCOREBOARD_TO` / `leacock.kervin@gmail.com`). Thumbs and stars are digest-only from `/admin/feedback`
 - Manual: `/admin/mail`, `npm run mail:release` (all household emails), `npm run mail:scoreboard`. `/document` **always** rewrites `lib/emails/currentRelease.ts` in Master Tom Iron drill-sergeant user-tone and runs `mail:release`.
 - Env: see `.env.example`. Set the same keys on the **Netlify** site (Production).

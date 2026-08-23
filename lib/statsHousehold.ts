@@ -1,4 +1,6 @@
 import { query } from '@/lib/db';
+import { sqlSetVolume } from '@/lib/exerciseKind';
+import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 
 export type HouseholdHomeStats = {
   workoutsCompleted: number;
@@ -63,16 +65,15 @@ function placeholders(ids: number[]) {
 }
 
 export async function householdHomeStats(
-  userId: number,
   athleteDailyDates: unknown[]
 ): Promise<HouseholdHomeStats | null> {
   const active = await query(
     `SELECT DISTINCT ws.user_id as id
      FROM workout_sessions ws
+     INNER JOIN users u ON u.id = ws.user_id
      WHERE ws.is_completed = 1
-       AND ws.user_id != ?
-       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`,
-    [userId]
+       AND ${SQL_EXCLUDE_TEST_USER}
+       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`
   );
 
   const ids = (active.rows as { id: number }[])
@@ -88,8 +89,7 @@ export async function householdHomeStats(
       `SELECT
          ws.user_id,
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
-         COALESCE(SUM(CASE WHEN es.weight_lbs IS NOT NULL AND es.actual_reps IS NOT NULL
-           THEN es.weight_lbs * es.actual_reps ELSE 0 END), 0) as total_weight_lifted
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id IN (${sql})

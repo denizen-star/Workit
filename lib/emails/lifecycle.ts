@@ -1,6 +1,7 @@
 import { after } from 'next/server';
 import { query } from '@/lib/db';
 import { checkAndAwardBadges, type AwardedBadge } from '@/lib/badges';
+import { sqlSetVolume } from '@/lib/exerciseKind';
 import { getUserTone } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { pickCompleteLine } from '@/lib/coachLines';
@@ -83,8 +84,7 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   const totals = await query(
     `SELECT
-       COALESCE(SUM(CASE WHEN weight_lbs IS NOT NULL AND actual_reps IS NOT NULL
-         THEN weight_lbs * actual_reps ELSE 0 END), 0) as volume,
+       COALESCE(SUM(${sqlSetVolume()}), 0) as volume,
        COUNT(*) as set_count,
        COUNT(DISTINCT exercise_name) as exercise_count
      FROM exercise_sets
