@@ -1,7 +1,8 @@
 import { query } from '@/lib/db';
-import { householdExerciseCompare, standingSummary } from '@/lib/exerciseCompare';
+import { householdExerciseCompare, rankingSummary, standingSummary } from '@/lib/exerciseCompare';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { isTestUserName } from '@/lib/householdUsers';
+import { householdBonusHonor } from '@/lib/scoreboard';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildScoreboardEmail, type ScoreboardRow } from '@/lib/emails/templates';
 import { todayInNewYork } from '@/lib/emails/nudge';
@@ -17,9 +18,9 @@ async function loadScoreboardBoard() {
   const roster = users.rows as RosterUser[];
   const compare = await householdExerciseCompare({ kind: 'scoreboard', period: '7' });
   const standingByName = new Map(
-    compare.map((row) => [row.name.trim().toLowerCase(), standingSummary(row)])
+    compare.rows.map((row) => [row.name.trim().toLowerCase(), standingSummary(row, compare.ranking)])
   );
-  const compareById = new Map(compare.map((row) => [row.userId, row]));
+  const compareById = new Map(compare.rows.map((row) => [row.userId, row]));
   const rows: ScoreboardRow[] = [];
 
   for (const user of roster) {
@@ -73,17 +74,20 @@ async function loadScoreboardBoard() {
     });
   }
 
-  return { roster, rows, compareById };
+  const bonusHonor = await householdBonusHonor('7');
+  return { roster, rows, compareById, ranking: compare.ranking, bonusHonor };
 }
 
 export async function buildLiveScoreboard(opts?: { userId?: number | null }) {
-  const { rows, compareById } = await loadScoreboardBoard();
+  const { rows, compareById, ranking, bonusHonor } = await loadScoreboardBoard();
   const yours = opts?.userId != null ? compareById.get(opts.userId) ?? null : null;
   return buildScoreboardEmail({
     rangeLabel: 'last 7 days',
     rows,
+    ranking: rankingSummary(ranking),
     yoursName: yours?.name,
-    yours: yours ? standingSummary(yours) : undefined,
+    yours: yours ? standingSummary(yours, ranking) : undefined,
+    bonusHonor,
   });
 }
 
@@ -121,8 +125,10 @@ export async function sendScoreboardEmail(opts?: { force?: boolean }) {
     const email = buildScoreboardEmail({
       rangeLabel: 'last 7 days',
       rows: board.rows,
+      ranking: rankingSummary(board.ranking),
       yoursName: yours?.name,
-      yours: yours ? standingSummary(yours) : undefined,
+      yours: yours ? standingSummary(yours, board.ranking) : undefined,
+      bonusHonor: board.bonusHonor,
     });
     if (opts?.force) {
       const id = await sendNow(recipient.email, email);

@@ -17,6 +17,7 @@ interface Badge {
 interface BadgeDisplayProps {
   allBadges: Badge[];
   earnedBadges: Badge[];
+  bonusCount?: number;
 }
 
 function requirementLabel(badge: Badge) {
@@ -51,12 +52,14 @@ function requirementLabel(badge: Badge) {
       return 'Start before 8am';
     case 'night_owl':
       return 'Start at or after 8pm';
+    case 'bonus_sessions':
+      return 'Finish a bonus day';
     default:
       return '';
   }
 }
 
-export default function BadgeDisplay({ allBadges, earnedBadges }: BadgeDisplayProps) {
+export default function BadgeDisplay({ allBadges, earnedBadges, bonusCount = 0 }: BadgeDisplayProps) {
   const [open, setOpen] = useState(false);
   const earnedIds = new Set(earnedBadges.map((badge) => badge.id));
 
@@ -102,11 +105,15 @@ export default function BadgeDisplay({ allBadges, earnedBadges }: BadgeDisplayPr
                   <h3 className="mb-1 text-sm font-semibold text-white">{badge.name}</h3>
                   <p className="text-xs text-[#f6f1e3]/65">{badge.description}</p>
 
-                  {isEarned && earnedBadge?.earned_at && (
+                  {isEarned && badge.requirement_type === 'bonus_sessions' ? (
+                    <p className="mt-2 text-xs text-[#e8c547]">
+                      {bonusCount} bonus {bonusCount === 1 ? 'day' : 'days'}
+                    </p>
+                  ) : isEarned && earnedBadge?.earned_at ? (
                     <p className="mt-2 text-xs text-[#e8c547]">
                       Earned {new Date(earnedBadge.earned_at).toLocaleDateString()}
                     </p>
-                  )}
+                  ) : null}
 
                   {!isEarned && (
                     <p className="mt-2 text-xs text-[#f6f1e3]/50">{requirementLabel(badge)}</p>

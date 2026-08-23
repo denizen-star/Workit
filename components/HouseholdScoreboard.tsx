@@ -7,6 +7,7 @@ import {
   SCOREBOARD_PERIODS,
   scoreboardRangeLabel,
   tomScoreboardLine,
+  type BonusHonorRow,
   type HouseholdScoreboardRow,
   type ScoreboardPeriod,
 } from '@/lib/scoreboardTypes';
@@ -28,6 +29,7 @@ export default function HouseholdScoreboard() {
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<ScoreboardPeriod>('7');
   const [rows, setRows] = useState<HouseholdScoreboardRow[]>([]);
+  const [bonusHonor, setBonusHonor] = useState<BonusHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -38,9 +40,13 @@ export default function HouseholdScoreboard() {
       .then((data) => {
         if (cancelled) return;
         setRows(Array.isArray(data?.rows) ? data.rows : []);
+        setBonusHonor(Array.isArray(data?.bonusHonor) ? data.bonusHonor : []);
       })
       .catch(() => {
-        if (!cancelled) setRows([]);
+        if (!cancelled) {
+          setRows([]);
+          setBonusHonor([]);
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -101,6 +107,24 @@ export default function HouseholdScoreboard() {
             </p>
           ) : (
             <div className="space-y-4">
+              {bonusHonor.length > 0 && (
+                <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-4">
+                  <p className="text-sm font-black uppercase tracking-[0.2em] text-[#e8c547]">Bonus work</p>
+                  <p className="mt-1 text-sm text-[#f6f1e3]/70">
+                    Extra upper. They did not owe it. They paid it.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {bonusHonor.map((row) => (
+                      <div key={row.id} className="flex items-center justify-between gap-3">
+                        <p className="font-black text-white">{row.name}</p>
+                        <p className="text-sm font-semibold text-[#e8c547]">
+                          {row.bonusWeeks} bonus {row.bonusWeeks === 1 ? 'week' : 'weeks'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               {rows.map((row, index) => (
                 <div
                   key={row.id}

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
@@ -147,7 +148,7 @@ export async function PUT(request: NextRequest) {
     const { sessionId, isCompleted, notes } = await request.json();
 
     const existing = await query(
-      'SELECT id, week_number, workout_type, is_completed FROM workout_sessions WHERE id = ? AND user_id = ?',
+      'SELECT id, week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE id = ? AND user_id = ?',
       [sessionId, user.id]
     );
 
@@ -158,10 +159,12 @@ export async function PUT(request: NextRequest) {
     const session = existing.rows[0] as {
       id: number;
       week_number: number;
+      day_number: number;
       workout_type: string;
       is_completed: number | boolean;
     };
     const alreadyComplete = Boolean(Number(session.is_completed));
+    const bonus = sessionIsBonus(session);
 
     await query(
       `UPDATE workout_sessions 
@@ -198,7 +201,28 @@ export async function PUT(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, awardedBadges });
+    let uniqueBonusWeeks = 0;
+    if (isCompleted) {
+      const all = await query(
+        'SELECT week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE user_id = ?',
+        [user.id]
+      );
+      uniqueBonusWeeks = bonusCount(
+        all.rows as Array<{
+          week_number: number;
+          day_number: number;
+          workout_type: string;
+          is_completed: number | boolean;
+        }>
+      );
+    }
+
+    return NextResponse.json({
+      success: true,
+      awardedBadges,
+      bonus,
+      bonusCount: uniqueBonusWeeks,
+    });
   } catch (error) {
     console.error('Error updating workout session:', error);
     return NextResponse.json({ error: 'Failed to update workout session' }, { status: 500 });

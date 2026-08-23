@@ -1,3 +1,4 @@
+import { isBonusDay, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 
 export interface WorkoutSessionRow {
@@ -75,7 +76,9 @@ export function findNextProgramDay(
   );
 
   for (const week of program) {
+    if (weekLocked(sessions, week.weekNumber)) continue;
     for (const day of week.days) {
+      if (isBonusDay(day)) continue;
       if (!completed.has(`${week.weekNumber}-${day.dayNumber}`)) {
         return { week, day };
       }

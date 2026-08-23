@@ -17,6 +17,30 @@ export interface WorkoutDay {
   focus: string;
   suggestedDay: string;
   exercises: Exercise[];
+  /** Optional extra day. Never a nudge / Home "Today" target after the week is locked. */
+  bonus?: boolean;
+}
+
+const COMPOUND_BUILD = 'Add 2.5-5 lb or 1-2 reps';
+const COMPOUND_PEAK = 'Match or beat week 4';
+const TEMPO_LOWER = '2-second pause or slow lower';
+
+function bonusUpper(core: Exercise): WorkoutDay {
+  return {
+    dayNumber: 5,
+    name: 'Bonus Upper',
+    focus: 'Traps, Arms & Core',
+    suggestedDay: 'Saturday',
+    bonus: true,
+    exercises: [
+      { name: 'Dumbbell or Barbell Shrugs', sets: 3, reps: '12-15' },
+      { name: 'Straight-Arm Pulldowns or Dumbbell Pullovers', sets: 3, reps: '10-12' },
+      { name: 'Lying Triceps Extensions (Skull Crushers)', sets: 3, reps: '10-12' },
+      { name: 'Hammer Curls', sets: 3, reps: '10-12' },
+      { name: 'Reverse Wrist Curls', sets: 3, reps: '12-15' },
+      core,
+    ],
+  };
 }
 
 export interface WeekPlan {
@@ -160,12 +184,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Push Focus",
         suggestedDay: "Monday",
         exercises: [
-          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm" },
-          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10" },
+          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm", notes: COMPOUND_BUILD },
+          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Lat Pulldowns or Cable Rows", sets: 3, reps: "10-12" },
           { name: "Triceps Cable Pushdowns or Overhead Extensions", sets: 3, reps: "12-15" },
-          { name: "Plank Hold", sets: 3, reps: "45 seconds" }
+          { name: "Plank Hold", sets: 3, reps: "60 seconds" }
         ]
       },
       {
@@ -174,12 +198,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Quad & Glute Focus",
         suggestedDay: "Tuesday",
         exercises: [
-          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10" },
-          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10" },
+          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Walking Lunges", sets: 3, reps: "10 steps per leg" },
           { name: "Leg Curl Machine or Swiss Ball Hamstring Curls", sets: 3, reps: "12-15" },
           { name: "Standing Calf Raises", sets: 3, reps: "15" },
-          { name: "Pallof Press", sets: 3, reps: "12 per side" }
+          { name: "Pallof Press", sets: 3, reps: "15 per side" }
         ]
       },
       {
@@ -188,12 +212,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Pull & Shoulder Focus",
         suggestedDay: "Thursday",
         exercises: [
-          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10" },
+          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Dumbbell Lateral Raises", sets: 3, reps: "12-15" },
           { name: "Face Pulls", sets: 3, reps: "12-15" },
           { name: "Dumbbell Biceps Curls", sets: 3, reps: "12" },
-          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "10-12" }
+          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "12-15" }
         ]
       },
       {
@@ -202,13 +226,14 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Posterior Chain & Unilateral",
         suggestedDay: "Friday",
         exercises: [
-          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8" },
-          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg" },
-          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12" },
+          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8", notes: COMPOUND_BUILD },
+          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg", notes: COMPOUND_BUILD },
+          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12", notes: COMPOUND_BUILD },
           { name: "Leg Extension Machine or Goblet Step-Ups", sets: 3, reps: "12-15" },
-          { name: "Farmer's Carries", sets: 3, reps: "40-meter walk" }
+          { name: "Farmer's Carries", sets: 3, reps: "50-meter walk" }
         ]
-      }
+      },
+      bonusUpper({ name: "Dead Bugs", sets: 3, reps: "8 per side" })
     ]
   },
   {
@@ -221,12 +246,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Push Focus",
         suggestedDay: "Monday",
         exercises: [
-          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm" },
-          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10" },
+          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm", notes: COMPOUND_BUILD },
+          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Lat Pulldowns or Cable Rows", sets: 3, reps: "10-12" },
-          { name: "Triceps Cable Pushdowns or Overhead Extensions", sets: 3, reps: "12-15" },
-          { name: "Plank Hold", sets: 3, reps: "45 seconds" }
+          { name: "Triceps Cable Pushdowns or Overhead Extensions", sets: 4, reps: "12-15" },
+          { name: "Plank Hold", sets: 3, reps: "60 seconds" }
         ]
       },
       {
@@ -235,12 +260,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Quad & Glute Focus",
         suggestedDay: "Tuesday",
         exercises: [
-          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10" },
-          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10" },
+          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Walking Lunges", sets: 3, reps: "10 steps per leg" },
           { name: "Leg Curl Machine or Swiss Ball Hamstring Curls", sets: 3, reps: "12-15" },
-          { name: "Standing Calf Raises", sets: 3, reps: "15" },
-          { name: "Pallof Press", sets: 3, reps: "12 per side" }
+          { name: "Standing Calf Raises", sets: 4, reps: "15" },
+          { name: "Pallof Press", sets: 3, reps: "15 per side" }
         ]
       },
       {
@@ -249,12 +274,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Pull & Shoulder Focus",
         suggestedDay: "Thursday",
         exercises: [
-          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10" },
+          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Dumbbell Lateral Raises", sets: 3, reps: "12-15" },
           { name: "Face Pulls", sets: 3, reps: "12-15" },
-          { name: "Dumbbell Biceps Curls", sets: 3, reps: "12" },
-          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "10-12" }
+          { name: "Dumbbell Biceps Curls", sets: 4, reps: "12" },
+          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "12-15" }
         ]
       },
       {
@@ -263,13 +288,14 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Posterior Chain & Unilateral",
         suggestedDay: "Friday",
         exercises: [
-          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8" },
-          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg" },
-          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12" },
+          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8", notes: COMPOUND_BUILD },
+          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg", notes: COMPOUND_BUILD },
+          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12", notes: COMPOUND_BUILD },
           { name: "Leg Extension Machine or Goblet Step-Ups", sets: 3, reps: "12-15" },
-          { name: "Farmer's Carries", sets: 3, reps: "40-meter walk" }
+          { name: "Farmer's Carries", sets: 4, reps: "50-meter walk" }
         ]
-      }
+      },
+      bonusUpper({ name: "Dead Bugs", sets: 3, reps: "8 per side" })
     ]
   },
   {
@@ -282,12 +308,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Push Focus",
         suggestedDay: "Monday",
         exercises: [
-          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm" },
-          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10" },
+          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm", notes: COMPOUND_BUILD },
+          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Lat Pulldowns or Cable Rows", sets: 3, reps: "10-12" },
           { name: "Triceps Cable Pushdowns or Overhead Extensions", sets: 3, reps: "12-15" },
-          { name: "Plank Hold", sets: 3, reps: "45 seconds" }
+          { name: "Plank Hold", sets: 3, reps: "60 seconds" }
         ]
       },
       {
@@ -296,12 +322,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Quad & Glute Focus",
         suggestedDay: "Tuesday",
         exercises: [
-          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10" },
-          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10" },
-          { name: "Walking Lunges", sets: 3, reps: "10 steps per leg" },
+          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10", notes: TEMPO_LOWER },
+          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10", notes: TEMPO_LOWER },
+          { name: "Walking Lunges", sets: 3, reps: "10 steps per leg", notes: TEMPO_LOWER },
           { name: "Leg Curl Machine or Swiss Ball Hamstring Curls", sets: 3, reps: "12-15" },
           { name: "Standing Calf Raises", sets: 3, reps: "15" },
-          { name: "Pallof Press", sets: 3, reps: "12 per side" }
+          { name: "Pallof Press", sets: 3, reps: "15 per side" }
         ]
       },
       {
@@ -310,12 +336,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Pull & Shoulder Focus",
         suggestedDay: "Thursday",
         exercises: [
-          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10" },
+          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
+          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10", notes: COMPOUND_BUILD },
           { name: "Dumbbell Lateral Raises", sets: 3, reps: "12-15" },
           { name: "Face Pulls", sets: 3, reps: "12-15" },
           { name: "Dumbbell Biceps Curls", sets: 3, reps: "12" },
-          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "10-12" }
+          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "12-15" }
         ]
       },
       {
@@ -324,13 +350,14 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Posterior Chain & Unilateral",
         suggestedDay: "Friday",
         exercises: [
-          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8" },
-          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg" },
-          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12" },
+          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8", notes: COMPOUND_BUILD },
+          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg", notes: TEMPO_LOWER },
+          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12", notes: COMPOUND_BUILD },
           { name: "Leg Extension Machine or Goblet Step-Ups", sets: 3, reps: "12-15" },
-          { name: "Farmer's Carries", sets: 3, reps: "40-meter walk" }
+          { name: "Farmer's Carries", sets: 3, reps: "50-meter walk" }
         ]
-      }
+      },
+      bonusUpper({ name: "Side Plank", sets: 3, reps: "30 seconds" })
     ]
   },
   // Week 6: Peak
@@ -344,12 +371,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Push Focus",
         suggestedDay: "Monday",
         exercises: [
-          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm" },
-          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10" },
+          { name: "Barbell or Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
+          { name: "Single-Arm Dumbbell Rows", sets: 3, reps: "10-12 per arm", notes: COMPOUND_PEAK },
+          { name: "Overhead Dumbbell Shoulder Press", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
           { name: "Lat Pulldowns or Cable Rows", sets: 3, reps: "10-12" },
           { name: "Triceps Cable Pushdowns or Overhead Extensions", sets: 3, reps: "12-15" },
-          { name: "Plank Hold", sets: 3, reps: "45 seconds" }
+          { name: "Plank Hold", sets: 3, reps: "60 seconds" }
         ]
       },
       {
@@ -358,12 +385,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Quad & Glute Focus",
         suggestedDay: "Tuesday",
         exercises: [
-          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10" },
-          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10" },
+          { name: "Barbell Back Squats or Goblet Squats", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
+          { name: "Romanian Deadlifts (RDLs)", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
           { name: "Walking Lunges", sets: 3, reps: "10 steps per leg" },
           { name: "Leg Curl Machine or Swiss Ball Hamstring Curls", sets: 3, reps: "12-15" },
           { name: "Standing Calf Raises", sets: 3, reps: "15" },
-          { name: "Pallof Press", sets: 3, reps: "12 per side" }
+          { name: "Pallof Press", sets: 3, reps: "15 per side" }
         ]
       },
       {
@@ -372,12 +399,12 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Pull & Shoulder Focus",
         suggestedDay: "Thursday",
         exercises: [
-          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10" },
-          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10" },
+          { name: "Incline Dumbbell Bench Press", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
+          { name: "Barbell or Chest-Supported Rows", sets: 3, reps: "8-10", notes: COMPOUND_PEAK },
           { name: "Dumbbell Lateral Raises", sets: 3, reps: "12-15" },
           { name: "Face Pulls", sets: 3, reps: "12-15" },
           { name: "Dumbbell Biceps Curls", sets: 3, reps: "12" },
-          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "10-12" }
+          { name: "Hanging Knee Raises or Ab Wheel Rollouts", sets: 3, reps: "12-15" }
         ]
       },
       {
@@ -386,13 +413,14 @@ export const workoutProgram: WeekPlan[] = [
         focus: "Posterior Chain & Unilateral",
         suggestedDay: "Friday",
         exercises: [
-          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8" },
-          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg" },
-          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12" },
+          { name: "Trap Bar Deadlifts or Barbell Conventional Deadlifts", sets: 3, reps: "6-8", notes: COMPOUND_PEAK },
+          { name: "Bulgarian Split Squats", sets: 3, reps: "8-10 per leg", notes: COMPOUND_PEAK },
+          { name: "Barbell Hip Thrusts or Glute Bridges", sets: 3, reps: "10-12", notes: COMPOUND_PEAK },
           { name: "Leg Extension Machine or Goblet Step-Ups", sets: 3, reps: "12-15" },
-          { name: "Farmer's Carries", sets: 3, reps: "40-meter walk" }
+          { name: "Farmer's Carries", sets: 3, reps: "50-meter walk" }
         ]
-      }
+      },
+      bonusUpper({ name: "Side Plank", sets: 3, reps: "45 seconds" })
     ]
   }
 ];

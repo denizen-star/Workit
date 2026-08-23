@@ -18,21 +18,21 @@ export async function GET(request: NextRequest) {
     const rangeParam = request.nextUrl.searchParams.get('range');
     if (rangeParam) {
       await requireAdmin();
-      const rows = await householdExerciseCompare({
+      const board = await householdExerciseCompare({
         kind: 'analytics',
         range: parseRange(rangeParam),
       });
-      return NextResponse.json({ hidden: false, rows });
+      return NextResponse.json({ hidden: false, rows: board.rows, ranking: board.ranking });
     }
 
     if (isTestUserName(user.name)) {
-      return NextResponse.json({ hidden: true, row: null });
+      return NextResponse.json({ hidden: true, row: null, ranking: [] });
     }
 
     const requested = request.nextUrl.searchParams.get('period') || '7';
     const period: ScoreboardPeriod = isScoreboardPeriod(requested) ? requested : '7';
-    const row = await athleteExerciseCompare(user.id, { kind: 'scoreboard', period });
-    return NextResponse.json({ hidden: false, period, row });
+    const { row, ranking } = await athleteExerciseCompare(user.id, { kind: 'scoreboard', period });
+    return NextResponse.json({ hidden: false, period, row, ranking });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

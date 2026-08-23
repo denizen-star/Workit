@@ -81,6 +81,19 @@ const GROUPS: string[][] = [
     "Bodyweight Step-Ups or Sissy Squats",
   ],
   ["Farmer's Carries", "DB Farmer's Carry", "Loaded Water Jug / Backpack Carries"],
+  ["Dumbbell or Barbell Shrugs", "Backpack Shrugs"],
+  [
+    "Straight-Arm Pulldowns or Dumbbell Pullovers",
+    "Floor Pullovers or Towel Straight-Arm Pulls",
+  ],
+  [
+    "Lying Triceps Extensions (Skull Crushers)",
+    "Close-Grip Push-Ups or Backpack Skull Crushers",
+  ],
+  ["Hammer Curls", "Backpack Hammer Curls"],
+  ["Reverse Wrist Curls", "Backpack Reverse Wrist Curls"],
+  ["Dead Bugs"],
+  ["Side Plank"],
 ];
 
 function normalizeName(name: string): string {

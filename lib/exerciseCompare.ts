@@ -1,6 +1,6 @@
 import { query } from '@/lib/db';
 import { resolveAnalyticsWindow, sqlUtc, type AnalyticsRangeId } from '@/lib/analyticsTime';
-import { getExerciseKind } from '@/lib/exerciseKind';
+import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
@@ -29,6 +29,19 @@ export type ExerciseCompareRow = {
   name: string;
   weight: ExerciseCompareTrio;
   reps: ExerciseCompareTrio;
+};
+
+export type WeightRank = {
+  userId: number;
+  name: string;
+  rank: number;
+  bestDay: number;
+  totalWeight: number;
+};
+
+export type ExerciseCompareBoard = {
+  rows: ExerciseCompareRow[];
+  ranking: WeightRank[];
 };
 
 export type ExerciseCompareWindow =
@@ -118,6 +131,7 @@ function pct(part: number, whole: number): number {
 async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
   athletes: { userId: number; name: string }[];
   sessions: SessionDay[];
+  volumeByUser: Map<number, number>;
 }> {
   const filter = windowFilter(window);
 
@@ -157,6 +171,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
   }));
 
   const sessionTotals = new Map<string, SessionDay>();
+  const volumeByUser = new Map<number, number>();
 
   for (const row of setResult.rows as {
     user_id: number;
@@ -168,6 +183,13 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     weight_lbs: number | null;
     actual_reps: number | null;
   }[]) {
+    const userId = Number(row.user_id);
+    volumeByUser.set(
+      userId,
+      (volumeByUser.get(userId) || 0) +
+        setVolume(row.exercise_name, row.target_reps, row.weight_lbs, row.actual_reps)
+    );
+
     const kind = getExerciseKind(row.exercise_name, row.target_reps || '');
     if (kind === 'timed' || kind === 'distance') continue;
 
@@ -191,7 +213,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     }
   }
 
-  return { athletes, sessions: [...sessionTotals.values()] };
+  return { athletes, sessions: [...sessionTotals.values()], volumeByUser };
 }
 
 function movementsFor(sessions: SessionDay[], metric: CompareMetric): Movement[] {
@@ -316,26 +338,77 @@ function trioForAthlete(
   return { lead, deficit, similar };
 }
 
+function overallWeightRanking(
+  athletes: { userId: number; name: string }[],
+  sessions: SessionDay[],
+  volumeByUser: Map<number, number>
+): WeightRank[] {
+  const best = new Map<string, { userId: number; name: string; score: number }>();
+  for (const day of sessions) {
+    if (day.weight <= 0) continue;
+    const key = `${day.userId}:${exerciseHistoryKey(day.sourceName)}`;
+    const existing = best.get(key);
+    if (!existing || day.weight > existing.score) {
+      best.set(key, { userId: day.userId, name: day.name, score: day.weight });
+    }
+  }
+
+  const bestDayByUser = new Map<number, number>();
+  for (const item of best.values()) {
+    bestDayByUser.set(item.userId, (bestDayByUser.get(item.userId) || 0) + item.score);
+  }
+
+  const names = new Map(athletes.map((athlete) => [athlete.userId, athlete.name]));
+  const ids = new Set([...bestDayByUser.keys(), ...volumeByUser.keys()]);
+  const sorted = [...ids]
+    .map((userId) => ({
+      userId,
+      name: names.get(userId) || sessions.find((day) => day.userId === userId)?.name || 'Athlete',
+      bestDay: bestDayByUser.get(userId) || 0,
+      totalWeight: volumeByUser.get(userId) || 0,
+    }))
+    .filter((row) => row.bestDay > 0 || row.totalWeight > 0)
+    .sort(
+      (a, b) =>
+        b.bestDay - a.bestDay || b.totalWeight - a.totalWeight || a.name.localeCompare(b.name)
+    );
+
+  let lastBest = Number.NaN;
+  let lastRank = 0;
+  return sorted.map((row, index) => {
+    const rank = row.bestDay === lastBest ? lastRank : index + 1;
+    lastBest = row.bestDay;
+    lastRank = rank;
+    return { ...row, rank };
+  });
+}
+
 export async function householdExerciseCompare(
   window: ExerciseCompareWindow
-): Promise<ExerciseCompareRow[]> {
-  const { athletes, sessions } = await loadSessionDays(window);
+): Promise<ExerciseCompareBoard> {
+  const { athletes, sessions, volumeByUser } = await loadSessionDays(window);
   const weightMoves = movementsFor(sessions, 'weight');
   const repsMoves = movementsFor(sessions, 'reps');
-  return athletes.map((athlete) => ({
-    userId: athlete.userId,
-    name: athlete.name,
-    weight: trioForAthlete(athlete, weightMoves, 'lb'),
-    reps: trioForAthlete(athlete, repsMoves, 'reps'),
-  }));
+  return {
+    rows: athletes.map((athlete) => ({
+      userId: athlete.userId,
+      name: athlete.name,
+      weight: trioForAthlete(athlete, weightMoves, 'lb'),
+      reps: trioForAthlete(athlete, repsMoves, 'reps'),
+    })),
+    ranking: overallWeightRanking(athletes, sessions, volumeByUser),
+  };
 }
 
 export async function athleteExerciseCompare(
   userId: number,
   window: ExerciseCompareWindow
-): Promise<ExerciseCompareRow | null> {
-  const rows = await householdExerciseCompare(window);
-  return rows.find((row) => row.userId === userId) ?? null;
+): Promise<{ row: ExerciseCompareRow | null; ranking: WeightRank[] }> {
+  const board = await householdExerciseCompare(window);
+  return {
+    row: board.rows.find((row) => row.userId === userId) ?? null,
+    ranking: board.ranking,
+  };
 }
 
 export function formatCompareValue(value: number | null | undefined, unit: 'lb' | 'reps') {
@@ -388,9 +461,61 @@ function trioLines(label: string, athleteName: string, trio: ExerciseCompareTrio
   return lines;
 }
 
-export function standingSummary(row: ExerciseCompareRow | null): string[] {
+export function ordinalRank(rank: number) {
+  const teens = rank % 100;
+  if (teens >= 11 && teens <= 13) return `${rank}th`;
+  const ones = rank % 10;
+  if (ones === 1) return `${rank}st`;
+  if (ones === 2) return `${rank}nd`;
+  if (ones === 3) return `${rank}rd`;
+  return `${rank}th`;
+}
+
+export function formatK(value: number) {
+  const amount = Math.round(value);
+  if (Math.abs(amount) < 1000) return String(amount);
+  const k = amount / 1000;
+  const rounded = Math.round(k * 10) / 10;
+  return `${Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)}k`;
+}
+
+function pairLine(entry: WeightRank) {
+  return `Best day ${formatK(entry.bestDay)} · Total weight ${formatK(entry.totalWeight)}`;
+}
+
+export function rankingSummary(ranking: WeightRank[]): string[] {
+  return ranking.map((entry) => `${entry.rank}. ${firstName(entry.name)} · ${pairLine(entry)}`);
+}
+
+export function overallRankSentence(
+  athlete: { userId?: number; name: string },
+  ranking: WeightRank[]
+): string | null {
+  const you =
+    athlete.userId != null
+      ? ranking.find((entry) => entry.userId === athlete.userId)
+      : ranking.find((entry) => entry.name === athlete.name);
+  if (!you) return null;
+  const who = firstName(athlete.name);
+  const pack = ranking.length;
+  const yours = pairLine(you);
+  if (you.rank === 1) {
+    const tied = ranking.filter((entry) => entry.rank === 1).length > 1;
+    return tied
+      ? `${who} is tied for 1st of ${pack}. ${yours}.`
+      : `${who} is 1st of ${pack}. ${yours}.`;
+  }
+  return `${who} is ${ordinalRank(you.rank)} of ${pack}. ${yours}.`;
+}
+
+export function standingSummary(
+  row: ExerciseCompareRow | null,
+  ranking: WeightRank[] = []
+): string[] {
   if (!row) return [];
+  const rankLine = overallRankSentence(row, ranking);
   return [
+    ...(rankLine ? [rankLine] : []),
     ...trioLines('Weight', row.name, row.weight),
     ...trioLines('Reps', row.name, row.reps),
   ];

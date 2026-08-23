@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.6.0 - 2026-08-23
+
+### Added
+- **Bonus Upper** on weeks 3–6: optional fifth day. Shrugs, pulldowns or pullovers, skull crushers, hammer curls, reverse wrist curls, plus dead bugs (weeks 3–4) or side plank (weeks 5–6). Travel swaps for all six
+- **Bonus Day** badge. Unlocks on the first bonus. Card shows a live unique-week count
+- Scoreboard **honor roll** for unique bonus weeks (7 / 30 / All). Same section in Monday scoreboard mail. Test stays off it
+- Home bonus flag + tally when the week has a bonus day. After the last bonus week, tally stays if you have a count
+- Vs the house ranking: **Best day** (heaviest day per lift, added up) and **Total weight** (every set, weight × reps). Thousands as `4.1k`, no space. Same list in the scoreboard email
+- Finish takeover thanks you when the session was bonus
+
+### Changed
+- Week lock and perfect week stay **4** sessions. Bonus is extra credit and can count as one of the four
+- Home Start, Select next-up, and workout nudges skip bonus. An open bonus session still resumes
+- Weeks 3–6 required days keep the same lift names. Sets, reps, and notes get harder
+- Home week tally is `1/4`, not `1/5`. Leave a day between upper sessions is a hint, not a lock
+
 ## 3.5.0 - 2026-08-23
 
 ### Added

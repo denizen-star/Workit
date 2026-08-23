@@ -75,12 +75,48 @@ export type ScoreboardRow = {
   standing?: string[];
 };
 
+export type ScoreboardHonorRow = {
+  name: string;
+  bonusWeeks: number;
+};
+
 export type ScoreboardEmailInput = {
   rangeLabel: string;
   rows: ScoreboardRow[];
+  ranking?: string[];
   yoursName?: string | null;
   yours?: string[];
+  bonusHonor?: ScoreboardHonorRow[];
 };
+
+function bonusHonorHtml(rows?: ScoreboardHonorRow[]) {
+  if (!rows?.length) return '';
+  const list = rows
+    .map(
+      (row) =>
+        '<div style="font-weight:800;color:#fff;margin-top:6px;">' +
+        esc(row.name) +
+        ' · ' +
+        esc(String(row.bonusWeeks)) +
+        ' bonus ' +
+        (row.bonusWeeks === 1 ? 'week' : 'weeks') +
+        '</div>'
+    )
+    .join('');
+  return (
+    p('<strong style="color:#e8c547;">Bonus work.</strong> Extra upper. They did not owe it. They paid it.') +
+    list
+  );
+}
+
+function bonusHonorText(rows?: ScoreboardHonorRow[]) {
+  if (!rows?.length) return [];
+  return [
+    'Bonus work. Extra upper. They did not owe it. They paid it.',
+    ...rows.map((row) => '  ' + row.name + ' · ' + row.bonusWeeks + ' bonus ' + (row.bonusWeeks === 1 ? 'week' : 'weeks')),
+    '',
+  ];
+}
 
 export type ReleaseEmailInput = {
   name?: string;
@@ -339,6 +375,11 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   const eyebrow = 'inspection';
   const title = 'Who obeyed · ' + input.rangeLabel;
   const yoursName = input.yoursName ? firstName(input.yoursName) : null;
+  const rankingHtml =
+    input.ranking && input.ranking.length
+      ? p('<strong style="color:#e8c547;">Best day / Total weight.</strong>') +
+        bullets(input.ranking)
+      : '';
   const yoursHtml =
     input.yours && input.yours.length
       ? p(
@@ -392,7 +433,9 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     childrenHtml: [
       p('I do not care about feelings. I care who showed up and who went soft.'),
       p('Open sessions are unfinished business. I see them.'),
+      rankingHtml,
       yoursHtml,
+      bonusHonorHtml(input.bonusHonor),
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
         rowsHtml +
         '</table>',
@@ -405,9 +448,13 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     '',
     'I do not care about feelings. I care who showed up and who went soft.',
     '',
+    ...(input.ranking && input.ranking.length
+      ? ['Best day / Total weight.', ...input.ranking.map((line) => '  ' + line), '']
+      : []),
     ...(input.yours && input.yours.length
       ? ['Your standing' + (yoursName ? ', ' + yoursName : '') + '.', ...input.yours.map((line) => '  ' + line), '']
       : []),
+    ...bonusHonorText(input.bonusHonor),
     ...input.rows.map((row) =>
       [
         row.name,
@@ -549,7 +596,14 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
     return buildScoreboardEmail({
       rangeLabel: 'last 7 days',
       yoursName: 'Kevin',
+      ranking: [
+        '1. Kevin · Best day 1.2k · Total weight 28.4k',
+        '2. Mike · Best day 980 · Total weight 19.1k',
+        '3. Peter · Best day 640 · Total weight 9.1k',
+      ],
+      bonusHonor: [{ name: 'Kevin', bonusWeeks: 2 }],
       yours: [
+        'Kevin is 1st of 3. Best day 1.2k · Total weight 28.4k.',
         'Weight',
         '  Lead: Standing Calf Raises · 80 lb · +12% vs Peter',
         '  Behind: Barbell Hip Thrusts or Glute Bridges · 135 lb · 18% vs Mike',

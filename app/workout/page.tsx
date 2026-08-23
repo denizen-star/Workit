@@ -4,6 +4,13 @@ import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import {
+  isBonusDay,
+  restBetweenUppersCopy,
+  shouldRestBetweenUppers,
+  weekProgress,
+  weekProgressLabel,
+} from '@/lib/bonusDay';
 import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
@@ -21,7 +28,7 @@ import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeo
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickCompleteLine, pickExitLine } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -90,6 +97,8 @@ function WorkoutPageInner() {
   const [completeStars, setCompleteStars] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completeLine, setCompleteLine] = useState('');
+  const [bonusFinish, setBonusFinish] = useState(false);
+  const [bonusFinishCount, setBonusFinishCount] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
@@ -355,7 +364,10 @@ function WorkoutPageInner() {
       setConfirmComplete(false);
       setCompleteStars(null);
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
-      setCompleteLine(pickCompleteLine(coachTone));
+      const finishedBonus = Boolean(data.bonus);
+      setBonusFinish(finishedBonus);
+      setBonusFinishCount(Number(data.bonusCount || 0));
+      setCompleteLine(finishedBonus ? pickBonusCompleteLine(coachTone) : pickCompleteLine(coachTone));
       setShowSuccess(true);
     } catch (error) {
       console.error('Error completing workout:', error);
@@ -481,8 +493,12 @@ function WorkoutPageInner() {
           open={showSuccess}
           line={completeLine}
           badges={awardedBadges}
+          bonus={bonusFinish}
+          bonusCount={bonusFinishCount}
           onClose={() => {
             setShowSuccess(false);
+            setBonusFinish(false);
+            setBonusFinishCount(0);
             setAwardedBadges([]);
             setCurrentSession(null);
             setSelectedDay(null);
@@ -572,7 +588,7 @@ function WorkoutPageInner() {
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-black text-white">Week {week.weekNumber}</h2>
                   <span className="text-sm text-[#f6f1e3]/65">
-                    {week.days.filter((day) => completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`)).length} / {week.days.length} completed
+                    {weekProgressLabel(weekProgress(sessions, week))}
                   </span>
                 </div>
                 {expandedWeek === week.weekNumber ? (
@@ -663,11 +679,25 @@ function WorkoutPageInner() {
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-center gap-2">
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
+                                {isBonusDay(day) ? (
+                                  <span className="rounded-full border border-[#e8c547]/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#e8c547]">
+                                    Bonus
+                                  </span>
+                                ) : null}
                               </div>
                               <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
                               <p className="mt-1 text-xs text-[#f6f1e3]/50">
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
+                              {isBonusDay(day) && shouldRestBetweenUppers(sessions) ? (
+                                <p className="mt-2 text-xs font-semibold text-[#e8c547]">
+                                  {restBetweenUppersCopy()}
+                                </p>
+                              ) : isBonusDay(day) ? (
+                                <p className="mt-2 text-xs text-[#f6f1e3]/50">
+                                  {restBetweenUppersCopy()}
+                                </p>
+                              ) : null}
                             </div>
                             <ModeToggle
                               mode={mode}
@@ -736,8 +766,12 @@ function WorkoutPageInner() {
         open={showSuccess}
         line={completeLine}
         badges={awardedBadges}
+        bonus={bonusFinish}
+        bonusCount={bonusFinishCount}
         onClose={() => {
           setShowSuccess(false);
+          setBonusFinish(false);
+          setBonusFinishCount(0);
           setAwardedBadges([]);
           setCurrentSession(null);
           setSelectedDay(null);

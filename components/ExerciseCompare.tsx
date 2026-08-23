@@ -3,7 +3,8 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import ExerciseCompareCells from '@/components/ExerciseCompareCells';
-import type { ExerciseCompareRow } from '@/lib/exerciseCompare';
+import WeightRanking from '@/components/WeightRanking';
+import type { ExerciseCompareRow, WeightRank } from '@/lib/exerciseCompare';
 import {
   SCOREBOARD_PERIODS,
   scoreboardRangeLabel,
@@ -20,6 +21,7 @@ export default function ExerciseCompare() {
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<ScoreboardPeriod>('7');
   const [row, setRow] = useState<ExerciseCompareRow | null>(null);
+  const [ranking, setRanking] = useState<WeightRank[]>([]);
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -33,15 +35,18 @@ export default function ExerciseCompare() {
         if (data?.hidden) {
           setHidden(true);
           setRow(null);
+          setRanking([]);
           return;
         }
         setHidden(false);
         setRow(data?.row ?? null);
+        setRanking(Array.isArray(data?.ranking) ? data.ranking : []);
       })
       .catch(() => {
         if (!cancelled) {
           setHidden(false);
           setRow(null);
+          setRanking([]);
         }
       })
       .finally(() => {
@@ -75,8 +80,8 @@ export default function ExerciseCompare() {
       {open && (
         <div className="mt-4">
           <p className="mb-4 text-sm text-[#f6f1e3]/60">
-            Two boards: best-day weight, and best-day reps. Each is its own race, against people in
-            your pack.
+            Best day is your heaviest day on each lift, added up. Total weight is every set, weight
+            times reps. Then two boards against people in your pack.
           </p>
 
           <div className="mb-4 grid grid-cols-3 gap-2">
@@ -101,24 +106,29 @@ export default function ExerciseCompare() {
 
           {loading ? (
             <p className="text-sm text-[#f6f1e3]/55">Loading lifts...</p>
-          ) : !row ? (
+          ) : !row && ranking.length === 0 ? (
             <p className="text-sm text-[#f6f1e3]/55">
               No finished workouts in this window. Get under the bar.
             </p>
           ) : (
             <div className="space-y-5">
-              <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-[#e8c547]">
-                  By weight
-                </h3>
-                <ExerciseCompareCells trio={row.weight} athleteName={row.name} />
-              </div>
-              <div>
-                <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-[#e8c547]">
-                  By reps
-                </h3>
-                <ExerciseCompareCells trio={row.reps} athleteName={row.name} />
-              </div>
+              <WeightRanking ranking={ranking} highlightUserId={row?.userId} />
+              {row && (
+                <>
+                  <div>
+                    <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-[#e8c547]">
+                      By weight
+                    </h3>
+                    <ExerciseCompareCells trio={row.weight} athleteName={row.name} />
+                  </div>
+                  <div>
+                    <h3 className="mb-3 text-sm font-black uppercase tracking-[0.18em] text-[#e8c547]">
+                      By reps
+                    </h3>
+                    <ExerciseCompareCells trio={row.reps} athleteName={row.name} />
+                  </div>
+                </>
+              )}
             </div>
           )}
         </div>

@@ -127,6 +127,43 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
       'Carry two heavy water jugs, gallon containers, or a fully packed backpack by your sides for distance or time.',
     videoId: 'NH7Xv-7NQNQ',
   },
+  'Dumbbell or Barbell Shrugs': {
+    name: 'Backpack Shrugs',
+    notes: 'Hold a packed backpack by the top handle or wear it and shrug the shoulders straight up.',
+    videoId: 'cJRV_wPVyNM',
+  },
+  'Straight-Arm Pulldowns or Dumbbell Pullovers': {
+    name: 'Floor Pullovers or Towel Straight-Arm Pulls',
+    notes:
+      'Lie on your back and pull a backpack from overhead to your hips, or slide a towel on a smooth floor in a straight-arm pulldown pattern.',
+    videoId: 'FK4rHfWKObA',
+  },
+  'Lying Triceps Extensions (Skull Crushers)': {
+    name: 'Close-Grip Push-Ups or Backpack Skull Crushers',
+    notes:
+      'Hands close together for push-ups, or lie on your back and lower a backpack behind your head, then extend.',
+    videoId: 'K3WOYRakP2Q',
+  },
+  'Hammer Curls': {
+    name: 'Backpack Hammer Curls',
+    notes: 'Hold a packed backpack by the side handle with a thumbs-up grip and curl.',
+    videoId: 'zC3nLlEvin4',
+  },
+  'Reverse Wrist Curls': {
+    name: 'Backpack Reverse Wrist Curls',
+    notes: 'Sit, forearms on thighs, and curl a light backpack up with palms facing down.',
+    videoId: 'sPTb3aF7p6U',
+  },
+  'Dead Bugs': {
+    name: 'Dead Bugs',
+    notes: 'No equipment. Opposite arm and leg reach long. Keep the low back pressed to the floor.',
+    videoId: '4XLEnwUr1d8',
+  },
+  'Side Plank': {
+    name: 'Side Plank',
+    notes: 'No equipment. Stack feet, lift hips, keep a straight line from head to heels.',
+    videoId: 'K2VljzVc4I8',
+  },
 };
 
 export function getTravelSubstitution(gymName: string): TravelSubstitution | null {

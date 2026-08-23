@@ -15,9 +15,10 @@ import {
   YAxis,
 } from 'recharts';
 import ExerciseCompareCells from '@/components/ExerciseCompareCells';
+import WeightRanking from '@/components/WeightRanking';
 import type { AdminAnalyticsPayload } from '@/lib/adminAnalytics';
 import type { AnalyticsRangeId, DeviceFilter } from '@/lib/analyticsTime';
-import type { ExerciseCompareRow } from '@/lib/exerciseCompare';
+import type { ExerciseCompareRow, WeightRank } from '@/lib/exerciseCompare';
 
 const tooltipStyle = {
   backgroundColor: 'rgba(12, 12, 16, 0.92)',
@@ -65,6 +66,7 @@ export default function AdminAnalyticsDashboard() {
   const [person, setPerson] = useState('');
   const [data, setData] = useState<AdminAnalyticsPayload | null>(null);
   const [compareRows, setCompareRows] = useState<ExerciseCompareRow[]>([]);
+  const [compareRanking, setCompareRanking] = useState<WeightRank[]>([]);
   const [compareReady, setCompareReady] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
   const [error, setError] = useState('');
@@ -115,11 +117,13 @@ export default function AdminAnalyticsDashboard() {
       .then((json) => {
         if (cancelled) return;
         setCompareRows(Array.isArray(json?.rows) ? json.rows : []);
+        setCompareRanking(Array.isArray(json?.ranking) ? json.ranking : []);
         setCompareReady(true);
       })
       .catch(() => {
         if (!cancelled) {
           setCompareRows([]);
+          setCompareRanking([]);
           setCompareReady(true);
         }
       });
@@ -231,12 +235,14 @@ export default function AdminAnalyticsDashboard() {
           {compareOpen && (
             <div className="mt-4">
               <p className="mb-4 text-sm text-[#f6f1e3]/60">
-                Best day per lift, weight and reps as separate boards. Follows the range above.
+                Best day is heaviest day per lift, added up. Total weight is every set, weight times
+                reps. Follows the range above.
               </p>
               {compareRows.length === 0 ? (
                 <p className="text-sm text-[#f6f1e3]/55">No finished workouts in this range.</p>
               ) : (
                 <div className="space-y-4">
+                  <WeightRanking ranking={compareRanking} names="full" />
                   {compareRows.map((row) => (
                     <div key={row.userId} className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4">
                       <p className="mb-3 text-lg font-black text-white">{row.name}</p>

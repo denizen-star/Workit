@@ -1,6 +1,8 @@
+import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
-import { type HouseholdScoreboardRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { type BonusHonorRow, type HouseholdScoreboardRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 function periodFilter(period: ScoreboardPeriod, column: string) {
   if (period === 'all') return '';
@@ -118,4 +120,30 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
       lastAt: lastRow?.completed_at || null,
     };
   });
+}
+
+export async function householdBonusHonor(period: ScoreboardPeriod): Promise<BonusHonorRow[]> {
+  const sessionWindow = periodFilter(
+    period,
+    'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'
+  );
+  const result = await query(
+    `SELECT
+       u.id,
+       u.name,
+       COUNT(DISTINCT ws.week_number) as bonus_weeks
+     FROM users u
+     INNER JOIN workout_sessions ws
+       ON ws.user_id = u.id AND ws.is_completed = 1 AND ${bonusTypeSql('ws')} ${sessionWindow}
+     WHERE ${SQL_EXCLUDE_TEST_USER}
+     GROUP BY u.id, u.name
+     HAVING COUNT(DISTINCT ws.week_number) > 0
+     ORDER BY bonus_weeks DESC, u.name ASC`
+  );
+
+  return (result.rows as { id: number; name: string; bonus_weeks: number }[]).map((row) => ({
+    id: Number(row.id),
+    name: row.name,
+    bonusWeeks: Number(row.bonus_weeks || 0),
+  }));
 }

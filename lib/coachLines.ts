@@ -9,6 +9,7 @@ type LinePack = {
   final: readonly string[];
   exit: readonly string[];
   complete: readonly string[];
+  bonusComplete: readonly string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -120,6 +121,13 @@ const MASTER: LinePack = {
     'ANOTHER BRICK IN THE WALL. That was serious work today.',
     'YOU DUG DEEP AND DELIVERED. When it got heavy, you found another gear. Fucking amazing.',
     'NOW RECOVER LIKE A PRO. The battle is won. Now come home and let me reward you.',
+  ],
+  bonusComplete: [
+    'BONUS LOCKED. You did not owe me that, man. You paid anyway.',
+    'EXTRA CREDIT. The four-day men can watch. You showed up when you did not have to.',
+    'THAT WAS OPTIONAL. You treated optional like tax. Good man.',
+    'BONUS BANKED. I saw the extra upper. So did the house.',
+    'YOU WENT PAST THE WEEK. That is how a man gets marked on my board.',
   ],
   setUpTitle: 'GOOD MAN',
   setUpBody: 'I like where this is going',
@@ -234,6 +242,13 @@ const SERGEANT: LinePack = {
     'You listened, you dug deep, and you expanded your light. So grateful for your effort.',
     'Now nourish yourself like the athlete you are. Hydrate, rest, and carry this peace.',
   ],
+  bonusComplete: [
+    'Bonus practice complete. You gave more than the week asked. Thank you for that extra care.',
+    'Optional work, full presence. You chose the extra upper and stayed kind with it.',
+    'That bonus day is yours. Rest well. You honored more than the required four.',
+    'Extra practice locked. I see the extra time you gave your body. Beautiful.',
+    'You did not have to stay. You stayed. Carry that quietly.',
+  ],
   setUpTitle: 'This is growth',
   setUpBody: 'I like where this is going. Stay with this energy.',
   setDownTitle: 'Come back to your last weight',
@@ -317,6 +332,16 @@ export function pickExitLine(tone?: CoachTone | null): string {
 
 export function pickCompleteLine(tone?: CoachTone | null): string {
   return pickFrom(packFor(tone).complete, `complete:${normalizeCoachTone(tone)}`);
+}
+
+export function pickBonusCompleteLine(tone?: CoachTone | null): string {
+  const id = normalizeCoachTone(tone);
+  const live = getLinePack(id);
+  const pool =
+    live?.bonusComplete && live.bonusComplete.length
+      ? live.bonusComplete
+      : PACKS[id].bonusComplete;
+  return pickFrom(pool, `bonus:${id}`);
 }
 
 export function setProgressCopy(

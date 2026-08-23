@@ -10,6 +10,7 @@ import { isEmailEnabled, sendEmail } from '../lib/mailClient';
 import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
 import { buildReleaseEmail } from '../lib/emails/templates';
 import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
+import { firstName } from '../lib/profile';
 
 async function householdRecipients() {
   const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
@@ -25,8 +26,17 @@ async function householdRecipients() {
          WHERE email IS NOT NULL AND email != ''
          ORDER BY id ASC`
   );
+  const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) =>
+    name.trim().toLowerCase()
+  );
   const rows = (result.rows as { name: string; email: string | null }[]).filter(
-    (row) => row.email
+    (row) => {
+      if (!row.email) return false;
+      if (only.length === 0) return true;
+      const full = String(row.name || '').trim().toLowerCase();
+      const first = firstName(row.name).toLowerCase();
+      return only.includes(full) || only.includes(first);
+    }
   );
   const seen = new Set<string>();
   return rows.filter((row) => {

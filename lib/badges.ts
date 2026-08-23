@@ -1,3 +1,4 @@
+import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 
@@ -76,7 +77,8 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       `SELECT
          SUM(CASE WHEN is_completed = 1 AND workout_mode = 'travel' THEN 1 ELSE 0 END) as travel_days,
          SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Upper%' THEN 1 ELSE 0 END) as upper_days,
-         SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Lower%' THEN 1 ELSE 0 END) as lower_days
+         SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Lower%' THEN 1 ELSE 0 END) as lower_days,
+         COUNT(DISTINCT CASE WHEN is_completed = 1 AND ${bonusTypeSql('workout_sessions')} THEN week_number END) as bonus_weeks
        FROM workout_sessions
        WHERE user_id = ?`,
       [userId]
@@ -85,6 +87,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       travel_days: number;
       upper_days: number;
       lower_days: number;
+      bonus_weeks: number;
     };
 
     const sessionAgg = await query(
@@ -133,6 +136,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'long_session', value: hasLong },
       { type: 'early_bird', value: hasEarly },
       { type: 'night_owl', value: hasNight },
+      { type: 'bonus_sessions', value: Number(extra?.bonus_weeks || 0), comparison: 'gte' },
     ];
 
     for (const condition of badgeConditions) {
@@ -158,7 +162,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
        FROM workout_sessions ws
        WHERE ws.user_id = ? AND ws.is_completed = true
        GROUP BY ws.week_number
-       HAVING COUNT(*) = 4 AND 
+       HAVING COUNT(*) >= 4 AND 
               SUM(CASE WHEN NOT EXISTS (
                 SELECT 1 FROM exercise_sets es 
                 WHERE es.workout_session_id = ws.id AND es.is_completed = false

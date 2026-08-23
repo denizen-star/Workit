@@ -42,7 +42,7 @@ export default function ProgressCharts({
     const household = householdWeekly?.find((item) => item.week_number === week);
     return {
       week: `Week ${week}`,
-      completed: Number(stat?.completed_days || 0),
+      completed: Math.min(4, Number(stat?.completed_days || 0)),
       total: 4,
       household: household ? Number(household.avg_completed_days) : null,
     };

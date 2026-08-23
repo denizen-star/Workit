@@ -160,7 +160,8 @@ INSERT IGNORE INTO badges (name, description, icon, requirement_type, requiremen
 ('Fast Session', 'Finish a workout in under 45 minutes', '⏱️', 'fast_session', 45),
 ('Long Haul', 'Train for more than 90 minutes in one session', '⏳', 'long_session', 90),
 ('Early Bird', 'Complete a workout started before 8am', '🌅', 'early_bird', 8),
-('Night Owl', 'Complete a workout started at or after 8pm', '🌙', 'night_owl', 20);
+('Night Owl', 'Complete a workout started at or after 8pm', '🌙', 'night_owl', 20),
+('Bonus Day', 'Finish an optional bonus upper', '🚩', 'bonus_sessions', 1);
 
 CREATE TABLE IF NOT EXISTS coach_voices (
     id VARCHAR(32) PRIMARY KEY,

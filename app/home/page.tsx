@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
+import BonusFlag from '@/components/BonusFlag';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ExerciseCompare from '@/components/ExerciseCompare';
 import ProgressCharts from '@/components/ProgressCharts';
@@ -13,7 +14,8 @@ import AppMenu from '@/components/AppMenu';
 import CompletedLog from '@/components/CompletedLog';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
-import { applyWorkoutMode } from '@/lib/workoutData';
+import { restBetweenUppersCopy, shouldRestBetweenUppers, weekProgress } from '@/lib/bonusDay';
+import { applyWorkoutMode, getWeekPlan } from '@/lib/workoutData';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { normalizeWorkoutMode, workoutModeLabel } from '@/lib/workoutMode';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
@@ -243,6 +245,9 @@ export default function Home() {
               {todayEstimate && (
                 <p className="mt-3 text-sm font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
               )}
+              {shouldRestBetweenUppers(sessions) && (
+                <p className="mt-3 text-sm font-semibold text-[#e8c547]">{restBetweenUppersCopy()}</p>
+              )}
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
                   href={todayHref}
@@ -337,6 +342,8 @@ export default function Home() {
           </div>
         </div>
 
+        <BonusFlag sessions={sessions} week={today.week} />
+
         <HouseholdScoreboard />
 
         {!isTestUserName(userName) && <ExerciseCompare />}
@@ -345,10 +352,13 @@ export default function Home() {
           <h2 className="mb-4 text-2xl font-black text-white">Weekly Progress</h2>
           <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-6">
             {[1, 2, 3, 4, 5, 6].map((week) => {
-              const weekData = stats?.weekly?.find((item: any) => item.week_number === week);
-              const completed = weekData?.completed_days || 0;
-              const total = 4;
-              const percentage = (completed / total) * 100;
+              const weekPlan = getWeekPlan(week);
+              const progress = weekPlan
+                ? weekProgress(sessions, weekPlan)
+                : { requiredDone: 0, requiredTotal: 4, bonusDone: false };
+              const completed = progress.requiredDone;
+              const total = progress.requiredTotal;
+              const percentage = Math.min(100, (completed / total) * 100);
               const isCurrentWeek = week === (today.week?.weekNumber || currentWeek);
 
               return (
@@ -367,6 +377,9 @@ export default function Home() {
                     <h3 className="mb-2 font-semibold text-[#f6f1e3]/80">Week {week}</h3>
                     <div className="mb-2 text-2xl font-black text-[#f5d76e]">
                       {completed}/{total}
+                      {progress.bonusDone ? (
+                        <span className="block text-xs font-semibold text-[#e8c547]">+ bonus</span>
+                      ) : null}
                     </div>
                     <div className="h-2 overflow-hidden rounded-full bg-white/10">
                       <div
@@ -516,6 +529,7 @@ export default function Home() {
           <BadgeDisplay
             allBadges={badges.allBadges}
             earnedBadges={badges.earnedBadges}
+            bonusCount={Number(badges.bonusCount || 0)}
           />
         )}
 
@@ -524,7 +538,7 @@ export default function Home() {
           <h3 className="text-lg font-semibold text-[#e8c547]">4-Day Upper/Lower Split</h3>
           <p className="mb-4 text-[#f6f1e3]/75">
             This 6-week program features an Upper / Lower / Rest / Upper / Lower weekly schedule,
-            designed to balance high muscle retention with full recovery.
+            designed to balance high muscle retention with full recovery. Four finished days lock the week.
           </p>
           <ul className="list-inside list-disc space-y-2 text-[#f6f1e3]/75">
             <li><strong className="text-white">Day 1 (Monday):</strong> Upper Body A - Push Focus</li>
@@ -532,7 +546,8 @@ export default function Home() {
             <li><strong className="text-white">Day 3 (Wednesday):</strong> Rest Day</li>
             <li><strong className="text-white">Day 4 (Thursday):</strong> Upper Body B - Pull & Shoulder Focus</li>
             <li><strong className="text-white">Day 5 (Friday):</strong> Lower Body B - Posterior Chain & Unilateral</li>
-            <li><strong className="text-white">Weekend:</strong> Active recovery (walking, yoga, swimming)</li>
+            <li><strong className="text-white">Weeks 3–6 bonus:</strong> Optional extra upper (traps, arms, abs). Leave a day between upper sessions. Does not block a locked week.</li>
+            <li><strong className="text-white">Weekend:</strong> Active recovery, or the bonus upper if you want it</li>
           </ul>
           <div className="mt-4 rounded-2xl border border-[#e8c547]/20 bg-[#e8c547]/10 p-4">
             <h4 className="mb-2 font-semibold text-[#e8c547]">Progressive Overload</h4>

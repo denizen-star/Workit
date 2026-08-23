@@ -2,6 +2,12 @@ export const SCOREBOARD_PERIODS = ['7', '30', 'all'] as const;
 
 export type ScoreboardPeriod = (typeof SCOREBOARD_PERIODS)[number];
 
+export type BonusHonorRow = {
+  id: number;
+  name: string;
+  bonusWeeks: number;
+};
+
 export type HouseholdScoreboardRow = {
   id: number;
   name: string;

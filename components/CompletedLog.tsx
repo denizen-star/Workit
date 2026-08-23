@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { workoutProgram } from '@/lib/workoutData';
 import CompletedSessionCard, {
   type HistorySession,
@@ -85,7 +86,10 @@ export default function CompletedLog({
       {!loading &&
         workoutProgram.map((week) => {
           const weekSessions = byWeek.get(week.weekNumber) || [];
-          const completedDays = new Set(weekSessions.map((session) => Number(session.day_number))).size;
+          const progress = weekProgress(
+            weekSessions.map((session) => ({ ...session, is_completed: 1 })),
+            week
+          );
           const open = expandedWeek === week.weekNumber;
 
           return (
@@ -99,7 +103,7 @@ export default function CompletedLog({
                 <div className="flex items-center gap-4">
                   <h3 className="text-xl font-black text-white">Week {week.weekNumber}</h3>
                   <span className="text-sm text-[#f6f1e3]/65">
-                    {completedDays} / {week.days.length} completed
+                    {weekProgressLabel(progress)}
                   </span>
                 </div>
                 {open ? (

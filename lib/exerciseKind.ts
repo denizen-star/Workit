@@ -26,6 +26,7 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
     n.includes("inverted row") ||
     n.includes("wall rollout") ||
     n.includes("backpack") ||
+    n.includes("dead bug") ||
     r === "max"
   ) {
     return "bodyweight";
