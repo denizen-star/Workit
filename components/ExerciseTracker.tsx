@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Check, Edit2, Play } from 'lucide-react';
+import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
 import { pickCoachLine, setProgressCopy } from '@/lib/coachLines';
@@ -19,6 +19,7 @@ import {
   getExerciseKind,
   parseTimedTarget,
   primaryFieldLabel,
+  setLogLabel,
   suggestedNextWeight,
   weightFieldLabel,
   type ExerciseKind,
@@ -55,6 +56,8 @@ interface ExerciseTrackerProps {
   coachTone?: CoachTone | string | null;
   onComplete?: () => void;
 }
+
+const EXTRA_SET_CAP = 5;
 
 function parseMaybeNumber(value: string): number | null {
   if (value === '') return null;
@@ -98,6 +101,13 @@ function lastSetsFor(
 ): Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }> {
   const key = exerciseHistoryKey(exerciseName);
   return history.lastSets[key] || history.lastSets[exerciseName] || [];
+}
+
+function setSummaryLabel(
+  kind: ExerciseKind,
+  set: { weight_lbs: number | null; actual_reps: number | null }
+) {
+  return setLogLabel(kind, set.weight_lbs, set.actual_reps);
 }
 
 function pickLastSet(
@@ -232,7 +242,30 @@ export default function ExerciseTracker({
         return slot;
       });
 
-      setExerciseSets(merged);
+      const extras: ExerciseSet[] = [];
+      for (const exercise of exercises) {
+        const extraRows = saved
+          .filter(
+            (row: any) =>
+              row.exercise_name === exercise.name && Number(row.set_number) > exercise.sets
+          )
+          .sort((a: any, b: any) => Number(a.set_number) - Number(b.set_number));
+
+        for (const found of extraRows) {
+          extras.push({
+            exercise_name: exercise.name,
+            set_number: Number(found.set_number),
+            target_reps: found.target_reps || exercise.reps,
+            actual_reps: asNumber(found.actual_reps),
+            weight_lbs: asNumber(found.weight_lbs),
+            is_completed: Boolean(Number(found.is_completed)),
+            id: found.id,
+            notes: found.notes,
+          });
+        }
+      }
+
+      setExerciseSets([...merged, ...extras]);
     };
 
     load().catch((error) => {
@@ -401,6 +434,71 @@ export default function ExerciseTracker({
     );
   };
 
+  const addSet = async (exercise: Exercise) => {
+    const current = exerciseSets.filter((item) => item.exercise_name === exercise.name);
+    if (current.length >= exercise.sets + EXTRA_SET_CAP) return;
+
+    const lastCompleted = [...current].reverse().find((item) => item.is_completed);
+    const source = lastCompleted ?? current[current.length - 1];
+    const nextNumber = current.reduce((max, item) => Math.max(max, item.set_number), 0) + 1;
+    const extra: ExerciseSet = {
+      exercise_name: exercise.name,
+      set_number: nextNumber,
+      target_reps: exercise.reps,
+      actual_reps: source?.actual_reps ?? null,
+      weight_lbs: source?.weight_lbs ?? null,
+      is_completed: false,
+    };
+
+    const lastIndex = exerciseSets.reduce(
+      (found, item, index) => (item.exercise_name === exercise.name ? index : found),
+      -1
+    );
+    const insertAt = lastIndex >= 0 ? lastIndex + 1 : exerciseSets.length;
+    const nextSets = [...exerciseSets];
+    nextSets.splice(insertAt, 0, extra);
+    setExerciseSets(nextSets);
+
+    try {
+      const saved = await persistSet(extra);
+      if (saved.id) {
+        setExerciseSets((currentSets) =>
+          currentSets.map((item) =>
+            item.exercise_name === extra.exercise_name && item.set_number === extra.set_number
+              ? { ...item, id: saved.id }
+              : item
+          )
+        );
+      }
+    } catch (error) {
+      console.error('Error adding set:', error);
+    }
+  };
+
+  const removeSet = async (exercise: Exercise, set: ExerciseSet) => {
+    if (set.is_completed || set.set_number <= exercise.sets) return;
+
+    setExerciseSets((currentSets) =>
+      currentSets.filter(
+        (item) => !(item.exercise_name === set.exercise_name && item.set_number === set.set_number)
+      )
+    );
+    setEditingSet((current) =>
+      current === `${set.exercise_name}-${set.set_number}` ? null : current
+    );
+
+    if (!set.id) return;
+
+    try {
+      const response = await fetch(`/api/exercises?id=${set.id}`, { method: 'DELETE' });
+      if (!response.ok) {
+        console.error('Error removing set:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error removing set:', error);
+    }
+  };
+
   const groupedSets = exercises.map((exercise) => {
     const sets = exerciseSets.filter((item) => item.exercise_name === exercise.name);
     return { exercise, sets };
@@ -541,110 +639,155 @@ export default function ExerciseTracker({
                 );
                 const isEditing = editingSet === `${set.exercise_name}-${set.set_number}`;
                 const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs);
+                const isExtra = set.set_number > exercise.sets;
+                const folded = set.is_completed && !isEditing;
+                const completeButtonClass = set.is_completed
+                  ? isEditing
+                    ? 'bg-[#e8c547] text-[#1a1404]'
+                    : 'bg-white/10 text-white/45'
+                  : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35';
 
                 return (
                   <div
                     key={`${set.exercise_name}-${set.set_number}`}
                     className={`rounded-2xl border p-4 transition-all ${
-                      set.is_completed
-                        ? 'border-white/50 bg-white/10'
-                        : 'border-white/10 bg-black/25'
+                      folded
+                        ? 'border-white/10 bg-white/[0.04]'
+                        : isEditing
+                          ? 'border-[#e8c547]/40 bg-black/25'
+                          : 'border-white/10 bg-black/25'
                     }`}
                   >
-                    <div className="mb-3 text-sm font-black uppercase tracking-[0.2em] text-white">
-                      Set {set.set_number}
-                    </div>
-
-                    <div className="mb-4 grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
-                          {weightFieldLabel(kind)}
-                        </label>
-                        <input
-                          type="number"
-                          inputMode="decimal"
-                          value={set.weight_lbs ?? ''}
-                          onChange={(event) =>
-                            updateSet(globalIndex, { weight_lbs: parseMaybeNumber(event.target.value) })
-                          }
-                          className="glass-input w-full"
-                          placeholder="0"
-                          disabled={set.is_completed && !isEditing}
-                        />
+                    {folded ? (
+                      <div className="flex items-center gap-3">
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm font-black uppercase tracking-[0.2em] text-white/45">
+                            Set {set.set_number}
+                          </div>
+                          <p className="mt-1 truncate text-sm font-semibold text-white/40">
+                            {setSummaryLabel(kind, set)}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setEditingSet(`${set.exercise_name}-${set.set_number}`)}
+                          className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors ${completeButtonClass}`}
+                        >
+                          <Check className="h-4 w-4" />
+                          Completed
+                          <ChevronDown className="h-4 w-4" />
+                        </button>
                       </div>
+                    ) : (
+                      <>
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <div className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                            Set {set.set_number}
+                          </div>
+                          {isExtra && !set.is_completed && (
+                            <button
+                              type="button"
+                              onClick={() => removeSet(exercise, set)}
+                              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-semibold text-white/45 hover:text-white"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                              Remove
+                            </button>
+                          )}
+                        </div>
 
-                      <div>
-                        <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
-                          {primaryFieldLabel(kind)}
-                        </label>
-                        <input
-                          type="number"
-                          inputMode="numeric"
-                          value={set.actual_reps ?? ''}
-                          onChange={(event) =>
-                            updateSet(globalIndex, { actual_reps: parseMaybeNumber(event.target.value) })
-                          }
-                          className="glass-input w-full"
-                          placeholder={set.target_reps}
-                          disabled={set.is_completed && !isEditing}
-                        />
-                      </div>
-                    </div>
+                        <div className="mb-4 grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                              {weightFieldLabel(kind)}
+                            </label>
+                            <input
+                              type="number"
+                              inputMode="decimal"
+                              value={set.weight_lbs ?? ''}
+                              onChange={(event) =>
+                                updateSet(globalIndex, { weight_lbs: parseMaybeNumber(event.target.value) })
+                              }
+                              className="glass-input w-full"
+                              placeholder="0"
+                              disabled={set.is_completed && !isEditing}
+                            />
+                          </div>
 
-                    {kind === 'timed' && !set.is_completed && (
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setTimedTimer({
-                            index: globalIndex,
-                            target: parseTimedTarget(exercise.reps),
-                          })
-                        }
-                        className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-lg font-black text-white"
-                      >
-                        <Play className="h-5 w-5" />
-                        Start timer
-                      </button>
+                          <div>
+                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                              {primaryFieldLabel(kind)}
+                            </label>
+                            <input
+                              type="number"
+                              inputMode="numeric"
+                              value={set.actual_reps ?? ''}
+                              onChange={(event) =>
+                                updateSet(globalIndex, { actual_reps: parseMaybeNumber(event.target.value) })
+                              }
+                              className="glass-input w-full"
+                              placeholder={set.target_reps}
+                              disabled={set.is_completed && !isEditing}
+                            />
+                          </div>
+                        </div>
+
+                        {kind === 'timed' && !set.is_completed && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setTimedTimer({
+                                index: globalIndex,
+                                target: parseTimedTarget(exercise.reps),
+                              })
+                            }
+                            className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-lg font-black text-white"
+                          >
+                            <Play className="h-5 w-5" />
+                            Start timer
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (set.is_completed) {
+                              setEditingSet(isEditing ? null : `${set.exercise_name}-${set.set_number}`);
+                            } else {
+                              completeSet(globalIndex, exercise);
+                            }
+                          }}
+                          disabled={!set.is_completed && !ready}
+                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-lg font-black transition-colors ${completeButtonClass}`}
+                        >
+                          {set.is_completed ? (
+                            <>
+                              <Edit2 className="h-5 w-5" />
+                              Editing
+                            </>
+                          ) : (
+                            <>
+                              <Check className="h-6 w-6" />
+                              Complete Set
+                            </>
+                          )}
+                        </button>
+                      </>
                     )}
-
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (set.is_completed) {
-                          setEditingSet(isEditing ? null : `${set.exercise_name}-${set.set_number}`);
-                        } else {
-                          completeSet(globalIndex, exercise);
-                        }
-                      }}
-                      disabled={!set.is_completed && !ready}
-                      className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-lg font-black transition-colors ${
-                        set.is_completed
-                          ? 'bg-[#e8c547] text-[#1a1404]'
-                          : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35'
-                      }`}
-                    >
-                      {set.is_completed ? (
-                        isEditing ? (
-                          <>
-                            <Edit2 className="h-5 w-5" />
-                            Editing
-                          </>
-                        ) : (
-                          <>
-                            <Check className="h-6 w-6" />
-                            Completed
-                          </>
-                        )
-                      ) : (
-                        <>
-                          <Check className="h-6 w-6" />
-                          Complete Set
-                        </>
-                      )}
-                    </button>
                   </div>
                 );
               })}
+
+              {sets.length < exercise.sets + EXTRA_SET_CAP && (
+                <button
+                  type="button"
+                  onClick={() => addSet(exercise)}
+                  className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 text-sm font-bold text-white/70 hover:border-[#e8c547]/40 hover:text-[#e8c547]"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add set
+                </button>
+              )}
             </div>
           </div>
         );

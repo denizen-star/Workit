@@ -2,13 +2,14 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer } from 'lucide-react';
+import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ProgressCharts from '@/components/ProgressCharts';
 import EnjoymentCharts from '@/components/EnjoymentCharts';
 import type { RatingStats } from '@/lib/ratings';
 import AppMenu from '@/components/AppMenu';
+import CompletedLog from '@/components/CompletedLog';
 import { formatDuration } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
@@ -63,6 +64,8 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [ratingStats, setRatingStats] = useState<RatingStats | null>(null);
+  const [logWeek, setLogWeek] = useState<number | null>(null);
+  const [logOpen, setLogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -205,12 +208,21 @@ export default function Home() {
                 All 6 weeks complete
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">Open the list if you want to run a session again.</p>
-              <Link
-                href="/workout"
-                className="mt-6 inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
-              >
-                Browse workouts
-              </Link>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/workout"
+                  className="inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
+                >
+                  Browse workouts
+                </Link>
+                <a
+                  href="#completed-log"
+                  onClick={() => setLogOpen(true)}
+                  className="inline-flex min-h-14 items-center rounded-2xl border border-white/15 px-6 text-lg font-black text-[#f6f1e3]/80"
+                >
+                  Completed
+                </a>
+              </div>
             </>
           ) : (
             <>
@@ -248,6 +260,13 @@ export default function Home() {
                 >
                   Select Workout
                 </Link>
+                <a
+                  href="#completed-log"
+                  onClick={() => setLogOpen(true)}
+                  className="inline-flex min-h-14 items-center rounded-2xl border border-white/15 px-6 text-lg font-black text-[#f6f1e3]/80"
+                >
+                  Completed
+                </a>
                 {restartHref && (
                   <Link
                     href={restartHref}
@@ -329,8 +348,13 @@ export default function Home() {
               const isCurrentWeek = week === (today.week?.weekNumber || currentWeek);
 
               return (
-                <div
+                <a
                   key={week}
+                  href="#completed-log"
+                  onClick={() => {
+                    setLogWeek(week);
+                    setLogOpen(true);
+                  }}
                   className={`rounded-2xl border p-4 ${
                     isCurrentWeek ? 'border-[#e8c547] bg-[#e8c547]/10' : 'border-white/10 bg-black/20'
                   }`}
@@ -347,10 +371,38 @@ export default function Home() {
                       />
                     </div>
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>
+        </div>
+
+        <div id="completed-log" className="glass-card mb-8 overflow-hidden">
+          <button
+            type="button"
+            onClick={() => setLogOpen((open) => !open)}
+            className="flex w-full items-center justify-between gap-4 p-6 text-left hover:bg-white/5"
+            aria-expanded={logOpen}
+          >
+            <div>
+              <h2 className="text-2xl font-black text-white">Completed log</h2>
+              <p className="mt-1 text-sm text-[#f6f1e3]/60">
+                {logOpen
+                  ? 'Finished weeks and workouts. Open a day to see every set you logged.'
+                  : `${stats?.overall?.completed_workouts || 0} finished workouts`}
+              </p>
+            </div>
+            {logOpen ? (
+              <ChevronUp className="h-6 w-6 shrink-0 text-[#e8c547]" />
+            ) : (
+              <ChevronDown className="h-6 w-6 shrink-0 text-[#e8c547]" />
+            )}
+          </button>
+          {logOpen && (
+            <div className="px-6 pb-6">
+              <CompletedLog focusWeek={logWeek} />
+            </div>
+          )}
         </div>
 
         <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">

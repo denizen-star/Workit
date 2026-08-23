@@ -9,6 +9,8 @@ export interface WorkoutSessionRow {
   is_completed: number | boolean;
   started_at?: string | null;
   created_at?: string | null;
+  completed_at?: string | null;
+  ended_at?: string | null;
 }
 
 export function isSessionComplete(session: { is_completed: unknown }): boolean {
@@ -38,6 +40,27 @@ export function findIncompleteSession(
       const bTime = new Date(b.started_at || b.created_at || 0).getTime();
       return bTime - aTime;
     })[0] ?? null
+  );
+}
+
+export function findLatestCompletedSession(
+  sessions: WorkoutSessionRow[],
+  weekNumber: number,
+  dayNumber: number
+): WorkoutSessionRow | null {
+  return (
+    sessions
+      .filter(
+        (session) =>
+          isSessionComplete(session) &&
+          Number(session.week_number) === weekNumber &&
+          Number(session.day_number) === dayNumber
+      )
+      .sort((a, b) => {
+        const aTime = new Date(a.completed_at || a.ended_at || a.started_at || a.created_at || 0).getTime();
+        const bTime = new Date(b.completed_at || b.ended_at || b.started_at || b.created_at || 0).getTime();
+        return bTime - aTime;
+      })[0] ?? null
   );
 }
 

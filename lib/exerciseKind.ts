@@ -51,6 +51,19 @@ export function weightFieldLabel(kind: ExerciseKind): string {
   return "Weight (lbs)";
 }
 
+export function setLogLabel(
+  kind: ExerciseKind,
+  weightLbs: number | null,
+  actualReps: number | null
+) {
+  const reps = actualReps ?? 0;
+  const weight = weightLbs ?? 0;
+  if (kind === "timed") return `${reps}s`;
+  if (kind === "distance") return weight ? `${reps}m @ ${weight} lb` : `${reps}m`;
+  if (kind === "bodyweight" && weight === 0) return `${reps} reps`;
+  return `${weight} lb × ${reps}`;
+}
+
 export function canCompleteSet(
   kind: ExerciseKind,
   actualReps: number | null,

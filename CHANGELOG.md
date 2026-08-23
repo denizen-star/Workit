@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.4.0 - 2026-08-23
+
+### Added
+- Extra sets on an exercise (cap +5). Copies the last completed set. Remove an extra if you did not finish it
+- Completed log on Home (starts folded). Open a week, then a workout, to see every logged set
+- Select Workout: finished days use that same card (mode, date, actual time, set count, tap for set details). Small **Do Again** on the header
+- Hip Thrusts + Glute Bridges video tabs. New Farmer's Carries video. Travel glute / farmer use the same tapes
+
+### Changed
+- Finished sets fold and go gray. Tap to unfold and edit (yellow **Editing**). **Complete Set** stays yellow
+- Finished days on Select Workout show actual time, not Est.
+
+### Fixed
+- Dead Hip Thrust, Glute Bridge, and Farmer's Carry videos
+- Opening a finished day no longer starts a blank in-progress session
+
 ## 3.3.1 - 2026-08-22
 
 ### Changed

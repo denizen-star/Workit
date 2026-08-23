@@ -41,6 +41,65 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const weekNumber = searchParams.get('weekNumber');
     const sessionId = searchParams.get('sessionId');
+    const history = searchParams.get('history') === '1';
+
+    if (history) {
+      const sessionResult = await query(
+        `SELECT id, week_number, day_number, workout_type, workout_mode,
+                started_at, completed_at, ended_at, created_at
+         FROM workout_sessions
+         WHERE user_id = ? AND is_completed = 1
+         ORDER BY week_number, day_number, COALESCE(completed_at, created_at) DESC`,
+        [user.id]
+      );
+
+      const sessions = sessionResult.rows as {
+        id: number;
+        week_number: number;
+        day_number: number;
+        workout_type: string;
+        workout_mode: string | null;
+        started_at: string | null;
+        completed_at: string | null;
+        ended_at: string | null;
+        created_at: string | null;
+      }[];
+
+      if (sessions.length === 0) {
+        return NextResponse.json({ sessions: [] });
+      }
+
+      const ids = sessions.map((row) => row.id);
+      const placeholders = ids.map(() => '?').join(', ');
+      const setResult = await query(
+        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs
+         FROM exercise_sets
+         WHERE workout_session_id IN (${placeholders}) AND is_completed = 1
+         ORDER BY workout_session_id, id, set_number`,
+        ids
+      );
+
+      const setsBySession = new Map<number, typeof setResult.rows>();
+      for (const row of setResult.rows as {
+        workout_session_id: number;
+        exercise_name: string;
+        set_number: number;
+        target_reps: string | null;
+        actual_reps: number | null;
+        weight_lbs: number | null;
+      }[]) {
+        const list = setsBySession.get(Number(row.workout_session_id)) || [];
+        list.push(row);
+        setsBySession.set(Number(row.workout_session_id), list);
+      }
+
+      return NextResponse.json({
+        sessions: sessions.map((session) => ({
+          ...session,
+          sets: setsBySession.get(Number(session.id)) || [],
+        })),
+      });
+    }
 
     if (sessionId) {
       const sessionResult = await query(

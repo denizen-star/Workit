@@ -26,12 +26,13 @@ No test suite.
 
 **Database**: `lib/db.ts` `query(sql, params)` via `@planetscale/database` HTTP `connect()`. Schema in `database/schema.sql` (users, workout_sessions, exercise_sets, badges, user_badges, daily_stats, exercises, coach_voices, coach_lines). Incremental SQL is applied by hand: `migrate-pin.sql`, `migrate-timing.sql`, `migrate-email.sql` (`email_sends` dedupe table), `migrate-tone.sql` (`users.coach_tone`; already on prod — re-run = duplicate column), `migrate-sound.sql` (`users.sound_on`), `migrate-badges-20.sql` (20 extra badge rows), `migrate-coach-lines.sql` (`coach_voices` + `coach_lines`; no per-user last-line table), `migrate-workout-mode.sql` (`workout_sessions.workout_mode` gym/travel + Travel Survivor copy), `migrate-app-events-user.sql` (shared `app_events.user_id` / `user_name` / `user_email`; already on prod — re-run = duplicate column/index), `migrate-feedback.sql` (`feedback` + `session_ratings`; re-run = duplicate table). No migration runner. `users.coach_tone` stays `master`/`sergeant`. Lines/descriptions live in those two tables; `GET /api/coach-catalog` hydrates the client. Shuffle is in-memory only. Code banks in `lib/coachLines.ts` / `lib/coachCatalog.ts` are fallback if the tables are empty.
 
-**Workout program is static**: `lib/workoutData.ts` is the 6-week gym plan (Week 2 is gym, not a travel week). Travel is a per-session mode: `lib/travelExercises.ts` substitutions via `applyWorkoutMode()`. Home **Start Workout** POSTs `workout_mode=gym`. Select Workout shows a Gym/Travel pill on unstarted days; resume locks the started mode; completed days hide the pill; Restart returns to Start so they can pick again. Session column `workout_sessions.workout_mode` (`gym`|`travel`). Travel Survivor (`travel_week`) = 4 completed travel-mode sessions. DB also stores logged sets plus the `exercises` catalog (images/video). Media maps: `lib/exerciseImages.ts`, `lib/exerciseMedia.ts`.
+**Workout program is static**: `lib/workoutData.ts` is the 6-week gym plan (Week 2 is gym, not a travel week). Travel is a per-session mode: `lib/travelExercises.ts` substitutions via `applyWorkoutMode()`. Home **Start Workout** POSTs `workout_mode=gym`. Select Workout: Gym/Travel pill on unstarted or in-progress days (resume locks the mode); finished days use `CompletedSessionCard` (same card as the Home log) with a small **Do Again** on the header and actual duration, not Est. Restart returns to Start so they can pick again. `/workout?week=&day=` will not create a session if that day is already complete and nothing is open; **Do Again** still starts a new one. Extra sets: +5 cap, copy last completed, **Remove** only on uncompleted extras (`DELETE /api/exercises?id=`). Finished sets fold gray; tap to edit (yellow **Editing**). Session column `workout_sessions.workout_mode` (`gym`|`travel`). Travel Survivor (`travel_week`) = 4 completed travel-mode sessions. DB also stores logged sets plus the `exercises` catalog (images/video). Media maps: `lib/exerciseImages.ts`, `lib/exerciseMedia.ts`. Combined Hip Thrusts / Glute Bridges has two video tabs; Farmer's Carries + travel glute/farmer use the replacement YouTube ids.
 
 **Routes**:
 - `app/page.tsx` — backup redirect to `/who` (middleware usually handles `/`)
-- `app/home/page.tsx` — dashboard (scoreboard folded, Achievements folded). Stat cards + progress charts show you / household avg of others who finished a workout in the last 7 days (`GET /api/stats` `household`; null if nobody else trained). Enjoyment charts if the athlete has session ratings
-- `app/workout/page.tsx` — logging. Finish and quit require 1–5 stars (`POST /api/session-ratings`). Exercise thumbs via `ExerciseThumbs`
+- `app/home/page.tsx` — dashboard (scoreboard folded, Achievements folded, Completed log folded under Weekly Progress). Week cards / **Completed** open that log. Stat cards + progress charts show you / household avg of others who finished a workout in the last 7 days (`GET /api/stats` `household`; null if nobody else trained). Enjoyment charts if the athlete has session ratings
+- `app/workout/page.tsx` — Select + logging. Finish and quit require 1–5 stars (`POST /api/session-ratings`). Exercise thumbs via `ExerciseThumbs`. Finished days share `CompletedSessionCard` with the Home log
+- `app/history/page.tsx` — standalone completed log (`/history?week=&day=` still used by View leftovers)
 - `app/who/page.tsx` — profile picker + PIN
 - `app/admin/layout.tsx` — shared chrome: Dashboard back, title, hamburger
 - `app/admin/page.tsx` — redirects to `/admin/analytics`
@@ -40,7 +41,7 @@ No test suite.
 - `app/admin/feedback/page.tsx` — Kevin-only notes, thumbs, household enjoyment
 - `app/admin/mail/page.tsx` — mail preview / sample send / run nudges / force scoreboard
 - Admin hamburger (home + admin chrome): Analytics, Users, Feedback, Mail
-- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all`, `GET /api/stats` (includes `household`), `GET /api/coach-catalog`, `GET /api/ratings/stats`, `GET|POST /api/feedback`, `POST /api/session-ratings`, `GET /api/admin/analytics` are session-gated; analytics / admin feedback / household ratings also `requireAdmin`)
+- `app/api/*/route.ts` — one file per resource (`GET /api/scoreboard?period=7|30|all`, `GET /api/stats` (includes `household`), `GET /api/sessions?history=1` (completed sessions + completed sets), `GET /api/coach-catalog`, `GET /api/ratings/stats`, `GET|POST /api/feedback`, `POST /api/session-ratings`, `DELETE /api/exercises?id=` (uncompleted extras only), `GET /api/admin/analytics` are session-gated; analytics / admin feedback / household ratings also `requireAdmin`)
 - `POST /api/analytics/event` — **not** session-gated; production only; stamps `user_*` from session when present
 - `app/api/cron/mail` — GET/POST; **not** session-gated; requires `Authorization: Bearer $CRON_SECRET`
 
@@ -65,5 +66,6 @@ No test suite.
 ## Working in this repo
 
 - Read `node_modules/next/dist/docs/` before writing Next.js code (`AGENTS.md`).
+- Browser / QA: use household user **Test** (PIN `0000`). Do not log sets or start sessions as Kevin.
 - New logged-in routes: middleware already blocks. Exempt only by editing `middleware.ts`. Admin-only: `requireAdmin`.
 - `next.config.ts` is the active config (`serverExternalPackages: ["nodemailer"]`). `next.config.js` still has PWA header helpers; `netlify.toml` is the deploy config (`@netlify/plugin-nextjs`).

@@ -3,12 +3,18 @@
 import { Suspense, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp, CheckCircle, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
-import { findIncompleteSession, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import {
+  findIncompleteSession,
+  findLatestCompletedSession,
+  isSessionComplete,
+  type WorkoutSessionRow,
+} from '@/lib/nextWorkout';
 import { normalizeWorkoutMode, workoutModeLabel, type WorkoutMode } from '@/lib/workoutMode';
+import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
@@ -92,6 +98,7 @@ function WorkoutPageInner() {
   const [soundOn, setSoundOn] = useState(true);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
+  const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
 
   useWakeLock(!!currentSession);
 
@@ -140,7 +147,16 @@ function WorkoutPageInner() {
 
       if (week && day) {
         autoOpened.current = true;
-        startWorkout(week, day, rows, { mode: normalizeWorkoutMode(searchParams.get('mode')) });
+        const alreadyDone = rows.some(
+          (session) =>
+            isSessionComplete(session) &&
+            Number(session.week_number) === week &&
+            Number(session.day_number) === day
+        );
+        const open = findIncompleteSession(rows, week, day);
+        if (open || !alreadyDone) {
+          startWorkout(week, day, rows, { mode: normalizeWorkoutMode(searchParams.get('mode')) });
+        }
       }
     });
   }, []);
@@ -155,7 +171,10 @@ function WorkoutPageInner() {
 
   const loadSessions = async () => {
     try {
-      const response = await fetch('/api/sessions');
+      const [response, historyRes] = await Promise.all([
+        fetch('/api/sessions'),
+        fetch('/api/sessions?history=1'),
+      ]);
       if (response.ok) {
         const data = await response.json();
         const rows: WorkoutSessionRow[] = data.sessions || [];
@@ -167,6 +186,12 @@ function WorkoutPageInner() {
               .map((session) => `${session.week_number}-${session.day_number}`)
           )
         );
+        if (historyRes.ok) {
+          const historyData = await historyRes.json();
+          setHistorySessions(
+            Array.isArray(historyData?.sessions) ? historyData.sessions : []
+          );
+        }
         return rows;
       }
     } catch (error) {
@@ -565,9 +590,65 @@ function WorkoutPageInner() {
                     {week.days.map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
                       const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
+                      const dayHistory = historySessions.filter(
+                        (session) =>
+                          Number(session.week_number) === week.weekNumber &&
+                          Number(session.day_number) === day.dayNumber
+                      );
+                      const fallbackCompleted = findLatestCompletedSession(
+                        sessions,
+                        week.weekNumber,
+                        day.dayNumber
+                      );
+                      const completedCards =
+                        dayHistory.length > 0
+                          ? dayHistory
+                          : fallbackCompleted
+                            ? [
+                                {
+                                  id: Number(fallbackCompleted.id),
+                                  week_number: Number(fallbackCompleted.week_number),
+                                  day_number: Number(fallbackCompleted.day_number),
+                                  workout_type: fallbackCompleted.workout_type,
+                                  workout_mode: fallbackCompleted.workout_mode || null,
+                                  started_at: fallbackCompleted.started_at || null,
+                                  completed_at: fallbackCompleted.completed_at || null,
+                                  ended_at: fallbackCompleted.ended_at || null,
+                                  created_at: fallbackCompleted.created_at || null,
+                                  sets: [],
+                                } satisfies HistorySession,
+                              ]
+                            : [];
                       const mode = pickedMode(week.weekNumber, day.dayNumber, incomplete);
                       const planned = applyWorkoutMode(day, mode);
                       const estimate = formatEstimateMinutes(estimateWorkoutSeconds(planned));
+
+                      if (isCompleted && !incomplete) {
+                        return (
+                          <div key={day.dayNumber} className="space-y-3">
+                            {completedCards.map((session) => (
+                              <CompletedSessionCard
+                                key={session.id}
+                                session={session}
+                                focus={day.focus}
+                                headerAction={
+                                  <button
+                                    type="button"
+                                    onClick={() =>
+                                      startWorkout(week.weekNumber, day.dayNumber, undefined, {
+                                        mode: normalizeWorkoutMode(session.workout_mode),
+                                      })
+                                    }
+                                    className="inline-flex min-h-8 items-center rounded-lg bg-[#e8c547] px-2.5 text-xs font-black text-[#1a1404]"
+                                  >
+                                    Do Again
+                                  </button>
+                                }
+                              />
+                            ))}
+                          </div>
+                        );
+                      }
 
                       return (
                         <div
@@ -575,36 +656,29 @@ function WorkoutPageInner() {
                           className={`rounded-2xl border p-4 ${
                             incomplete
                               ? 'border-[#e8c547]/50 bg-[#e8c547]/10'
-                              : isCompleted
-                                ? 'border-[#e8c547]/20 bg-white/5'
-                                : 'border-white/10 bg-black/20'
+                              : 'border-white/10 bg-black/20'
                           }`}
                         >
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-center gap-2">
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
-                                {isCompleted && !incomplete && (
-                                  <CheckCircle className="h-5 w-5 text-[#e8c547]" />
-                                )}
                               </div>
                               <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
                               <p className="mt-1 text-xs text-[#f6f1e3]/50">
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
                             </div>
-                            {(!isCompleted || incomplete) && (
-                              <ModeToggle
-                                mode={mode}
-                                locked={!!incomplete}
-                                onChange={(next) =>
-                                  setPickModes((current) => ({
-                                    ...current,
-                                    [dayModeKey(week.weekNumber, day.dayNumber)]: next,
-                                  }))
-                                }
-                              />
-                            )}
+                            <ModeToggle
+                              mode={mode}
+                              locked={!!incomplete}
+                              onChange={(next) =>
+                                setPickModes((current) => ({
+                                  ...current,
+                                  [dayModeKey(week.weekNumber, day.dayNumber)]: next,
+                                }))
+                              }
+                            />
                           </div>
 
                           <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
@@ -612,7 +686,7 @@ function WorkoutPageInner() {
                               <Clock className="h-4 w-4" />
                               Est. {estimate}
                             </span>
-                            <div className="flex gap-2">
+                            <div className="flex items-center gap-2">
                               {incomplete && (
                                 <button
                                   type="button"
@@ -628,7 +702,7 @@ function WorkoutPageInner() {
                                 onClick={() => startWorkout(week.weekNumber, day.dayNumber, undefined, { mode })}
                                 className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] px-6 font-black text-[#1a1404]"
                               >
-                                {incomplete ? 'Resume' : isCompleted ? 'Do Again' : 'Start'}
+                                {incomplete ? 'Resume' : 'Start'}
                               </button>
                             </div>
                           </div>

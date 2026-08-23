@@ -97,6 +97,46 @@ export async function POST(request: NextRequest) {
   }
 }
 
+export async function DELETE(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const { searchParams } = new URL(request.url);
+    const setId = Number(searchParams.get('id'));
+    if (!Number.isFinite(setId) || setId <= 0) {
+      return NextResponse.json({ error: 'Set ID required' }, { status: 400 });
+    }
+
+    const setCheck = await query(
+      `SELECT es.id, es.is_completed, es.workout_session_id
+       FROM exercise_sets es
+       JOIN workout_sessions ws ON ws.id = es.workout_session_id
+       WHERE es.id = ? AND ws.user_id = ?`,
+      [setId, user.id]
+    );
+
+    if (setCheck.rows.length === 0) {
+      return NextResponse.json({ error: 'Set not found' }, { status: 404 });
+    }
+
+    const row = setCheck.rows[0] as { id: number; is_completed: unknown; workout_session_id: number };
+    if (Boolean(Number(row.is_completed))) {
+      return NextResponse.json({ error: 'Completed sets cannot be removed' }, { status: 400 });
+    }
+
+    await query('DELETE FROM exercise_sets WHERE id = ?', [setId]);
+    await updateDailyStats(row.workout_session_id, user.id);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error('Error deleting exercise set:', error);
+    return NextResponse.json({ error: 'Failed to delete exercise set' }, { status: 500 });
+  }
+}
+
 export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();

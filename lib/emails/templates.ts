@@ -83,6 +83,7 @@ export type ReleaseEmailInput = {
   name?: string;
   version: string;
   title: string;
+  lead?: string;
   wins: string[];
   groups?: ReleaseGroup[];
   also?: string[];
@@ -419,6 +420,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     signer,
     childrenHtml: [
       address(name),
+      input.lead ? p(esc(input.lead)) : '',
       p(ordersLine),
       p('Hard-refresh if you are still running the old build. Then get under the bar.'),
       releaseGroupsHtml(groups),
@@ -433,6 +435,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     emailTextHeader(eyebrow, input.title),
     name + '.',
     '',
+    ...(input.lead ? [input.lead, ''] : []),
     ordersLine,
     '',
     ...releaseGroupsText(groups),

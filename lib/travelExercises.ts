@@ -115,6 +115,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     name: 'Single-Leg Glute Bridges',
     notes:
       'Lie flat, bend knees, elevate one leg, and drive through the grounded heel to work the glutes.',
+    videoId: 'X_IGw8U_e38',
   },
   'Leg Extension Machine or Goblet Step-Ups': {
     name: 'Bodyweight Step-Ups or Sissy Squats',
@@ -124,6 +125,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     name: 'Loaded Water Jug / Backpack Carries',
     notes:
       'Carry two heavy water jugs, gallon containers, or a fully packed backpack by your sides for distance or time.',
+    videoId: 'NH7Xv-7NQNQ',
   },
 };
 
