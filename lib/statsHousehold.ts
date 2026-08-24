@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlUserOptionalVolume } from '@/lib/optionals';
 
 export type HouseholdHomeStats = {
   workoutsCompleted: number;
@@ -89,7 +90,7 @@ export async function householdHomeStats(
       `SELECT
          ws.user_id,
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) as total_weight_lifted
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id IN (${sql})

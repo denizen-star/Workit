@@ -33,10 +33,38 @@ export async function GET() {
       [userId]
     );
 
+    const optionalWeeks = await query(
+      `SELECT COUNT(*) as optional_weeks
+       FROM (
+         SELECT week_number
+         FROM workout_sessions
+         WHERE user_id = ?
+         GROUP BY week_number
+         HAVING SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
+            AND SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
+       ) weeks`,
+      [userId]
+    );
+
+    const optionalSlots = await query(
+      `SELECT
+         SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END)
+           + SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) as optional_slots
+       FROM workout_sessions
+       WHERE user_id = ?`,
+      [userId]
+    );
+
     return NextResponse.json({
       allBadges: allBadges.rows,
       earnedBadges: earnedBadges.rows,
       bonusCount: Number((bonus.rows[0] as { bonus_weeks: number } | undefined)?.bonus_weeks || 0),
+      optionalWeekCount: Number(
+        (optionalWeeks.rows[0] as { optional_weeks: number } | undefined)?.optional_weeks || 0
+      ),
+      optionalCount: Number(
+        (optionalSlots.rows[0] as { optional_slots: number } | undefined)?.optional_slots || 0
+      ),
     });
   } catch (error) {
     console.error('Error getting badges:', error);

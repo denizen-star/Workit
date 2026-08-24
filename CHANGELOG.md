@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 3.7.0 - 2026-08-24
+
+### Added
+- **Optional** warmup and cooldown on every live session (gym, travel, Bonus Upper). Easy run, Easy bike, Easy stretch, Easy core. +500 lb per slot
+- Stretch and core: five holds with stills, video, and **Done**. Last Done credits without waiting out the 10-minute clock
+- Home Optional chip: this-week warmup/cooldown counts plus unique optional-week tally
+- **Optionals** and **Optional Weeks** badges. Optionals unlocks on the first slot. Optional Weeks unlocks on the first week with 4 warmups and 4 cooldowns, then shows a live unique-week count
+- Scoreboard **honor roll** for unique optional weeks (7 / 30 / All). Same section in Monday scoreboard mail. Test stays off it
+- Finish takeover names the optional lbs when you did the extra minutes
+
+### Changed
+- Select Workout: locked weeks (4 finished sessions) start folded. An in-progress session opens that week. Otherwise the next unlocked week opens
+- Run and bike still need the full 10 minutes. Stretch/core clock is a fallback if you stop mid-circuit
+- Optional lbs count on Scoreboard volume, Vs the house Total weight, Home totals, recap, and weight badges. Best day stays lifts only
+- First 4 warmups + 4 cooldowns in the 7-day board window: 25% of the remaining gap to the total-weight lead, once
+
 ## 3.6.0 - 2026-08-23
 
 ### Added

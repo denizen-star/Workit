@@ -1,6 +1,7 @@
 import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 
 export type AwardedBadge = {
   id: number;
@@ -34,7 +35,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       `SELECT 
         COUNT(DISTINCT ws.id) as total_workouts,
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
-        SUM(${sqlSetVolume('es')}) as total_weight_lifted
+        SUM(${sqlSetVolume('es')}) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id = ?`,
@@ -90,11 +91,40 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       bonus_weeks: number;
     };
 
+    const optionalWeeks = await query(
+      `SELECT COUNT(*) as optional_weeks
+       FROM (
+         SELECT week_number
+         FROM workout_sessions
+         WHERE user_id = ?
+         GROUP BY week_number
+         HAVING SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
+            AND SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
+       ) weeks`,
+      [userId]
+    );
+    const optionalSlots = await query(
+      `SELECT
+         SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END)
+           + SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) as optional_slots
+       FROM workout_sessions
+       WHERE user_id = ?`,
+      [userId]
+    );
+    const optionalRow = {
+      optional_weeks: Number(
+        (optionalWeeks.rows[0] as { optional_weeks: number } | undefined)?.optional_weeks || 0
+      ),
+      optional_slots: Number(
+        (optionalSlots.rows[0] as { optional_slots: number } | undefined)?.optional_slots || 0
+      ),
+    };
+
     const sessionAgg = await query(
       `SELECT
          ws.started_at,
          TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) as duration_seconds,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
        WHERE ws.user_id = ? AND ws.is_completed = 1
@@ -137,6 +167,8 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'early_bird', value: hasEarly },
       { type: 'night_owl', value: hasNight },
       { type: 'bonus_sessions', value: Number(extra?.bonus_weeks || 0), comparison: 'gte' },
+      { type: 'optional_weeks', value: Number(optionalRow?.optional_weeks || 0), comparison: 'gte' },
+      { type: 'optionals', value: Number(optionalRow?.optional_slots || 0), comparison: 'gte' },
     ];
 
     for (const condition of badgeConditions) {

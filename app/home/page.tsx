@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Dumbbell, TrendingUp, Award, Calendar, Activity, Clock, Hourglass, Timer, ChevronDown, ChevronUp } from 'lucide-react';
 import BadgeDisplay from '@/components/BadgeDisplay';
 import BonusFlag from '@/components/BonusFlag';
+import OptionalFlag from '@/components/OptionalFlag';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ExerciseCompare from '@/components/ExerciseCompare';
 import ProgressCharts from '@/components/ProgressCharts';
@@ -343,6 +344,7 @@ export default function Home() {
         </div>
 
         <BonusFlag sessions={sessions} week={today.week} />
+        <OptionalFlag sessions={sessions} week={today.week} />
 
         <HouseholdScoreboard />
 
@@ -530,6 +532,8 @@ export default function Home() {
             allBadges={badges.allBadges}
             earnedBadges={badges.earnedBadges}
             bonusCount={Number(badges.bonusCount || 0)}
+            optionalWeekCount={Number(badges.optionalWeekCount || 0)}
+            optionalCount={Number(badges.optionalCount || 0)}
           />
         )}
 

@@ -9,6 +9,7 @@ import {
   tomScoreboardLine,
   type BonusHonorRow,
   type HouseholdScoreboardRow,
+  type OptionalHonorRow,
   type ScoreboardPeriod,
 } from '@/lib/scoreboardTypes';
 
@@ -30,6 +31,7 @@ export default function HouseholdScoreboard() {
   const [period, setPeriod] = useState<ScoreboardPeriod>('7');
   const [rows, setRows] = useState<HouseholdScoreboardRow[]>([]);
   const [bonusHonor, setBonusHonor] = useState<BonusHonorRow[]>([]);
+  const [optionalHonor, setOptionalHonor] = useState<OptionalHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -41,11 +43,13 @@ export default function HouseholdScoreboard() {
         if (cancelled) return;
         setRows(Array.isArray(data?.rows) ? data.rows : []);
         setBonusHonor(Array.isArray(data?.bonusHonor) ? data.bonusHonor : []);
+        setOptionalHonor(Array.isArray(data?.optionalHonor) ? data.optionalHonor : []);
       })
       .catch(() => {
         if (!cancelled) {
           setRows([]);
           setBonusHonor([]);
+          setOptionalHonor([]);
         }
       })
       .finally(() => {
@@ -119,6 +123,24 @@ export default function HouseholdScoreboard() {
                         <p className="font-black text-white">{row.name}</p>
                         <p className="text-sm font-semibold text-[#e8c547]">
                           {row.bonusWeeks} bonus {row.bonusWeeks === 1 ? 'week' : 'weeks'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {optionalHonor.length > 0 && (
+                <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-4">
+                  <p className="text-sm font-black uppercase tracking-[0.2em] text-[#e8c547]">Optionals</p>
+                  <p className="mt-1 text-sm text-[#f6f1e3]/70">
+                    Four warmups. Four cooldowns. Easy minutes that still count.
+                  </p>
+                  <div className="mt-3 space-y-2">
+                    {optionalHonor.map((row) => (
+                      <div key={row.id} className="flex items-center justify-between gap-3">
+                        <p className="font-black text-white">{row.name}</p>
+                        <p className="text-sm font-semibold text-[#e8c547]">
+                          {row.optionalWeeks} optional {row.optionalWeeks === 1 ? 'week' : 'weeks'}
                         </p>
                       </div>
                     ))}

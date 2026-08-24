@@ -15,6 +15,7 @@ export type LinePack = {
   exit: string[];
   complete: string[];
   bonusComplete: string[];
+  optionalComplete: string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -48,6 +49,7 @@ function emptyPack(): LinePack {
     exit: [],
     complete: [],
     bonusComplete: [],
+    optionalComplete: [],
     setUpTitle: '',
     setUpBody: '',
     setDownTitle: '',
@@ -168,6 +170,9 @@ export function catalogFromRows(
     }
     if (row.bucket === 'bonus_complete') {
       pack.bonusComplete.push(row.body);
+    }
+    if (row.bucket === 'optional_complete') {
+      pack.optionalComplete.push(row.body);
     }
   }
 

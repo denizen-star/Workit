@@ -16,6 +16,8 @@ interface CompleteTakeoverProps {
   badges?: TakeoverBadge[];
   bonus?: boolean;
   bonusCount?: number;
+  optionalLbs?: number;
+  kickerLbs?: number;
   onClose: () => void;
 }
 
@@ -31,6 +33,8 @@ export default function CompleteTakeover({
   badges = [],
   bonus = false,
   bonusCount = 0,
+  optionalLbs = 0,
+  kickerLbs = 0,
   onClose,
 }: CompleteTakeoverProps) {
   const onCloseRef = useRef(onClose);
@@ -113,7 +117,7 @@ export default function CompleteTakeover({
         ) : (
           <>
             <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
-              {bonus ? 'Bonus locked' : 'Workout complete'}
+              {bonus ? 'Bonus locked' : optionalLbs > 0 ? 'Optional locked' : 'Workout complete'}
             </p>
             <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
               {title}
@@ -121,6 +125,12 @@ export default function CompleteTakeover({
             {bonus && bonusCount > 0 ? (
               <p className="mt-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#e8c547]">
                 {bonusCount} bonus {bonusCount === 1 ? 'day' : 'days'} this program
+              </p>
+            ) : null}
+            {optionalLbs > 0 ? (
+              <p className="mt-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#e8c547]">
+                +{Math.round(optionalLbs).toLocaleString()} lb optional
+                {kickerLbs > 0 ? ` · +${Math.round(kickerLbs).toLocaleString()} lb kicker` : ''}
               </p>
             ) : null}
             {body ? (

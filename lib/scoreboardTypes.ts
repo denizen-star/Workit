@@ -8,6 +8,12 @@ export type BonusHonorRow = {
   bonusWeeks: number;
 };
 
+export type OptionalHonorRow = {
+  id: number;
+  name: string;
+  optionalWeeks: number;
+};
+
 export type HouseholdScoreboardRow = {
   id: number;
   name: string;

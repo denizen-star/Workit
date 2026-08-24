@@ -12,6 +12,11 @@ export interface WorkoutSessionRow {
   created_at?: string | null;
   completed_at?: string | null;
   ended_at?: string | null;
+  warmup_completed_at?: string | null;
+  cooldown_completed_at?: string | null;
+  warmup_lbs?: number | null;
+  cooldown_lbs?: number | null;
+  optional_kicker_lbs?: number | null;
 }
 
 export function isSessionComplete(session: { is_completed: unknown }): boolean {
@@ -86,6 +91,16 @@ export function findNextProgramDay(
   }
 
   return null;
+}
+
+/** Select Workout: resume week if one is open, else the next unlocked week. Locked weeks stay folded. */
+export function defaultSelectWeek(
+  sessions: WorkoutSessionRow[],
+  program: WeekPlan[] = workoutProgram
+): number | null {
+  const resume = findIncompleteSession(sessions);
+  if (resume) return Number(resume.week_number);
+  return findNextProgramDay(sessions, program)?.week.weekNumber ?? null;
 }
 
 export function getTodayTarget(sessions: WorkoutSessionRow[]) {

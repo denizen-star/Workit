@@ -2,6 +2,7 @@ import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import { type BonusHonorRow, type HouseholdScoreboardRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 function periodFilter(period: ScoreboardPeriod, column: string) {
@@ -15,6 +16,10 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
     period,
     'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'
   );
+  const optionalWindow = periodFilter(
+    period,
+    'COALESCE(optws.completed_at, optws.started_at, optws.created_at)'
+  );
   const badgeWindow = periodFilter(period, 'ub.earned_at');
 
   const result = await query(
@@ -22,7 +27,10 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
        u.id,
        u.name,
        COUNT(DISTINCT ws.id) as workouts,
-       COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume,
+       COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
+         'u.id',
+         `AND optws.is_completed = 1${optionalWindow}`
+       )} as volume,
        COUNT(CASE WHEN es.is_completed = 1 THEN es.id END) as sets,
        COALESCE(MAX(es.weight_lbs), 0) as heaviest,
        AVG(CASE WHEN ws.started_at IS NOT NULL AND ws.ended_at IS NOT NULL
@@ -65,7 +73,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
      FROM (
        SELECT
          ws.user_id,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) as session_volume
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as session_volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
        WHERE ws.is_completed = 1 ${sessionWindow}

@@ -2,6 +2,7 @@ import { after } from 'next/server';
 import { query } from '@/lib/db';
 import { checkAndAwardBadges, type AwardedBadge } from '@/lib/badges';
 import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlSessionOptionalVolume } from '@/lib/optionals';
 import { getUserTone } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { pickCompleteLine } from '@/lib/coachLines';
@@ -84,12 +85,13 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   const totals = await query(
     `SELECT
-       COALESCE(SUM(${sqlSetVolume()}), 0) as volume,
+       COALESCE(SUM(${sqlSetVolume()}), 0)
+         + (SELECT ${sqlSessionOptionalVolume('ws')} FROM workout_sessions ws WHERE ws.id = ?) as volume,
        COUNT(*) as set_count,
        COUNT(DISTINCT exercise_name) as exercise_count
      FROM exercise_sets
      WHERE workout_session_id = ?`,
-    [opts.sessionId]
+    [opts.sessionId, opts.sessionId]
   );
   const timing = await query(
     `SELECT TIMESTAMPDIFF(SECOND, started_at, ended_at) as duration_seconds

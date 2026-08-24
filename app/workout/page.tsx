@@ -15,6 +15,7 @@ import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import {
+  defaultSelectWeek,
   findIncompleteSession,
   findLatestCompletedSession,
   isSessionComplete,
@@ -25,10 +26,11 @@ import CompletedSessionCard, { type HistorySession } from '@/components/Complete
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
+import OptionalCard from '@/components/OptionalCard';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -84,7 +86,7 @@ function WorkoutPageInner() {
   const [selectedWeek, setSelectedWeek] = useState(1);
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [currentSession, setCurrentSession] = useState<number | null>(null);
-  const [expandedWeek, setExpandedWeek] = useState<number | null>(1);
+  const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [completedWorkouts, setCompletedWorkouts] = useState<Set<string>>(new Set());
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [startedAt, setStartedAt] = useState<number | null>(null);
@@ -99,10 +101,13 @@ function WorkoutPageInner() {
   const [completeLine, setCompleteLine] = useState('');
   const [bonusFinish, setBonusFinish] = useState(false);
   const [bonusFinishCount, setBonusFinishCount] = useState(0);
+  const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
+  const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const autoOpened = useRef(false);
+  const selectWeekInit = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [soundOn, setSoundOn] = useState(true);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
@@ -143,6 +148,7 @@ function WorkoutPageInner() {
 
       if (shouldRestart && week && day) {
         autoOpened.current = true;
+        setExpandedWeek(week);
         const open = findIncompleteSession(rows, week, day);
         askRestart(week, day, open ? Number(open.id) : undefined);
         return;
@@ -195,6 +201,10 @@ function WorkoutPageInner() {
               .map((session) => `${session.week_number}-${session.day_number}`)
           )
         );
+        if (!selectWeekInit.current) {
+          selectWeekInit.current = true;
+          setExpandedWeek(defaultSelectWeek(rows));
+        }
         if (historyRes.ok) {
           const historyData = await historyRes.json();
           setHistorySessions(
@@ -367,7 +377,17 @@ function WorkoutPageInner() {
       const finishedBonus = Boolean(data.bonus);
       setBonusFinish(finishedBonus);
       setBonusFinishCount(Number(data.bonusCount || 0));
-      setCompleteLine(finishedBonus ? pickBonusCompleteLine(coachTone) : pickCompleteLine(coachTone));
+      const optionalLbs = Number(data.optionalLbs || 0);
+      const kickerLbs = Number(data.kickerLbs || 0);
+      setOptionalFinishLbs(optionalLbs);
+      setOptionalKickerLbs(kickerLbs);
+      setCompleteLine(
+        optionalLbs > 0
+          ? pickOptionalCompleteLine(coachTone)
+          : finishedBonus
+            ? pickBonusCompleteLine(coachTone)
+            : pickCompleteLine(coachTone)
+      );
       setShowSuccess(true);
     } catch (error) {
       console.error('Error completing workout:', error);
@@ -461,7 +481,8 @@ function WorkoutPageInner() {
           </div>
         </header>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto space-y-6 px-4 py-8">
+          <OptionalCard sessionId={currentSession} slot="warmup" />
           <ExerciseTracker
             sessionId={currentSession}
             weekNumber={selectedWeek}
@@ -469,6 +490,7 @@ function WorkoutPageInner() {
             coachTone={coachTone}
             onComplete={() => setConfirmComplete(true)}
           />
+          <OptionalCard sessionId={currentSession} slot="cooldown" />
         </div>
 
         <ExitTakeover
@@ -495,10 +517,14 @@ function WorkoutPageInner() {
           badges={awardedBadges}
           bonus={bonusFinish}
           bonusCount={bonusFinishCount}
+          optionalLbs={optionalFinishLbs}
+          kickerLbs={optionalKickerLbs}
           onClose={() => {
             setShowSuccess(false);
             setBonusFinish(false);
             setBonusFinishCount(0);
+            setOptionalFinishLbs(0);
+            setOptionalKickerLbs(0);
             setAwardedBadges([]);
             setCurrentSession(null);
             setSelectedDay(null);
@@ -582,8 +608,10 @@ function WorkoutPageInner() {
           {workoutProgram.map((week) => (
             <div key={week.weekNumber} className="glass-card overflow-hidden">
               <button
+                type="button"
                 onClick={() => setExpandedWeek(expandedWeek === week.weekNumber ? null : week.weekNumber)}
                 className="flex w-full items-center justify-between px-6 py-4 hover:bg-white/5"
+                aria-expanded={expandedWeek === week.weekNumber}
               >
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-black text-white">Week {week.weekNumber}</h2>
@@ -768,10 +796,14 @@ function WorkoutPageInner() {
         badges={awardedBadges}
         bonus={bonusFinish}
         bonusCount={bonusFinishCount}
+        optionalLbs={optionalFinishLbs}
+        kickerLbs={optionalKickerLbs}
         onClose={() => {
           setShowSuccess(false);
           setBonusFinish(false);
           setBonusFinishCount(0);
+          setOptionalFinishLbs(0);
+          setOptionalKickerLbs(0);
           setAwardedBadges([]);
           setCurrentSession(null);
           setSelectedDay(null);

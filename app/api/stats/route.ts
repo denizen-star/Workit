@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { countCurrentStreak, householdHomeStats } from '@/lib/statsHousehold';
 
 export async function GET() {
@@ -18,7 +19,7 @@ export async function GET() {
         COUNT(DISTINCT ws.id) as total_workouts,
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
         COUNT(DISTINCT es.exercise_name) as unique_exercises,
-        SUM(${sqlSetVolume('es')}) as total_weight_lifted
+        SUM(${sqlSetVolume('es')}) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
        WHERE ws.user_id = ?`,

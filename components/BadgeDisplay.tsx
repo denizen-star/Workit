@@ -18,6 +18,8 @@ interface BadgeDisplayProps {
   allBadges: Badge[];
   earnedBadges: Badge[];
   bonusCount?: number;
+  optionalWeekCount?: number;
+  optionalCount?: number;
 }
 
 function requirementLabel(badge: Badge) {
@@ -54,12 +56,22 @@ function requirementLabel(badge: Badge) {
       return 'Start at or after 8pm';
     case 'bonus_sessions':
       return 'Finish a bonus day';
+    case 'optional_weeks':
+      return 'Finish 4 warmups and 4 cooldowns in a week';
+    case 'optionals':
+      return 'Finish an optional warmup or cooldown';
     default:
       return '';
   }
 }
 
-export default function BadgeDisplay({ allBadges, earnedBadges, bonusCount = 0 }: BadgeDisplayProps) {
+export default function BadgeDisplay({
+  allBadges,
+  earnedBadges,
+  bonusCount = 0,
+  optionalWeekCount = 0,
+  optionalCount = 0,
+}: BadgeDisplayProps) {
   const [open, setOpen] = useState(false);
   const earnedIds = new Set(earnedBadges.map((badge) => badge.id));
 
@@ -108,6 +120,14 @@ export default function BadgeDisplay({ allBadges, earnedBadges, bonusCount = 0 }
                   {isEarned && badge.requirement_type === 'bonus_sessions' ? (
                     <p className="mt-2 text-xs text-[#e8c547]">
                       {bonusCount} bonus {bonusCount === 1 ? 'day' : 'days'}
+                    </p>
+                  ) : isEarned && badge.requirement_type === 'optional_weeks' ? (
+                    <p className="mt-2 text-xs text-[#e8c547]">
+                      {optionalWeekCount} optional {optionalWeekCount === 1 ? 'week' : 'weeks'}
+                    </p>
+                  ) : isEarned && badge.requirement_type === 'optionals' ? (
+                    <p className="mt-2 text-xs text-[#e8c547]">
+                      {optionalCount} optional {optionalCount === 1 ? 'slot' : 'slots'}
                     </p>
                   ) : isEarned && earnedBadge?.earned_at ? (
                     <p className="mt-2 text-xs text-[#e8c547]">

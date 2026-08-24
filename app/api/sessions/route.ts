@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
+import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
@@ -148,7 +149,9 @@ export async function PUT(request: NextRequest) {
     const { sessionId, isCompleted, notes } = await request.json();
 
     const existing = await query(
-      'SELECT id, week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE id = ? AND user_id = ?',
+      `SELECT id, week_number, day_number, workout_type, is_completed,
+              warmup_lbs, cooldown_lbs, optional_kicker_lbs
+       FROM workout_sessions WHERE id = ? AND user_id = ?`,
       [sessionId, user.id]
     );
 
@@ -162,9 +165,13 @@ export async function PUT(request: NextRequest) {
       day_number: number;
       workout_type: string;
       is_completed: number | boolean;
+      warmup_lbs?: number | null;
+      cooldown_lbs?: number | null;
+      optional_kicker_lbs?: number | null;
     };
     const alreadyComplete = Boolean(Number(session.is_completed));
     const bonus = sessionIsBonus(session);
+    const optionalLbs = sessionOptionalLbs(session);
 
     await query(
       `UPDATE workout_sessions 
@@ -222,6 +229,8 @@ export async function PUT(request: NextRequest) {
       awardedBadges,
       bonus,
       bonusCount: uniqueBonusWeeks,
+      optionalLbs,
+      kickerLbs: Number(session.optional_kicker_lbs || 0),
     });
   } catch (error) {
     console.error('Error updating workout session:', error);

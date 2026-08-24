@@ -80,6 +80,11 @@ export type ScoreboardHonorRow = {
   bonusWeeks: number;
 };
 
+export type ScoreboardOptionalHonorRow = {
+  name: string;
+  optionalWeeks: number;
+};
+
 export type ScoreboardEmailInput = {
   rangeLabel: string;
   rows: ScoreboardRow[];
@@ -87,6 +92,7 @@ export type ScoreboardEmailInput = {
   yoursName?: string | null;
   yours?: string[];
   bonusHonor?: ScoreboardHonorRow[];
+  optionalHonor?: ScoreboardOptionalHonorRow[];
 };
 
 function bonusHonorHtml(rows?: ScoreboardHonorRow[]) {
@@ -114,6 +120,43 @@ function bonusHonorText(rows?: ScoreboardHonorRow[]) {
   return [
     'Bonus work. Extra upper. They did not owe it. They paid it.',
     ...rows.map((row) => '  ' + row.name + ' · ' + row.bonusWeeks + ' bonus ' + (row.bonusWeeks === 1 ? 'week' : 'weeks')),
+    '',
+  ];
+}
+
+function optionalHonorHtml(rows?: ScoreboardOptionalHonorRow[]) {
+  if (!rows?.length) return '';
+  const list = rows
+    .map(
+      (row) =>
+        '<div style="font-weight:800;color:#fff;margin-top:6px;">' +
+        esc(row.name) +
+        ' · ' +
+        esc(String(row.optionalWeeks)) +
+        ' optional ' +
+        (row.optionalWeeks === 1 ? 'week' : 'weeks') +
+        '</div>'
+    )
+    .join('');
+  return (
+    p('<strong style="color:#e8c547;">Optionals.</strong> Four warmups. Four cooldowns. Easy minutes that still count.') +
+    list
+  );
+}
+
+function optionalHonorText(rows?: ScoreboardOptionalHonorRow[]) {
+  if (!rows?.length) return [];
+  return [
+    'Optionals. Four warmups. Four cooldowns. Easy minutes that still count.',
+    ...rows.map(
+      (row) =>
+        '  ' +
+        row.name +
+        ' · ' +
+        row.optionalWeeks +
+        ' optional ' +
+        (row.optionalWeeks === 1 ? 'week' : 'weeks')
+    ),
     '',
   ];
 }
@@ -436,6 +479,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
       rankingHtml,
       yoursHtml,
       bonusHonorHtml(input.bonusHonor),
+      optionalHonorHtml(input.optionalHonor),
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
         rowsHtml +
         '</table>',
@@ -455,6 +499,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
       ? ['Your standing' + (yoursName ? ', ' + yoursName : '') + '.', ...input.yours.map((line) => '  ' + line), '']
       : []),
     ...bonusHonorText(input.bonusHonor),
+    ...optionalHonorText(input.optionalHonor),
     ...input.rows.map((row) =>
       [
         row.name,
@@ -483,11 +528,14 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
 export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const signer = input.signer || voiceDisplayName(normalizeCoachTone(input.tone));
-  const ordersLine =
-    normalizeCoachTone(input.tone) === 'sergeant'
-      ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
-      : 'Do not skim this like a changelog, sissy. These are orders from Master Tom Iron.';
-  const eyebrow = 'new orders · ' + input.version;
+  const sergeant = normalizeCoachTone(input.tone) === 'sergeant';
+  const ordersLine = sergeant
+    ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
+    : 'Do not skim this like a changelog, sissy. These are orders from Master Tom Iron.';
+  const refreshLine = sergeant
+    ? 'Hard-refresh if you are still on the old build. Then come train with me.'
+    : 'Hard-refresh if you are still running the old build. Then get under the bar.';
+  const eyebrow = sergeant ? 'a note · ' + input.version : 'new orders · ' + input.version;
   const groups = releaseGroups(input);
   const html = wrapEmailHtml({
     eyebrow,
@@ -497,7 +545,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
       address(name),
       input.lead ? p(esc(input.lead)) : '',
       p(ordersLine),
-      p('Hard-refresh if you are still running the old build. Then get under the bar.'),
+      p(refreshLine),
       releaseGroupsHtml(groups),
       input.also && input.also.length
         ? p('<strong style="color:#fff;">and you will also:</strong>') + bullets(input.also)
@@ -512,6 +560,8 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     '',
     ...(input.lead ? [input.lead, ''] : []),
     ordersLine,
+    '',
+    refreshLine,
     '',
     ...releaseGroupsText(groups),
     ...(input.also && input.also.length
@@ -602,6 +652,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
         '3. Peter · Best day 640 · Total weight 9.1k',
       ],
       bonusHonor: [{ name: 'Kevin', bonusWeeks: 2 }],
+      optionalHonor: [{ name: 'Kevin', optionalWeeks: 1 }],
       yours: [
         'Kevin is 1st of 3. Best day 1.2k · Total weight 28.4k.',
         'Weight',

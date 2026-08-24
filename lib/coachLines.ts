@@ -10,6 +10,7 @@ type LinePack = {
   exit: readonly string[];
   complete: readonly string[];
   bonusComplete: readonly string[];
+  optionalComplete: readonly string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -128,6 +129,13 @@ const MASTER: LinePack = {
     'THAT WAS OPTIONAL. You treated optional like tax. Good man.',
     'BONUS BANKED. I saw the extra upper. So did the house.',
     'YOU WENT PAST THE WEEK. That is how a man gets marked on my board.',
+  ],
+  optionalComplete: [
+    'OPTIONAL LOCKED. You did not owe me those ten minutes, man. You paid them. The board felt it.',
+    'EASY WORK, REAL LBS. Run, bike, stretch, core — I do not care. You stayed for the clock. Good man.',
+    'FIVE HUNDRED ON THE HOUSE. Cheap for ten minutes. Expensive if you skip. You did not skip.',
+    'THE LEAD CAN HEAR THAT. Extra minutes. Extra iron on the board. Hunt.',
+    'WARMUP AND COOLDOWN ARE NOT DECORATION. You treated them like tax. That is how a man closes a gap.',
   ],
   setUpTitle: 'GOOD MAN',
   setUpBody: 'I like where this is going',
@@ -249,6 +257,13 @@ const SERGEANT: LinePack = {
     'Extra practice locked. I see the extra time you gave your body. Beautiful.',
     'You did not have to stay. You stayed. Carry that quietly.',
   ],
+  optionalComplete: [
+    'Optional practice complete. Ten easy minutes, fully given. Thank you for that extra care.',
+    'You chose the extra clock and stayed kind with it. Those pounds are yours.',
+    'Warmup or cooldown, you honored the time. Rest well. The work counts.',
+    'Easy does not mean empty. You stayed for the whole ten. Beautiful.',
+    'You did not have to add those minutes. You added them. Carry that quietly.',
+  ],
   setUpTitle: 'This is growth',
   setUpBody: 'I like where this is going. Stay with this energy.',
   setDownTitle: 'Come back to your last weight',
@@ -342,6 +357,16 @@ export function pickBonusCompleteLine(tone?: CoachTone | null): string {
       ? live.bonusComplete
       : PACKS[id].bonusComplete;
   return pickFrom(pool, `bonus:${id}`);
+}
+
+export function pickOptionalCompleteLine(tone?: CoachTone | null): string {
+  const id = normalizeCoachTone(tone);
+  const live = getLinePack(id);
+  const pool =
+    live?.optionalComplete && live.optionalComplete.length
+      ? live.optionalComplete
+      : PACKS[id].optionalComplete;
+  return pickFrom(pool, `optional:${id}`);
 }
 
 export function setProgressCopy(

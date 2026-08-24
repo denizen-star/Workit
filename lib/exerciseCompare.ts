@@ -3,6 +3,7 @@ import { resolveAnalyticsWindow, sqlUtc, type AnalyticsRangeId } from '@/lib/ana
 import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlSessionOptionalVolume } from '@/lib/optionals';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export type CompareMetric = 'weight' | 'reps';
@@ -135,7 +136,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
 }> {
   const filter = windowFilter(window);
 
-  const [athleteResult, setResult] = await Promise.all([
+  const [athleteResult, setResult, optionalResult] = await Promise.all([
     query(
       `SELECT DISTINCT u.id, u.name
        FROM users u
@@ -161,6 +162,16 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
          AND es.is_completed = 1
          AND ${SQL_EXCLUDE_TEST_USER}
          ${filter.sql}`,
+      filter.params
+    ),
+    query(
+      `SELECT ws.user_id, COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as optional_lbs
+       FROM workout_sessions ws
+       INNER JOIN users u ON u.id = ws.user_id
+       WHERE ws.is_completed = 1
+         AND ${SQL_EXCLUDE_TEST_USER}
+         ${filter.sql}
+       GROUP BY ws.user_id`,
       filter.params
     ),
   ]);
@@ -211,6 +222,11 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
         reps: reps > 0 ? reps : 0,
       });
     }
+  }
+
+  for (const row of optionalResult.rows as { user_id: number; optional_lbs: number }[]) {
+    const userId = Number(row.user_id);
+    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + Number(row.optional_lbs || 0));
   }
 
   return { athletes, sessions: [...sessionTotals.values()], volumeByUser };
