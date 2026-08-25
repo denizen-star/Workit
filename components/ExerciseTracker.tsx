@@ -4,14 +4,16 @@ import { useState, useEffect } from 'react';
 import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
-import { pickCoachLine, setProgressCopy } from '@/lib/coachLines';
+import { pickCoachLine, setProgressCopy, hardnessCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
+import { parseHardness, type HardnessScore } from '@/lib/hardness';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
 import SetProgressFlash from './SetProgressFlash';
+import SetHardness from './SetHardness';
 import { exerciseVideos, getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
 import { getExerciseImages } from '@/lib/exerciseImages';
 import {
@@ -24,6 +26,7 @@ import {
   weightFieldLabel,
   type ExerciseKind,
 } from '@/lib/exerciseKind';
+import { bestLoggedSet, setDirection } from '@/lib/setHistory';
 
 interface Exercise {
   name: string;
@@ -40,6 +43,7 @@ interface ExerciseSet {
   actual_reps: number | null;
   weight_lbs: number | null;
   is_completed: boolean;
+  hardness?: HardnessScore | null;
   notes?: string;
 }
 
@@ -77,22 +81,20 @@ function priorSetFor(
   currentSets: ExerciseSet[],
   history: HistoryPayload
 ): { weight_lbs: number | null; actual_reps: number | null } | null {
-  if (setNumber > 1) {
-    const previous = currentSets.find(
-      (item) =>
-        item.exercise_name === exerciseName &&
-        item.set_number === setNumber - 1 &&
-        item.is_completed
-    );
-    if (previous) {
-      return { weight_lbs: previous.weight_lbs, actual_reps: previous.actual_reps };
-    }
+  if (setNumber === 1) {
+    return lastBestFor(exerciseName, history);
   }
 
-  const last = lastSetsFor(exerciseName, history);
-  if (!last.length) return null;
-  const match = last.find((item) => item.set_number === setNumber) ?? last[0];
-  return { weight_lbs: match.weight_lbs, actual_reps: match.actual_reps };
+  const previous = currentSets.find(
+    (item) =>
+      item.exercise_name === exerciseName &&
+      item.set_number === setNumber - 1 &&
+      item.is_completed
+  );
+  if (previous) {
+    return { weight_lbs: previous.weight_lbs, actual_reps: previous.actual_reps };
+  }
+  return null;
 }
 
 function lastSetsFor(
@@ -103,46 +105,15 @@ function lastSetsFor(
   return history.lastSets[key] || history.lastSets[exerciseName] || [];
 }
 
+function lastBestFor(exerciseName: string, history: HistoryPayload) {
+  return bestLoggedSet(lastSetsFor(exerciseName, history));
+}
+
 function setSummaryLabel(
   kind: ExerciseKind,
   set: { weight_lbs: number | null; actual_reps: number | null }
 ) {
   return setLogLabel(kind, set.weight_lbs, set.actual_reps);
-}
-
-function pickLastSet(
-  historySets: Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }>,
-  setNumber: number
-) {
-  return historySets.find((item) => item.set_number === setNumber) ?? historySets[0] ?? null;
-}
-
-function setDirection(
-  kind: ExerciseKind,
-  current: { weight_lbs: number | null; actual_reps: number | null },
-  prior: { weight_lbs: number | null; actual_reps: number | null } | null
-): 'up' | 'down' | null {
-  if (!prior) return null;
-
-  const currentReps = current.actual_reps ?? 0;
-  const priorReps = prior.actual_reps ?? 0;
-
-  if (kind === 'timed' || kind === 'distance') {
-    if (currentReps > priorReps) return 'up';
-    if (currentReps < priorReps) return 'down';
-    return null;
-  }
-
-  const currentWeight = current.weight_lbs ?? 0;
-  const priorWeight = prior.weight_lbs ?? 0;
-  const weightUp = currentWeight > priorWeight;
-  const weightDown = currentWeight < priorWeight;
-  const repsUp = currentReps > priorReps;
-  const repsDown = currentReps < priorReps;
-
-  if ((weightUp || repsUp) && !weightDown && !repsDown) return 'up';
-  if ((weightDown || repsDown) && !weightUp && !repsUp) return 'down';
-  return null;
 }
 
 export default function ExerciseTracker({
@@ -165,7 +136,11 @@ export default function ExerciseTracker({
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
-  const [setFlash, setSetFlash] = useState<{ variant: 'up' | 'down'; title: string; body: string } | null>(null);
+  const [setFlash, setSetFlash] = useState<{
+    variant: 'up' | 'down' | 'call';
+    title: string;
+    body: string;
+  } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
 
   useEffect(() => {
@@ -211,15 +186,15 @@ export default function ExerciseTracker({
             row.exercise_name === slot.exercise_name && Number(row.set_number) === slot.set_number
         );
 
-        const last = pickLastSet(lastSetsFor(slot.exercise_name, historyData), slot.set_number);
+        const lastBest = lastBestFor(slot.exercise_name, historyData);
 
         if (found) {
           const completed = Boolean(Number(found.is_completed));
           let actual_reps = asNumber(found.actual_reps);
           let weight_lbs = asNumber(found.weight_lbs);
-          if (!completed && last) {
-            if (actual_reps == null) actual_reps = last.actual_reps;
-            if (weight_lbs == null || weight_lbs === 0) weight_lbs = last.weight_lbs;
+          if (!completed && slot.set_number === 1 && lastBest) {
+            if (actual_reps == null) actual_reps = lastBest.actual_reps;
+            if (weight_lbs == null || weight_lbs === 0) weight_lbs = lastBest.weight_lbs;
           }
           return {
             ...slot,
@@ -228,14 +203,15 @@ export default function ExerciseTracker({
             weight_lbs,
             is_completed: completed,
             notes: found.notes,
+            hardness: parseHardness(found.hardness),
           };
         }
 
-        if (last) {
+        if (slot.set_number === 1 && lastBest) {
           return {
             ...slot,
-            actual_reps: last.actual_reps,
-            weight_lbs: last.weight_lbs,
+            actual_reps: lastBest.actual_reps,
+            weight_lbs: lastBest.weight_lbs,
           };
         }
 
@@ -261,6 +237,7 @@ export default function ExerciseTracker({
             is_completed: Boolean(Number(found.is_completed)),
             id: found.id,
             notes: found.notes,
+            hardness: parseHardness(found.hardness),
           });
         }
       }
@@ -403,15 +380,15 @@ export default function ExerciseTracker({
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
     const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
-    const direction = setDirection(kind, set, prior);
-    if (direction) {
-      const copy = setProgressCopy(direction, tone);
-      setSetFlash({ variant: direction, title: copy.title, body: copy.body });
-    } else if (isWeightPr || isTimedPr) {
+    const direction = setDirection(set, prior);
+    if (isWeightPr || isTimedPr) {
       setPrFlash({
         exerciseName: exercise.name,
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
+    } else if (direction) {
+      const copy = setProgressCopy(direction, tone);
+      setSetFlash({ variant: direction, title: copy.title, body: copy.body });
     }
 
     if (isWeightPr || isTimedPr) {
@@ -432,6 +409,38 @@ export default function ExerciseTracker({
       { is_completed: true, weight_lbs: set.weight_lbs ?? 0, actual_reps: set.actual_reps },
       { copyForward: true, startRest: true }
     );
+  };
+
+  const saveHardness = async (set: ExerciseSet, score: HardnessScore) => {
+    if (parseHardness(set.hardness) != null) return;
+    try {
+      const response = await fetch('/api/exercises', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: set.id,
+          workoutSessionId: sessionId,
+          exerciseName: set.exercise_name,
+          setNumber: set.set_number,
+          hardness: score,
+        }),
+      });
+      const data = response.ok || response.status === 409 ? await response.json() : null;
+      const locked = parseHardness(data?.hardness);
+      if (!response.ok && response.status !== 409) return;
+      const nextScore = locked ?? score;
+      setExerciseSets((current) =>
+        current.map((item) =>
+          item.exercise_name === set.exercise_name && item.set_number === set.set_number
+            ? { ...item, hardness: nextScore, id: data?.setId || item.id }
+            : item
+        )
+      );
+      const copy = hardnessCopy(nextScore, tone);
+      setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+    } catch (error) {
+      console.error('Error saving hardness:', error);
+    }
   };
 
   const addSet = async (exercise: Exercise) => {
@@ -519,7 +528,7 @@ export default function ExerciseTracker({
           .map((item) => Number(item.weight_lbs));
         const currentMax = completedWeights.length ? Math.max(...completedWeights) : 0;
         const beatLastWeek = lastWeek != null && currentMax > lastWeek;
-        const lastTime = lastSetsFor(exercise.name, history)[0];
+        const lastTime = lastBestFor(exercise.name, history);
 
         return (
           <div key={exercise.name} className="glass-card p-5">
@@ -659,24 +668,30 @@ export default function ExerciseTracker({
                     }`}
                   >
                     {folded ? (
-                      <div className="flex items-center gap-3">
-                        <div className="min-w-0 flex-1">
-                          <div className="text-sm font-black uppercase tracking-[0.2em] text-white/45">
-                            Set {set.set_number}
+                      <div>
+                        <div className="flex items-center gap-3">
+                          <div className="min-w-0 flex-1">
+                            <div className="text-sm font-black uppercase tracking-[0.2em] text-white/45">
+                              Set {set.set_number}
+                            </div>
+                            <p className="mt-1 truncate text-sm font-semibold text-white/40">
+                              {setSummaryLabel(kind, set)}
+                            </p>
                           </div>
-                          <p className="mt-1 truncate text-sm font-semibold text-white/40">
-                            {setSummaryLabel(kind, set)}
-                          </p>
+                          <button
+                            type="button"
+                            onClick={() => setEditingSet(`${set.exercise_name}-${set.set_number}`)}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors ${completeButtonClass}`}
+                          >
+                            <Check className="h-4 w-4" />
+                            Completed
+                            <ChevronDown className="h-4 w-4" />
+                          </button>
                         </div>
-                        <button
-                          type="button"
-                          onClick={() => setEditingSet(`${set.exercise_name}-${set.set_number}`)}
-                          className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors ${completeButtonClass}`}
-                        >
-                          <Check className="h-4 w-4" />
-                          Completed
-                          <ChevronDown className="h-4 w-4" />
-                        </button>
+                        <SetHardness
+                          value={parseHardness(set.hardness)}
+                          onPick={(score) => saveHardness(set, score)}
+                        />
                       </div>
                     ) : (
                       <>
@@ -837,7 +852,7 @@ export default function ExerciseTracker({
       />
 
       <PrFlash
-        open={!!prFlash && !setFlash}
+        open={!!prFlash}
         exerciseName={prFlash?.exerciseName || ''}
         valueLabel={prFlash?.valueLabel || ''}
         onClose={() => setPrFlash(null)}

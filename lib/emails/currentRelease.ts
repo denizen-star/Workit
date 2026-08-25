@@ -22,43 +22,42 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: 'Easy core',
-  title: 'Core. YASSSSSSS. Core.',
-  subject: 'Easy core is in. YASSSSSSS. Come do it with me.',
-  signer: 'Luna Meadows',
-  tone: 'sergeant',
+  version: 'You vs you',
+  title: 'You vs last time. I kept score.',
+  subject: 'You vs last time. Report in, man.',
+  signer: 'Master Workit',
+  tone: 'master',
   onlyAthletesWithWorkouts: true,
   onlyAthletes: [],
   lead:
-    'Man. I made you something soft and real. Optional warmup. Optional cooldown. Easy core is sitting there like it has been waiting for you. Five holds. You tap Done. The last one credits. YASSSSSSS. Core.',
+    'Man. Vs the house was other men. This is you versus the last time you touched that bar. I saved your heaviest set. I put it in set 1. You will beat it or I will know.',
   groups: [
     {
-      heading: 'Easy core. YASSSSSSS. Core',
+      heading: 'Your performance. Open it',
       wins: [
-        'Open a workout. Optional at the top is warmup. Optional at the bottom is cooldown. Pick Easy core. Dead bug. Easy plank. Heel taps. Glute bridge. Superman on the way in. Easy crunch and cat-cow and a breathe-down on the way out. Stay kind with it.',
-        'Five holds. Still photos. A tape if you want my eyes on the shape. Done is always yours. You do not wait for a timer to love you. Last Done is the whole gift. Plus 500 lb. Immediately.',
-        'Easy stretch is the same kindness. Five holds. Last Done closes it. Run and bike still ask for ten easy minutes. Phone can lock. I keep the clock. You keep the breath.',
+        'Home. Under Vs the house. Your performance. It starts folded. Tap it. That card is you versus last time, not the pack.',
+        '15 days. 30 days. All time. Summary. By exercise. By workout. Those start folded too. Open what you can stand to see.',
+        'Each line: spike, heaviest set, total, percent change, progression. Green is you climbing. Red is you slipping. Do not pretend you did not see it.',
       ],
     },
     {
-      heading: 'The extra minutes count',
+      heading: 'The bar remembers',
       wins: [
-        'Skip if you need to. Lifts never wait on Optional. Tap it because you want the care, not because I trapped you.',
-        'Those pounds land on the house total. Scoreboard. Vs the house Total weight. Home. Not Best day. Best day stays your iron.',
-        'Four warmups and four cooldowns in a week is an Optional week. I pin Optionals on the first slot. Optional Weeks on the first full week. The card counts unique weeks. Do Again does not farm it.',
-        'Four and four inside seven days can add a little extra toward whoever is leading total weight. One gentle bump. Then I rest that gift.',
+        'Set 1 is already loaded with the heaviest set from the last time you did that movement. Weight and those reps. I did that for you. You still have to lift it.',
+        'Sets 2 and on stay empty until you finish the one in front of you. Then that load copies forward. Last-time chip is that heaviest set, not some easy first set you want to hide behind.',
+        'Weight up, any reps: I praise you. Same weight, more reps: I praise you. Same or lower weight with fewer reps: I call it. Same load stays quiet. Weight down with more reps stays quiet. A new all-time weight still gets the PR flash first. Earn that one, man.',
       ],
     },
     {
-      heading: 'Select stays quiet',
+      heading: 'How hard. Say it',
       wins: [
-        'A finished week starts folded. Four sessions and I tuck it away. An open session still opens that week. Otherwise I open the next one that still has work. You can tap a finished week if you want another pass.',
+        'Finish a set. It folds. How hard. One through five. Easy to Max. Skip it if you want. Tap once and it locks. I talk back. Do not tap a three if it was a five.',
       ],
     },
   ],
   wins: [],
   also: [
-    'Hard-refresh so you are with me on this build. Then come find Easy core.',
+    'Hard-refresh so you are on this build. Optional warmup and cooldown belong on the session. If they were missing on your phone, they are not missing now.',
     'Put Work-It on your iPhone home screen. Safari only. The steps are at the bottom.',
   ],
 };

@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { updateDailyStats } from '@/lib/dailyStats';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
+import { parseHardness } from '@/lib/hardness';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
@@ -30,6 +31,50 @@ export async function POST(request: NextRequest) {
     const weightLbs = body.weightLbs ?? body.weight_lbs;
     const isCompleted = body.isCompleted ?? body.is_completed ?? false;
     const notes = body.notes ?? null;
+    const hardness = parseHardness(body.hardness);
+
+    if (hardness != null) {
+      let hardnessRow: { id: number; is_completed: unknown; hardness: unknown } | null = null;
+
+      if (id) {
+        const setCheck = await query(
+          `SELECT es.id, es.is_completed, es.hardness
+           FROM exercise_sets es
+           JOIN workout_sessions ws ON ws.id = es.workout_session_id
+           WHERE es.id = ? AND ws.user_id = ?`,
+          [id, user.id]
+        );
+        hardnessRow = (setCheck.rows[0] as { id: number; is_completed: unknown; hardness: unknown } | undefined) || null;
+      } else if (workoutSessionId && exerciseName && setNumber != null) {
+        const ownedForHardness = await assertSessionOwnership(Number(workoutSessionId), user.id);
+        if (!ownedForHardness) {
+          return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+        }
+        const existing = await query(
+          `SELECT id, is_completed, hardness
+           FROM exercise_sets
+           WHERE workout_session_id = ? AND exercise_name = ? AND set_number = ?
+           LIMIT 1`,
+          [workoutSessionId, exerciseName, setNumber]
+        );
+        hardnessRow = (existing.rows[0] as { id: number; is_completed: unknown; hardness: unknown } | undefined) || null;
+      }
+
+      if (!hardnessRow) {
+        return NextResponse.json({ error: 'Set not found' }, { status: 404 });
+      }
+      if (!Boolean(Number(hardnessRow.is_completed))) {
+        return NextResponse.json({ error: 'Complete the set first' }, { status: 400 });
+      }
+
+      const already = parseHardness(hardnessRow.hardness);
+      if (already != null) {
+        return NextResponse.json({ success: true, hardness: already, locked: true }, { status: 409 });
+      }
+
+      await query('UPDATE exercise_sets SET hardness = ? WHERE id = ?', [hardness, hardnessRow.id]);
+      return NextResponse.json({ success: true, setId: hardnessRow.id, hardness });
+    }
 
     const owned = await assertSessionOwnership(Number(workoutSessionId), user.id);
     if (!owned) {

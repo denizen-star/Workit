@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 
 interface PrFlashProps {
   open: boolean;
@@ -10,6 +10,9 @@ interface PrFlashProps {
 }
 
 export default function PrFlash({ open, exerciseName, valueLabel, onClose }: PrFlashProps) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
     if (!open) return;
 
@@ -19,9 +22,9 @@ export default function PrFlash({ open, exerciseName, valueLabel, onClose }: PrF
       // Ignore missing vibration support.
     }
 
-    const timeout = window.setTimeout(onClose, 2800);
+    const timeout = window.setTimeout(() => onCloseRef.current(), 2800);
     return () => window.clearTimeout(timeout);
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

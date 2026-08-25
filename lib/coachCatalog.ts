@@ -20,6 +20,7 @@ export type LinePack = {
   setUpBody: string;
   setDownTitle: string;
   setDownBody: string;
+  hardness: Partial<Record<1 | 2 | 3 | 4 | 5, { title: string; body: string }>>;
 };
 
 export const FALLBACK_VOICES: CoachVoiceRecord[] = [
@@ -54,6 +55,7 @@ function emptyPack(): LinePack {
     setUpBody: '',
     setDownTitle: '',
     setDownBody: '',
+    hardness: {},
   };
 }
 
@@ -157,6 +159,16 @@ export function catalogFromRows(
     if (row.bucket === 'set_down') {
       pack.setDownTitle = row.title || '';
       pack.setDownBody = row.body;
+      continue;
+    }
+    if (row.bucket.startsWith('hardness_')) {
+      const score = Number(row.bucket.slice('hardness_'.length));
+      if (score >= 1 && score <= 5) {
+        pack.hardness[score as 1 | 2 | 3 | 4 | 5] = {
+          title: row.title || '',
+          body: row.body,
+        };
+      }
       continue;
     }
     if (

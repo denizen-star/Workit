@@ -8,6 +8,7 @@ import BonusFlag from '@/components/BonusFlag';
 import OptionalFlag from '@/components/OptionalFlag';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ExerciseCompare from '@/components/ExerciseCompare';
+import AthletePerformance from '@/components/AthletePerformance';
 import ProgressCharts from '@/components/ProgressCharts';
 import EnjoymentCharts from '@/components/EnjoymentCharts';
 import type { RatingStats } from '@/lib/ratings';
@@ -349,6 +350,7 @@ export default function Home() {
         <HouseholdScoreboard />
 
         {!isTestUserName(userName) && <ExerciseCompare />}
+        {!isTestUserName(userName) && <AthletePerformance />}
 
         <div className="glass-card mb-8 p-6">
           <h2 className="mb-4 text-2xl font-black text-white">Weekly Progress</h2>

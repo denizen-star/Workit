@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 3.8.0 - 2026-08-25
+
+### Added
+- **Your performance** on Home, under Vs the house (starts folded). You vs last time you did that lift / that program day. 15 / 30 / All. Summary, By exercise, and By workout start folded. Each row: spike, heaviest set, total, % change, progression. Hidden for Test
+- **How hard** 1–5 (Easy–Max) on a finished set after it folds. Skip it. Locked once you tap. Coach talks back
+
+### Changed
+- Set 1 prefills the heaviest set (weight + those reps) from the last completed session that had that movement. Sets 2+ stay empty until you finish the previous set, then that load copies forward. Last-time chip shows that heaviest set. Same on timed, bodyweight, distance, extras, and Do Again
+- Gain/loss takeover: weight up (any reps) or same weight with more reps = good. Same or lower weight with fewer reps = bad. Same load, or weight down with reps up, stays quiet. A new all-time weight still shows the PR flash first
+
+### Fixed
+- Optional warmup/cooldown missing on iPhone after a hard refresh. They are on the live session now
+- PR flash no longer resets itself while the rest timer is running
+
 ## 3.7.0 - 2026-08-24
 
 ### Added

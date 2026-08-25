@@ -6,7 +6,7 @@ interface SetProgressFlashProps {
   open: boolean;
   title: string;
   body: string;
-  variant: 'up' | 'down';
+  variant: 'up' | 'down' | 'call';
   onClose: () => void;
 }
 
@@ -26,7 +26,9 @@ export default function SetProgressFlash({
     if (!open) return;
 
     try {
-      navigator.vibrate?.(variant === 'up' ? [80, 40, 160] : [200, 80, 200]);
+      navigator.vibrate?.(
+        variant === 'down' ? [200, 80, 200] : variant === 'up' ? [80, 40, 160] : [60, 40, 60]
+      );
     } catch {
       // Ignore missing vibration support.
     }
@@ -72,20 +74,30 @@ export default function SetProgressFlash({
       <div className="relative max-w-xl text-center">
         <h2
           className={`get-to-it-text text-5xl font-black leading-[0.95] tracking-tight sm:text-7xl ${
-            variant === 'up' ? 'text-[#22c55e]' : 'text-[#ff1a1a]'
+            variant === 'up'
+              ? 'text-[#22c55e]'
+              : variant === 'down'
+                ? 'text-[#ff1a1a]'
+                : 'text-[#e8c547]'
           }`}
           style={{
             textShadow:
               variant === 'up'
                 ? '0 0 28px rgba(34, 197, 94, 0.55)'
-                : '0 0 28px rgba(255, 26, 26, 0.55)',
+                : variant === 'down'
+                  ? '0 0 28px rgba(255, 26, 26, 0.55)'
+                  : '0 0 28px rgba(232, 197, 71, 0.55)',
           }}
         >
           {title}
         </h2>
         <p
           className={`mt-6 text-2xl font-black leading-tight sm:text-4xl ${
-            variant === 'up' ? 'text-[#16a34a]' : 'text-[#ff2a2a]'
+            variant === 'up'
+              ? 'text-[#16a34a]'
+              : variant === 'down'
+                ? 'text-[#ff2a2a]'
+                : 'text-[#f5d76e]'
           }`}
         >
           {body}

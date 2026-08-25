@@ -15,6 +15,7 @@ type LinePack = {
   setUpBody: string;
   setDownTitle: string;
   setDownBody: string;
+  hardness: Record<1 | 2 | 3 | 4 | 5, { title: string; body: string }>;
 };
 
 const MASTER: LinePack = {
@@ -141,6 +142,13 @@ const MASTER: LinePack = {
   setUpBody: 'I like where this is going',
   setDownTitle: "What's happening here",
   setDownBody: 'Are we playing dolls? Get that weight back up...',
+  hardness: {
+    1: { title: 'TOO EASY', body: 'That was a warm handshake, man. Next set we add.' },
+    2: { title: 'LIGHT WORK', body: 'You had more in the tank. I felt it.' },
+    3: { title: 'HONEST SET', body: 'That is a working set. Stay there or go up.' },
+    4: { title: 'THAT COST YOU', body: 'Good man. Hard is the point.' },
+    5: { title: 'MAX EFFORT', body: 'You emptied it. I saw that.' },
+  },
 };
 
 const SERGEANT: LinePack = {
@@ -268,6 +276,13 @@ const SERGEANT: LinePack = {
   setUpBody: 'I like where this is going. Stay with this energy.',
   setDownTitle: 'Come back to your last weight',
   setDownBody: 'This dip is a whisper, not a stop. Return to what you just lifted.',
+  hardness: {
+    1: { title: 'Too easy', body: 'Your body had more. We can ask for it next time.' },
+    2: { title: 'Light', body: 'Gentle is fine. Leave a little room to grow.' },
+    3: { title: 'Honest work', body: 'That met you where you are. Stay present.' },
+    4: { title: 'Hard', body: 'You stayed with the difficulty. Beautiful.' },
+    5: { title: 'Max', body: 'You gave the whole set. Rest and receive it.' },
+  },
 };
 
 const PACKS: Record<CoachTone, LinePack> = {
@@ -378,4 +393,14 @@ export function setProgressCopy(
     return { title: pack.setUpTitle, body: pack.setUpBody };
   }
   return { title: pack.setDownTitle, body: pack.setDownBody };
+}
+
+export function hardnessCopy(
+  score: 1 | 2 | 3 | 4 | 5,
+  tone?: CoachTone | null
+): { title: string; body: string } {
+  const id = normalizeCoachTone(tone);
+  const live = getLinePack(id)?.hardness?.[score];
+  if (live?.title || live?.body) return { title: live.title, body: live.body };
+  return PACKS[id].hardness[score];
 }

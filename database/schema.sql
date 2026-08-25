@@ -92,6 +92,7 @@ CREATE TABLE exercise_sets (
     actual_reps INT,
     weight_lbs DECIMAL(6,2),
     is_completed BOOLEAN DEFAULT FALSE,
+    hardness TINYINT NULL,
     rest_timer_seconds INT DEFAULT 90,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

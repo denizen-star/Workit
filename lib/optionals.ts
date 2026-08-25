@@ -250,7 +250,7 @@ export function optionalCircuit(slot: OptionalSlot, track: OptionalTrack): Optio
   return CIRCUITS[slot][track];
 }
 
-export function isGuidedOptionalTrack(track: OptionalTrack | null | undefined) {
+export function isGuidedOptionalTrack(track: unknown) {
   return track === 'stretch' || track === 'core';
 }
 
