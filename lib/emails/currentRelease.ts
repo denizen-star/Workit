@@ -22,42 +22,54 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: 'You vs you',
-  title: 'You vs last time. I kept score.',
-  subject: 'You vs last time. Report in, man.',
+  version: 'Home Quiet',
+  title: 'Home is quiet now. The rest of the house has rooms.',
+  subject: 'Home is quiet. Open it, man.',
   signer: 'Master Workit',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   onlyAthletes: [],
   lead:
-    'Man. Vs the house was other men. This is you versus the last time you touched that bar. I saved your heaviest set. I put it in set 1. You will beat it or I will know.',
+    'Man. This is the big one. I took Home apart and put it back as a launch pad. You open the app and the first thing you see is today: dark glass, gold Start sitting fat in the middle of the screen, Select outlined next to it, Restart a small quiet link if you already started and want to throw it away. No scoreboard pile. No medal wall. No completed log chewing the scroll. One job. Get under the bar. Everything else lives in the menu now, in its own room, waiting for you when you are done sweating.',
   groups: [
     {
-      heading: 'Your performance. Open it',
+      heading: 'What you see when you walk in',
       wins: [
-        'Home. Under Vs the house. Your performance. It starts folded. Tap it. That card is you versus last time, not the pack.',
-        '15 days. 30 days. All time. Summary. By exercise. By workout. Those start folded too. Open what you can stand to see.',
-        'Each line: spike, heaviest set, total, percent change, progression. Green is you climbing. Red is you slipping. Do not pretend you did not see it.',
+        'Black screen. Gold dumbbell. Work-It. Menu on the right. That is the whole header. I stripped the extra Start and Select out of the top so your thumb is not hunting.',
+        'The hero is a gold-edged card. Tiny gold kicker: Today, or Pick back up if you left a session open. Then the week and the day in huge white type. The focus line under it. How long I think it will take, in gold. Then the gold brick: Start Workout or Resume Workout. Select Workout next to it, gold outline, dark inside. Restart is not a fourth brick. It is a whisper under them. Use it when you mean it.',
+        'Under that, one sentence. How many of the 24 days you have finished. How many pounds you have moved all-time. If the last 7 days is a different number, I say so. If it is the same number, I tell you that too. Then the week lock.',
       ],
     },
     {
-      heading: 'The bar remembers',
+      heading: 'Four tiles. Lock the week',
       wins: [
-        'Set 1 is already loaded with the heaviest set from the last time you did that movement. Weight and those reps. I did that for you. You still have to lift it.',
-        'Sets 2 and on stay empty until you finish the one in front of you. Then that load copies forward. Last-time chip is that heaviest set, not some easy first set you want to hide behind.',
-        'Weight up, any reps: I praise you. Same weight, more reps: I praise you. Same or lower weight with fewer reps: I call it. Same load stays quiet. Weight down with more reps stays quiet. A new all-time weight still gets the PR flash first. Earn that one, man.',
+        'Four required days. Not five. Bonus is still extra credit and it still can count as one of the four, but the lock is four.',
+        'Done is solid gold, dark type, a check. That tile is finished. It looks like a medal you already earned.',
+        'Now is a gold outline on dark. That is the first unpaid required day. That is where I want your body. Not the day you already did. Not a Do Again. The one you still owe.',
+        'Open is a dashed empty box and a dash. Nothing happened there yet. Fill it or live with the gap.',
       ],
     },
     {
-      heading: 'How hard. Say it',
+      heading: 'The gold line. The copper house',
       wins: [
-        'Finish a set. It folds. How hard. One through five. Easy to Max. Skip it if you want. Tap once and it locks. I talk back. Do not tap a three if it was a five.',
+        'Daily weight lives on Home now. Gold is you. Thick. Copper dashed is the house average. Cream vanished on the dark page so I gave the house copper you can actually see.',
+        'Daily or Cumulative. Last 7. Last 30. All. Tap what you want to feel.',
+        'I will not draw a ghost day. If you did not lift, that date is not on the axis. If Mike lifted and you did not, his line is there and yours is not. The tooltip only names men who actually moved iron. No blank. No fake zero hugging the floor.',
+        'The house page has the pack chart. Every man is a line. You are gold. House average is copper dashed, and I left Test out of that average. Same rule: no empty days, no empty names in the tooltip.',
+      ],
+    },
+    {
+      heading: 'The rest of the house. Open the menu',
+      wins: [
+        'Hamburger. Your performance — you versus the last time you touched that lift. Hidden if you are Test. The house — the pack, the chart, the honor rolls, who you lead and who you chase. Completed log — every finished session, every set. Medals. About program — the week as five tiles, Wednesday Rest sitting dimmer, bonus card, how the overload is supposed to feel from week 1 to week 6.',
+        'Home still has a folded Your performance if you want the scan without leaving. Under that, folded You / house: your pounds, your days, the house next to you. Bonus and Optional are flags now, not fat cards. If you have nothing to show, they disappear.',
+        'You vs the man who owns the 7-day board sits on Home as one card. Hunt him or hold him. That card stays off for Test.',
       ],
     },
   ],
   wins: [],
   also: [
-    'Hard-refresh so you are on this build. Optional warmup and cooldown belong on the session. If they were missing on your phone, they are not missing now.',
-    'Put Work-It on your iPhone home screen. Safari only. The steps are at the bottom.',
+    'Hard-refresh so you are on this build. If Home still looks like a junk drawer, you are on the old one.',
+    'Put Work-It on your iPhone home screen. Safari only. The steps are at the bottom. I want that gold Start in your dock, man.',
   ],
 };

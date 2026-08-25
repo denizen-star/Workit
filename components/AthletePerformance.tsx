@@ -1,13 +1,13 @@
 'use client';
 
 import { useEffect, useState, type ReactNode } from 'react';
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Minus, TrendingUp } from 'lucide-react';
-import SpikeChart from '@/components/SpikeChart';
+import Link from 'next/link';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import ScanCard from '@/components/ScanCard';
 import {
   PERFORMANCE_PERIODS,
   formatLbs,
   formatPct,
-  performanceRangeLabel,
   type AthletePerformanceBoard,
   type PerformanceLine,
   type PerformancePeriod,
@@ -35,22 +35,6 @@ function toneFor(result: PerformanceLine['result']): 'up' | 'down' | 'plain' {
   return 'plain';
 }
 
-function Arrow({ result }: { result: PerformanceLine['result'] }) {
-  const tone = toneFor(result);
-  const className =
-    tone === 'up' ? 'text-[#22c55e]' : tone === 'down' ? 'text-[#ff2a2a]' : 'text-[#f6f1e3]/45';
-  if (result === 'gain') return <ArrowUp className={`h-4 w-4 shrink-0 ${className}`} />;
-  if (result === 'loss') return <ArrowDown className={`h-4 w-4 shrink-0 ${className}`} />;
-  return <Minus className={`h-4 w-4 shrink-0 ${className}`} />;
-}
-
-function pctClass(value: number | null | undefined) {
-  if (value == null) return 'text-[#f6f1e3]/45';
-  if (value > 0) return 'text-[#22c55e]';
-  if (value < 0) return 'text-[#ff2a2a]';
-  return 'text-[#f6f1e3]/55';
-}
-
 function LineRow({
   line,
   label,
@@ -61,53 +45,34 @@ function LineRow({
   detail?: string | null;
 }) {
   return (
-    <div className="grid grid-cols-[1rem_minmax(0,1fr)_auto] items-center gap-x-2 gap-y-0.5 border-b border-white/8 py-2 last:border-b-0">
-      <Arrow result={line.result} />
-      <div className="min-w-0">
-        <p className="truncate text-sm font-black text-white">{label || line.name}</p>
-        {detail ? <p className="truncate text-[10px] text-[#f6f1e3]/45">{detail}</p> : null}
-      </div>
-      <SpikeChart values={line.spark} tone={toneFor(line.result)} />
-      <div className="col-span-3 mt-0.5 grid grid-cols-4 gap-1 text-right text-[11px] font-semibold leading-tight">
-        <p className="text-[#f6f1e3]/80">
-          <span className="block text-[9px] font-semibold uppercase tracking-wider text-[#f6f1e3]/40">
-            Wt
-          </span>
-          {formatLbs(line.currentWeight)}
-        </p>
-        <p className="text-[#f5d76e]">
-          <span className="block text-[9px] font-semibold uppercase tracking-wider text-[#f6f1e3]/40">
-            Total
-          </span>
-          {formatLbs(line.currentVolume)}
-        </p>
-        <p className={pctClass(line.volumeChangePct)}>
-          <span className="block text-[9px] font-semibold uppercase tracking-wider text-[#f6f1e3]/40">
-            % chg
-          </span>
-          {formatPct(line.volumeChangePct)}
-        </p>
-        <p className={pctClass(line.progressionPct)}>
-          <span className="block text-[9px] font-semibold uppercase tracking-wider text-[#f6f1e3]/40">
-            Prog
-          </span>
-          {formatPct(line.progressionPct)}
-        </p>
-      </div>
-    </div>
+    <ScanCard
+      spark={line.spark}
+      sparkTone={toneFor(line.result)}
+      title={label || line.name}
+      headline={formatPct(line.volumeChangePct)}
+      sub={detail || undefined}
+      metrics={[
+        { label: 'Wt', value: formatLbs(line.currentWeight) },
+        { label: 'Total', value: formatLbs(line.currentVolume) },
+        { label: '% chg', value: formatPct(line.volumeChangePct) },
+        { label: 'Prog', value: formatPct(line.progressionPct) },
+      ]}
+    />
   );
 }
 
 function Fold({
   title,
   hint,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   hint?: string;
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div className="rounded-2xl border border-white/10 bg-black/20">
       <button
@@ -128,59 +93,135 @@ function Fold({
           <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
         )}
       </button>
-      {open && <div className="border-t border-white/10 px-3 pb-2">{children}</div>}
+      {open && <div className="space-y-2 border-t border-white/10 px-3 py-2">{children}</div>}
     </div>
   );
 }
 
-function SummaryList({ summary }: { summary: PerformanceSummary }) {
-  const rows: Array<{ label: string; value: string; tone?: 'up' | 'down' }> = [
-    { label: 'Gains', value: String(summary.gains), tone: 'up' },
-    { label: 'Losses', value: String(summary.losses), tone: 'down' },
-    { label: 'Weight up', value: String(summary.weightClimbing), tone: 'up' },
-    { label: 'Weight down', value: String(summary.weightDropping), tone: 'down' },
-    { label: 'Reps up', value: String(summary.repsClimbing) },
-    { label: 'Reps down', value: String(summary.repsDropping) },
-    {
-      label: 'Perception',
-      value: summary.perception == null ? '—' : formatHardnessAvg(summary.perception),
-    },
-  ];
-
+function SummaryCard({
+  summary,
+  athleteName,
+}: {
+  summary: PerformanceSummary;
+  athleteName?: string;
+}) {
   return (
-    <div>
-      {rows.map((row) => (
-        <div
-          key={row.label}
-          className="flex items-center justify-between border-b border-white/8 py-2 text-sm last:border-b-0"
-        >
-          <span className="text-[#f6f1e3]/60">{row.label}</span>
-          <span
-            className={`font-black ${
-              row.tone === 'up'
-                ? 'text-[#22c55e]'
-                : row.tone === 'down'
-                  ? 'text-[#ff2a2a]'
-                  : 'text-white'
+    <ScanCard
+      you={!athleteName}
+      kicker={athleteName || 'Your performance'}
+      title={athleteName ? `${athleteName} vs last time` : 'You vs last time'}
+      headline={`${summary.gains} up · ${summary.losses} down`}
+      sub={`Perception ${summary.perception == null ? '—' : formatHardnessAvg(summary.perception)}`}
+      metrics={[
+        { label: 'Gains', value: String(summary.gains) },
+        { label: 'Losses', value: String(summary.losses) },
+        { label: 'Wt up', value: String(summary.weightClimbing) },
+        { label: 'Wt down', value: String(summary.weightDropping) },
+        { label: 'Reps up', value: String(summary.repsClimbing) },
+        { label: 'Reps down', value: String(summary.repsDropping) },
+      ]}
+    />
+  );
+}
+
+export function PeriodPills({
+  period,
+  onPick,
+}: {
+  period: PerformancePeriod;
+  onPick: (value: PerformancePeriod) => void;
+}) {
+  return (
+    <div className="mb-3 grid grid-cols-3 gap-2">
+      {PERFORMANCE_PERIODS.map((option) => {
+        const selected = option === period;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => onPick(option)}
+            className={`min-h-10 rounded-2xl border text-sm font-semibold ${
+              selected
+                ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
             }`}
           >
-            {row.value}
-          </span>
-        </div>
-      ))}
+            {PERIOD_LABELS[option]}
+          </button>
+        );
+      })}
     </div>
   );
 }
 
-export default function AthletePerformance() {
-  const [open, setOpen] = useState(false);
+export function AthletePerformanceBoardView({
+  board,
+  page,
+  athleteName,
+}: {
+  board: AthletePerformanceBoard;
+  page: boolean;
+  athleteName?: string;
+}) {
+  const summary = board.summary;
+  const gainers = [...board.exercises]
+    .filter((row) => row.result === 'gain')
+    .sort((a, b) => (b.volumeChangePct || 0) - (a.volumeChangePct || 0))
+    .slice(0, 4);
+  const losers = [...board.exercises]
+    .filter((row) => row.result === 'loss')
+    .sort((a, b) => (a.volumeChangePct || 0) - (b.volumeChangePct || 0));
+
+  return (
+    <div className="space-y-3">
+      <SummaryCard summary={summary} athleteName={athleteName} />
+      {page && gainers.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Gainers</p>
+          {gainers.map((row) => (
+            <LineRow key={row.key} line={row} />
+          ))}
+        </div>
+      )}
+      {page && losers.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Losers</p>
+          {losers.map((row) => (
+            <LineRow key={row.key} line={row} />
+          ))}
+        </div>
+      )}
+      {page && (
+        <Fold title="Every lift" hint={`${board.exercises.length} lifts`}>
+          {board.exercises.map((row) => (
+            <LineRow key={row.key} line={row} />
+          ))}
+        </Fold>
+      )}
+      {page && (
+        <Fold title="By workout" hint={`${board.workouts.length} days`}>
+          {board.workouts.map((workout) => (
+            <WorkoutBlock key={workout.workoutType} workout={workout} />
+          ))}
+        </Fold>
+      )}
+    </div>
+  );
+}
+
+export default function AthletePerformance({
+  variant = 'home',
+}: {
+  variant?: 'home' | 'page';
+}) {
+  const page = variant === 'page';
+  const [open, setOpen] = useState(page);
   const [period, setPeriod] = useState<PerformancePeriod>('15');
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
   const [hidden, setHidden] = useState(false);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!open) return;
     let cancelled = false;
     setLoading(true);
     fetch('/api/athlete-performance?period=' + period)
@@ -207,98 +248,70 @@ export default function AthletePerformance() {
     return () => {
       cancelled = true;
     };
-  }, [open, period]);
+  }, [period]);
 
   if (hidden) return null;
 
   const summary = board?.summary;
+  const trailing = summary ? `${summary.gains} up · ${summary.losses} down` : undefined;
   const empty =
     !loading && !!board && board.exercises.length === 0 && board.workouts.length === 0;
 
+  const body = (
+    <div>
+      {page ? (
+        <p className="mb-3 text-xs text-[#f6f1e3]/55">
+          You vs last time. Weight, total, % change, progression.
+        </p>
+      ) : null}
+      <PeriodPills
+        period={period}
+        onPick={(value) => {
+          setPeriod(value);
+          setLoading(true);
+        }}
+      />
+      {loading ? (
+        <p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>
+      ) : empty ? (
+        <p className="text-sm text-[#f6f1e3]/55">
+          No finished workouts in this window. Log a session and this fills in.
+        </p>
+      ) : board ? (
+        <AthletePerformanceBoardView board={board} page={page} />
+      ) : null}
+      {!page && board ? (
+        <Link
+          href="/performance"
+          className="mt-3 inline-flex text-sm font-semibold text-[#e8c547]"
+        >
+          Open Your performance
+        </Link>
+      ) : null}
+    </div>
+  );
+
+  if (page) return body;
+
   return (
-    <div className="glass-card mb-8 p-5">
+    <div className="glass-card overflow-hidden">
       <button
         type="button"
-        onClick={() =>
-          setOpen((current) => {
-            if (!current) setLoading(true);
-            return !current;
-          })
-        }
-        className="flex w-full items-center gap-2 text-left"
+        onClick={() => setOpen((current) => !current)}
+        className="flex w-full items-center gap-2 px-4 py-3 text-left"
         aria-expanded={open}
       >
-        <TrendingUp className="h-6 w-6 text-[#e8c547]" />
-        <h2 className="text-2xl font-black text-white">Your performance</h2>
-        <span className="ml-auto text-sm text-[#f6f1e3]/65">{performanceRangeLabel(period)}</span>
+        <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
+          Your performance
+        </h2>
+        <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">{trailing || 'You vs last time'}</span>
         {open ? (
-          <ChevronUp className="h-5 w-5 text-[#f6f1e3]/65" />
+          <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
         ) : (
-          <ChevronDown className="h-5 w-5 text-[#f6f1e3]/65" />
+          <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
         )}
       </button>
-
-      {open && (
-        <div className="mt-3">
-          <p className="mb-3 text-xs text-[#f6f1e3]/55">
-            You vs last time. Weight, total, % change, progression.
-          </p>
-
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            {PERFORMANCE_PERIODS.map((option) => {
-              const selected = option === period;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => {
-                    setPeriod(option);
-                    setLoading(true);
-                  }}
-                  className={`min-h-10 rounded-2xl border text-sm font-semibold ${
-                    selected
-                      ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
-                      : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
-                  }`}
-                >
-                  {PERIOD_LABELS[option]}
-                </button>
-              );
-            })}
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>
-          ) : empty ? (
-            <p className="text-sm text-[#f6f1e3]/55">
-              No finished workouts in this window. Log a session and this fills in.
-            </p>
-          ) : (
-            <div className="space-y-2">
-              {summary && (
-                <Fold
-                  title="Summary"
-                  hint={`↑ ${summary.gains} · ↓ ${summary.losses}`}
-                >
-                  <SummaryList summary={summary} />
-                </Fold>
-              )}
-
-              <Fold title="By exercise" hint={`${board?.exercises.length || 0} lifts`}>
-                {board?.exercises.map((row) => (
-                  <LineRow key={row.key} line={row} />
-                ))}
-              </Fold>
-
-              <Fold title="By workout" hint={`${board?.workouts.length || 0} days`}>
-                {board?.workouts.map((workout) => (
-                  <WorkoutBlock key={workout.workoutType} workout={workout} />
-                ))}
-              </Fold>
-            </div>
-          )}
-        </div>
-      )}
+      {open && <div className="border-t border-white/10 px-4 pb-4 pt-3">{body}</div>}
     </div>
   );
 }
@@ -316,17 +329,12 @@ function WorkoutBlock({ workout }: { workout: WorkoutTrend }) {
     .join(' · ');
 
   return (
-    <div className="border-b border-white/8 last:border-b-0">
-      <button
-        type="button"
-        onClick={() => setOpen((current) => !current)}
-        className="w-full text-left"
-        aria-expanded={open}
-      >
+    <div>
+      <button type="button" onClick={() => setOpen((current) => !current)} className="w-full text-left" aria-expanded={open}>
         <LineRow line={workout} label={workout.workoutType} detail={detail} />
       </button>
       {open && (
-        <div className="ml-6">
+        <div className="mt-2 space-y-2 pl-3">
           {workout.exercises.map((row) => (
             <LineRow key={`${workout.workoutType}-${row.name}`} line={row} />
           ))}

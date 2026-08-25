@@ -1,11 +1,11 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { countCurrentStreak, householdHomeStats } from '@/lib/statsHousehold';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const user = await getCurrentUser();
     if (!user) {
@@ -13,6 +13,7 @@ export async function GET() {
     }
 
     const userId = user.id;
+    const home = request.nextUrl.searchParams.get('home') === '1';
 
     const overallStatsResult = await query(
       `SELECT 
@@ -26,8 +27,10 @@ export async function GET() {
       [userId]
     );
 
-    const weeklyStats = await query(
-      `SELECT 
+    const weeklyStats = home
+      ? { rows: [] as unknown[] }
+      : await query(
+          `SELECT 
         week_number,
         COUNT(*) as total_days,
         COUNT(CASE WHEN is_completed THEN 1 END) as completed_days
@@ -35,14 +38,13 @@ export async function GET() {
        WHERE user_id = ?
        GROUP BY week_number
        ORDER BY week_number`,
-      [userId]
-    );
+          [userId]
+        );
 
     const dailyStats = await query(
       `SELECT * FROM daily_stats 
        WHERE user_id = ? 
-       ORDER BY workout_date DESC 
-       LIMIT 30`,
+       ORDER BY workout_date DESC`,
       [userId]
     );
 
@@ -57,8 +59,10 @@ export async function GET() {
       streakResult.rows.map((row) => row.workout_date)
     );
 
-    const durationStats = await query(
-      `SELECT
+    const durationStats = home
+      ? { rows: [{}] }
+      : await query(
+          `SELECT
         AVG(TIMESTAMPDIFF(SECOND, started_at, ended_at)) as avg_seconds,
         MAX(TIMESTAMPDIFF(SECOND, started_at, ended_at)) as max_seconds,
         SUM(TIMESTAMPDIFF(SECOND, started_at, ended_at)) as total_seconds
@@ -67,11 +71,13 @@ export async function GET() {
          AND is_completed = 1
          AND started_at IS NOT NULL
          AND ended_at IS NOT NULL`,
-      [userId]
-    );
+          [userId]
+        );
 
-    const recentDurations = await query(
-      `SELECT workout_type, week_number, day_number, started_at, ended_at,
+    const recentDurations = home
+      ? { rows: [] as unknown[] }
+      : await query(
+          `SELECT workout_type, week_number, day_number, started_at, ended_at,
               TIMESTAMPDIFF(SECOND, started_at, ended_at) as duration_seconds
        FROM workout_sessions
        WHERE user_id = ?
@@ -80,8 +86,8 @@ export async function GET() {
          AND ended_at IS NOT NULL
        ORDER BY ended_at DESC
        LIMIT 5`,
-      [userId]
-    );
+          [userId]
+        );
 
     const household = await householdHomeStats(
       dailyStats.rows.map((row) => row.workout_date)

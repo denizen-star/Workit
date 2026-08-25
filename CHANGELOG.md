@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+## 4.0.0 - 2026-08-26
+
+### Added
+- **Home Quiet.** Header is logo + menu only. Hero is today’s session: gold **Start** / **Resume**, outlined **Select**, Restart as a small text link. One sentence under it (`X of 24 days. Y lb all-time` plus last-7 when it differs)
+- **Week lock** on Home: four required days. Solid gold + check = Done. Gold outline = Now (first unpaid required day). Dashed empty = still open
+- **Daily weight** on Home: gold is you, copper dashed is house avg. Daily / Cumulative. 7 / 30 / All. Days with no lift stay off the chart
+- **You vs the leader** scan on Home (hidden for Test)
+- Bonus + Optional as a **flag strip**, not glass cards. Hidden when empty
+- Menu rooms: **Your performance** `/performance`, **The house** `/scoreboard`, **Completed log** `/history`, **Medals** `/medals`, **About program** `/about`. Scoreboard route is still `/scoreboard`
+- **The house** pack chart: every athlete as a line, gold = you, copper dashed house avg (Test left out of the avg). Daily / Cumulative. Empty days stay off
+- About: 4-day Upper / Lower tiles (Wed Rest dimmer), bonus card, progressive overload
+
+### Changed
+- Home no longer stacks Scoreboard, Vs the house boards, Achievements, or the completed log. Those live in the menu. Folded **Your performance** and **You / house** stay on Home (Your performance hidden for Test)
+- Home paints Start after `/api/me` + `/api/sessions`. Numbers fill in after. Sentence reads “Loading your numbers...” until stats land
+- `GET /api/stats?home=1` skips unused weekly/timing queries
+- Charts skip empty days and missing people. Tooltip only lists real weight
+
+### Fixed
+- Home and The house charts no longer plot `null` / `0` for days nobody lifted
+- Analytics Sessions + page views and Cumulative skip empty days. Tooltips skip empty series
+- Analytics **Athletes** (Kevin-only): compact By lift / By athlete table — weight lead and reps lead (or lifts led). Tap a row for the six KPIs / vs-last-time board. `GET /api/athlete-performance?household=1`
+
 ## 3.8.0 - 2026-08-25
 
 ### Added

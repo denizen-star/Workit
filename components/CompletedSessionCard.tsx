@@ -54,11 +54,13 @@ export default function CompletedSessionCard({
   focus,
   headerAction,
   defaultOpen = false,
+  bestDay = false,
 }: {
   session: HistorySession;
   focus?: string | null;
   headerAction?: ReactNode;
   defaultOpen?: boolean;
+  bestDay?: boolean;
 }) {
   const [open, setOpen] = useState(defaultOpen);
   useEffect(() => {
@@ -100,6 +102,11 @@ export default function CompletedSessionCard({
             <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1">
               {session.sets?.length || 0} sets
             </span>
+            {bestDay ? (
+              <span className="rounded-full bg-[#e8c547] px-3 py-1 text-xs font-black text-[#1a1404]">
+                Best day
+              </span>
+            ) : null}
           </div>
         </button>
         <div className="flex shrink-0 items-center gap-2 pt-0.5">

@@ -17,8 +17,8 @@ const PERIOD_LABELS: Record<ScoreboardPeriod, string> = {
   all: 'All time',
 };
 
-export default function ExerciseCompare() {
-  const [open, setOpen] = useState(false);
+export default function ExerciseCompare({ standalone = false }: { standalone?: boolean }) {
+  const [open, setOpen] = useState(standalone);
   const [period, setPeriod] = useState<ScoreboardPeriod>('7');
   const [row, setRow] = useState<ExerciseCompareRow | null>(null);
   const [ranking, setRanking] = useState<WeightRank[]>([]);
@@ -60,7 +60,8 @@ export default function ExerciseCompare() {
   if (hidden) return null;
 
   return (
-    <div className="glass-card mb-8 p-6">
+    <div className={standalone ? 'mb-8' : 'glass-card mb-8 p-6'}>
+      {!standalone && (
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
@@ -76,8 +77,9 @@ export default function ExerciseCompare() {
           <ChevronDown className="h-5 w-5 text-[#f6f1e3]/65" />
         )}
       </button>
+      )}
 
-      {open && (
+      {(standalone || open) && (
         <div className="mt-4">
           <p className="mb-4 text-sm text-[#f6f1e3]/60">
             Best day is your heaviest day on each lift, added up. Total weight is every set, weight

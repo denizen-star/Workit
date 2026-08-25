@@ -28,6 +28,13 @@ export type HouseholdScoreboardRow = {
   lastAt: string | null;
 };
 
+export type ScoreboardDailyPoint = {
+  userId: number;
+  name: string;
+  workout_date: string;
+  weight: number;
+};
+
 export function isScoreboardPeriod(value: unknown): value is ScoreboardPeriod {
   return value === '7' || value === '30' || value === 'all';
 }

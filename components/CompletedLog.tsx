@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { workoutProgram } from '@/lib/workoutData';
+import { setVolume } from '@/lib/exerciseKind';
 import CompletedSessionCard, {
   type HistorySession,
 } from '@/components/CompletedSessionCard';
@@ -62,6 +63,23 @@ export default function CompletedLog({
       map.set(week, list);
     }
     return map;
+  }, [sessions]);
+
+  const bestSessionId = useMemo(() => {
+    let bestId: number | null = null;
+    let bestVolume = 0;
+    for (const session of sessions) {
+      const volume = (session.sets || []).reduce(
+        (sum, set) =>
+          sum + setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps),
+        0
+      );
+      if (volume > bestVolume) {
+        bestVolume = volume;
+        bestId = Number(session.id);
+      }
+    }
+    return bestId;
   }, [sessions]);
 
   return (
@@ -137,6 +155,7 @@ export default function CompletedLog({
                         session={session}
                         focus={day.focus}
                         defaultOpen={openSessionId === Number(session.id)}
+                        bestDay={bestSessionId === Number(session.id)}
                       />
                     ));
                   })}

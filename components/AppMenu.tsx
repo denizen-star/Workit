@@ -3,10 +3,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, LogOut } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, LogOut, TrendingUp, Trophy, Award, Info, ClipboardList } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { trackAction } from '@/lib/analytics';
+import { isTestUserName } from '@/lib/householdUsers';
 
 interface AppMenuProps {
   userName: string;
@@ -49,7 +50,7 @@ export default function AppMenu({
     const place = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const width = Math.min(240, window.innerWidth - 32);
+      const width = Math.min(260, window.innerWidth - 32);
       const left = Math.min(
         Math.max(16, rect.right - width),
         window.innerWidth - width - 16
@@ -146,6 +147,37 @@ export default function AppMenu({
                 })}
               </div>
             )}
+            <div className="border-b border-white/10 py-1">
+              {[
+                ...(!isTestUserName(userName)
+                  ? [{ href: '/performance', label: 'Your performance', Icon: TrendingUp }]
+                  : []),
+                { href: '/scoreboard', label: 'The house', Icon: Trophy },
+                { href: '/history', label: 'Completed log', Icon: ClipboardList },
+                { href: '/medals', label: 'Medals', Icon: Award },
+                { href: '/about', label: 'About program', Icon: Info },
+              ].map(({ href, label, Icon }) => {
+                  const active = pathname === href || pathname.startsWith(href + '/');
+                  return (
+                    <button
+                      key={href}
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        router.push(href);
+                      }}
+                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
+                        active
+                          ? 'bg-white/5 text-[#e8c547]'
+                          : 'text-[#f6f1e3]/85 hover:bg-white/5'
+                      }`}
+                    >
+                      <Icon className="h-4 w-4 text-[#e8c547]" />
+                      {label}
+                    </button>
+                  );
+                })}
+            </div>
             <button
               type="button"
               onClick={() => {

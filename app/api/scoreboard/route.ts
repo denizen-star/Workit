@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { householdBonusHonor, householdScoreboard } from '@/lib/scoreboard';
+import { householdBonusHonor, householdScoreboard, householdWeightSeries } from '@/lib/scoreboard';
 import { householdOptionalHonor } from '@/lib/optionals';
 import {
   isScoreboardPeriod,
@@ -17,10 +17,11 @@ export async function GET(request: NextRequest) {
 
     const requested = request.nextUrl.searchParams.get('period') || '7';
     const period: ScoreboardPeriod = isScoreboardPeriod(requested) ? requested : '7';
-    const [rows, bonusHonor, optionalHonor] = await Promise.all([
+    const [rows, bonusHonor, optionalHonor, dailySeries] = await Promise.all([
       householdScoreboard(period),
       householdBonusHonor(period),
       householdOptionalHonor(period),
+      householdWeightSeries(period),
     ]);
 
     return NextResponse.json({
@@ -29,6 +30,7 @@ export async function GET(request: NextRequest) {
       rows,
       bonusHonor,
       optionalHonor,
+      dailySeries,
     });
   } catch (error) {
     console.error('Error getting scoreboard:', error);

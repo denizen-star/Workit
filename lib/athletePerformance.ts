@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { setVolume } from '@/lib/exerciseKind';
 import { DAY_TYPE_ORDER } from '@/lib/feedback';
@@ -465,4 +466,28 @@ export async function athletePerformance(
   };
 
   return { period, summary, exercises, workouts };
+}
+
+/** Every household athlete except Test. Same you-vs-you board as `/performance`. */
+export async function householdAthletePerformance(period: PerformancePeriod) {
+  const users = await query(
+    `SELECT DISTINCT u.id, u.name
+     FROM users u
+     INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
+     WHERE ${SQL_EXCLUDE_TEST_USER}
+     ORDER BY u.name ASC`
+  );
+
+  const rows = await Promise.all(
+    (users.rows as { id: number; name: string }[]).map(async (row) => {
+      const board = await athletePerformance(Number(row.id), period);
+      return {
+        userId: Number(row.id),
+        name: row.name,
+        ...board,
+      };
+    })
+  );
+
+  return rows;
 }

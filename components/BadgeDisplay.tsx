@@ -71,8 +71,9 @@ export default function BadgeDisplay({
   bonusCount = 0,
   optionalWeekCount = 0,
   optionalCount = 0,
-}: BadgeDisplayProps) {
-  const [open, setOpen] = useState(false);
+  standalone = false,
+}: BadgeDisplayProps & { standalone?: boolean }) {
+  const [open, setOpen] = useState(standalone);
   const earnedIds = new Set(earnedBadges.map((badge) => badge.id));
 
   return (

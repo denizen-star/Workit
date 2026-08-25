@@ -16,6 +16,7 @@ import {
 } from 'recharts';
 import ExerciseCompareCells from '@/components/ExerciseCompareCells';
 import WeightRanking from '@/components/WeightRanking';
+import AdminAthletePerformance from '@/components/AdminAthletePerformance';
 import type { AdminAnalyticsPayload } from '@/lib/adminAnalytics';
 import type { AnalyticsRangeId, DeviceFilter } from '@/lib/analyticsTime';
 import type { ExerciseCompareRow, WeightRank } from '@/lib/exerciseCompare';
@@ -47,6 +48,74 @@ const DEVICES: { id: DeviceFilter; label: string }[] = [
 function shortLabel(label: string) {
   if (label.length >= 16) return label.slice(11, 16);
   return label.slice(5);
+}
+
+function hasCount(value: unknown) {
+  const amount = Number(value);
+  return value != null && Number.isFinite(amount) && amount > 0;
+}
+
+function TrafficTooltip({
+  active,
+  payload,
+  label,
+}: {
+  active?: boolean;
+  payload?: { name?: string; value?: unknown; color?: string; dataKey?: string }[];
+  label?: string;
+}) {
+  if (!active || !payload) return null;
+  const items = payload.filter((item) => hasCount(item.value));
+  if (items.length === 0) return null;
+  return (
+    <div className="px-3 py-2 text-xs" style={tooltipStyle}>
+      <p className="mb-1 font-semibold text-[#e8c547]">{label}</p>
+      {items.map((item) => (
+        <p key={String(item.dataKey)} style={{ color: item.color || '#f6f1e3' }}>
+          {item.name}: {Math.round(Number(item.value)).toLocaleString()}
+        </p>
+      ))}
+    </div>
+  );
+}
+
+function TrafficTrendChart({
+  data,
+  lines,
+  height,
+}: {
+  data: Record<string, string | number | null>[];
+  lines: { key: string; name: string; color: string }[];
+  height: number;
+}) {
+  const visible = lines.filter((line) => data.some((row) => hasCount(row[line.key])));
+  if (data.length === 0 || visible.length === 0) {
+    return <p className="text-sm text-[#f6f1e3]/55">No traffic in this window.</p>;
+  }
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <LineChart data={data}>
+        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
+        <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
+        <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} allowDecimals={false} />
+        <Tooltip content={<TrafficTooltip />} filterNull />
+        <Legend />
+        {visible.map((line) => (
+          <Line
+            key={line.key}
+            type="monotone"
+            dataKey={line.key}
+            name={line.name}
+            stroke={line.color}
+            strokeWidth={2}
+            dot={false}
+            connectNulls={false}
+            isAnimationActive={false}
+          />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  );
 }
 
 function shortUrl(url: string) {
@@ -134,13 +203,24 @@ export default function AdminAnalyticsDashboard() {
 
   const series = useMemo(() => {
     if (!data) return [];
-    return data.labels.map((label, i) => ({
-      label: shortLabel(label),
-      sessions: data.sessions[i] ?? 0,
-      pageViews: data.pageViews[i] ?? 0,
-      sessionsCum: data.sessionsCumulative[i] ?? 0,
-      pageViewsCum: data.pageViewsCumulative[i] ?? 0,
-    }));
+    let sessionsCum = 0;
+    let pageViewsCum = 0;
+    return data.labels.flatMap((label, index) => {
+      const sessions = Number(data.sessions[index] || 0);
+      const pageViews = Number(data.pageViews[index] || 0);
+      if (sessions <= 0 && pageViews <= 0) return [];
+      sessionsCum += Math.max(0, sessions);
+      pageViewsCum += Math.max(0, pageViews);
+      return [
+        {
+          label: shortLabel(label),
+          sessions: sessions > 0 ? sessions : null,
+          pageViews: pageViews > 0 ? pageViews : null,
+          sessionsCum: sessionsCum > 0 ? sessionsCum : null,
+          pageViewsCum: pageViewsCum > 0 ? pageViewsCum : null,
+        },
+      ];
+    });
   }, [data]);
 
   const countries = useMemo(() => {
@@ -263,6 +343,8 @@ export default function AdminAnalyticsDashboard() {
         </section>
       )}
 
+      <AdminAthletePerformance filterUserId={person} />
+
       {data && (
         <>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -284,32 +366,26 @@ export default function AdminAnalyticsDashboard() {
 
           <section className="glass-card p-5">
             <h3 className="mb-4 text-lg font-black text-white">Sessions + page views</h3>
-            <ResponsiveContainer width="100%" height={280}>
-              <LineChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
-                <Line type="monotone" dataKey="sessions" stroke="#e8c547" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="pageViews" stroke="#f6f1e3" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <TrafficTrendChart
+              data={series}
+              height={280}
+              lines={[
+                { key: 'sessions', name: 'sessions', color: '#e8c547' },
+                { key: 'pageViews', name: 'page views', color: '#f6f1e3' },
+              ]}
+            />
           </section>
 
           <section className="glass-card p-5">
             <h3 className="mb-4 text-lg font-black text-white">Cumulative</h3>
-            <ResponsiveContainer width="100%" height={240}>
-              <LineChart data={series}>
-                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-                <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
-                <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} allowDecimals={false} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Legend />
-                <Line type="monotone" dataKey="sessionsCum" name="sessions" stroke="#e8c547" strokeWidth={2} dot={false} />
-                <Line type="monotone" dataKey="pageViewsCum" name="page views" stroke="#f6f1e3" strokeWidth={2} dot={false} />
-              </LineChart>
-            </ResponsiveContainer>
+            <TrafficTrendChart
+              data={series}
+              height={240}
+              lines={[
+                { key: 'sessionsCum', name: 'sessions', color: '#e8c547' },
+                { key: 'pageViewsCum', name: 'page views', color: '#f6f1e3' },
+              ]}
+            />
           </section>
 
           <div className="grid gap-6 lg:grid-cols-2">

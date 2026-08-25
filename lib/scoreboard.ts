@@ -3,7 +3,13 @@ import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
-import { type BonusHonorRow, type HouseholdScoreboardRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { workoutDateKey } from '@/lib/statsHousehold';
+import {
+  type BonusHonorRow,
+  type HouseholdScoreboardRow,
+  type ScoreboardDailyPoint,
+  type ScoreboardPeriod,
+} from '@/lib/scoreboardTypes';
 
 function periodFilter(period: ScoreboardPeriod, column: string) {
   if (period === 'all') return '';
@@ -154,4 +160,25 @@ export async function householdBonusHonor(period: ScoreboardPeriod): Promise<Bon
     name: row.name,
     bonusWeeks: Number(row.bonus_weeks || 0),
   }));
+}
+
+/** Per-athlete daily volume for the scoreboard chart. Test stays in the lines; avg drops Test in the chart. */
+export async function householdWeightSeries(period: ScoreboardPeriod): Promise<ScoreboardDailyPoint[]> {
+  const dateWindow = periodFilter(period, 'ds.workout_date');
+  const result = await query(
+    `SELECT ds.user_id, u.name, ds.workout_date, ds.total_weight_lifted as weight
+     FROM daily_stats ds
+     INNER JOIN users u ON u.id = ds.user_id
+     WHERE ds.total_weight_lifted > 0 ${dateWindow}
+     ORDER BY ds.workout_date ASC, u.name ASC`
+  );
+
+  return (result.rows as { user_id: number; name: string; workout_date: unknown; weight: number }[]).map(
+    (row) => ({
+      userId: Number(row.user_id),
+      name: row.name,
+      workout_date: workoutDateKey(row.workout_date),
+      weight: Number(row.weight || 0),
+    })
+  );
 }
