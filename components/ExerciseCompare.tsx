@@ -81,12 +81,12 @@ export default function ExerciseCompare({ standalone = false }: { standalone?: b
 
       {(standalone || open) && (
         <div className="mt-4">
-          <p className="mb-4 text-sm text-[#f6f1e3]/60">
+          <p className="mb-3 text-base text-[#f6f1e3]/60">
             Best day is your heaviest day on each lift, added up. Total weight is every set, weight
             times reps. Then two boards against people in your pack.
           </p>
 
-          <div className="mb-4 grid grid-cols-3 gap-2">
+          <div className="mb-3 grid grid-cols-3 gap-2">
             {SCOREBOARD_PERIODS.map((option) => {
               const selected = option === period;
               return (
@@ -94,7 +94,7 @@ export default function ExerciseCompare({ standalone = false }: { standalone?: b
                   key={option}
                   type="button"
                   onClick={() => setPeriod(option)}
-                  className={`min-h-11 rounded-2xl border text-sm font-semibold ${
+                  className={`min-h-12 rounded-2xl border text-base font-semibold ${
                     selected
                       ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
                       : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
@@ -113,7 +113,7 @@ export default function ExerciseCompare({ standalone = false }: { standalone?: b
               No finished workouts in this window. Get under the bar.
             </p>
           ) : (
-            <div className="space-y-5">
+            <div className="space-y-3">
               <WeightRanking ranking={ranking} highlightUserId={row?.userId} />
               {row && (
                 <>

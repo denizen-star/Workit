@@ -4,8 +4,8 @@ import { firstName } from '@/lib/scoreboardTypes';
 function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-right">
-      <p className="text-[11px] uppercase tracking-[0.14em] text-[#f6f1e3]/45">{label}</p>
-      <p className="mt-0.5 text-sm font-black text-[#e8c547]">{formatK(value)}</p>
+      <p className="text-sm uppercase tracking-[0.14em] text-[#f6f1e3]/50">{label}</p>
+      <p className="mt-0.5 text-lg font-black text-[#e8c547]">{formatK(value)}</p>
     </div>
   );
 }
@@ -39,13 +39,13 @@ export default function WeightRanking({
           return (
             <div
               key={row.userId}
-              className={`flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5 ${
+              className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
                 you
                   ? 'border-[#e8c547]/70 bg-[#e8c547]/10'
                   : 'border-white/10 bg-black/20'
               }`}
             >
-              <p className="font-black text-white">
+              <p className="text-lg font-black text-white">
                 <span className="text-[#e8c547]">{ordinalRank(row.rank)}</span> {label}
               </p>
               <div className="flex items-start gap-4">

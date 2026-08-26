@@ -60,6 +60,7 @@ CREATE TABLE workout_sessions (
     day_number INT NOT NULL,
     workout_type VARCHAR(100) NOT NULL, -- 'Upper Body A', 'Lower Body B', etc.
     workout_mode VARCHAR(16) NOT NULL DEFAULT 'gym', -- 'gym' | 'travel'
+    exercise_modes JSON NULL, -- { "Barbell or Dumbbell Bench Press": "travel" }
     scheduled_date DATE,
     started_at TIMESTAMP NULL,
     completed_at TIMESTAMP,

@@ -119,3 +119,13 @@ export function exerciseCanonicalName(name: string): string {
   const key = exerciseHistoryKey(name);
   return CANONICAL_BY_KEY.get(key) ?? name.trim();
 }
+
+export function sameExerciseMovement(a: string, b: string): boolean {
+  return exerciseHistoryKey(a) === exerciseHistoryKey(b);
+}
+
+export function exerciseGroupNames(name: string): string[] {
+  const key = exerciseHistoryKey(name);
+  const group = GROUPS.find((names) => names.some((item) => exerciseHistoryKey(item) === key));
+  return group ? [...group] : [name.trim()];
+}

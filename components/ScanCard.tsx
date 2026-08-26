@@ -11,9 +11,11 @@ export type ScanMetric = {
 /**
  * Dense scan row used on Home Quiet, Scoreboard, and Your performance.
  * Gold chrome matches the live scoreboard first-place card.
+ * `roomy` is the 50+ size for Home and The house.
  */
 export default function ScanCard({
   you = false,
+  roomy = false,
   kicker,
   title,
   headline,
@@ -24,6 +26,7 @@ export default function ScanCard({
   sparkTone = 'plain',
 }: {
   you?: boolean;
+  roomy?: boolean;
   kicker?: string;
   title: string;
   headline: string;
@@ -33,46 +36,82 @@ export default function ScanCard({
   spark?: number[];
   sparkTone?: 'up' | 'down' | 'plain';
 }) {
-  const columns = metrics.length >= 6 ? 3 : metrics.length >= 4 ? 4 : Math.max(metrics.length, 1);
+  const columns = roomy
+    ? Math.min(2, Math.max(metrics.length, 1))
+    : metrics.length >= 6
+      ? 3
+      : metrics.length >= 4
+        ? 4
+        : Math.max(metrics.length, 1);
 
   return (
     <div
-      className={`rounded-2xl border px-3 py-2.5 ${
-        you ? 'border-[#e8c547]/70 bg-[#e8c547]/10' : 'border-white/10 bg-black/25'
-      }`}
+      className={`rounded-2xl border ${
+        roomy ? 'px-6 py-5' : 'px-3 py-2.5'
+      } ${you ? 'border-[#e8c547]/70 bg-[#e8c547]/10' : 'border-white/10 bg-black/25'}`}
     >
-      <div className="flex items-center gap-2">
-        {spark ? <SpikeChart values={spark} tone={sparkTone} /> : null}
+      <div className="flex items-center gap-3">
+        {spark ? <SpikeChart values={spark} tone={sparkTone} roomy={roomy} /> : null}
         <div className="min-w-0 flex-1">
           {kicker ? (
-            <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-[#f6f1e3]/45">
+            <p
+              className={`font-semibold uppercase tracking-[0.16em] text-[#f6f1e3]/55 ${
+                roomy ? 'text-sm' : 'text-[10px] text-[#f6f1e3]/45'
+              }`}
+            >
               {kicker}
             </p>
           ) : null}
-          <p className={`truncate text-sm font-black ${you ? 'text-[#e8c547]' : 'text-white'}`}>
+          <p
+            className={`truncate font-black ${roomy ? 'text-xl' : 'text-sm'} ${
+              you ? 'text-[#e8c547]' : 'text-white'
+            }`}
+          >
             {title}
           </p>
         </div>
-        <p className="shrink-0 text-sm font-black text-white">{headline}</p>
+        <p className={`shrink-0 font-black text-white ${roomy ? 'text-xl' : 'text-sm'}`}>
+          {headline}
+        </p>
       </div>
-      {sub ? <p className="mt-0.5 truncate text-xs text-[#f6f1e3]/50">{sub}</p> : null}
+      {sub ? (
+        <p className={`mt-1 text-[#f6f1e3]/60 ${roomy ? 'text-base leading-snug' : 'truncate text-xs text-[#f6f1e3]/50'}`}>
+          {sub}
+        </p>
+      ) : null}
       {metrics.length > 0 ? (
         <div
-          className="mt-2 grid gap-x-2 gap-y-1"
+          className={`mt-3 grid ${roomy ? 'gap-x-4 gap-y-3' : 'mt-2 gap-x-2 gap-y-1'}`}
           style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
         >
           {metrics.map((item) => (
             <div key={item.label} className="min-w-0">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-[#f6f1e3]/40">
+              <p
+                className={`font-semibold uppercase tracking-wider text-[#f6f1e3]/50 ${
+                  roomy ? 'text-sm' : 'text-[9px] text-[#f6f1e3]/40'
+                }`}
+              >
                 {item.label}
               </p>
-              <p className="truncate text-[11px] font-semibold text-[#f6f1e3]/85">{item.value}</p>
+              <p
+                className={`font-semibold text-[#f6f1e3]/90 ${
+                  roomy ? 'text-lg' : 'truncate text-[11px] text-[#f6f1e3]/85'
+                }`}
+              >
+                {item.value}
+              </p>
             </div>
           ))}
         </div>
       ) : null}
       {foot ? (
-        <p className="mt-2 text-xs font-semibold leading-snug text-[#e8c547]">{foot}</p>
+        <p
+          className={`mt-3 font-semibold leading-snug text-[#e8c547] ${
+            roomy ? 'text-base' : 'mt-2 text-xs'
+          }`}
+        >
+          {foot}
+        </p>
       ) : null}
     </div>
   );

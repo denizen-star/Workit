@@ -104,6 +104,29 @@ export function setVolume(
   return weight * reps;
 }
 
+/** Completed-set totals for the live session bar. Reps skip timed/distance. */
+export function sessionSetTotals(
+  sets: Array<{
+    exercise_name: string;
+    target_reps?: string | null;
+    weight_lbs: number | null;
+    actual_reps: number | null;
+    is_completed: boolean;
+  }>
+) {
+  let lbs = 0;
+  let reps = 0;
+  for (const set of sets) {
+    if (!set.is_completed) continue;
+    lbs += setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps);
+    const kind = getExerciseKind(set.exercise_name, set.target_reps || "");
+    if (kind !== "timed" && kind !== "distance") {
+      reps += Number(set.actual_reps || 0);
+    }
+  }
+  return { lbs, reps };
+}
+
 /** Same timed/distance rules as getExerciseKind, for SUM() in SQL. */
 export function sqlSetVolume(alias?: string): string {
   const col = (column: string) => (alias ? `${alias}.${column}` : column);

@@ -37,7 +37,7 @@ function TrendTooltip({
   const items = payload.filter((item) => hasWeight(item.value));
   if (items.length === 0) return null;
   return (
-    <div className="px-3 py-2 text-xs" style={tooltipStyle}>
+    <div className="px-3 py-2 text-sm" style={tooltipStyle}>
       <p className="mb-1 font-semibold text-[#e8c547]">{label}</p>
       {items.map((item) => (
         <p key={String(item.dataKey)} style={{ color: item.color || '#f6f1e3' }}>
@@ -67,15 +67,15 @@ export default function WeightTrendChart({
     <ResponsiveContainer width="100%" height={height}>
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
-        <XAxis dataKey="date" tick={{ fill: '#e8c547', fontSize: 11 }} />
+        <XAxis dataKey="date" tick={{ fill: '#e8c547', fontSize: 13 }} />
         <YAxis
-          tick={{ fill: '#e8c547', fontSize: 11 }}
-          width={44}
+          tick={{ fill: '#e8c547', fontSize: 13 }}
+          width={52}
           tickFormatter={(value) => Number(value).toLocaleString()}
         />
         <Tooltip content={<TrendTooltip />} filterNull />
         <Legend
-          wrapperStyle={{ color: '#f6f1e3', fontSize: 12, paddingTop: 8 }}
+          wrapperStyle={{ color: '#f6f1e3', fontSize: 14, paddingTop: 10 }}
           iconType="plainline"
         />
         {visible.map((line) => (

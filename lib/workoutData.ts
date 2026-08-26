@@ -434,11 +434,15 @@ export function getWorkoutDay(weekNumber: number, dayNumber: number): WorkoutDay
   return week?.days.find(day => day.dayNumber === dayNumber);
 }
 
+export function applyExerciseMode(exercise: Exercise, mode: WorkoutMode | unknown): Exercise {
+  return normalizeWorkoutMode(mode) === 'travel' ? toTravelExercise(exercise) : exercise;
+}
+
 export function applyWorkoutMode(day: WorkoutDay, mode: WorkoutMode | unknown): WorkoutDay {
   if (normalizeWorkoutMode(mode) !== 'travel') return day;
   return {
     ...day,
-    exercises: day.exercises.map(toTravelExercise),
+    exercises: day.exercises.map((exercise) => applyExerciseMode(exercise, 'travel')),
   };
 }
 

@@ -34,34 +34,34 @@ export default function FlagStrip({
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-x-5 gap-y-2 text-sm">
+    <div className="flex flex-wrap items-start gap-x-8 gap-y-3 text-base">
       {(hasBonus || bonusDays > 0) && (
-        <p className="inline-flex items-start gap-2 text-[#f6f1e3]/80">
-          <Flag className="mt-0.5 h-4 w-4 shrink-0 text-[#e8c547]" />
+        <p className="inline-flex items-start gap-2.5 text-[#f6f1e3]/80">
+          <Flag className="mt-0.5 h-5 w-5 shrink-0 text-[#e8c547]" />
           <span>
             {hasBonus && week ? (
-              <span className="font-black uppercase tracking-[0.16em] text-[#e8c547]">
+              <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">
                 {thisWeekBonus ? `Bonus done · Week ${week.weekNumber}` : `Bonus still open · Week ${week.weekNumber}`}
               </span>
             ) : (
-              <span className="font-black uppercase tracking-[0.16em] text-[#e8c547]">Bonus</span>
+              <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">Bonus</span>
             )}
-            <span className="mt-0.5 block font-semibold text-white">
+            <span className="mt-1 block font-semibold text-white">
               {bonusDays} bonus {bonusDays === 1 ? 'day' : 'days'}
             </span>
           </span>
         </p>
       )}
-      <p className="inline-flex items-start gap-2 text-[#f6f1e3]/80">
-        <Clock className="mt-0.5 h-4 w-4 shrink-0 text-[#e8c547]" />
+      <p className="inline-flex items-start gap-2.5 text-[#f6f1e3]/80">
+        <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[#e8c547]" />
         <span>
-          <span className="font-black uppercase tracking-[0.16em] text-[#e8c547]">
+          <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">
             {week ? `Optional · Week ${week.weekNumber}` : 'Optional'}
           </span>
-          <span className="mt-0.5 block font-semibold text-white">
+          <span className="mt-1 block font-semibold text-white">
             {thisWeek.warmups} warmup · {thisWeek.cooldowns} cooldown
           </span>
-          <span className="block text-xs text-[#f6f1e3]/55">
+          <span className="block text-base text-[#f6f1e3]/60">
             {optionalWeeks} optional {optionalWeeks === 1 ? 'week' : 'weeks'}
           </span>
         </span>

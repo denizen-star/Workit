@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
@@ -21,12 +21,13 @@ import {
   isSessionComplete,
   type WorkoutSessionRow,
 } from '@/lib/nextWorkout';
-import { normalizeWorkoutMode, workoutModeLabel, type WorkoutMode } from '@/lib/workoutMode';
+import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
 import OptionalCard from '@/components/OptionalCard';
+import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
@@ -35,49 +36,11 @@ import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
-}
-
-function ModeToggle({
-  mode,
-  onChange,
-  locked,
-}: {
-  mode: WorkoutMode;
-  onChange: (mode: WorkoutMode) => void;
-  locked?: boolean;
-}) {
-  return (
-    <div
-      role="group"
-      aria-label={locked ? `Workout type locked to ${workoutModeLabel(mode)}` : 'Workout type'}
-      className={`inline-flex shrink-0 rounded-full border border-white/15 bg-black/35 p-0.5 ${
-        locked ? 'opacity-70' : ''
-      }`}
-    >
-      {(['gym', 'travel'] as const).map((value) => (
-        <button
-          key={value}
-          type="button"
-          disabled={locked}
-          onClick={() => {
-            if (value !== mode) {
-              trackAction('workout_mode', { category: 'workout', cta_type: value });
-            }
-            onChange(value);
-          }}
-          className={`rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${
-            mode === value ? 'bg-[#e8c547] text-[#1a1404]' : 'text-[#f6f1e3]/55'
-          }`}
-        >
-          {value === 'gym' ? 'Gym' : 'Travel'}
-        </button>
-      ))}
-    </div>
-  );
 }
 
 function WorkoutPageInner() {
@@ -113,6 +76,11 @@ function WorkoutPageInner() {
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
+  const [sessionLbs, setSessionLbs] = useState(0);
+  const [sessionReps, setSessionReps] = useState(0);
+  const [warmupLbs, setWarmupLbs] = useState(0);
+  const [cooldownLbs, setCooldownLbs] = useState(0);
+  const [priorAllTimeLbs, setPriorAllTimeLbs] = useState(0);
 
   useWakeLock(!!currentSession);
 
@@ -132,6 +100,38 @@ function WorkoutPageInner() {
       })
       .catch(() => {});
   }, []);
+
+  useEffect(() => {
+    if (!currentSession) {
+      setSessionLbs(0);
+      setSessionReps(0);
+      setWarmupLbs(0);
+      setCooldownLbs(0);
+      setPriorAllTimeLbs(0);
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/stats?home=1&excludeSession=${currentSession}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) {
+          setPriorAllTimeLbs(Number(data?.overall?.total_weight_lifted || 0));
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setPriorAllTimeLbs(0);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [currentSession]);
+
+  const handleLiftTotals = useCallback((totals: { lbs: number; reps: number }) => {
+    setSessionLbs(totals.lbs);
+    setSessionReps(totals.reps);
+  }, []);
+  const handleWarmupLbs = useCallback((lbs: number) => setWarmupLbs(lbs), []);
+  const handleCooldownLbs = useCallback((lbs: number) => setCooldownLbs(lbs), []);
 
   const askRestart = (weekNumber: number, dayNumber: number, sessionId?: number) => {
     setRestartTarget({ weekNumber, dayNumber, sessionId });
@@ -398,8 +398,7 @@ function WorkoutPageInner() {
 
   const getCurrentWorkout = () => {
     const week = workoutProgram.find((item) => item.weekNumber === selectedWeek);
-    const day = week?.days.find((item) => item.dayNumber === selectedDay);
-    return day ? applyWorkoutMode(day, workoutMode) : undefined;
+    return week?.days.find((item) => item.dayNumber === selectedDay);
   };
 
   const pickedMode = (weekNumber: number, dayNumber: number, incomplete?: WorkoutSessionRow | null) => {
@@ -479,18 +478,25 @@ function WorkoutPageInner() {
               </div>
             </div>
           </div>
+          <SessionTotalsBar
+            sessionLbs={sessionLbs + warmupLbs + cooldownLbs}
+            sessionReps={sessionReps}
+            allTimeLbs={priorAllTimeLbs + sessionLbs + warmupLbs + cooldownLbs}
+          />
         </header>
 
         <div className="container mx-auto space-y-6 px-4 py-8">
-          <OptionalCard sessionId={currentSession} slot="warmup" />
+          <OptionalCard sessionId={currentSession} slot="warmup" onLbs={handleWarmupLbs} />
           <ExerciseTracker
             sessionId={currentSession}
             weekNumber={selectedWeek}
             exercises={workout.exercises}
+            sessionMode={workoutMode}
             coachTone={coachTone}
             onComplete={() => setConfirmComplete(true)}
+            onTotals={handleLiftTotals}
           />
-          <OptionalCard sessionId={currentSession} slot="cooldown" />
+          <OptionalCard sessionId={currentSession} slot="cooldown" onLbs={handleCooldownLbs} />
         </div>
 
         <ExitTakeover

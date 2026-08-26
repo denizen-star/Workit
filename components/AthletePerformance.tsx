@@ -108,6 +108,7 @@ function SummaryCard({
   return (
     <ScanCard
       you={!athleteName}
+      roomy={!athleteName}
       kicker={athleteName || 'Your performance'}
       title={athleteName ? `${athleteName} vs last time` : 'You vs last time'}
       headline={`${summary.gains} up · ${summary.losses} down`}
@@ -140,7 +141,7 @@ export function PeriodPills({
             key={option}
             type="button"
             onClick={() => onPick(option)}
-            className={`min-h-10 rounded-2xl border text-sm font-semibold ${
+            className={`min-h-12 rounded-2xl border text-base font-semibold ${
               selected
                 ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
                 : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
@@ -283,7 +284,7 @@ export default function AthletePerformance({
       {!page && board ? (
         <Link
           href="/performance"
-          className="mt-3 inline-flex text-sm font-semibold text-[#e8c547]"
+          className="mt-4 inline-flex min-h-11 items-center text-base font-semibold text-[#e8c547]"
         >
           Open Your performance
         </Link>
@@ -298,20 +299,20 @@ export default function AthletePerformance({
       <button
         type="button"
         onClick={() => setOpen((current) => !current)}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
+        className="flex min-h-14 w-full items-center gap-3 px-5 py-4 text-left"
         aria-expanded={open}
       >
-        <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
+        <h2 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
           Your performance
         </h2>
-        <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">{trailing || 'You vs last time'}</span>
+        <span className="ml-auto truncate text-sm text-[#f6f1e3]/55">{trailing || 'You vs last time'}</span>
         {open ? (
-          <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+          <ChevronUp className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
         ) : (
-          <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+          <ChevronDown className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
         )}
       </button>
-      {open && <div className="border-t border-white/10 px-4 pb-4 pt-3">{body}</div>}
+      {open && <div className="border-t border-white/10 px-5 pb-5 pt-4">{body}</div>}
     </div>
   );
 }

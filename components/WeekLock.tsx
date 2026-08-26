@@ -42,19 +42,19 @@ export default function WeekLock({
 
   return (
     <div>
-      <div className="mb-2 flex items-center justify-between text-sm">
+      <div className="mb-3 flex items-center justify-between text-base">
         <p className="font-semibold text-white">
           {progress.requiredDone} of {progress.requiredTotal} days
         </p>
-        <p className="text-[#f6f1e3]/55">Lock the week</p>
+        <p className="text-[#f6f1e3]/60">Lock the week</p>
       </div>
-      <div className="mb-3 flex gap-1">
+      <div className="mb-4 flex gap-1.5">
         {required.map((day, index) => {
           const filled = index < progress.requiredDone;
           return (
             <div
               key={day.dayNumber}
-              className={`h-2 flex-1 rounded-full ${filled ? 'bg-[#e8c547]' : 'bg-white/10'}`}
+              className={`h-2.5 flex-1 rounded-full ${filled ? 'bg-[#e8c547]' : 'bg-white/10'}`}
             />
           );
         })}
@@ -63,33 +63,33 @@ export default function WeekLock({
         {slots.map(({ day, state }) => (
           <div
             key={day.dayNumber}
-            className={`flex-1 rounded-2xl px-1 py-2.5 text-center ${
+            className={`flex-1 rounded-2xl px-1.5 py-5 text-center ${
               state === 'done'
                 ? 'border border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
                 : state === 'now'
-                  ? 'border border-[#e8c547] bg-[#e8c547]/10'
+                  ? 'border-2 border-[#e8c547] bg-[#e8c547]/10'
                   : 'border border-dashed border-white/15 bg-transparent'
             }`}
           >
             <p
-              className={`text-xs font-semibold ${
-                state === 'done' ? 'text-[#1a1404]' : state === 'now' ? 'text-white' : 'text-[#f6f1e3]/45'
+              className={`text-base font-semibold ${
+                state === 'done' ? 'text-[#1a1404]' : state === 'now' ? 'text-white' : 'text-[#f6f1e3]/50'
               }`}
             >
               {shortDayName(day.name)}
             </p>
             <p
-              className={`mt-0.5 inline-flex items-center justify-center gap-0.5 text-[11px] font-black ${
+              className={`mt-1 inline-flex items-center justify-center gap-1 text-base font-black ${
                 state === 'done'
                   ? 'text-[#1a1404]'
                   : state === 'now'
                     ? 'text-[#e8c547]'
-                    : 'text-[#f6f1e3]/35'
+                    : 'text-[#f6f1e3]/40'
               }`}
             >
               {state === 'done' ? (
                 <>
-                  <Check className="h-3 w-3" strokeWidth={3} />
+                  <Check className="h-4 w-4" strokeWidth={3} />
                   Done
                 </>
               ) : state === 'now' ? (

@@ -82,7 +82,7 @@ export default function HouseholdScoreboard({
               key={option}
               type="button"
               onClick={() => setPeriod(option)}
-              className={`min-h-11 rounded-2xl border text-sm font-semibold ${
+              className={`min-h-12 rounded-2xl border text-base font-semibold ${
                 selected
                   ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
                   : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
@@ -98,7 +98,7 @@ export default function HouseholdScoreboard({
         <HouseholdWeightChart points={dailySeries} highlightUserId={highlightUserId} />
       )}
 
-      <p className="mb-4 text-sm text-[#f6f1e3]/60">
+      <p className="mb-3 text-base text-[#f6f1e3]/60">
         Household only. Finished workouts count. Rank is workouts, then volume. Come take someone&apos;s
         place.
       </p>
@@ -110,18 +110,18 @@ export default function HouseholdScoreboard({
           Empty board. Nobody finished a workout in this window. I am not impressed.
         </p>
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-2">
           {bonusHonor.length > 0 && (
-            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-4">
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-[#e8c547]">Bonus work</p>
-              <p className="mt-1 text-sm text-[#f6f1e3]/70">
+            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
+              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">Bonus work</p>
+              <p className="mt-1 text-base text-[#f6f1e3]/70">
                 Extra upper. They did not owe it. They paid it.
               </p>
               <div className="mt-3 space-y-2">
                 {bonusHonor.map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="font-black text-white">{row.name}</p>
-                    <p className="text-sm font-semibold text-[#e8c547]">
+                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-base font-semibold text-[#e8c547]">
                       {row.bonusWeeks} bonus {row.bonusWeeks === 1 ? 'week' : 'weeks'}
                     </p>
                   </div>
@@ -130,16 +130,16 @@ export default function HouseholdScoreboard({
             </div>
           )}
           {optionalHonor.length > 0 && (
-            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-4">
-              <p className="text-sm font-black uppercase tracking-[0.2em] text-[#e8c547]">Optionals</p>
-              <p className="mt-1 text-sm text-[#f6f1e3]/70">
+            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
+              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">Optionals</p>
+              <p className="mt-1 text-base text-[#f6f1e3]/70">
                 Four warmups. Four cooldowns. Easy minutes that still count.
               </p>
               <div className="mt-3 space-y-2">
                 {optionalHonor.map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="font-black text-white">{row.name}</p>
-                    <p className="text-sm font-semibold text-[#e8c547]">
+                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-base font-semibold text-[#e8c547]">
                       {row.optionalWeeks} optional {row.optionalWeeks === 1 ? 'week' : 'weeks'}
                     </p>
                   </div>
@@ -157,6 +157,7 @@ export default function HouseholdScoreboard({
               <ScanCard
                 key={row.id}
                 you={highlightUserId != null && Number(row.id) === highlightUserId}
+                roomy
                 kicker={place}
                 title={row.name}
                 headline={`${Math.round(row.volume).toLocaleString()}`}

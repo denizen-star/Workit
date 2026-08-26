@@ -77,7 +77,7 @@ export default function YouPageShell({
           </div>
         </div>
       </header>
-      <div className="container mx-auto px-4 py-8">
+      <div className="container mx-auto px-4 py-6">
         <div className="mx-auto max-w-4xl">{children}</div>
       </div>
     </div>

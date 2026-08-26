@@ -69,9 +69,11 @@ function writeProgress(
 export default function OptionalCard({
   sessionId,
   slot,
+  onLbs,
 }: {
   sessionId: number;
   slot: OptionalSlot;
+  onLbs?: (lbs: number) => void;
 }) {
   const [state, setState] = useState<SlotState>({
     track: null,
@@ -89,6 +91,7 @@ export default function OptionalCard({
   const [circuitDone, setCircuitDone] = useState(false);
   const [holdStartedAt, setHoldStartedAt] = useState<number | null>(null);
   const completing = useRef(false);
+  const [slotReady, setSlotReady] = useState(false);
 
   const finishSlot = (circuitComplete = false) => {
     if (completing.current) return;
@@ -120,10 +123,14 @@ export default function OptionalCard({
 
   useEffect(() => {
     let cancelled = false;
+    setSlotReady(false);
     fetch(`/api/sessions?sessionId=${sessionId}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        if (cancelled || !data?.session) return;
+        if (cancelled || !data?.session) {
+          if (!cancelled) setSlotReady(true);
+          return;
+        }
         const session = data.session;
         if (slot === 'warmup') {
           setState({
@@ -143,12 +150,20 @@ export default function OptionalCard({
         const saved = readProgress(sessionId, slot);
         setStepIndex(saved.stepIndex);
         setCircuitDone(saved.circuitDone);
+        setSlotReady(true);
       })
-      .catch(() => {});
+      .catch(() => {
+        if (!cancelled) setSlotReady(true);
+      });
     return () => {
       cancelled = true;
     };
   }, [sessionId, slot]);
+
+  useEffect(() => {
+    if (!slotReady) return;
+    onLbs?.(Number(state.lbs || 0));
+  }, [slotReady, state.lbs, onLbs]);
 
   const running = Boolean(state.startedAt && !state.completedAt);
   const done = Boolean(state.completedAt);

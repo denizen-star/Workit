@@ -14,17 +14,21 @@ export async function GET(request: NextRequest) {
 
     const userId = user.id;
     const home = request.nextUrl.searchParams.get('home') === '1';
+    const excludeSession = Math.trunc(Number(request.nextUrl.searchParams.get('excludeSession') || 0));
+    const excludeThis = excludeSession > 0;
+    const optionalExclude = excludeThis ? `AND optws.id != ${excludeSession}` : '';
+    const optionalTotal = sqlUserOptionalVolume(String(Number(userId)), optionalExclude);
 
     const overallStatsResult = await query(
       `SELECT 
         COUNT(DISTINCT ws.id) as total_workouts,
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
         COUNT(DISTINCT es.exercise_name) as unique_exercises,
-        SUM(${sqlSetVolume('es')}) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
+        COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${optionalTotal} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
-       WHERE ws.user_id = ?`,
-      [userId]
+       WHERE ws.user_id = ?${excludeThis ? ' AND ws.id != ?' : ''}`,
+      excludeThis ? [userId, excludeSession] : [userId]
     );
 
     const weeklyStats = home

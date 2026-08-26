@@ -4,9 +4,13 @@ import { useState, useEffect } from 'react';
 import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
+import ModeToggle from './ModeToggle';
 import { pickCoachLine, setProgressCopy, hardnessCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { exerciseHistoryKey } from '@/lib/exerciseKey';
+import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
+import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
+import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
+import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { parseHardness, type HardnessScore } from '@/lib/hardness';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
@@ -21,6 +25,7 @@ import {
   getExerciseKind,
   parseTimedTarget,
   primaryFieldLabel,
+  sessionSetTotals,
   setLogLabel,
   suggestedNextWeight,
   weightFieldLabel,
@@ -28,12 +33,7 @@ import {
 } from '@/lib/exerciseKind';
 import { bestLoggedSet, setDirection } from '@/lib/setHistory';
 
-interface Exercise {
-  name: string;
-  sets: number;
-  reps: string;
-  notes?: string;
-}
+type Exercise = Pick<ProgramExercise, 'name' | 'sets' | 'reps' | 'notes'>;
 
 interface ExerciseSet {
   id?: number;
@@ -57,8 +57,10 @@ interface ExerciseTrackerProps {
   sessionId: number;
   weekNumber: number;
   exercises: Exercise[];
+  sessionMode?: WorkoutMode | string | null;
   coachTone?: CoachTone | string | null;
   onComplete?: () => void;
+  onTotals?: (totals: { lbs: number; reps: number }) => void;
 }
 
 const EXTRA_SET_CAP = 5;
@@ -75,6 +77,32 @@ function asNumber(value: unknown): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
+function setsForMovement(sets: ExerciseSet[], name: string) {
+  return sets.filter((item) => sameExerciseMovement(item.exercise_name, name));
+}
+
+function inferExerciseMode(
+  gym: Exercise,
+  saved: Array<{ exercise_name: string; is_completed?: unknown }>,
+  stored: ExerciseModeMap,
+  fallback: WorkoutMode
+): WorkoutMode {
+  if (stored[gym.name] || stored[exerciseHistoryKey(gym.name)]) {
+    return modeForExercise(gym.name, stored, fallback);
+  }
+  const travelName = applyExerciseMode(gym, 'travel').name;
+  const related = saved.filter((row) => sameExerciseMovement(row.exercise_name, gym.name));
+  const completed = related.filter((row) => Boolean(Number(row.is_completed)));
+  const source = completed.length ? completed : related;
+  if (source.some((row) => row.exercise_name === travelName) && travelName !== gym.name) {
+    return 'travel';
+  }
+  if (source.some((row) => row.exercise_name === gym.name)) {
+    return 'gym';
+  }
+  return fallback;
+}
+
 function priorSetFor(
   exerciseName: string,
   setNumber: number,
@@ -87,7 +115,7 @@ function priorSetFor(
 
   const previous = currentSets.find(
     (item) =>
-      item.exercise_name === exerciseName &&
+      sameExerciseMovement(item.exercise_name, exerciseName) &&
       item.set_number === setNumber - 1 &&
       item.is_completed
   );
@@ -120,11 +148,16 @@ export default function ExerciseTracker({
   sessionId,
   weekNumber,
   exercises,
+  sessionMode,
   coachTone,
   onComplete,
+  onTotals,
 }: ExerciseTrackerProps) {
   const tone = normalizeCoachTone(coachTone);
+  const defaultMode = normalizeWorkoutMode(sessionMode);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
+  const [modes, setModes] = useState<ExerciseModeMap>({});
+  const [setsReady, setSetsReady] = useState(false);
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<{
     title: string;
@@ -144,21 +177,8 @@ export default function ExerciseTracker({
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
 
   useEffect(() => {
-    const template: ExerciseSet[] = [];
-    exercises.forEach((exercise) => {
-      for (let i = 1; i <= exercise.sets; i++) {
-        template.push({
-          exercise_name: exercise.name,
-          set_number: i,
-          target_reps: exercise.reps,
-          actual_reps: null,
-          weight_lbs: null,
-          is_completed: false,
-        });
-      }
-    });
-
     let cancelled = false;
+    setSetsReady(false);
 
     const load = async () => {
       const [existingRes, historyRes] = await Promise.all([
@@ -167,9 +187,11 @@ export default function ExerciseTracker({
       ]);
 
       let saved: any[] = [];
+      let storedModes: ExerciseModeMap = {};
       if (existingRes.ok) {
         const data = await existingRes.json();
         saved = data.sets || [];
+        storedModes = parseExerciseModes(data.exerciseModes ?? data.exercise_modes);
       }
 
       let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {} };
@@ -180,10 +202,32 @@ export default function ExerciseTracker({
       if (cancelled) return;
       setHistory(historyData);
 
+      const nextModes: ExerciseModeMap = { ...storedModes };
+      for (const gym of exercises) {
+        nextModes[gym.name] = inferExerciseMode(gym, saved, storedModes, defaultMode);
+      }
+      setModes(nextModes);
+
+      const template: ExerciseSet[] = [];
+      exercises.forEach((gym) => {
+        const exercise = applyExerciseMode(gym, nextModes[gym.name] || defaultMode);
+        for (let i = 1; i <= gym.sets; i++) {
+          template.push({
+            exercise_name: exercise.name,
+            set_number: i,
+            target_reps: gym.reps,
+            actual_reps: null,
+            weight_lbs: null,
+            is_completed: false,
+          });
+        }
+      });
+
       const merged = template.map((slot) => {
         const found = saved.find(
           (row: any) =>
-            row.exercise_name === slot.exercise_name && Number(row.set_number) === slot.set_number
+            sameExerciseMovement(row.exercise_name, slot.exercise_name) &&
+            Number(row.set_number) === slot.set_number
         );
 
         const lastBest = lastBestFor(slot.exercise_name, historyData);
@@ -199,6 +243,7 @@ export default function ExerciseTracker({
           return {
             ...slot,
             id: found.id,
+            exercise_name: completed ? found.exercise_name : slot.exercise_name,
             actual_reps,
             weight_lbs,
             is_completed: completed,
@@ -219,19 +264,19 @@ export default function ExerciseTracker({
       });
 
       const extras: ExerciseSet[] = [];
-      for (const exercise of exercises) {
+      for (const gym of exercises) {
         const extraRows = saved
           .filter(
             (row: any) =>
-              row.exercise_name === exercise.name && Number(row.set_number) > exercise.sets
+              sameExerciseMovement(row.exercise_name, gym.name) && Number(row.set_number) > gym.sets
           )
           .sort((a: any, b: any) => Number(a.set_number) - Number(b.set_number));
 
         for (const found of extraRows) {
           extras.push({
-            exercise_name: exercise.name,
+            exercise_name: found.exercise_name,
             set_number: Number(found.set_number),
-            target_reps: found.target_reps || exercise.reps,
+            target_reps: found.target_reps || gym.reps,
             actual_reps: asNumber(found.actual_reps),
             weight_lbs: asNumber(found.weight_lbs),
             is_completed: Boolean(Number(found.is_completed)),
@@ -243,17 +288,40 @@ export default function ExerciseTracker({
       }
 
       setExerciseSets([...merged, ...extras]);
+      setSetsReady(true);
     };
 
     load().catch((error) => {
       console.error('Error loading sets:', error);
-      if (!cancelled) setExerciseSets(template);
+      if (!cancelled) {
+        const template: ExerciseSet[] = [];
+        exercises.forEach((gym) => {
+          const exercise = applyExerciseMode(gym, defaultMode);
+          for (let i = 1; i <= gym.sets; i++) {
+            template.push({
+              exercise_name: exercise.name,
+              set_number: i,
+              target_reps: gym.reps,
+              actual_reps: null,
+              weight_lbs: null,
+              is_completed: false,
+            });
+          }
+        });
+        setExerciseSets(template);
+        setSetsReady(true);
+      }
     });
 
     return () => {
       cancelled = true;
     };
-  }, [sessionId, weekNumber, exercises]);
+  }, [sessionId, weekNumber, defaultMode, exercises]);
+
+  useEffect(() => {
+    if (!setsReady) return;
+    onTotals?.(sessionSetTotals(exerciseSets));
+  }, [setsReady, exerciseSets, onTotals]);
 
   useEffect(() => {
     let cancelled = false;
@@ -304,7 +372,7 @@ export default function ExerciseTracker({
       const nextIndex = newSets.findIndex(
         (item, itemIndex) =>
           itemIndex > index &&
-          item.exercise_name === updatedSet.exercise_name &&
+          sameExerciseMovement(item.exercise_name, updatedSet.exercise_name) &&
           !item.is_completed &&
           item.actual_reps == null &&
           item.weight_lbs == null
@@ -334,7 +402,7 @@ export default function ExerciseTracker({
         const next = newSets.find(
           (item, itemIndex) =>
             itemIndex > index &&
-            item.exercise_name === updatedSet.exercise_name &&
+            sameExerciseMovement(item.exercise_name, updatedSet.exercise_name) &&
             !item.is_completed &&
             item.actual_reps === updatedSet.actual_reps &&
             item.weight_lbs === updatedSet.weight_lbs
@@ -444,7 +512,7 @@ export default function ExerciseTracker({
   };
 
   const addSet = async (exercise: Exercise) => {
-    const current = exerciseSets.filter((item) => item.exercise_name === exercise.name);
+    const current = setsForMovement(exerciseSets, exercise.name);
     if (current.length >= exercise.sets + EXTRA_SET_CAP) return;
 
     const lastCompleted = [...current].reverse().find((item) => item.is_completed);
@@ -460,7 +528,7 @@ export default function ExerciseTracker({
     };
 
     const lastIndex = exerciseSets.reduce(
-      (found, item, index) => (item.exercise_name === exercise.name ? index : found),
+      (found, item, index) => (sameExerciseMovement(item.exercise_name, exercise.name) ? index : found),
       -1
     );
     const insertAt = lastIndex >= 0 ? lastIndex + 1 : exerciseSets.length;
@@ -508,16 +576,46 @@ export default function ExerciseTracker({
     }
   };
 
-  const groupedSets = exercises.map((exercise) => {
-    const sets = exerciseSets.filter((item) => item.exercise_name === exercise.name);
-    return { exercise, sets };
+  const changeExerciseMode = async (gym: Exercise, next: WorkoutMode) => {
+    const display = applyExerciseMode(gym, next);
+    const nextModes = { ...modes, [gym.name]: next };
+    setModes(nextModes);
+    setEditingSet(null);
+    setExerciseSets((current) =>
+      current.map((item) => {
+        if (!sameExerciseMovement(item.exercise_name, gym.name) || item.is_completed) return item;
+        return { ...item, exercise_name: display.name };
+      })
+    );
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, exerciseModes: nextModes }),
+      });
+      if (!response.ok) {
+        console.error('Error saving exercise mode:', await response.text());
+      }
+    } catch (error) {
+      console.error('Error saving exercise mode:', error);
+    }
+  };
+
+  const groupedSets = exercises.map((gym) => {
+    const mode = modes[gym.name] || defaultMode;
+    const exercise = applyExerciseMode(gym, mode);
+    const sets = setsForMovement(exerciseSets, gym.name);
+    return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
   const allSetsComplete =
     exerciseSets.length > 0 && exerciseSets.every((item) => item.is_completed);
 
   return (
     <div className="space-y-6 pb-28">
-      {groupedSets.map(({ exercise, sets }) => {
+      {!setsReady ? (
+        <p className="text-center text-lg font-black text-[#e8c547]">Loading...</p>
+      ) : (
+        groupedSets.map(({ gym, exercise, mode, sets, locked }) => {
         const media = getExerciseMedia(exercise.name);
         const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
@@ -531,13 +629,21 @@ export default function ExerciseTracker({
         const lastTime = lastBestFor(exercise.name, history);
 
         return (
-          <div key={exercise.name} className="glass-card p-5">
+          <div key={gym.name} className="glass-card p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
-              <div>
+              <div className="min-w-0">
                 <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
                 <p className="mt-1 text-sm text-[#f6f1e3]/70">
                   Target: {exercise.sets} sets × {exercise.reps}
                 </p>
+                <div className="mt-2">
+                  <ModeToggle
+                    mode={mode}
+                    locked={locked}
+                    context={gym.name}
+                    onChange={(next) => changeExerciseMode(gym, next)}
+                  />
+                </div>
               </div>
               <button
                 type="button"
@@ -611,7 +717,7 @@ export default function ExerciseTracker({
             <ExerciseThumbs
               sessionId={sessionId}
               exerciseName={exercise.name}
-              saved={thumbs[exercise.name]}
+              saved={thumbs[exercise.name] || thumbs[gym.name]}
               onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
             />
 
@@ -806,7 +912,8 @@ export default function ExerciseTracker({
             </div>
           </div>
         );
-      })}
+      })
+      )}
 
       <div className="glass-card p-5">
         <div className="flex items-center justify-between">

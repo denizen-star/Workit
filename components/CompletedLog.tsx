@@ -2,11 +2,13 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
+import { formatDuration } from '@/lib/formatDuration';
 import { workoutProgram } from '@/lib/workoutData';
 import { setVolume } from '@/lib/exerciseKind';
 import CompletedSessionCard, {
+  weekHistoryTotals,
   type HistorySession,
 } from '@/components/CompletedSessionCard';
 
@@ -109,25 +111,43 @@ export default function CompletedLog({
             week
           );
           const open = expandedWeek === week.weekNumber;
+          const totals = weekHistoryTotals(weekSessions);
+          const weekDone = progress.requiredDone >= progress.requiredTotal && progress.requiredTotal > 0;
 
           return (
             <div key={week.weekNumber} className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
               <button
                 type="button"
                 onClick={() => setExpandedWeek(open ? null : week.weekNumber)}
-                className="flex w-full items-center justify-between px-5 py-4 hover:bg-white/5"
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 hover:bg-white/5"
                 aria-expanded={open}
               >
-                <div className="flex items-center gap-4">
-                  <h3 className="text-xl font-black text-white">Week {week.weekNumber}</h3>
-                  <span className="text-sm text-[#f6f1e3]/65">
-                    {weekProgressLabel(progress)}
-                  </span>
+                <div className="flex min-w-0 items-start gap-2 text-left">
+                  {weekDone ? (
+                    <Check className="mt-0.5 h-6 w-6 shrink-0 text-[#e8c547]" strokeWidth={3} />
+                  ) : null}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                      <h3 className="text-xl font-black text-white">Week {week.weekNumber}</h3>
+                      <span className="text-sm text-[#f6f1e3]/65">
+                        {weekProgressLabel(progress)}
+                      </span>
+                    </div>
+                    {weekSessions.length > 0 ? (
+                      <p className="mt-1 text-lg font-black text-white">
+                        {Math.round(totals.lbs).toLocaleString()} lb
+                        <span className="text-[#f6f1e3]/55"> · </span>
+                        {totals.reps.toLocaleString()} reps
+                        <span className="text-[#f6f1e3]/55"> · </span>
+                        {totals.seconds != null ? formatDuration(totals.seconds) : '—'}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
                 {open ? (
-                  <ChevronUp className="h-6 w-6 text-[#e8c547]" />
+                  <ChevronUp className="h-6 w-6 shrink-0 text-[#e8c547]" />
                 ) : (
-                  <ChevronDown className="h-6 w-6 text-[#e8c547]" />
+                  <ChevronDown className="h-6 w-6 shrink-0 text-[#e8c547]" />
                 )}
               </button>
 

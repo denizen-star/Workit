@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 4.1.0 - 2026-08-26
+
+### Added
+- Live workout **This workout / All-time** bar under the header. This workout = completed-set lbs (+ optional +500 when warmup/cooldown is done) and reps (timed/distance skipped). All-time = prior total excluding this session, plus live lbs
+- **Week performance** under the Home week lock. Same 4-tile chrome: More load, More reps, Less drop, Less cut. This program week vs last time those lifts were done. Dashed **—** = first pass
+- Per-exercise **Gym / Travel** on the live session. Select Workout still sets the session default. Each movement can flip until you complete a set on it, then that pill locks. Name, notes, stills, and video swap with the mode
+- Completed log **week** headers show `lbs · reps · time` for the week (open or closed). Gold check when all 4 required days are done
+- Completed session cards (log + Select finished days): gold check, `lbs · reps · time`, Gym/Travel, date, set count, Best day
+
+### Changed
+- Home and **The house** scan cards use the larger 50+ type. Home section stack is tighter
+- **Your performance** (Home fold, menu, `/performance`) is on for every athlete, including Test. You vs leader and household averages still exclude Test
+- Live session starts from the gym program names; travel is a per-lift overlay, not a whole-day rewrite
+
+### Fixed
+- Travel stills: **Bodyweight Single-Leg RDLs** (one-leg hinge) and **Lying Hamstring Floor Slides** (towel slides). Old RDL URL 404’d; floor slides were a gym curl machine
+
 ## 4.0.0 - 2026-08-26
 
 ### Added

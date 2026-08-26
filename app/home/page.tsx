@@ -9,6 +9,7 @@ import DailyWeightChart from '@/components/DailyWeightChart';
 import FlagStrip from '@/components/FlagStrip';
 import ScanCard from '@/components/ScanCard';
 import WeekLock from '@/components/WeekLock';
+import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
@@ -197,7 +198,7 @@ export default function Home() {
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">{today.day?.focus}</p>
               {todayEstimate && (
-                <p className="mt-3 text-sm font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
+                <p className="mt-3 text-base font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
               )}
               <div className="mt-6 flex flex-wrap gap-3">
                 <Link
@@ -223,7 +224,7 @@ export default function Home() {
                 <Link
                   href={restartHref}
                   onClick={() => trackAction('workout_restart', { category: 'home' })}
-                  className="mt-3 inline-block text-sm font-semibold text-[#f6f1e3]/55"
+                  className="mt-3 inline-flex min-h-11 items-center text-base font-semibold text-[#f6f1e3]/55"
                 >
                   Restart
                 </Link>
@@ -232,9 +233,9 @@ export default function Home() {
           )}
         </div>
 
-        <div className="mt-12 divide-y divide-white/10 [&>section]:py-12 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
+        <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <p className="mb-10 text-[#f6f1e3]/85">
+            <p className="mb-4 text-lg leading-relaxed text-[#f6f1e3]/90">
               {stats
                 ? `${completed} of 24 days. ${formatWeight(allTime)} lb all-time.${
                     last7Same
@@ -246,6 +247,7 @@ export default function Home() {
                 : 'Loading your numbers...'}
             </p>
             <WeekLock week={today.week} sessions={sessions} />
+            <WeekPerformance week={today.week} />
           </section>
 
           {stats?.daily && stats.daily.length > 0 && (
@@ -264,34 +266,33 @@ export default function Home() {
             <FlagStrip sessions={sessions} week={today.week} />
           </section>
 
-          {!isTestUserName(userName) && (
-            <section>
-              <AthletePerformance variant="home" />
-            </section>
-          )}
+          <section>
+            <AthletePerformance variant="home" />
+          </section>
 
           <section>
             <div className="glass-card overflow-hidden">
               <button
                 type="button"
                 onClick={() => setHouseOpen((current) => !current)}
-                className="flex w-full items-center gap-2 px-4 py-3 text-left"
+                className="flex min-h-14 w-full items-center gap-3 px-5 py-4 text-left"
                 aria-expanded={houseOpen}
               >
-                <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">You / house</h2>
-                <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">
+                <h2 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">You / house</h2>
+                <span className="ml-auto truncate text-sm text-[#f6f1e3]/55">
                   {completed} · {formatWeight(allTime)} lb
                 </span>
                 {houseOpen ? (
-                  <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+                  <ChevronUp className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
                 ) : (
-                  <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+                  <ChevronDown className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
                 )}
               </button>
               {houseOpen && (
-                <div className="border-t border-white/10 px-4 pb-4 pt-3">
+                <div className="border-t border-white/10 px-5 pb-5 pt-4">
                   <ScanCard
                     you
+                    roomy
                     title="You"
                     headline={`${formatWeight(allTime)} lb`}
                     sub={`${completed} of 24 days`}

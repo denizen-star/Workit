@@ -3,6 +3,7 @@ import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { updateDailyStats } from '@/lib/dailyStats';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
+import { parseExerciseModes } from '@/lib/exerciseModes';
 import { parseHardness } from '@/lib/hardness';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
@@ -96,9 +97,10 @@ export async function POST(request: NextRequest) {
 
       await query(
         `UPDATE exercise_sets
-         SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?
+         SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?,
+             exercise_name = COALESCE(?, exercise_name)
          WHERE id = ?`,
-        [actualReps, weightLbs, isCompleted, notes, targetReps, setId]
+        [actualReps, weightLbs, isCompleted, notes, targetReps, exerciseName || null, setId]
       );
     } else {
       const existing = await query(
@@ -258,12 +260,20 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
+    const sessionResult = await query(
+      'SELECT exercise_modes FROM workout_sessions WHERE id = ? AND user_id = ?',
+      [sessionId, user.id]
+    );
+    const exerciseModes = parseExerciseModes(
+      (sessionResult.rows[0] as { exercise_modes?: unknown } | undefined)?.exercise_modes
+    );
+
     const result = await query(
       'SELECT * FROM exercise_sets WHERE workout_session_id = ? ORDER BY exercise_name, set_number',
       [sessionId]
     );
 
-    return NextResponse.json({ sets: result.rows });
+    return NextResponse.json({ sets: result.rows, exerciseModes });
   } catch (error) {
     console.error('Error getting exercise sets:', error);
     return NextResponse.json({ error: 'Failed to get exercise sets' }, { status: 500 });

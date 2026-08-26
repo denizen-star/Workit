@@ -3,12 +3,14 @@
 export default function SpikeChart({
   values,
   tone = 'plain',
+  roomy = false,
 }: {
   values: number[];
   tone?: 'up' | 'down' | 'plain';
+  roomy?: boolean;
 }) {
-  const width = 56;
-  const height = 22;
+  const width = roomy ? 72 : 56;
+  const height = roomy ? 28 : 22;
   const points = values.length ? values : [0];
   const max = Math.max(...points, 1);
   const gap = 1;

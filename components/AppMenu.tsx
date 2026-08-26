@@ -7,7 +7,6 @@ import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, LogOut, Tren
 import EditProfileModal from '@/components/EditProfileModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { trackAction } from '@/lib/analytics';
-import { isTestUserName } from '@/lib/householdUsers';
 
 interface AppMenuProps {
   userName: string;
@@ -149,9 +148,7 @@ export default function AppMenu({
             )}
             <div className="border-b border-white/10 py-1">
               {[
-                ...(!isTestUserName(userName)
-                  ? [{ href: '/performance', label: 'Your performance', Icon: TrendingUp }]
-                  : []),
+                { href: '/performance', label: 'Your performance', Icon: TrendingUp },
                 { href: '/scoreboard', label: 'The house', Icon: Trophy },
                 { href: '/history', label: 'Completed log', Icon: ClipboardList },
                 { href: '/medals', label: 'Medals', Icon: Award },

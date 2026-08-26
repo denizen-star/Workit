@@ -6,7 +6,6 @@ import {
   isPerformancePeriod,
   type PerformancePeriod,
 } from '@/lib/athletePerformance';
-import { isTestUserName } from '@/lib/householdUsers';
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,10 +21,6 @@ export async function GET(request: NextRequest) {
       await requireAdmin();
       const rows = await householdAthletePerformance(period);
       return NextResponse.json({ hidden: false, period, rows });
-    }
-
-    if (isTestUserName(user.name)) {
-      return NextResponse.json({ hidden: true, summary: null, exercises: [], workouts: [] });
     }
 
     const board = await athletePerformance(user.id, period);

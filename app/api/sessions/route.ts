@@ -6,6 +6,10 @@ import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
+import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
+import { exerciseGroupNames } from '@/lib/exerciseKey';
+import { applyExerciseMode, getWorkoutDay } from '@/lib/workoutData';
+import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 
 export async function POST(request: NextRequest) {
   try {
@@ -48,7 +52,8 @@ export async function GET(request: NextRequest) {
     if (history) {
       const sessionResult = await query(
         `SELECT id, week_number, day_number, workout_type, workout_mode,
-                started_at, completed_at, ended_at, created_at
+                started_at, completed_at, ended_at, created_at,
+                warmup_lbs, cooldown_lbs, optional_kicker_lbs
          FROM workout_sessions
          WHERE user_id = ? AND is_completed = 1
          ORDER BY week_number, day_number, COALESCE(completed_at, created_at) DESC`,
@@ -65,6 +70,9 @@ export async function GET(request: NextRequest) {
         completed_at: string | null;
         ended_at: string | null;
         created_at: string | null;
+        warmup_lbs?: number | null;
+        cooldown_lbs?: number | null;
+        optional_kicker_lbs?: number | null;
       }[];
 
       if (sessions.length === 0) {
@@ -235,6 +243,77 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('Error updating workout session:', error);
     return NextResponse.json({ error: 'Failed to update workout session' }, { status: 500 });
+  }
+}
+
+export async function PATCH(request: NextRequest) {
+  try {
+    const user = await getCurrentUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    const body = await request.json();
+    const sessionId = Number(body.sessionId);
+    const incoming = parseExerciseModes(body.exerciseModes ?? body.exercise_modes);
+
+    if (!Number.isFinite(sessionId) || sessionId <= 0) {
+      return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
+    }
+
+    const existing = await query(
+      `SELECT id, week_number, day_number, workout_mode, is_completed, exercise_modes
+       FROM workout_sessions WHERE id = ? AND user_id = ?`,
+      [sessionId, user.id]
+    );
+
+    if (existing.rows.length === 0) {
+      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+    }
+
+    const session = existing.rows[0] as {
+      id: number;
+      week_number: number;
+      day_number: number;
+      workout_mode: string | null;
+      is_completed: number | boolean;
+      exercise_modes?: unknown;
+    };
+
+    if (Boolean(Number(session.is_completed))) {
+      return NextResponse.json({ error: 'Finished sessions cannot change exercise mode' }, { status: 400 });
+    }
+
+    const nextModes = { ...parseExerciseModes(session.exercise_modes), ...incoming };
+
+    await query('UPDATE workout_sessions SET exercise_modes = ? WHERE id = ? AND user_id = ?', [
+      serializeExerciseModes(nextModes),
+      sessionId,
+      user.id,
+    ]);
+
+    const day = getWorkoutDay(Number(session.week_number), Number(session.day_number));
+    const fallback = normalizeWorkoutMode(session.workout_mode);
+
+    for (const exercise of day?.exercises || []) {
+      const mode = (nextModes[exercise.name] || fallback) as WorkoutMode;
+      const displayName = applyExerciseMode(exercise, mode).name;
+      const aliases = Array.from(new Set([...exerciseGroupNames(exercise.name), displayName, exercise.name]));
+      const placeholders = aliases.map(() => '?').join(', ');
+      await query(
+        `UPDATE exercise_sets
+         SET exercise_name = ?
+         WHERE workout_session_id = ?
+           AND is_completed = 0
+           AND exercise_name IN (${placeholders})`,
+        [displayName, sessionId, ...aliases]
+      );
+    }
+
+    return NextResponse.json({ success: true, exerciseModes: nextModes });
+  } catch (error) {
+    console.error('Error updating exercise modes:', error);
+    return NextResponse.json({ error: 'Failed to update exercise modes' }, { status: 500 });
   }
 }
 

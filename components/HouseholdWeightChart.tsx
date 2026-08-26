@@ -93,12 +93,12 @@ export default function HouseholdWeightChart({
   if (data.length === 0) return null;
 
   return (
-    <div className="glass-card mb-6 p-4">
-      <div className="mb-3 flex flex-wrap items-center gap-2">
-        <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
+    <div className="glass-card mb-4 p-5">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
+        <h3 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
           Weight lifted
         </h3>
-        <div className="ml-auto grid grid-cols-2 gap-1">
+        <div className="ml-auto grid grid-cols-2 gap-2">
           {(['daily', 'cumulative'] as const).map((option) => {
             const selected = option === mode;
             return (
@@ -106,7 +106,7 @@ export default function HouseholdWeightChart({
                 key={option}
                 type="button"
                 onClick={() => setMode(option)}
-                className={`min-h-9 rounded-xl border px-3 text-xs font-semibold capitalize ${
+                className={`min-h-12 rounded-xl border px-3 text-base font-semibold capitalize ${
                   selected
                     ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
                     : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
@@ -118,7 +118,7 @@ export default function HouseholdWeightChart({
           })}
         </div>
       </div>
-      <p className="mb-3 text-xs text-[#f6f1e3]/55">
+      <p className="mb-4 text-base text-[#f6f1e3]/55">
         <span className="font-semibold text-[#e8c547]">Gold</span> is you.{' '}
         <span className="font-semibold text-[#c08457]">Copper dashed</span> is house avg, Test left out.
       </p>

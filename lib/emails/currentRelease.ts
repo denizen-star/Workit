@@ -22,54 +22,43 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: 'Home Quiet',
-  title: 'Home is quiet now. The rest of the house has rooms.',
-  subject: 'Home is quiet. Open it, man.',
+  version: 'Count it',
+  title: 'I count while you work. Gym or hotel, per lift.',
+  subject: 'I put a meter on the iron, man.',
   signer: 'Master Workit',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   onlyAthletes: [],
   lead:
-    'Man. This is the big one. I took Home apart and put it back as a launch pad. You open the app and the first thing you see is today: dark glass, gold Start sitting fat in the middle of the screen, Select outlined next to it, Restart a small quiet link if you already started and want to throw it away. No scoreboard pile. No medal wall. No completed log chewing the scroll. One job. Get under the bar. Everything else lives in the menu now, in its own room, waiting for you when you are done sweating.',
+    'Man. You open a session and I am already on you. This workout. All-time. Gold numbers sitting under the header so you cannot pretend you are just warming up. And if the hotel is the gym today, you do not have to throw the whole day into Travel. You flip the lift that needs it. One movement. Then you get under it.',
   groups: [
     {
-      heading: 'What you see when you walk in',
+      heading: 'On the floor',
       wins: [
-        'Black screen. Gold dumbbell. Work-It. Menu on the right. That is the whole header. I stripped the extra Start and Select out of the top so your thumb is not hunting.',
-        'The hero is a gold-edged card. Tiny gold kicker: Today, or Pick back up if you left a session open. Then the week and the day in huge white type. The focus line under it. How long I think it will take, in gold. Then the gold brick: Start Workout or Resume Workout. Select Workout next to it, gold outline, dark inside. Restart is not a fourth brick. It is a whisper under them. Use it when you mean it.',
-        'Under that, one sentence. How many of the 24 days you have finished. How many pounds you have moved all-time. If the last 7 days is a different number, I say so. If it is the same number, I tell you that too. Then the week lock.',
+        'Sticky bar under the title. This workout is the lbs you already logged, plus the +500 if you actually did the warmup or cooldown. Reps skip the timed and distance junk. All-time is everything you have ever moved, including this session, without counting it twice.',
+        'Gym / Travel lives on each exercise now. Select Workout still picks the day default. Then each card has its own pill. Name, notes, pictures, video — they follow the switch. The second you complete a set on that movement, I lock the pill. You picked. Live with it.',
+        'Hotel stills that were lying to you are fixed. Single-leg RDL is a one-leg hinge, not a dead link. Hamstring floor slides are heels on a towel, not a gym curl machine. Look at the pictures and do what they say.',
       ],
     },
     {
-      heading: 'Four tiles. Lock the week',
+      heading: 'Home, after you lock the week',
       wins: [
-        'Four required days. Not five. Bonus is still extra credit and it still can count as one of the four, but the lock is four.',
-        'Done is solid gold, dark type, a check. That tile is finished. It looks like a medal you already earned.',
-        'Now is a gold outline on dark. That is the first unpaid required day. That is where I want your body. Not the day you already did. Not a Do Again. The one you still owe.',
-        'Open is a dashed empty box and a dash. Nothing happened there yet. Fill it or live with the gap.',
+        'Under the four day tiles: week performance. Same chrome. More load. More reps. Less drop. Less cut. This week versus the last time you touched those lifts. First pass is dashed. That is me telling you there is nothing to beat yet. Beat it next time.',
+        'Your performance is on for every man in this house, including the test profile. You vs the leader still is not. I am not putting a dummy on the hunt board.',
+        'Type is bigger on Home and The house. I want a 50-year-old thumb to hit the gold without squinting.',
       ],
     },
     {
-      heading: 'The gold line. The copper house',
+      heading: 'The log',
       wins: [
-        'Daily weight lives on Home now. Gold is you. Thick. Copper dashed is the house average. Cream vanished on the dark page so I gave the house copper you can actually see.',
-        'Daily or Cumulative. Last 7. Last 30. All. Tap what you want to feel.',
-        'I will not draw a ghost day. If you did not lift, that date is not on the axis. If Mike lifted and you did not, his line is there and yours is not. The tooltip only names men who actually moved iron. No blank. No fake zero hugging the floor.',
-        'The house page has the pack chart. Every man is a line. You are gold. House average is copper dashed, and I left Test out of that average. Same rule: no empty days, no empty names in the tooltip.',
-      ],
-    },
-    {
-      heading: 'The rest of the house. Open the menu',
-      wins: [
-        'Hamburger. Your performance — you versus the last time you touched that lift. Hidden if you are Test. The house — the pack, the chart, the honor rolls, who you lead and who you chase. Completed log — every finished session, every set. Medals. About program — the week as five tiles, Wednesday Rest sitting dimmer, bonus card, how the overload is supposed to feel from week 1 to week 6.',
-        'Home still has a folded Your performance if you want the scan without leaving. Under that, folded You / house: your pounds, your days, the house next to you. Bonus and Optional are flags now, not fat cards. If you have nothing to show, they disappear.',
-        'You vs the man who owns the 7-day board sits on Home as one card. Hunt him or hold him. That card stays off for Test.',
+        'Closed session card: gold check, then lbs, reps, and time. Gym or Travel. Date. Set count. Best day if you earned it. Same card on Select Workout when the day is already done.',
+        'Week folds do the same math. Week 1 totals every finished day in that week, open or shut. Four required days done and I put a check on the week. You wanted the closed card to tell the truth. Now the week does too.',
       ],
     },
   ],
   wins: [],
   also: [
-    'Hard-refresh so you are on this build. If Home still looks like a junk drawer, you are on the old one.',
+    'Hard-refresh so you are on this build. If the live session has no meter under the title, you are on the old one.',
     'Put Work-It on your iPhone home screen. Safari only. The steps are at the bottom. I want that gold Start in your dock, man.',
   ],
 };

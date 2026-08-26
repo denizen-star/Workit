@@ -33,10 +33,10 @@ function CellBody({
 
   return (
     <div className="space-y-1">
-      <p className="font-semibold leading-snug text-white">{sentence}</p>
-      <p className="text-sm text-[#e8c547]">{yours}</p>
+      <p className="text-base font-semibold leading-snug text-white">{sentence}</p>
+      <p className="text-base text-[#e8c547]">{yours}</p>
       {theirs && (
-        <p className="text-xs text-[#f6f1e3]/55">
+        <p className="text-sm text-[#f6f1e3]/55">
           {cell.peerName ? `${cell.peerName} · ${theirs}` : theirs}
           {cell.percent != null ? ` · ${cell.percent}%` : ''}
         </p>
@@ -69,7 +69,7 @@ export default function ExerciseCompareCells({
       }
     >
       {items.map((item) => (
-        <div key={item.kind} className="rounded-xl border border-white/10 bg-black/20 px-3 py-3">
+        <div key={item.kind} className="rounded-xl border border-white/10 bg-black/20 px-4 py-4">
           <CellBody cell={item.cell} kind={item.kind} athleteName={athleteName} />
         </div>
       ))}
