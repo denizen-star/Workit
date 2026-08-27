@@ -52,16 +52,18 @@ export default function AppMenu({
     const place = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const width = Math.min(260, window.innerWidth - 32);
+      const width = Math.min(280, window.innerWidth - 32);
+      const top = rect.bottom + 8;
       const left = Math.min(
         Math.max(16, rect.right - width),
         window.innerWidth - width - 16
       );
       setPanelStyle({
         position: 'fixed',
-        top: rect.bottom + 8,
+        top,
         left,
         width,
+        maxHeight: window.innerHeight - top - 16,
       });
     };
 
@@ -106,7 +108,7 @@ export default function AppMenu({
           <div
             ref={panelRef}
             style={panelStyle}
-            className="z-[201] overflow-hidden rounded-2xl border border-white/10 bg-[#12121a] shadow-2xl"
+            className="z-[201] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#12121a] shadow-2xl"
           >
             <div className="border-b border-white/10 px-4 py-3">
               <p className="truncate text-sm font-black text-white">{userName}</p>
@@ -142,7 +144,7 @@ export default function AppMenu({
                           : 'text-[#f6f1e3]/85 hover:bg-white/5'
                       }`}
                     >
-                      <Icon className="h-4 w-4 text-[#e8c547]" />
+                      <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
                       {label}
                     </button>
                   );
@@ -172,7 +174,7 @@ export default function AppMenu({
                           : 'text-[#f6f1e3]/85 hover:bg-white/5'
                       }`}
                     >
-                      <Icon className="h-4 w-4 text-[#e8c547]" />
+                      <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
                       {label}
                     </button>
                   );
@@ -186,7 +188,7 @@ export default function AppMenu({
               }}
               className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
             >
-              <UserRound className="h-4 w-4 text-[#e8c547]" />
+              <UserRound className="h-4 w-4 shrink-0 text-[#e8c547]" />
               Edit profile
             </button>
             {!isTestUserName(userName) && (
@@ -198,7 +200,7 @@ export default function AppMenu({
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
               >
-                <UserPlus className="h-4 w-4 text-[#e8c547]" />
+                <UserPlus className="h-4 w-4 shrink-0 text-[#e8c547]" />
                 Invite a friend
               </button>
             )}
@@ -207,7 +209,7 @@ export default function AppMenu({
               onClick={switchUser}
               className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
             >
-              <LogOut className="h-4 w-4 text-[#e8c547]" />
+              <LogOut className="h-4 w-4 shrink-0 text-[#e8c547]" />
               Switch profile
             </button>
           </div>
