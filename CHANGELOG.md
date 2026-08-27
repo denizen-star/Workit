@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 4.2.0 - 2026-08-27
+
+### Added
+- Rest overlay **Progress** (`completed / total` sets) between the rest clock and Skip. Darker glass so it reads over the cards
+
+### Changed
+- Phone live header: Exit, Restart, clock, sound across one row. Week title + focus centered under it. Desktop header stays the three-column layout
+- **Finish it** sits at the end of the live session on phone (after cooldown). Desktop still has it in the header
+- Sticky totals under the title: **Today** / All-time, tighter type and padding (was This workout)
+
 ## 4.1.0 - 2026-08-26
 
 ### Added

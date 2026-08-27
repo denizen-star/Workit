@@ -413,45 +413,74 @@ function WorkoutPageInner() {
     return (
       <div className="min-h-screen">
         <header className="glass-header sticky top-0 z-10">
-          <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
+          <div className="container mx-auto px-4 py-2.5 sm:py-4">
+            <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
+              <div className="flex w-full items-center sm:w-auto sm:justify-start sm:gap-3">
                 <button
+                  type="button"
+                  aria-label="Exit"
                   onClick={() => {
                     setExitLine(pickExitLine(coachTone));
                     setConfirmExit(true);
                   }}
-                  className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-[#f6f1e3]/75 hover:text-white sm:flex-none sm:justify-start sm:gap-2 sm:text-base sm:font-normal"
                 >
-                  <ArrowLeft className="h-5 w-5" />
-                  <span className="hidden sm:inline">Exit</span>
+                  <ArrowLeft className="h-5 w-5 shrink-0" />
+                  Exit
                 </button>
                 <button
+                  type="button"
+                  aria-label="Restart"
                   onClick={() => {
                     if (currentSession && selectedDay != null) {
                       askRestart(selectedWeek, selectedDay, currentSession);
                     }
                   }}
-                  className="flex min-h-11 items-center gap-2 text-[#f6f1e3]/75 hover:text-white"
+                  className="flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-[#f6f1e3]/75 hover:text-white sm:flex-none sm:justify-start sm:gap-2 sm:text-base sm:font-normal"
                 >
-                  <RotateCcw className="h-5 w-5" />
+                  <RotateCcw className="h-5 w-5 shrink-0" />
                   Restart
                 </button>
+                <div className="flex flex-1 items-center justify-center sm:hidden">
+                  <p className="inline-flex items-center gap-1 text-sm font-black tabular-nums text-[#e8c547]">
+                    <Clock className="h-3.5 w-3.5" />
+                    {formatClock(elapsedSeconds)}
+                  </p>
+                </div>
+                <div className="flex flex-1 items-center justify-center sm:hidden">
+                  <button
+                    type="button"
+                    aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
+                    onClick={() => {
+                      const next = !soundOn;
+                      setSoundOn(next);
+                      setSoundEnabled(next);
+                      fetch('/api/me', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ soundOn: next }),
+                      }).catch(() => {});
+                    }}
+                    className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
+                  >
+                    {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                  </button>
+                </div>
               </div>
-              <div className="flex-1 text-center">
-                <h1 className="text-xl font-black text-[#f5d76e]">
+              <div className="w-full text-center sm:flex-1">
+                <h1 className="text-lg font-black leading-tight text-[#f5d76e] sm:text-xl">
                   Week {selectedWeek} · {workout.name}
                 </h1>
                 <p className="text-sm text-[#f6f1e3]/65">
                   {workout.focus}
                   {workoutMode === 'travel' ? ' · Travel' : ''}
                 </p>
-                <p className="mt-1 inline-flex items-center gap-1 text-sm font-black text-[#e8c547]">
+                <p className="mt-1 hidden items-center justify-center gap-1 text-sm font-black tabular-nums text-[#e8c547] sm:inline-flex">
                   <Clock className="h-3.5 w-3.5" />
                   {formatClock(elapsedSeconds)}
                 </p>
               </div>
-              <div className="flex items-center gap-2">
+              <div className="hidden items-center gap-2 sm:flex">
                 <button
                   type="button"
                   aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
@@ -465,15 +494,16 @@ function WorkoutPageInner() {
                       body: JSON.stringify({ soundOn: next }),
                     }).catch(() => {});
                   }}
-                  className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
+                  className="inline-flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
                 >
                   {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                 </button>
                 <button
+                  type="button"
                   onClick={() => setConfirmComplete(true)}
-                  className="min-h-11 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
+                  className="min-h-11 shrink-0 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
                 >
-                  Finish
+                  Finish it
                 </button>
               </div>
             </div>
@@ -485,7 +515,7 @@ function WorkoutPageInner() {
           />
         </header>
 
-        <div className="container mx-auto space-y-6 px-4 py-8">
+        <div className="container mx-auto space-y-6 px-4 py-8 pb-28">
           <OptionalCard sessionId={currentSession} slot="warmup" onLbs={handleWarmupLbs} />
           <ExerciseTracker
             sessionId={currentSession}
@@ -497,6 +527,13 @@ function WorkoutPageInner() {
             onTotals={handleLiftTotals}
           />
           <OptionalCard sessionId={currentSession} slot="cooldown" onLbs={handleCooldownLbs} />
+          <button
+            type="button"
+            onClick={() => setConfirmComplete(true)}
+            className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404] sm:hidden"
+          >
+            Finish it
+          </button>
         </div>
 
         <ExitTakeover

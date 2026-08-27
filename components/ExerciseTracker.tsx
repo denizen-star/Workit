@@ -607,11 +607,12 @@ export default function ExerciseTracker({
     const sets = setsForMovement(exerciseSets, gym.name);
     return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
-  const allSetsComplete =
-    exerciseSets.length > 0 && exerciseSets.every((item) => item.is_completed);
+  const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
+  const totalSetCount = exerciseSets.length;
+  const allSetsComplete = totalSetCount > 0 && completedSetCount === totalSetCount;
 
   return (
-    <div className="space-y-6 pb-28">
+    <div className="space-y-6">
       {!setsReady ? (
         <p className="text-center text-lg font-black text-[#e8c547]">Loading...</p>
       ) : (
@@ -921,22 +922,26 @@ export default function ExerciseTracker({
             Workout Progress
           </span>
           <span className="text-3xl font-black text-[#f5d76e]">
-            {exerciseSets.filter((item) => item.is_completed).length} / {exerciseSets.length}
+            {completedSetCount} / {totalSetCount}
           </span>
         </div>
         <div className="mt-3 h-3 overflow-hidden rounded-full bg-white/10">
           <div
             className="h-full bg-[#e8c547] transition-all duration-300"
             style={{
-              width: `${exerciseSets.length
-                ? (exerciseSets.filter((item) => item.is_completed).length / exerciseSets.length) * 100
-                : 0}%`,
+              width: `${totalSetCount ? (completedSetCount / totalSetCount) * 100 : 0}%`,
             }}
           />
         </div>
       </div>
 
-      <SetRestTimer startToken={restToken} line={restLine} cancelled={allSetsComplete} />
+      <SetRestTimer
+        startToken={restToken}
+        line={restLine}
+        cancelled={allSetsComplete}
+        completedSets={completedSetCount}
+        totalSets={totalSetCount}
+      />
 
       <TimedSetTimer
         open={!!timedTimer}

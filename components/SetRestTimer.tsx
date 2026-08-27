@@ -12,9 +12,17 @@ interface SetRestTimerProps {
   startToken: number;
   line: string;
   cancelled?: boolean;
+  completedSets?: number;
+  totalSets?: number;
 }
 
-export default function SetRestTimer({ startToken, line, cancelled = false }: SetRestTimerProps) {
+export default function SetRestTimer({
+  startToken,
+  line,
+  cancelled = false,
+  completedSets = 0,
+  totalSets = 0,
+}: SetRestTimerProps) {
   const [remaining, setRemaining] = useState(REST_SECONDS);
   const [running, setRunning] = useState(false);
   const [showGetToIt, setShowGetToIt] = useState(false);
@@ -64,18 +72,38 @@ export default function SetRestTimer({ startToken, line, cancelled = false }: Se
     <>
       {running && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="glass-card pointer-events-auto mx-auto flex max-w-xl items-center justify-between gap-4 px-5 py-4">
-            <div className="flex items-center gap-3">
-              <Timer className="h-7 w-7 text-white" />
+          <div className="pointer-events-auto mx-auto flex max-w-xl items-center gap-3 rounded-[1.5rem] border border-[#e8c547]/25 bg-[#101014]/92 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl sm:gap-4 sm:px-5 sm:py-4">
+            <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+              <Timer className="h-6 w-6 text-white sm:h-7 sm:w-7" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white sm:text-xs">
                   Rest
                 </p>
-                <p className="text-3xl font-black tabular-nums text-white">
+                <p className="text-2xl font-black tabular-nums text-white sm:text-3xl">
                   {formatClock(remaining)}
                 </p>
               </div>
             </div>
+            {totalSets > 0 ? (
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2">
+                  <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-[#e8c547]">
+                    Progress
+                  </span>
+                  <span className="text-sm font-black tabular-nums text-[#f5d76e]">
+                    {completedSets} / {totalSets}
+                  </span>
+                </div>
+                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                  <div
+                    className="h-full bg-[#e8c547] transition-all duration-300"
+                    style={{
+                      width: `${Math.min(100, (completedSets / totalSets) * 100)}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : null}
             <button
               type="button"
               onClick={() => {
@@ -85,7 +113,7 @@ export default function SetRestTimer({ startToken, line, cancelled = false }: Se
                 setRemaining(0);
                 if (!cancelled) setShowGetToIt(true);
               }}
-              className="min-h-12 rounded-2xl bg-white px-5 text-base font-black text-black hover:bg-gray-200"
+              className="min-h-12 shrink-0 rounded-2xl bg-white px-4 text-base font-black text-black hover:bg-gray-200 sm:px-5"
             >
               Skip
             </button>
