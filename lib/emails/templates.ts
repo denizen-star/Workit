@@ -32,6 +32,20 @@ export type WelcomeEmailInput = {
   name: string;
 };
 
+export type InviteEmailInput = {
+  name: string;
+  inviterName: string;
+  inviterEmail: string | null;
+  claimUrl: string;
+};
+
+export type InviteNotifyEmailInput = {
+  inviterName: string;
+  inviterEmail: string | null;
+  inviteeName: string;
+  inviteeEmail: string;
+};
+
 export type NudgeEmailInput = {
   name: string;
   mode: 'start' | 'resume';
@@ -244,6 +258,77 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     emailTextSignOff(),
   ].join('\n');
   return { from: fromFor(), subject: "You're mine. Work-It.", html, text };
+}
+
+export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
+  const name = firstName(input.name);
+  const url = input.claimUrl;
+  const inviter = input.inviterEmail
+    ? input.inviterName + ' (' + input.inviterEmail + ')'
+    : input.inviterName;
+  const eyebrow = 'roster';
+  const title = "You're mine now";
+  const subtitle = '- by invitation only';
+  const html = wrapEmailHtml({
+    eyebrow,
+    title,
+    subtitle,
+    childrenHtml: [
+      address(name),
+      p(esc(inviter) + ' put you on my roster. That was not a suggestion.'),
+      p('Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar and show me what you are made of.'),
+      bullets([
+        'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
+        'Every set logged. Rest when I say. Badges when you earn them.',
+        'Your numbers stay on your profile so I can inspect you.',
+      ]),
+      cta(url, 'CREATE YOUR PIN'),
+      iosHomeScreenStepsHtml(),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader(eyebrow, title + '\n' + subtitle),
+    name + '.',
+    '',
+    inviter + ' put you on my roster. That was not a suggestion.',
+    'Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar.',
+    '',
+    url,
+    '',
+    iosHomeScreenStepsText(),
+    emailTextSignOff(),
+  ].join('\n');
+  return { from: fromFor(), subject: "You're mine. Work-It.", html, text };
+}
+
+export function buildInviteNotifyEmail(input: InviteNotifyEmailInput): BuiltEmail {
+  const html = wrapEmailHtml({
+    eyebrow: 'invite',
+    title: input.inviterName + ' invited ' + input.inviteeName,
+    childrenHtml: [
+      p(
+        '<strong style="color:#fff;">' +
+          esc(input.inviterName) +
+          '</strong>' +
+          (input.inviterEmail ? ' · ' + esc(input.inviterEmail) : '')
+      ),
+      p('just put ' + esc(input.inviteeName) + ' on the roster.'),
+      p('Reply: ' + esc(input.inviteeEmail)),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader('invite', input.inviterName + ' invited ' + input.inviteeName),
+    input.inviterName + (input.inviterEmail ? ' · ' + input.inviterEmail : ''),
+    'just put ' + input.inviteeName + ' on the roster.',
+    'Reply: ' + input.inviteeEmail,
+    emailTextSignOff(),
+  ].join('\n');
+  return {
+    from: fromFor(),
+    subject: 'Invite · ' + input.inviterName + ' added ' + input.inviteeName,
+    html,
+    text,
+  };
 }
 
 export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
@@ -595,6 +680,14 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
   };
 
   if (template === 'welcome') return buildWelcomeEmail({ name: 'Kevin' });
+  if (template === 'invite') {
+    return buildInviteEmail({
+      name: 'Maya Chen',
+      inviterName: 'Kevin Leacock',
+      inviterEmail: 'leacock.kervin@gmail.com',
+      claimUrl: whoUrl() + '?claim=preview',
+    });
+  }
   if (template === 'nudge') {
     return buildNudgeEmail({
       name: 'Kevin',

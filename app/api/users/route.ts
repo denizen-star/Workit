@@ -1,19 +1,30 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import {
+  getCurrentUser,
   hashPin,
+  isAdminUser,
   isValidPin,
   requireAdmin,
   AuthError,
 } from '@/lib/auth';
-import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
+import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 import { queueWelcomeEmail } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const me = await getCurrentUser();
+    const wantAll = request.nextUrl.searchParams.get('all') === '1';
+    if (wantAll) {
+      if (!me || !isAdminUser(me)) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      }
+    }
     const result = await query(
-      'SELECT id, name, email, pin_hash FROM users ORDER BY id ASC'
+      wantAll
+        ? 'SELECT id, name, email, pin_hash FROM users ORDER BY id ASC'
+        : 'SELECT id, name, email, pin_hash FROM users WHERE pin_hash IS NOT NULL ORDER BY id ASC'
     );
 
     const users = (result.rows as { id: number; name: string; email: string | null; pin_hash: string | null }[]).map(
@@ -43,6 +54,10 @@ export async function POST(request: NextRequest) {
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
+    }
+
+    if (await isNameTaken(name)) {
+      return NextResponse.json({ error: NAME_TAKEN_MESSAGE }, { status: 409 });
     }
 
     if (email === undefined) {

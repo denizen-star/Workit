@@ -8,11 +8,13 @@ import {
   isValidPin,
   sessionCookieOptions,
 } from '@/lib/auth';
+import { getWaitingGuest, inviteTokenMatches } from '@/lib/invite';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, pin, confirmPin } = await request.json();
+    const { userId, pin, confirmPin, inviteToken } = await request.json();
     const id = Number(userId);
+    const rawToken = typeof inviteToken === 'string' ? inviteToken : '';
 
     if (!Number.isFinite(id) || id <= 0) {
       return NextResponse.json({ error: 'Invalid user' }, { status: 400 });
@@ -38,8 +40,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const waiting = await getWaitingGuest(id);
+    if (!waiting || !inviteTokenMatches(rawToken, waiting.invite_token)) {
+      return NextResponse.json(
+        { error: 'Use the invite link from your email to create a PIN.' },
+        { status: 403 }
+      );
+    }
+
     const pinHash = hashPin(pin);
-    await query('UPDATE users SET pin_hash = ? WHERE id = ?', [pinHash, id]);
+    await query('UPDATE users SET pin_hash = ?, invite_token = NULL WHERE id = ?', [pinHash, id]);
 
     const token = await createSessionToken(id);
     const cookieStore = await cookies();

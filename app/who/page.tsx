@@ -25,8 +25,14 @@ export default function WhoPage() {
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [claimToken, setClaimToken] = useState('');
 
   useEffect(() => {
+    const token = new URLSearchParams(window.location.search).get('claim') || '';
+    if (token) {
+      loadClaim(token);
+      return;
+    }
     loadUsers();
   }, []);
 
@@ -41,6 +47,45 @@ export default function WhoPage() {
       console.error('Error loading users:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadClaim = async (token: string) => {
+    setClaimToken(token);
+    try {
+      const response = await fetch('/api/auth/claim?token=' + encodeURIComponent(token));
+      const data = await response.json();
+      if (!response.ok) {
+        setClaimToken('');
+        setError(data.error || 'Invite link is not valid');
+        await loadUsersKeepingError();
+        return;
+      }
+      setSelected({
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        has_pin: false,
+      });
+      setStep('create-pin');
+    } catch {
+      setClaimToken('');
+      setError('Invite link is not valid');
+      await loadUsersKeepingError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadUsersKeepingError = async () => {
+    try {
+      const response = await fetch('/api/users');
+      if (response.ok) {
+        const data = await response.json();
+        setUsers(data.users || []);
+      }
+    } catch (err) {
+      console.error('Error loading users:', err);
     }
   };
 
@@ -61,7 +106,11 @@ export default function WhoPage() {
   const goBack = () => {
     setSelected(null);
     resetPinFlow();
+    setClaimToken('');
     setStep('pick');
+    if (typeof window !== 'undefined' && window.location.search.includes('claim=')) {
+      router.replace('/who');
+    }
   };
 
   const login = async (enteredPin: string) => {
@@ -117,6 +166,7 @@ export default function WhoPage() {
           userId: selected.id,
           pin: firstPin,
           confirmPin: secondPin,
+          inviteToken: claimToken || undefined,
         }),
       });
 
@@ -216,6 +266,9 @@ export default function WhoPage() {
                 <p className="text-center text-[#f6f1e3]/65">No profiles yet. Ask the app owner to add you.</p>
               )}
             </div>
+            {error && (
+              <p className="mt-6 text-center text-sm font-semibold text-rose-400">{error}</p>
+            )}
           </>
         ) : (
           <>

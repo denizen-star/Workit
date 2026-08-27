@@ -1,3 +1,8 @@
+import { query } from '@/lib/db';
+
+export const NAME_TAKEN_MESSAGE =
+  'That name is already on the roster. Add a last name or nickname.';
+
 export function normalizeName(name: unknown): string | null {
   if (typeof name !== 'string') return null;
   const trimmed = name.trim();
@@ -22,4 +27,14 @@ export function firstName(fullName: string | null | undefined): string {
   const trimmed = (fullName || '').trim();
   if (!trimmed) return 'there';
   return trimmed.split(/\s+/)[0];
+}
+
+export async function isNameTaken(name: string, exceptUserId?: number): Promise<boolean> {
+  const result = await query(
+    'SELECT id FROM users WHERE LOWER(TRIM(name)) = LOWER(?) LIMIT 1',
+    [name]
+  );
+  const row = result.rows[0] as { id: number } | undefined;
+  if (!row) return false;
+  return exceptUserId == null || row.id !== exceptUserId;
 }

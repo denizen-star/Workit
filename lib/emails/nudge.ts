@@ -93,7 +93,9 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
 }
 
 export async function sendDailyNudges() {
-  const users = await query('SELECT id, name, email FROM users WHERE email IS NOT NULL');
+  const users = await query(
+    'SELECT id, name, email FROM users WHERE email IS NOT NULL AND pin_hash IS NOT NULL'
+  );
   const results = [];
   for (const user of users.rows as { id: number; name: string; email: string | null }[]) {
     results.push({

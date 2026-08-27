@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Pencil, Plus, Trash2, Mail } from 'lucide-react';
 import UserFormModal, { type AdminUser } from '@/components/UserFormModal';
 import Modal from '@/components/Modal';
 
@@ -16,10 +16,12 @@ export default function AdminUsersPage() {
   const [editing, setEditing] = useState<AdminUser | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<AdminUser | null>(null);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
+  const [resendingId, setResendingId] = useState<number | null>(null);
 
   const load = async () => {
     try {
-      const usersRes = await fetch('/api/users');
+      const usersRes = await fetch('/api/users?all=1');
       if (usersRes.status === 401 || usersRes.status === 403) {
         router.replace('/home');
         return;
@@ -43,6 +45,29 @@ export default function AdminUsersPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const resendInvite = async (user: AdminUser) => {
+    setError('');
+    setNotice('');
+    setResendingId(user.id);
+    try {
+      const response = await fetch('/api/invite/resend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: user.id }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data.error || 'Could not resend invite');
+        return;
+      }
+      setNotice('Invite resent to ' + user.name);
+    } catch {
+      setError('Could not resend invite. Try again.');
+    } finally {
+      setResendingId(null);
+    }
+  };
 
   const confirmDelete = async () => {
     if (!deleteTarget) return;
@@ -96,6 +121,9 @@ export default function AdminUsersPage() {
         {error && (
           <p className="mb-4 text-sm font-semibold text-rose-400">{error}</p>
         )}
+        {notice && (
+          <p className="mb-4 text-sm font-semibold text-[#e8c547]">{notice}</p>
+        )}
 
         <div className="space-y-3">
           {users.map((user) => (
@@ -111,6 +139,17 @@ export default function AdminUsersPage() {
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
+                  {!user.has_pin && (
+                    <button
+                      type="button"
+                      aria-label={`Resend invite to ${user.name}`}
+                      disabled={resendingId === user.id}
+                      onClick={() => resendInvite(user)}
+                      className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] disabled:opacity-30"
+                    >
+                      <Mail className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={`Edit ${user.name}`}

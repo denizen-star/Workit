@@ -7,8 +7,16 @@ import { getUserTone } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { pickCompleteLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
-import { buildBadgeEmail, buildWelcomeEmail, buildWorkoutCompleteEmail } from '@/lib/emails/templates';
+import {
+  buildBadgeEmail,
+  buildInviteEmail,
+  buildInviteNotifyEmail,
+  buildWelcomeEmail,
+  buildWorkoutCompleteEmail,
+} from '@/lib/emails/templates';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { claimUrl } from '@/lib/emailLayout';
+import { feedbackMailTo } from '@/lib/emails/feedback';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -16,6 +24,76 @@ const BADGE_EMAIL_TYPES = new Set([
   'perfect_week',
   'total_workouts',
 ]);
+
+export async function sendInviteEmail(opts: {
+  id: number;
+  name: string;
+  email: string;
+  inviterName: string;
+  inviterEmail: string | null;
+  rawToken: string;
+  dedupe: boolean;
+}) {
+  const email = buildInviteEmail({
+    name: opts.name,
+    inviterName: opts.inviterName,
+    inviterEmail: opts.inviterEmail,
+    claimUrl: claimUrl(opts.rawToken),
+  });
+  if (!opts.dedupe) {
+    const id = await sendNow(opts.email, email);
+    return { sent: Boolean(id), skipped: id ? undefined : ('smtp' as const) };
+  }
+  return claimAndSend({
+    userId: opts.id,
+    template: 'invite',
+    dedupeKey: 'user:' + opts.id + ':invite',
+    to: opts.email,
+    email,
+  });
+}
+
+async function sendInviteNotifyEmail(opts: {
+  inviterName: string;
+  inviterEmail: string | null;
+  inviteeName: string;
+  inviteeEmail: string;
+}) {
+  const to = feedbackMailTo();
+  if (!to) return;
+  const email = buildInviteNotifyEmail(opts);
+  await sendNow(to, email);
+}
+
+export function queueInviteEmail(opts: {
+  id: number;
+  name: string;
+  email: string;
+  inviterName: string;
+  inviterEmail: string | null;
+  rawToken: string;
+}) {
+  after(async () => {
+    await sendInviteEmail({ ...opts, dedupe: true });
+    await sendInviteNotifyEmail({
+      inviterName: opts.inviterName,
+      inviterEmail: opts.inviterEmail,
+      inviteeName: opts.name,
+      inviteeEmail: opts.email,
+    });
+  });
+}
+
+export async function resendInviteEmail(opts: {
+  id: number;
+  name: string;
+  email: string;
+  inviterName: string;
+  inviterEmail: string | null;
+  rawToken: string;
+}) {
+  return sendInviteEmail({ ...opts, dedupe: false });
+}
 
 export function queueWelcomeEmail(user: { id: number; name: string; email: string | null }) {
   if (!user.email) return;

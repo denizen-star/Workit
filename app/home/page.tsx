@@ -21,6 +21,7 @@ import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
 import { workoutDateKey } from '@/lib/statsHousehold';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
+import InviteFriendModal from '@/components/InviteFriendModal';
 
 function formatCount(value: number | null | undefined) {
   return String(Math.round(Number(value || 0)));
@@ -57,6 +58,7 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [houseOpen, setHouseOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +136,9 @@ export default function Home() {
   const allTime = Number(stats?.overall?.total_weight_lifted || 0);
   const last7 = lastDaysWeight(stats?.daily, 7);
   const last7Same = Math.round(last7) === Math.round(allTime) && allTime > 0;
+  const canInvite = !isTestUserName(userName);
+  const inviteLinkClass =
+    'mt-3 inline-flex min-h-11 items-center text-base font-semibold text-[#f6f1e3]/55';
 
   if (loading) {
     return (
@@ -187,6 +192,11 @@ export default function Home() {
                   Browse workouts
                 </Link>
               </div>
+              {canInvite && (
+                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                  Invite a friend
+                </button>
+              )}
             </>
           ) : (
             <>
@@ -228,6 +238,11 @@ export default function Home() {
                 >
                   Restart
                 </Link>
+              )}
+              {canInvite && (
+                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                  Invite a friend
+                </button>
               )}
             </>
           )}
@@ -321,6 +336,7 @@ export default function Home() {
           </section>
         </div>
       </div>
+      <InviteFriendModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
     </div>
   );
 }

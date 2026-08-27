@@ -8,8 +8,12 @@ CREATE TABLE users (
     pin_hash VARCHAR(255) NULL,
     coach_tone VARCHAR(32) NOT NULL DEFAULT 'master',
     sound_on TINYINT(1) NOT NULL DEFAULT 1,
+    invited_by INT NULL,
+    invite_token VARCHAR(64) NULL UNIQUE,
+    invited_at TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_users_invited_by (invited_by)
 );
 
 

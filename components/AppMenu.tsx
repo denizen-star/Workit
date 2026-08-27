@@ -3,9 +3,11 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, LogOut, TrendingUp, Trophy, Award, Info, ClipboardList } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, Info, ClipboardList } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
+import InviteFriendModal from '@/components/InviteFriendModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { isTestUserName } from '@/lib/householdUsers';
 import { trackAction } from '@/lib/analytics';
 
 interface AppMenuProps {
@@ -34,6 +36,7 @@ export default function AppMenu({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  const [showInvite, setShowInvite] = useState(false);
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -186,6 +189,19 @@ export default function AppMenu({
               <UserRound className="h-4 w-4 text-[#e8c547]" />
               Edit profile
             </button>
+            {!isTestUserName(userName) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setOpen(false);
+                  setShowInvite(true);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
+              >
+                <UserPlus className="h-4 w-4 text-[#e8c547]" />
+                Invite a friend
+              </button>
+            )}
             <button
               type="button"
               onClick={switchUser}
@@ -227,6 +243,7 @@ export default function AppMenu({
           router.refresh();
         }}
       />
+      <InviteFriendModal open={showInvite} onClose={() => setShowInvite(false)} />
     </>
   );
 }

@@ -19,6 +19,10 @@ export function whoUrl() {
   return appUrl() + '/who';
 }
 
+export function claimUrl(rawToken: string) {
+  return whoUrl() + '?claim=' + encodeURIComponent(rawToken);
+}
+
 export function esc(s: string) {
   return String(s || '')
     .replace(/&/g, '&amp;')

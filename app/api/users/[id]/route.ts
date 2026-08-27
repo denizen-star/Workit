@@ -6,7 +6,7 @@ import {
   requireAdmin,
   AuthError,
 } from '@/lib/auth';
-import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
+import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 import { deleteUserAndData } from '@/lib/users';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
@@ -39,6 +39,10 @@ export async function PATCH(request: NextRequest, context: RouteContext) {
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
+    }
+
+    if (await isNameTaken(name, id)) {
+      return NextResponse.json({ error: NAME_TAKEN_MESSAGE }, { status: 409 });
     }
 
     if (email === undefined) {

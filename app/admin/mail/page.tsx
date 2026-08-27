@@ -15,6 +15,7 @@ type PreviewResponse = {
 
 const LABELS: Record<MailTemplateId, string> = {
   welcome: 'Welcome',
+  invite: 'Invite',
   nudge: 'Get to it',
   resume: 'Finish it',
   complete: 'Workout recap',

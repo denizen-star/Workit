@@ -12,7 +12,7 @@ import {
 } from '@/lib/auth';
 import { isCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
-import { isDuplicateEmailError, normalizeEmail, normalizeName } from '@/lib/profile';
+import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -53,6 +53,10 @@ export async function PATCH(request: NextRequest) {
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
+    }
+
+    if (await isNameTaken(name, user.id)) {
+      return NextResponse.json({ error: NAME_TAKEN_MESSAGE }, { status: 409 });
     }
 
     if (email === undefined) {
