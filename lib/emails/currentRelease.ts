@@ -22,35 +22,28 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: 'Phone floor',
-  title: 'I stole the header so you can see the iron, man.',
-  subject: 'Your phone just got out of the way, man.',
+  version: 'Invite a friend',
+  title: 'Bring someone who will actually lift, man.',
+  subject: 'Bring a friend who will actually lift, man.',
   signer: 'Master Workit',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   onlyAthletes: [],
   lead:
-    'Man. I packed the live session so the work sits in your face, not the chrome. Clock on the top row. Title centered under it. Finish it waits at the bottom until you have actually done the day. Rest now tells you how many sets you still owe me. Look at it. Then get under the next one.',
+    'Man. I opened the roster. You do not get to keep this house to yourself. Full name. Email. Send. They create their PIN from the mail. Then they stand on the board next to you. I want bodies in this program, not spectators.',
   groups: [
     {
-      heading: 'On the phone',
+      heading: 'How you do it',
       wins: [
-        'Top row is Exit, Restart, the clock, and sound. Four slots. I spread them so you can hit them with a thumb. Week name and focus sit centered under that, full width. I cut the height so the first lift is not hiding under a novel.',
-        'Finish it is not floating on your face anymore. On the phone it lives at the end of the session, after cooldown. You scroll the work. Then you tap. Stars still required. Desktop still has Finish it in the header. I did not forget you on a big screen.',
-        'Under the title: Today and All-time. Tight. Today is this session — completed-set lbs plus the +500 if you actually did warmup or cooldown. All-time is everything you have ever moved, including today, counted once. I do not need a parade of capital letters to tell you what you lifted.',
-      ],
-    },
-    {
-      heading: 'While you rest',
-      wins: [
-        'Complete a set and the rest bar still sits on the floor. Clock on the left. Skip on the right. Progress in the middle: how many sets you have banked over the whole day. Read it. Then Skip when you are done sitting.',
-        'I darkened that glass. You could see through it before. Now you can read the numbers without the squat pictures bleeding through. That is not decoration. That is me making sure you know where you are.',
+        'Open Home. Invite a friend sits under Start, same small link as Restart. Or open the hamburger. On your phone Invite sits at the bottom with Edit profile and Switch profile so you can actually tap it. Do not hunt.',
+        'Full name. Real email. Send invite. They get mail from me. They open the link. They make a 4-digit PIN and confirm it. Then they show on Who and on The house with you. Same program. Same scoreboard. Same me watching.',
+        'Lost the mail? Open Invite a friend again. Waiting guests get Resend. That kills the old link. One hundred guests is the cap. I will not take a name or email already on the roster. Differentiate or pick someone else.',
       ],
     },
   ],
   wins: [],
   also: [
-    'Hard-refresh so you are on this build. If Finish it is still a gold chip in the phone header, you are on the old one.',
+    'Hard-refresh so you are on this build. If you cannot see Invite a friend, you are on the old one.',
     'Put Work-It on your iPhone home screen. Safari only. The steps are at the bottom. I want that gold Start in your dock, man.',
   ],
 };

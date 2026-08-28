@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 4.3.0 - 2026-08-28
+
+### Added
+- **Invite a friend.** Home text link under Start/Select (same weight as Restart) and a hamburger item. Full name + email. They get mail, open the claim link, create a 4-digit PIN, then show on `/who` and the house board. Cap 100. Duplicate email or full name blocked. Resend from the sheet while they are Waiting. Test cannot invite
+
+### Fixed
+- Invite sheet opens full-screen on the phone (was clipped inside the header)
+- Hamburger **Invite a friend** stays on screen on the phone: Edit / Invite / Switch sit pinned at the bottom; the rest of the menu scrolls
+
 ## 4.2.0 - 2026-08-27
 
 ### Added

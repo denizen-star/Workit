@@ -40,7 +40,7 @@ export default function AppMenu({
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-  const [panelStyle, setPanelStyle] = useState<CSSProperties>({});
+  const [panelStyle, setPanelStyle] = useState<CSSProperties | null>(null);
 
   useEffect(() => {
     setMounted(true);
@@ -52,18 +52,36 @@ export default function AppMenu({
     const place = () => {
       const rect = buttonRef.current?.getBoundingClientRect();
       if (!rect) return;
-      const width = Math.min(280, window.innerWidth - 32);
+      const mobile = window.innerWidth < 640;
+      const gutter = 16;
       const top = rect.bottom + 8;
+      const maxHeight = Math.max(240, window.innerHeight - top - gutter);
+      if (mobile) {
+        setPanelStyle({
+          position: 'fixed',
+          top,
+          left: gutter,
+          right: gutter,
+          width: 'auto',
+          height: maxHeight,
+          display: 'flex',
+          flexDirection: 'column',
+        });
+        return;
+      }
+      const width = Math.min(280, window.innerWidth - gutter * 2);
       const left = Math.min(
-        Math.max(16, rect.right - width),
-        window.innerWidth - width - 16
+        Math.max(gutter, rect.right - width),
+        window.innerWidth - width - gutter
       );
       setPanelStyle({
         position: 'fixed',
         top,
         left,
         width,
-        maxHeight: window.innerHeight - top - 16,
+        maxHeight,
+        display: 'flex',
+        flexDirection: 'column',
       });
     };
 
@@ -105,114 +123,120 @@ export default function AppMenu({
     ? createPortal(
         <div className="fixed inset-0 z-[200]">
           <div className="absolute inset-0 bg-black/40" onClick={() => setOpen(false)} />
+          {panelStyle && (
           <div
             ref={panelRef}
             style={panelStyle}
-            className="z-[201] overflow-y-auto overscroll-contain rounded-2xl border border-white/10 bg-[#12121a] shadow-2xl"
+            className="z-[201] overflow-hidden rounded-2xl border border-white/10 bg-[#12121a] shadow-2xl"
           >
-            <div className="border-b border-white/10 px-4 py-3">
+            <div className="shrink-0 border-b border-white/10 px-4 py-3">
               <p className="truncate text-sm font-black text-white">{userName}</p>
               {userEmail && (
                 <p className="truncate text-xs text-[#f6f1e3]/50">{userEmail}</p>
               )}
             </div>
-            {isAdmin && (
-              <div className="border-b border-white/10 py-1">
-                <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">
-                  Admin
-                </p>
-                {(
-                  [
-                    { href: '/admin/analytics', label: 'Analytics', Icon: BarChart3 },
-                    { href: '/admin/users', label: 'Users', Icon: Users },
-                    { href: '/admin/feedback', label: 'Feedback', Icon: MessageSquare },
-                    { href: '/admin/mail', label: 'Mail', Icon: Mail },
-                  ] as const
-                ).map(({ href, label, Icon }) => {
-                  const active = pathname === href || pathname.startsWith(href + '/');
-                  return (
-                    <button
-                      key={href}
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        router.push(href);
-                      }}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
-                        active
-                          ? 'bg-white/5 text-[#e8c547]'
-                          : 'text-[#f6f1e3]/85 hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
-                      {label}
-                    </button>
-                  );
-                })}
+            <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain">
+              {isAdmin && (
+                <div className="border-b border-white/10 py-1">
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">
+                    Admin
+                  </p>
+                  {(
+                    [
+                      { href: '/admin/analytics', label: 'Analytics', Icon: BarChart3 },
+                      { href: '/admin/users', label: 'Users', Icon: Users },
+                      { href: '/admin/feedback', label: 'Feedback', Icon: MessageSquare },
+                      { href: '/admin/mail', label: 'Mail', Icon: Mail },
+                    ] as const
+                  ).map(({ href, label, Icon }) => {
+                    const active = pathname === href || pathname.startsWith(href + '/');
+                    return (
+                      <button
+                        key={href}
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          router.push(href);
+                        }}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
+                          active
+                            ? 'bg-white/5 text-[#e8c547]'
+                            : 'text-[#f6f1e3]/85 hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+              <div className="py-1">
+                {[
+                  { href: '/performance', label: 'Your performance', Icon: TrendingUp },
+                  { href: '/scoreboard', label: 'The house', Icon: Trophy },
+                  { href: '/history', label: 'Completed log', Icon: ClipboardList },
+                  { href: '/medals', label: 'Medals', Icon: Award },
+                  { href: '/about', label: 'About program', Icon: Info },
+                ].map(({ href, label, Icon }) => {
+                    const active = pathname === href || pathname.startsWith(href + '/');
+                    return (
+                      <button
+                        key={href}
+                        type="button"
+                        onClick={() => {
+                          setOpen(false);
+                          router.push(href);
+                        }}
+                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
+                          active
+                            ? 'bg-white/5 text-[#e8c547]'
+                            : 'text-[#f6f1e3]/85 hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                        {label}
+                      </button>
+                    );
+                  })}
               </div>
-            )}
-            <div className="border-b border-white/10 py-1">
-              {[
-                { href: '/performance', label: 'Your performance', Icon: TrendingUp },
-                { href: '/scoreboard', label: 'The house', Icon: Trophy },
-                { href: '/history', label: 'Completed log', Icon: ClipboardList },
-                { href: '/medals', label: 'Medals', Icon: Award },
-                { href: '/about', label: 'About program', Icon: Info },
-              ].map(({ href, label, Icon }) => {
-                  const active = pathname === href || pathname.startsWith(href + '/');
-                  return (
-                    <button
-                      key={href}
-                      type="button"
-                      onClick={() => {
-                        setOpen(false);
-                        router.push(href);
-                      }}
-                      className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
-                        active
-                          ? 'bg-white/5 text-[#e8c547]'
-                          : 'text-[#f6f1e3]/85 hover:bg-white/5'
-                      }`}
-                    >
-                      <Icon className="h-4 w-4 shrink-0 text-[#e8c547]" />
-                      {label}
-                    </button>
-                  );
-                })}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setOpen(false);
-                setShowEdit(true);
-              }}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
-            >
-              <UserRound className="h-4 w-4 shrink-0 text-[#e8c547]" />
-              Edit profile
-            </button>
-            {!isTestUserName(userName) && (
+            <div className="shrink-0 border-t border-white/10 pb-[max(0px,env(safe-area-inset-bottom))]">
               <button
                 type="button"
                 onClick={() => {
                   setOpen(false);
-                  setShowInvite(true);
+                  setShowEdit(true);
                 }}
                 className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
               >
-                <UserPlus className="h-4 w-4 shrink-0 text-[#e8c547]" />
-                Invite a friend
+                <UserRound className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                Edit profile
               </button>
-            )}
-            <button
-              type="button"
-              onClick={switchUser}
-              className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
-            >
-              <LogOut className="h-4 w-4 shrink-0 text-[#e8c547]" />
-              Switch profile
-            </button>
+              {!isTestUserName(userName) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setShowInvite(true);
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
+                >
+                  <UserPlus className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                  Invite a friend
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={switchUser}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
+              >
+                <LogOut className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                Switch profile
+              </button>
+            </div>
           </div>
+          )}
         </div>,
         document.body
       )

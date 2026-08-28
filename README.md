@@ -120,7 +120,7 @@ Admin → **Mail** to preview/send samples after deploy.
 
 7 tables that matter:
 
-1. **users** — household profiles (name, email, PIN hash)
+1. **users** — household profiles (name, email, PIN hash; invitees stay off `/who` until they set a PIN)
 2. **workout_sessions** — each workout session (week/day)
 3. **exercise_sets** — sets with weight/reps
 4. **badges** / **user_badges** — achievements
