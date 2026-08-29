@@ -18,6 +18,7 @@ import {
 import { formatHardnessAvg } from '@/lib/hardness';
 import { isTestUserName } from '@/lib/householdUsers';
 import { firstName } from '@/lib/scoreboardTypes';
+import { HouseholdHardnessCharts } from '@/components/HardnessCharts';
 
 type HouseholdRow = AthletePerformanceBoard & {
   userId: number;
@@ -55,30 +56,26 @@ function leadBy(athletes: LiftAthlete[], pick: (line: ExerciseTrend) => number):
       value: pick(athlete.line),
     }))
     .filter((row) => Number.isFinite(row.value) && row.value > 0)
-    .sort((a, b) => b.value - a.value);
+    .sort((a, b) => b.value - a.value || a.name.localeCompare(b.name) || a.userId - b.userId);
   if (ranked.length === 0) return null;
   const first = ranked[0];
   const second = ranked[1];
-  const tied = second != null && second.value === first.value;
   return {
     ...first,
-    tied,
-    pct: tied ? 0 : second ? pctChange(first.value, second.value) : null,
+    tied: false,
+    pct: second ? pctChange(first.value, second.value) : null,
   };
 }
 
 function leadIds(athletes: LiftAthlete[], pick: (line: ExerciseTrend) => number) {
   const lead = leadBy(athletes, pick);
   if (!lead) return [];
-  return athletes
-    .filter((athlete) => pick(athlete.line) === lead.value && pick(athlete.line) > 0)
-    .map((athlete) => athlete.userId);
+  return [lead.userId];
 }
 
 function formatLead(lead: Lead | null) {
   if (!lead) return '—';
   const who = firstName(lead.name);
-  if (lead.tied) return `${who} tied`;
   if (lead.pct == null) return who;
   return `${who} ${formatPct(lead.pct)}`;
 }
@@ -290,6 +287,7 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
             <p className="text-sm text-[#f6f1e3]/55">No finished workouts in this window.</p>
           ) : (
             <div className="space-y-4">
+              <HouseholdHardnessCharts rows={athletes} />
               <div>
                 <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
                   By lift

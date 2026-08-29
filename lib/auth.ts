@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { query } from '@/lib/db';
 import { normalizeCoachTone, TONE_COOKIE, type CoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
 
 export type SessionUser = {
@@ -13,9 +14,10 @@ export type SessionUser = {
   isAdmin: boolean;
   coachTone: CoachTone;
   soundOn: boolean;
+  restExtraMinutes: number;
 };
 
-let userSelectMode: 'full' | 'tone' | 'base' | null = null;
+let userSelectMode: 'rest' | 'full' | 'tone' | 'base' | null = null;
 
 type UserRow = {
   id: number;
@@ -24,17 +26,25 @@ type UserRow = {
   pin_hash: string | null;
   coach_tone?: string | null;
   sound_on?: number | boolean | string | null;
+  rest_extra_minutes?: number | string | null;
 };
 
 const USER_SELECTS = {
+  rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
   base: 'SELECT id, name, email, pin_hash FROM users WHERE id = ? LIMIT 1',
 } as const;
 
 async function selectUserRow(userId: number): Promise<UserRow | undefined> {
-  const order: Array<'full' | 'tone' | 'base'> =
-    userSelectMode === 'base' ? ['base'] : userSelectMode === 'tone' ? ['tone', 'base'] : ['full', 'tone', 'base'];
+  const order: Array<'rest' | 'full' | 'tone' | 'base'> =
+    userSelectMode === 'base'
+      ? ['base']
+      : userSelectMode === 'tone'
+        ? ['tone', 'base']
+        : userSelectMode === 'full'
+          ? ['full', 'tone', 'base']
+          : ['rest', 'full', 'tone', 'base'];
 
   for (const mode of order) {
     try {
@@ -61,6 +71,7 @@ function toSessionUser(
     isAdmin: row.id === ADMIN_USER_ID,
     coachTone: normalizeCoachTone(row.coach_tone ?? prefs?.tone),
     soundOn: row.sound_on != null ? normalizeSoundOn(row.sound_on) : normalizeSoundOn(prefs?.sound),
+    restExtraMinutes: normalizeRestExtraMinutes(row.rest_extra_minutes),
   };
 }
 
@@ -77,7 +88,20 @@ export async function updateCoachTone(userId: number, tone: CoachTone): Promise<
 export async function updateSoundOn(userId: number, soundOn: boolean): Promise<boolean> {
   try {
     await query('UPDATE users SET sound_on = ? WHERE id = ?', [soundOn ? 1 : 0, userId]);
-    userSelectMode = 'full';
+    if (userSelectMode === 'base' || userSelectMode === 'tone') userSelectMode = 'full';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateRestExtraMinutes(userId: number, minutes: number): Promise<boolean> {
+  try {
+    await query('UPDATE users SET rest_extra_minutes = ? WHERE id = ?', [
+      normalizeRestExtraMinutes(minutes),
+      userId,
+    ]);
+    userSelectMode = 'rest';
     return true;
   } catch {
     return false;

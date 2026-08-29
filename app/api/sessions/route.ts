@@ -4,6 +4,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
+import { updateDailyStats } from '@/lib/dailyStats';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
@@ -181,6 +182,15 @@ export async function PUT(request: NextRequest) {
     const bonus = sessionIsBonus(session);
     const optionalLbs = sessionOptionalLbs(session);
 
+    if (isCompleted) {
+      await query(
+        `DELETE FROM exercise_sets
+         WHERE workout_session_id = ?
+           AND (is_completed = 0 OR is_completed IS NULL)`,
+        [sessionId]
+      );
+    }
+
     await query(
       `UPDATE workout_sessions 
        SET is_completed = ?, completed_at = ?, ended_at = ?, notes = ?
@@ -218,6 +228,7 @@ export async function PUT(request: NextRequest) {
 
     let uniqueBonusWeeks = 0;
     if (isCompleted) {
+      await updateDailyStats(Number(sessionId), user.id);
       const all = await query(
         'SELECT week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE user_id = ?',
         [user.id]

@@ -14,9 +14,20 @@ const EMPTY = weekPerformanceKpis({
   repsDown: 0,
 });
 
-function KpiTile({ kpi }: { kpi: WeekKpi }) {
+const HELP: Record<string, string> = {
+  header:
+    'This program week vs the last time you did those lifts. Gold means you did the job. Outline means that cue still needs work.',
+  loadUp: 'More load. How many lifts you added weight to vs last time.',
+  repsUp: 'More reps. How many lifts you added reps to vs last time.',
+  loadDown: 'Less drop. How many lifts you cut weight on. Gold Done means you did not drop any.',
+  repsDown: 'Less cut. How many lifts you cut reps on. Gold Done means you did not cut any.',
+};
+
+function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
   return (
-    <div
+    <button
+      type="button"
+      onClick={onHelp}
       className={`flex-1 rounded-2xl px-1.5 py-5 text-center ${
         kpi.state === 'done'
           ? 'border border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
@@ -50,13 +61,14 @@ function KpiTile({ kpi }: { kpi: WeekKpi }) {
           kpi.status
         )}
       </p>
-    </div>
+    </button>
   );
 }
 
 /** Four cues for this program week vs last time. Same chrome as the week lock. */
 export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
+  const [help, setHelp] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,12 +101,14 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
   return (
     <div className="mt-8">
       <div className="mb-3 flex items-center justify-between text-base">
-        <p className="font-semibold text-white">
+        <button type="button" onClick={() => setHelp(HELP.header)} className="font-semibold text-white">
           {compared === 0
             ? 'No lift vs last time yet'
             : `${compared} lift${compared === 1 ? '' : 's'} vs last time`}
-        </p>
-        <p className="text-[#f6f1e3]/60">More load. Fewer drops.</p>
+        </button>
+        <button type="button" onClick={() => setHelp(HELP.header)} className="text-[#f6f1e3]/60">
+          More load. Fewer drops.
+        </button>
       </div>
       <div className="mb-4 flex gap-1.5">
         {[0, 1, 2, 3].map((index) => (
@@ -106,9 +120,10 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
       </div>
       <div className="flex gap-2">
         {kpis.map((kpi) => (
-          <KpiTile key={kpi.key} kpi={kpi} />
+          <KpiTile key={kpi.key} kpi={kpi} onHelp={() => setHelp(HELP[kpi.key])} />
         ))}
       </div>
+      {help ? <p className="mt-3 text-sm text-[#f6f1e3]/70">{help}</p> : null}
     </div>
   );
 }

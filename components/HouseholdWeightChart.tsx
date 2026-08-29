@@ -80,7 +80,7 @@ export default function HouseholdWeightChart({
       mean(
         pack
           .map((athlete) => athleteSeries.find((item) => item.key === `u${athlete.userId}`)?.values[index])
-          .filter((value): value is number => value != null && value > 0)
+          .filter((value): value is number => value != null && Number.isFinite(value))
       )
     );
 

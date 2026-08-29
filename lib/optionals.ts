@@ -153,14 +153,14 @@ const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]
       guided(
         'Hamstrings',
         'Easy fold or a long sit. Soft knees. No yanking.',
-        'Seated_Floor_Hamstring_Stretch',
+        'Romanian_Deadlift',
         'wr_8aak4Wbc',
         60
       ),
       guided(
         'Quads',
         'Stand or lie on your side. Switch sides halfway.',
-        'Quad_Stretch',
+        'Split_Squat_with_Dumbbells',
         'BhQimqvU1tM',
         45
       ),
@@ -174,7 +174,7 @@ const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]
       guided(
         'Hips',
         'A gentle figure-four or a long lunge. Switch sides halfway.',
-        'Lying_Glute',
+        'Butt_Lift_Bridge',
         '0_zPqA65Nok',
         60
       ),
@@ -218,7 +218,7 @@ const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]
       guided(
         'Breathe down',
         "Child's pose or on your back, hands on ribs. Long easy breaths.",
-        'Childs_Pose',
+        'Cat_Stretch',
         'eqVMAPM00DM',
         60
       ),

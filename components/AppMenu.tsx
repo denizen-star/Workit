@@ -15,12 +15,14 @@ interface AppMenuProps {
   userEmail?: string;
   userTone?: CoachTone | string | null;
   userSoundOn?: boolean | null;
+  userRestExtraMinutes?: number | null;
   isAdmin?: boolean;
   onProfileSaved?: (profile: {
     name: string;
     email: string | null;
     coachTone: CoachTone;
     soundOn: boolean;
+    restExtraMinutes: number;
   }) => void;
 }
 
@@ -29,6 +31,7 @@ export default function AppMenu({
   userEmail = '',
   userTone = 'master',
   userSoundOn = true,
+  userRestExtraMinutes = 0,
   isAdmin = false,
   onProfileSaved,
 }: AppMenuProps) {
@@ -263,6 +266,7 @@ export default function AppMenu({
         currentEmail={userEmail}
         currentTone={normalizeCoachTone(userTone)}
         currentSoundOn={userSoundOn}
+        currentRestExtraMinutes={userRestExtraMinutes}
         onClose={() => setShowEdit(false)}
         onSaved={(profile) => {
           onProfileSaved?.(profile);

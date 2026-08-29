@@ -6,6 +6,7 @@ import { ArrowLeft } from 'lucide-react';
 import AppMenu from '@/components/AppMenu';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes } from '@/lib/restPref';
 
 /** Shared chrome for hamburger destinations: back to Home, gold title, menu. */
 export default function YouPageShell({
@@ -19,6 +20,7 @@ export default function YouPageShell({
   const [userEmail, setUserEmail] = useState('');
   const [userTone, setUserTone] = useState<CoachTone>('master');
   const [userSoundOn, setUserSoundOn] = useState(true);
+  const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -30,6 +32,7 @@ export default function YouPageShell({
         setUserEmail(data?.user?.email || '');
         setUserTone(normalizeCoachTone(data?.user?.coachTone));
         setUserSoundOn(normalizeSoundOn(data?.user?.soundOn));
+        setUserRestExtraMinutes(normalizeRestExtraMinutes(data?.user?.restExtraMinutes));
         setIsAdmin(!!data?.user?.isAdmin);
         setReady(true);
       })
@@ -65,12 +68,14 @@ export default function YouPageShell({
                 userEmail={userEmail}
                 userTone={userTone}
                 userSoundOn={userSoundOn}
+                userRestExtraMinutes={userRestExtraMinutes}
                 isAdmin={isAdmin}
                 onProfileSaved={(profile) => {
                   setUserName(profile.name);
                   setUserEmail(profile.email || '');
                   setUserTone(profile.coachTone);
                   setUserSoundOn(profile.soundOn);
+                  setUserRestExtraMinutes(profile.restExtraMinutes);
                 }}
               />
             </div>

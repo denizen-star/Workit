@@ -7,6 +7,7 @@ import { ArrowLeft } from 'lucide-react';
 import AppMenu from '@/components/AppMenu';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes } from '@/lib/restPref';
 
 function titleFor(pathname: string) {
   if (pathname.startsWith('/admin/users')) return 'Users';
@@ -23,6 +24,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   const [userEmail, setUserEmail] = useState('');
   const [userTone, setUserTone] = useState<CoachTone>('master');
   const [userSoundOn, setUserSoundOn] = useState(true);
+  const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [ready, setReady] = useState(false);
 
   useEffect(() => {
@@ -37,6 +39,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         setUserEmail(data.user.email || '');
         setUserTone(normalizeCoachTone(data.user.coachTone));
         setUserSoundOn(normalizeSoundOn(data.user.soundOn));
+        setUserRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
         setReady(true);
       })
       .catch(() => router.replace('/who'));
@@ -71,12 +74,14 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
                 userEmail={userEmail}
                 userTone={userTone}
                 userSoundOn={userSoundOn}
+                userRestExtraMinutes={userRestExtraMinutes}
                 isAdmin
                 onProfileSaved={(profile) => {
                   setUserName(profile.name);
                   setUserEmail(profile.email || '');
                   setUserTone(profile.coachTone);
                   setUserSoundOn(profile.soundOn);
+                  setUserRestExtraMinutes(profile.restExtraMinutes);
                 }}
               />
             </div>

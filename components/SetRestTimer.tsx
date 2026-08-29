@@ -5,8 +5,7 @@ import { Timer } from "lucide-react";
 import { formatClock } from "@/lib/formatDuration";
 import { unlockAudio } from "@/lib/playChime";
 import GetToItModal from "./GetToItModal";
-
-const REST_SECONDS = 60;
+import { REST_SECONDS } from "@/lib/estimateDuration";
 
 interface SetRestTimerProps {
   startToken: number;
@@ -14,6 +13,7 @@ interface SetRestTimerProps {
   cancelled?: boolean;
   completedSets?: number;
   totalSets?: number;
+  seconds?: number;
 }
 
 export default function SetRestTimer({
@@ -22,8 +22,10 @@ export default function SetRestTimer({
   cancelled = false,
   completedSets = 0,
   totalSets = 0,
+  seconds = REST_SECONDS,
 }: SetRestTimerProps) {
-  const [remaining, setRemaining] = useState(REST_SECONDS);
+  const restFor = Math.max(1, seconds);
+  const [remaining, setRemaining] = useState(restFor);
   const [running, setRunning] = useState(false);
   const [showGetToIt, setShowGetToIt] = useState(false);
   const endAtRef = useRef(0);
@@ -36,11 +38,11 @@ export default function SetRestTimer({
 
     unlockAudio();
     finishedRef.current = false;
-    endAtRef.current = Date.now() + REST_SECONDS * 1000;
+    endAtRef.current = Date.now() + restFor * 1000;
     setShowGetToIt(false);
-    setRemaining(REST_SECONDS);
+    setRemaining(restFor);
     setRunning(true);
-  }, [startToken]);
+  }, [startToken, restFor]);
 
   useEffect(() => {
     if (!cancelled) return;

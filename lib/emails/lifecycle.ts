@@ -163,12 +163,12 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   const totals = await query(
     `SELECT
-       COALESCE(SUM(${sqlSetVolume()}), 0)
+       COALESCE(SUM(CASE WHEN is_completed = 1 THEN ${sqlSetVolume()} ELSE 0 END), 0)
          + (SELECT ${sqlSessionOptionalVolume('ws')} FROM workout_sessions ws WHERE ws.id = ?) as volume,
-       COUNT(*) as set_count,
-       COUNT(DISTINCT exercise_name) as exercise_count
+       COUNT(CASE WHEN is_completed = 1 THEN id END) as set_count,
+       COUNT(DISTINCT CASE WHEN is_completed = 1 THEN exercise_name END) as exercise_count
      FROM exercise_sets
-     WHERE workout_session_id = ?`,
+     WHERE workout_session_id = ? AND is_completed = 1`,
     [opts.sessionId, opts.sessionId]
   );
   const timing = await query(

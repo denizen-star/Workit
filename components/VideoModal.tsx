@@ -29,7 +29,7 @@ export default function VideoModal({ open, title, videoId, videos, onClose }: Vi
   const photos = title.includes(' · ') ? null : getExerciseImages(title);
 
   return (
-    <div className="fixed inset-0 z-[80] flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/75 backdrop-blur-md" onClick={onClose} />
       <div className="glass-card relative max-h-[min(92dvh,100%)] w-full max-w-3xl overflow-y-auto">
         <div className="flex items-center justify-between px-5 py-4">

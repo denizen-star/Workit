@@ -92,7 +92,7 @@ export async function householdHomeStats(
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
          COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
+       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
        WHERE ws.user_id IN (${sql})
        GROUP BY ws.user_id`,
       params

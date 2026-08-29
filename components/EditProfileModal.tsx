@@ -7,6 +7,7 @@ import { getCoachToneOptions } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 
 interface EditProfileModalProps {
@@ -15,8 +16,15 @@ interface EditProfileModalProps {
   currentEmail: string;
   currentTone?: CoachTone | string | null;
   currentSoundOn?: boolean | null;
+  currentRestExtraMinutes?: number | null;
   onClose: () => void;
-  onSaved: (profile: { name: string; email: string | null; coachTone: CoachTone; soundOn: boolean }) => void;
+  onSaved: (profile: {
+    name: string;
+    email: string | null;
+    coachTone: CoachTone;
+    soundOn: boolean;
+    restExtraMinutes: number;
+  }) => void;
 }
 
 export default function EditProfileModal({
@@ -25,6 +33,7 @@ export default function EditProfileModal({
   currentEmail,
   currentTone = 'master',
   currentSoundOn = true,
+  currentRestExtraMinutes = 0,
   onClose,
   onSaved,
 }: EditProfileModalProps) {
@@ -32,6 +41,9 @@ export default function EditProfileModal({
   const [email, setEmail] = useState(currentEmail);
   const [tone, setTone] = useState<CoachTone>(normalizeCoachTone(currentTone));
   const [soundOn, setSoundOn] = useState(normalizeSoundOn(currentSoundOn));
+  const [restExtraMinutes, setRestExtraMinutes] = useState(
+    normalizeRestExtraMinutes(currentRestExtraMinutes)
+  );
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [changePin, setChangePin] = useState(false);
@@ -50,6 +62,7 @@ export default function EditProfileModal({
       setEmail(currentEmail);
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
+      setRestExtraMinutes(normalizeRestExtraMinutes(currentRestExtraMinutes));
       setError('');
       setSubmitting(false);
       setChangePin(false);
@@ -63,7 +76,7 @@ export default function EditProfileModal({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [open, currentName, currentEmail, currentTone, currentSoundOn]);
+  }, [open, currentName, currentEmail, currentTone, currentSoundOn, currentRestExtraMinutes]);
 
   const save = async (finalPin: string | null) => {
     if (!name.trim()) {
@@ -79,11 +92,19 @@ export default function EditProfileModal({
     setError('');
 
     try {
-      const payload: { name: string; email: string; pin?: string; coachTone: CoachTone; soundOn: boolean } = {
+      const payload: {
+        name: string;
+        email: string;
+        pin?: string;
+        coachTone: CoachTone;
+        soundOn: boolean;
+        restExtraMinutes: number;
+      } = {
         name: name.trim(),
         email: email.trim(),
         coachTone: tone,
         soundOn,
+        restExtraMinutes,
       };
       if (finalPin) payload.pin = finalPin;
 
@@ -107,6 +128,7 @@ export default function EditProfileModal({
         email: data.user.email,
         coachTone: normalizeCoachTone(data.user.coachTone),
         soundOn: nextSoundOn,
+        restExtraMinutes: normalizeRestExtraMinutes(data.user.restExtraMinutes),
       });
       onClose();
     } catch {
@@ -204,6 +226,36 @@ export default function EditProfileModal({
                 >
                   <span className="block text-sm font-black text-white">Off</span>
                   <span className="mt-1 block text-xs text-[#f6f1e3]/60">Silent sets</span>
+                </button>
+              </div>
+              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Extra rest per break</p>
+              <p className="mb-2 text-xs text-[#f6f1e3]/55">
+                Default is 0. Stock rest is 60 seconds. Extra minutes apply to rest on later
+                workouts.
+              </p>
+              <div className="mb-4 flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRestExtraMinutes((current) => normalizeRestExtraMinutes(current - 1))
+                  }
+                  className="min-h-12 min-w-12 rounded-2xl border border-white/10 text-lg font-black text-white"
+                >
+                  -
+                </button>
+                <p className="flex-1 text-center text-lg font-black text-white">
+                  {restExtraMinutes} min
+                </p>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setRestExtraMinutes((current) =>
+                      normalizeRestExtraMinutes(Math.min(REST_EXTRA_MAX_MINUTES, current + 1))
+                    )
+                  }
+                  className="min-h-12 min-w-12 rounded-2xl border border-white/10 text-lg font-black text-white"
+                >
+                  +
                 </button>
               </div>
               <label className="mb-2 flex items-center gap-2 text-sm text-[#f6f1e3]/75">

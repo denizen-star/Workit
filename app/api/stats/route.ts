@@ -26,7 +26,7 @@ export async function GET(request: NextRequest) {
         COUNT(DISTINCT es.exercise_name) as unique_exercises,
         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${optionalTotal} as total_weight_lifted
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id
+       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
        WHERE ws.user_id = ?${excludeThis ? ' AND ws.id != ?' : ''}`,
       excludeThis ? [userId, excludeSession] : [userId]
     );

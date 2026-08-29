@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Check, Clock, Play, X } from 'lucide-react';
 import { formatClock } from '@/lib/formatDuration';
 import VideoModal from '@/components/VideoModal';
@@ -92,18 +93,24 @@ export default function OptionalCard({
   const [holdStartedAt, setHoldStartedAt] = useState<number | null>(null);
   const completing = useRef(false);
   const [slotReady, setSlotReady] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const finishSlot = (circuitComplete = false) => {
     if (completing.current) return;
     completing.current = true;
+    setError('');
     fetch('/api/optionals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ sessionId, slot, action: 'complete', circuitComplete }),
     })
-      .then((res) => res.json())
-      .then((data) => {
-        if (data?.success) {
+      .then(async (res) => {
+        const data = await res.json().catch(() => ({}));
+        if (res.ok && data?.success) {
           setState((current) => ({
             ...current,
             completedAt: data.completedAt || new Date().toISOString(),
@@ -112,12 +119,14 @@ export default function OptionalCard({
           setOpen(false);
           setVideoOpen(false);
           setVideoStep(null);
-        } else {
-          completing.current = false;
+          return;
         }
+        completing.current = false;
+        setError(data?.error || 'Could not credit this Optional');
       })
       .catch(() => {
         completing.current = false;
+        setError('Could not credit this Optional');
       });
   };
 
@@ -318,160 +327,178 @@ export default function OptionalCard({
         </div>
       )}
 
-      {open && running && state.track && (
-        <div className="fixed inset-0 z-[70] flex flex-col bg-[#07070a]/96 px-6 py-8">
-          <button
-            type="button"
-            aria-label="Close"
-            onClick={() => {
-              setOpen(false);
-              setVideoOpen(false);
-              setVideoStep(null);
-            }}
-            className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/15 text-white"
-          >
-            <X className="h-5 w-5" />
-          </button>
-          <div className="flex flex-1 flex-col items-center justify-center overflow-y-auto text-center">
-            <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
-              Optional · {label}
-            </p>
-            <p className="mt-3 text-lg font-black text-white">{optionalTrackLabel(state.track)}</p>
-            {guided ? (
-              <p className="mt-2 text-sm font-black text-[#f6f1e3]/70">
-                {circuitDone
-                  ? `${steps.length} of ${steps.length}`
-                  : `${Math.min(stepIndex + 1, steps.length)} of ${steps.length}`}
+      {mounted &&
+        open &&
+        running &&
+        state.track &&
+        createPortal(
+          <div className="fixed inset-0 z-[200] flex flex-col bg-[#07070a]">
+            <div className="flex shrink-0 items-center justify-end px-4 pt-[max(1rem,env(safe-area-inset-top))]">
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => {
+                  setOpen(false);
+                  setVideoOpen(false);
+                  setVideoStep(null);
+                }}
+                className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/15 text-white"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-6 pb-4 text-center">
+              <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
+                Optional · {label}
               </p>
-            ) : null}
+              <p className="mt-3 text-lg font-black text-white">{optionalTrackLabel(state.track)}</p>
+              {guided ? (
+                <p className="mt-2 text-sm font-black text-[#f6f1e3]/70">
+                  {circuitDone
+                    ? `${steps.length} of ${steps.length}`
+                    : `${Math.min(stepIndex + 1, steps.length)} of ${steps.length}`}
+                </p>
+              ) : null}
 
-            {guided && circuitDone ? (
-              <>
-                <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#e8c547] text-[#1a1404]">
-                  <Check className="h-8 w-8" />
-                </span>
-                <p className="mt-6 text-3xl font-black text-white">That is the five.</p>
-                <p className="mt-4 max-w-md text-lg font-medium text-[#f6f1e3]/85">
-                  Clock is done. Crediting +{OPTIONAL_SLOT_LBS.toLocaleString()} lb.
-                </p>
-              </>
-            ) : (
-              <>
-                <p
-                  className={`mt-6 font-black tabular-nums text-[#e8c547] ${
-                    guided ? 'text-6xl' : 'text-7xl'
-                  }`}
-                >
-                  {formatClock(guided ? holdRemaining : remaining)}
-                </p>
-                {guided && holdTarget > 0 ? (
-                  <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
-                    {holdRemaining === 0
-                      ? 'That is the hold'
-                      : `Hold ${holdTarget} seconds`}
+              {guided && circuitDone ? (
+                <>
+                  <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#e8c547] text-[#1a1404]">
+                    <Check className="h-8 w-8" />
+                  </span>
+                  <p className="mt-6 text-3xl font-black text-white">That is the five.</p>
+                  <p className="mt-4 text-lg font-medium text-[#f6f1e3]/85">
+                    Crediting +{OPTIONAL_SLOT_LBS.toLocaleString()} lb.
                   </p>
-                ) : null}
-                {step ? (
-                  <>
-                    <div className="mt-8 flex items-center justify-center gap-3">
-                      <h2 className="text-3xl font-black text-white">{step.title}</h2>
-                      {step.videoId ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setVideoStep(step);
-                            setVideoOpen(true);
-                          }}
-                          className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
-                          aria-label={`Watch ${step.title} video`}
-                        >
-                          <img
-                            src={youtubeThumbUrl(step.videoId)}
-                            alt=""
-                            className="h-full w-full object-cover"
-                          />
-                          <span className="absolute inset-0 flex items-center justify-center bg-black/40">
-                            <Play className="h-5 w-5 fill-white text-white" />
-                          </span>
-                        </button>
-                      ) : null}
-                    </div>
-                    {step.start && step.end ? (
-                      <div className="mt-6 grid w-full max-w-md grid-cols-2 gap-2">
-                        <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
-                          <img
-                            src={step.start}
-                            alt={`${step.title} start position`}
-                            className="aspect-[4/3] w-full object-cover"
-                          />
-                          <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
-                            Start
-                          </figcaption>
-                        </figure>
-                        <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
-                          <img
-                            src={step.end}
-                            alt={`${step.title} end position`}
-                            className="aspect-[4/3] w-full object-cover"
-                          />
-                          <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
-                            End
-                          </figcaption>
-                        </figure>
-                      </div>
-                    ) : null}
-                    <p className="mt-4 max-w-md text-lg font-medium leading-relaxed text-[#f6f1e3]/85">
-                      {step.body}
-                    </p>
-                  </>
-                ) : null}
-                {guided ? (
-                  <button
-                    type="button"
-                    onClick={completeStep}
-                    className="mt-8 flex min-h-14 w-full max-w-md items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
+                </>
+              ) : (
+                <>
+                  <p
+                    className={`mt-6 font-black tabular-nums text-[#e8c547] ${
+                      guided ? 'text-6xl' : 'text-7xl'
+                    }`}
                   >
-                    <Check className="h-6 w-6" />
-                    Done
-                  </button>
-                ) : null}
-                {guided ? (
-                  <p className="mt-4 text-sm text-[#f6f1e3]/55">
-                    Slot {formatClock(remaining)} left
+                    {formatClock(guided ? holdRemaining : remaining)}
                   </p>
-                ) : null}
-              </>
-            )}
+                  {guided && holdTarget > 0 ? (
+                    <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
+                      {holdRemaining === 0 ? 'That is the hold' : `Hold ${holdTarget} seconds`}
+                    </p>
+                  ) : null}
+                  {step ? (
+                    <>
+                      <div className="mt-8 flex items-center justify-center gap-3">
+                        <h2 className="text-3xl font-black text-white">{step.title}</h2>
+                        {step.videoId ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVideoStep(step);
+                              setVideoOpen(true);
+                            }}
+                            className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
+                            aria-label={`Watch ${step.title} video`}
+                          >
+                            <img
+                              src={youtubeThumbUrl(step.videoId)}
+                              alt=""
+                              className="h-full w-full object-cover"
+                            />
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                              <Play className="h-5 w-5 fill-white text-white" />
+                            </span>
+                          </button>
+                        ) : null}
+                      </div>
+                      {step.start && step.end ? (
+                        <div className="mt-6 mx-auto grid w-full max-w-md grid-cols-2 gap-2">
+                          <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                            <img
+                              src={step.start}
+                              alt={`${step.title} start position`}
+                              className="aspect-[4/3] w-full object-cover"
+                            />
+                            <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                              Start
+                            </figcaption>
+                          </figure>
+                          <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                            <img
+                              src={step.end}
+                              alt={`${step.title} end position`}
+                              className="aspect-[4/3] w-full object-cover"
+                            />
+                            <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                              End
+                            </figcaption>
+                          </figure>
+                        </div>
+                      ) : null}
+                      <p className="mx-auto mt-4 max-w-md text-lg font-medium leading-relaxed text-[#f6f1e3]/85">
+                        {step.body}
+                      </p>
+                    </>
+                  ) : null}
+                  {guided ? (
+                    <p className="mt-4 text-sm text-[#f6f1e3]/55">
+                      Slot {formatClock(remaining)} left
+                    </p>
+                  ) : null}
+                </>
+              )}
 
-            {circuitDone ? null : (
-              <p className="mt-10 text-sm text-[#f6f1e3]/55">
-                {guided
-                  ? 'Phone can lock. Stay easy. Done when you have it.'
-                  : 'Phone can lock. Stay easy until the clock hits zero.'}
-              </p>
-            )}
-            {!guided ? (
-              <p className="mt-3 text-xs text-[#f6f1e3]/40">
-                Repeat until {Math.round(OPTIONAL_SECONDS / 60)} minutes are gone.
-              </p>
+              {circuitDone ? null : (
+                <p className="mt-8 text-sm text-[#f6f1e3]/55">
+                  {guided
+                    ? 'Phone can lock. Stay easy. Done when you have it.'
+                    : 'Phone can lock. Stay easy until the clock hits zero.'}
+                </p>
+              )}
+              {!guided ? (
+                <p className="mt-3 text-xs text-[#f6f1e3]/40">
+                  Repeat until {Math.round(OPTIONAL_SECONDS / 60)} minutes are gone.
+                </p>
+              ) : null}
+              {error ? <p className="mt-4 text-sm font-semibold text-[#e8c547]">{error}</p> : null}
+            </div>
+            {guided && !circuitDone ? (
+              <div className="shrink-0 border-t border-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  type="button"
+                  onClick={completeStep}
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
+                >
+                  <Check className="h-6 w-6" />
+                  Done
+                </button>
+              </div>
             ) : null}
-          </div>
-        </div>
-      )}
-
-      <VideoModal
-        open={Boolean(open && running && videoOpen && videoStep?.videoId)}
-        title={
-          videoStep && state.track
-            ? `${optionalTrackLabel(state.track)} · ${videoStep.title}`
-            : ''
-        }
-        videoId={videoStep?.videoId || ''}
-        onClose={() => {
-          setVideoOpen(false);
-          setVideoStep(null);
-        }}
-      />
+            {guided && circuitDone && error ? (
+              <div className="shrink-0 border-t border-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  type="button"
+                  onClick={() => finishSlot(true)}
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
+                >
+                  Credit this Optional
+                </button>
+              </div>
+            ) : null}
+            <VideoModal
+              open={Boolean(videoOpen && videoStep?.videoId)}
+              title={
+                videoStep && state.track
+                  ? `${optionalTrackLabel(state.track)} · ${videoStep.title}`
+                  : ''
+              }
+              videoId={videoStep?.videoId || ''}
+              onClose={() => {
+                setVideoOpen(false);
+                setVideoStep(null);
+              }}
+            />
+          </div>,
+          document.body
+        )}
     </div>
   );
 }

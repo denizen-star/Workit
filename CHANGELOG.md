@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 4.4.0 - 2026-08-28
+
+### Added
+- **Extra rest per break** on Edit profile (0–10 min, default 0). Stock rest is 60 seconds. Extra applies to later workouts
+- Per-exercise **lb / kg** on the live card (next to Gym/Travel). Enter kg; store and score in lbs
+- **How hard** charts on Your performance and Admin Athletes
+- Tap a **Week lock** or **Week performance** tile for the helper copy
+
+### Changed
+- House / Home / badges / recap **Total weight** counts **completed sets only** (lb × reps; plank/carry = load once). Optional still sits on top
+- Pack chart draws every calendar day. Rest days are 0 (daily) or held total (cumulative)
+- Vs the house ranks are unique. No tied for first
+- Optional stretch/core overlay: full-screen, **Done** pinned at the bottom (warmup and cooldown)
+
+### Fixed
+- Typing a weight no longer saves a half-typed row. Complete (or edit a finished set) is what writes. Finish deletes unfinished drafts
+- Ghost unfinished sets on already-finished days were rebuilt from the real lifts (Christine, Kevin, Mike). Daily stats rebuilt
+- Stretch/core Optional: Done was off-screen under the live header. Circuit stills that 404’d were swapped
+
 ## 4.3.0 - 2026-08-28
 
 ### Added

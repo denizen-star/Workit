@@ -5,6 +5,7 @@ import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
 import ModeToggle from './ModeToggle';
+import UnitToggle from './UnitToggle';
 import { pickCoachLine, setProgressCopy, hardnessCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
@@ -32,6 +33,16 @@ import {
   type ExerciseKind,
 } from '@/lib/exerciseKind';
 import { bestLoggedSet, setDirection } from '@/lib/setHistory';
+import { REST_SECONDS } from '@/lib/estimateDuration';
+import { restSecondsWithExtra } from '@/lib/restPref';
+import {
+  kgFromLbs,
+  lbsFromKg,
+  readExerciseUnits,
+  unitForExercise,
+  writeExerciseUnits,
+  type WeightUnit,
+} from '@/lib/weightUnit';
 
 type Exercise = Pick<ProgramExercise, 'name' | 'sets' | 'reps' | 'notes'>;
 
@@ -59,6 +70,7 @@ interface ExerciseTrackerProps {
   exercises: Exercise[];
   sessionMode?: WorkoutMode | string | null;
   coachTone?: CoachTone | string | null;
+  restExtraMinutes?: number;
   onComplete?: () => void;
   onTotals?: (totals: { lbs: number; reps: number }) => void;
 }
@@ -150,6 +162,7 @@ export default function ExerciseTracker({
   exercises,
   sessionMode,
   coachTone,
+  restExtraMinutes = 0,
   onComplete,
   onTotals,
 }: ExerciseTrackerProps) {
@@ -164,8 +177,11 @@ export default function ExerciseTracker({
     videoId: string;
     videos: ReturnType<typeof exerciseVideos>;
   } | null>(null);
+  const restClock = restSecondsWithExtra(restExtraMinutes, REST_SECONDS);
   const [restToken, setRestToken] = useState(0);
+  const [restSeconds, setRestSeconds] = useState(restClock);
   const [restLine, setRestLine] = useState('Finish it. Make me proud.');
+  const [weightUnits, setWeightUnits] = useState<Record<string, WeightUnit>>({});
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
@@ -175,6 +191,14 @@ export default function ExerciseTracker({
     body: string;
   } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
+
+  useEffect(() => {
+    setRestSeconds(restClock);
+  }, [restClock]);
+
+  useEffect(() => {
+    setWeightUnits(readExerciseUnits());
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -389,32 +413,27 @@ export default function ExerciseTracker({
     setExerciseSets(newSets);
 
     try {
-      const saved = await persistSet(updatedSet);
-      if (saved.id !== updatedSet.id) {
-        setExerciseSets((current) => {
-          const copy = [...current];
-          copy[index] = { ...copy[index], id: saved.id };
-          return copy;
-        });
+      const wasComplete = Boolean(exerciseSets[index]?.is_completed);
+      const persistNow = Boolean(updatedSet.is_completed) || (Boolean(updatedSet.id) && wasComplete);
+      if (persistNow) {
+        const saved = await persistSet(updatedSet);
+        if (saved.id !== updatedSet.id) {
+          setExerciseSets((current) => {
+            const copy = [...current];
+            copy[index] = { ...copy[index], id: saved.id };
+            return copy;
+          });
+        }
       }
 
       if (options?.copyForward) {
-        const next = newSets.find(
-          (item, itemIndex) =>
-            itemIndex > index &&
-            sameExerciseMovement(item.exercise_name, updatedSet.exercise_name) &&
-            !item.is_completed &&
-            item.actual_reps === updatedSet.actual_reps &&
-            item.weight_lbs === updatedSet.weight_lbs
-        );
-        if (next) {
-          persistSet(next).catch((error) => console.error('Error copying set:', error));
-        }
+        // Next set already copied in memory. Do not write an unfinished row.
       }
 
       if (options?.startRest) {
         const remaining = newSets.filter((item) => !item.is_completed).length;
         if (remaining > 0) {
+          setRestSeconds(restClock);
           const completed = newSets.filter((item) => item.is_completed).length;
           setRestLine(pickCoachLine(completed, newSets.length, tone));
           setRestToken((token) => token + 1);
@@ -535,21 +554,6 @@ export default function ExerciseTracker({
     const nextSets = [...exerciseSets];
     nextSets.splice(insertAt, 0, extra);
     setExerciseSets(nextSets);
-
-    try {
-      const saved = await persistSet(extra);
-      if (saved.id) {
-        setExerciseSets((currentSets) =>
-          currentSets.map((item) =>
-            item.exercise_name === extra.exercise_name && item.set_number === extra.set_number
-              ? { ...item, id: saved.id }
-              : item
-          )
-        );
-      }
-    } catch (error) {
-      console.error('Error adding set:', error);
-    }
   };
 
   const removeSet = async (exercise: Exercise, set: ExerciseSet) => {
@@ -574,6 +578,14 @@ export default function ExerciseTracker({
     } catch (error) {
       console.error('Error removing set:', error);
     }
+  };
+
+  const changeWeightUnit = (gymName: string, unit: WeightUnit) => {
+    setWeightUnits((current) => {
+      const next = { ...current, [gymName]: unit };
+      writeExerciseUnits(next);
+      return next;
+    });
   };
 
   const changeExerciseMode = async (gym: Exercise, next: WorkoutMode) => {
@@ -620,6 +632,7 @@ export default function ExerciseTracker({
         const media = getExerciseMedia(exercise.name);
         const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
+        const unit = unitForExercise(gym.name, weightUnits);
         const lastWeek =
           history.lastWeekMax[exerciseHistoryKey(exercise.name)] ?? history.lastWeekMax[exercise.name];
         const completedWeights = sets
@@ -637,12 +650,17 @@ export default function ExerciseTracker({
                 <p className="mt-1 text-sm text-[#f6f1e3]/70">
                   Target: {exercise.sets} sets × {exercise.reps}
                 </p>
-                <div className="mt-2">
+                <div className="mt-2 flex flex-wrap items-center gap-2">
                   <ModeToggle
                     mode={mode}
                     locked={locked}
                     context={gym.name}
                     onChange={(next) => changeExerciseMode(gym, next)}
+                  />
+                  <UnitToggle
+                    unit={unitForExercise(gym.name, weightUnits)}
+                    context={gym.name}
+                    onChange={(next) => changeWeightUnit(gym.name, next)}
                   />
                 </div>
               </div>
@@ -821,15 +839,29 @@ export default function ExerciseTracker({
                         <div className="mb-4 grid grid-cols-2 gap-3">
                           <div>
                             <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
-                              {weightFieldLabel(kind)}
+                              {unit === 'kg'
+                                ? kind === 'bodyweight'
+                                  ? 'Weight kg (0 = BW)'
+                                  : 'Weight (kg)'
+                                : weightFieldLabel(kind)}
                             </label>
                             <input
                               type="number"
                               inputMode="decimal"
-                              value={set.weight_lbs ?? ''}
-                              onChange={(event) =>
-                                updateSet(globalIndex, { weight_lbs: parseMaybeNumber(event.target.value) })
+                              value={
+                                set.weight_lbs == null
+                                  ? ''
+                                  : unit === 'kg'
+                                    ? kgFromLbs(set.weight_lbs)
+                                    : set.weight_lbs
                               }
+                              onChange={(event) => {
+                                const raw = parseMaybeNumber(event.target.value);
+                                updateSet(globalIndex, {
+                                  weight_lbs:
+                                    raw == null ? null : unit === 'kg' ? lbsFromKg(raw) : raw,
+                                });
+                              }}
                               className="glass-input w-full"
                               placeholder="0"
                               disabled={set.is_completed && !isEditing}
@@ -941,6 +973,7 @@ export default function ExerciseTracker({
         cancelled={allSetsComplete}
         completedSets={completedSetCount}
         totalSets={totalSetCount}
+        seconds={restSeconds}
       />
 
       <TimedSetTimer

@@ -8,6 +8,7 @@ CREATE TABLE users (
     pin_hash VARCHAR(255) NULL,
     coach_tone VARCHAR(32) NOT NULL DEFAULT 'master',
     sound_on TINYINT(1) NOT NULL DEFAULT 1,
+    rest_extra_minutes TINYINT UNSIGNED NOT NULL DEFAULT 0,
     invited_by INT NULL,
     invite_token VARCHAR(64) NULL UNIQUE,
     invited_at TIMESTAMP NULL,

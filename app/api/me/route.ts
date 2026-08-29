@@ -9,9 +9,11 @@ import {
   toneCookieOptions,
   updateCoachTone,
   updateSoundOn,
+  updateRestExtraMinutes,
 } from '@/lib/auth';
 import { isCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 
 export async function GET() {
@@ -50,6 +52,10 @@ export async function PATCH(request: NextRequest) {
     const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
     const coachTone = isCoachTone(body.coachTone) ? body.coachTone : user.coachTone;
     const soundOn = body.soundOn === undefined ? user.soundOn : normalizeSoundOn(body.soundOn);
+    const restExtraMinutes =
+      body.restExtraMinutes === undefined
+        ? user.restExtraMinutes
+        : normalizeRestExtraMinutes(body.restExtraMinutes);
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -79,6 +85,7 @@ export async function PATCH(request: NextRequest) {
 
     await updateCoachTone(user.id, coachTone);
     await updateSoundOn(user.id, soundOn);
+    await updateRestExtraMinutes(user.id, restExtraMinutes);
     const cookieStore = await cookies();
     const toneCookie = toneCookieOptions(coachTone);
     cookieStore.set(toneCookie.name, toneCookie.value, toneCookie);
@@ -94,6 +101,7 @@ export async function PATCH(request: NextRequest) {
         hasPin: pin != null || user.hasPin,
         coachTone,
         soundOn,
+        restExtraMinutes,
       },
     });
   } catch (error) {

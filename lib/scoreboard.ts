@@ -44,7 +44,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow}
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
+     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
      GROUP BY u.id, u.name
      HAVING COUNT(DISTINCT ws.id) > 0
      ORDER BY workouts DESC, volume DESC, u.name ASC`
@@ -81,7 +81,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
          ws.user_id,
          COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as session_volume
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
        WHERE ws.is_completed = 1 ${sessionWindow}
        GROUP BY ws.user_id, ws.id
      ) session_totals
@@ -118,22 +118,32 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
     badgesByUser.set(Number(row.user_id), Number(row.badges || 0));
   }
 
-  return rows.map((row) => {
-    const lastRow = lastByUser.get(Number(row.id));
-    return {
-      id: Number(row.id),
-      name: row.name,
-      workouts: Number(row.workouts || 0),
-      volume: Number(row.volume || 0),
-      sets: Number(row.sets || 0),
-      heaviest: Number(row.heaviest || 0),
-      avgSeconds: row.avg_seconds == null ? null : Number(row.avg_seconds),
-      bestSessionVolume: bestByUser.get(Number(row.id)) || 0,
-      badges: badgesByUser.get(Number(row.id)) || 0,
-      lastWorkout: lastRow ? `Week ${lastRow.week_number} · ${lastRow.workout_type}` : null,
-      lastAt: lastRow?.completed_at || null,
-    };
-  });
+  return rows
+    .map((row) => {
+      const lastRow = lastByUser.get(Number(row.id));
+      return {
+        id: Number(row.id),
+        name: row.name,
+        workouts: Number(row.workouts || 0),
+        volume: Number(row.volume || 0),
+        sets: Number(row.sets || 0),
+        heaviest: Number(row.heaviest || 0),
+        avgSeconds: row.avg_seconds == null ? null : Number(row.avg_seconds),
+        bestSessionVolume: bestByUser.get(Number(row.id)) || 0,
+        badges: badgesByUser.get(Number(row.id)) || 0,
+        lastWorkout: lastRow ? `Week ${lastRow.week_number} · ${lastRow.workout_type}` : null,
+        lastAt: lastRow?.completed_at || null,
+      };
+    })
+    .sort(
+      (a, b) =>
+        b.workouts - a.workouts ||
+        b.volume - a.volume ||
+        b.bestSessionVolume - a.bestSessionVolume ||
+        b.heaviest - a.heaviest ||
+        a.name.localeCompare(b.name) ||
+        a.id - b.id
+    );
 }
 
 export async function householdBonusHonor(period: ScoreboardPeriod): Promise<BonusHonorRow[]> {

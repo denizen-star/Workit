@@ -1,6 +1,7 @@
 'use client';
 
 import { Check } from 'lucide-react';
+import { useState } from 'react';
 import { requiredDays, weekProgress } from '@/lib/bonusDay';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 import type { WeekPlan, WorkoutDay } from '@/lib/workoutData';
@@ -18,7 +19,14 @@ function isDayDone(day: WorkoutDay, week: WeekPlan, sessions: WorkoutSessionRow[
   );
 }
 
-/** Four required days. Filled gold = done. Gold outline = next unpaid. Empty = still open. */
+const HELP: Record<string, string> = {
+  header:
+    'Four required days this week. Gold means paid. Now is the next one you still owe. Lock the week when all four are done.',
+  done: 'Done. You finished this required day. It counts toward locking the week.',
+  now: 'Now. This is the next unpaid required day. Start here.',
+  open: 'Still open. You owe this day before the week locks.',
+};
+
 export default function WeekLock({
   week,
   sessions,
@@ -26,6 +34,7 @@ export default function WeekLock({
   week: WeekPlan | null;
   sessions: WorkoutSessionRow[];
 }) {
+  const [help, setHelp] = useState<string | null>(null);
   if (!week) return null;
 
   const required = requiredDays(week);
@@ -43,10 +52,16 @@ export default function WeekLock({
   return (
     <div>
       <div className="mb-3 flex items-center justify-between text-base">
-        <p className="font-semibold text-white">
+        <button
+          type="button"
+          onClick={() => setHelp(HELP.header)}
+          className="font-semibold text-white"
+        >
           {progress.requiredDone} of {progress.requiredTotal} days
-        </p>
-        <p className="text-[#f6f1e3]/60">Lock the week</p>
+        </button>
+        <button type="button" onClick={() => setHelp(HELP.header)} className="text-[#f6f1e3]/60">
+          Lock the week
+        </button>
       </div>
       <div className="mb-4 flex gap-1.5">
         {required.map((day, index) => {
@@ -61,8 +76,10 @@ export default function WeekLock({
       </div>
       <div className="flex gap-2">
         {slots.map(({ day, state }) => (
-          <div
+          <button
+            type="button"
             key={day.dayNumber}
+            onClick={() => setHelp(HELP[state])}
             className={`flex-1 rounded-2xl px-1.5 py-5 text-center ${
               state === 'done'
                 ? 'border border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
@@ -98,9 +115,10 @@ export default function WeekLock({
                 '—'
               )}
             </p>
-          </div>
+          </button>
         ))}
       </div>
+      {help ? <p className="mt-3 text-sm text-[#f6f1e3]/70">{help}</p> : null}
     </div>
   );
 }

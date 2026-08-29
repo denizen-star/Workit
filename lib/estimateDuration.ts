@@ -4,9 +4,6 @@ import { getExerciseKind } from "./exerciseKind";
 /** Matches the in-app auto rest timer after each completed set. */
 export const REST_SECONDS = 60;
 
-/** Time to set up / switch between exercises. */
-const EXERCISE_TRANSITION_SECONDS = 45;
-
 /** Average seconds of effort per rep for lifting sets. */
 const SECONDS_PER_REP = 3;
 
@@ -54,23 +51,18 @@ function estimateSetWorkSeconds(exercise: Exercise): number {
 }
 
 /** Estimated total session length in seconds (work + rest + transitions). */
-export function estimateWorkoutSeconds(day: WorkoutDay): number {
+export function estimateWorkoutSeconds(day: WorkoutDay, restSeconds = REST_SECONDS): number {
+  const rest = Math.max(REST_SECONDS, restSeconds);
   let total = 0;
 
   day.exercises.forEach((exercise, index) => {
     const work = estimateSetWorkSeconds(exercise);
     const sets = exercise.sets;
 
-    // Work for each set
     total += work * sets;
 
-    // Rest after every set except the last set of the last exercise
     const rests = index === day.exercises.length - 1 ? Math.max(0, sets - 1) : sets;
-    total += rests * REST_SECONDS;
-
-    if (index < day.exercises.length - 1) {
-      total += EXERCISE_TRANSITION_SECONDS;
-    }
+    total += rests * rest;
   });
 
   return Math.round(total);

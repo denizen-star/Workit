@@ -17,6 +17,7 @@ import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
 import { workoutDateKey } from '@/lib/statsHousehold';
@@ -55,6 +56,7 @@ export default function Home() {
   const [userEmail, setUserEmail] = useState('');
   const [userTone, setUserTone] = useState<CoachTone>('master');
   const [userSoundOn, setUserSoundOn] = useState(true);
+  const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [houseOpen, setHouseOpen] = useState(false);
@@ -78,6 +80,7 @@ export default function Home() {
           const soundOn = normalizeSoundOn(meData.user?.soundOn);
           setUserSoundOn(soundOn);
           setSoundEnabled(soundOn);
+          setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setIsAdmin(!!meData.user?.isAdmin);
         }
 
@@ -162,6 +165,7 @@ export default function Home() {
               userEmail={userEmail}
               userTone={userTone}
               userSoundOn={userSoundOn}
+              userRestExtraMinutes={userRestExtraMinutes}
               isAdmin={isAdmin}
               onProfileSaved={(profile) => {
                 setUserName(profile.name);
@@ -169,6 +173,7 @@ export default function Home() {
                 setUserTone(profile.coachTone);
                 setUserSoundOn(profile.soundOn);
                 setSoundEnabled(profile.soundOn);
+                setUserRestExtraMinutes(profile.restExtraMinutes);
               }}
             />
           </div>

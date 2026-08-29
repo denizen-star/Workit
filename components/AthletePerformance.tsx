@@ -15,6 +15,7 @@ import {
   type WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
 import { formatHardnessAvg } from '@/lib/hardness';
+import HardnessCharts from '@/components/HardnessCharts';
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = {
   '15': '15 days',
@@ -56,6 +57,7 @@ function LineRow({
         { label: 'Total', value: formatLbs(line.currentVolume) },
         { label: '% chg', value: formatPct(line.volumeChangePct) },
         { label: 'Prog', value: formatPct(line.progressionPct) },
+        { label: 'Hard', value: formatHardnessAvg(line.perception) },
       ]}
     />
   );
@@ -176,6 +178,7 @@ export function AthletePerformanceBoardView({
   return (
     <div className="space-y-3">
       <SummaryCard summary={summary} athleteName={athleteName} />
+      {page ? <HardnessCharts board={board} athleteName={athleteName} /> : null}
       {page && gainers.length > 0 && (
         <div className="space-y-2">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Gainers</p>

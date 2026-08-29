@@ -65,8 +65,10 @@ export function tomScoreboardLine(
 
   if (index === 0) {
     const hunter = rows[1];
-    if (hunter && hunter.workouts === row.workouts && volumeGap === 0) {
-      return `${name} is tied for first. I do not do ties. Break it.`;
+    const hunterVolume = Math.round(hunter?.volume || 0);
+    const leadVolume = Math.round(row.volume || 0);
+    if (hunter && hunter.workouts === row.workouts && hunterVolume === leadVolume) {
+      return `${name} owns first. Same days, same iron on paper. Heaviest set and best day already broke it.`;
     }
     if (hunter && workoutGap === 0) {
       return `${name} holds first by iron, not by days. The pack can still take this.`;

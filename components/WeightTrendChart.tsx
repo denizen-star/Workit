@@ -21,7 +21,7 @@ const tooltipStyle = {
 
 function hasWeight(value: unknown) {
   const amount = Number(value);
-  return value != null && Number.isFinite(amount) && amount > 0;
+  return value != null && Number.isFinite(amount);
 }
 
 function TrendTooltip({
@@ -48,7 +48,7 @@ function TrendTooltip({
   );
 }
 
-/** Shared gold-you / copper-house line chart. Only plots days with real weight. */
+/** Shared gold-you / copper-house line chart. Rest days stay on the line. */
 export default function WeightTrendChart({
   data,
   lines,
@@ -88,7 +88,7 @@ export default function WeightTrendChart({
             strokeWidth={line.thick ? 3 : 1.75}
             strokeDasharray={line.dashed ? '6 4' : undefined}
             dot={line.thick ? { r: 3, fill: line.color } : { r: 2, fill: line.color }}
-            connectNulls={false}
+            connectNulls
             isAnimationActive={false}
           />
         ))}

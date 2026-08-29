@@ -386,17 +386,13 @@ function overallWeightRanking(
     .filter((row) => row.bestDay > 0 || row.totalWeight > 0)
     .sort(
       (a, b) =>
-        b.bestDay - a.bestDay || b.totalWeight - a.totalWeight || a.name.localeCompare(b.name)
+        b.bestDay - a.bestDay ||
+        b.totalWeight - a.totalWeight ||
+        a.name.localeCompare(b.name) ||
+        a.userId - b.userId
     );
 
-  let lastBest = Number.NaN;
-  let lastRank = 0;
-  return sorted.map((row, index) => {
-    const rank = row.bestDay === lastBest ? lastRank : index + 1;
-    lastBest = row.bestDay;
-    lastRank = rank;
-    return { ...row, rank };
-  });
+  return sorted.map((row, index) => ({ ...row, rank: index + 1 }));
 }
 
 export async function householdExerciseCompare(
@@ -516,10 +512,7 @@ export function overallRankSentence(
   const pack = ranking.length;
   const yours = pairLine(you);
   if (you.rank === 1) {
-    const tied = ranking.filter((entry) => entry.rank === 1).length > 1;
-    return tied
-      ? `${who} is tied for 1st of ${pack}. ${yours}.`
-      : `${who} is 1st of ${pack}. ${yours}.`;
+    return `${who} is 1st of ${pack}. ${yours}.`;
   }
   return `${who} is ${ordinalRank(you.rank)} of ${pack}. ${yours}.`;
 }

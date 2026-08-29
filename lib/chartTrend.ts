@@ -59,12 +59,45 @@ export function inRange(date: string, range: TrendRange) {
   return key >= start;
 }
 
-/** Sorted union of dates that actually have weight. */
-export function trendAxis(dates: string[], range: TrendRange) {
-  return [...new Set(dates.map(workoutDateKey).filter((key) => inRange(key, range)))].sort();
+function todayKey() {
+  return workoutDateKey(new Date());
 }
 
-/** Value only on days this series actually lifted. No padding, no zeros. */
+function shiftKey(key: string, days: number) {
+  const date = new Date(`${key}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function eachDay(start: string, end: string) {
+  const days: string[] = [];
+  if (!start || !end || start > end) return days;
+  let cursor = start;
+  while (cursor <= end) {
+    days.push(cursor);
+    cursor = shiftKey(cursor, 1);
+    if (days.length > 800) break;
+  }
+  return days;
+}
+
+/** Every calendar day in the window, including rest days. */
+export function trendAxis(dates: string[], range: TrendRange) {
+  const keys = [...new Set(dates.map(workoutDateKey).filter(Boolean))].sort();
+  const end = todayKey();
+  if (range === 'all') {
+    if (keys.length === 0) return [];
+    return eachDay(keys[0], end < keys[keys.length - 1] ? keys[keys.length - 1] : end);
+  }
+  const start = cutoffKey(range);
+  if (!start) return keys;
+  return eachDay(start, end);
+}
+
+/** Rest days are 0 (daily) or held total (cumulative) so each line runs across the window. */
 export function pointsOnAxis(
   axis: string[],
   byDate: Map<string, number>,
@@ -73,19 +106,16 @@ export function pointsOnAxis(
   if (mode !== 'cumulative') {
     return axis.map((date) => {
       const value = byDate.get(date);
-      return value != null && value > 0 ? value : undefined;
+      return value != null && value > 0 ? value : 0;
     });
   }
 
-  const totals = new Map<string, number>();
   let sum = 0;
-  for (const date of axis) {
+  return axis.map((date) => {
     const value = byDate.get(date);
-    if (value == null || value <= 0) continue;
-    sum += value;
-    if (sum > 0) totals.set(date, sum);
-  }
-  return axis.map((date) => totals.get(date));
+    if (value != null && value > 0) sum += value;
+    return sum;
+  });
 }
 
 export function addWeight(map: Map<string, number>, date: string, weight: number) {
@@ -104,26 +134,17 @@ export function formatChartDate(key: string) {
 
 export type TrendRow = Record<string, string | number | null>;
 
-/**
- * Keep a day only if someone actually lifted.
- * Missing athletes get `null` (Recharts gap) — omitting the key plots as 0.
- */
+/** One row per calendar day. Rest days stay on the line at 0 / held total. */
 export function compactTrendRows(
   axis: string[],
   series: { key: string; values: (number | undefined)[] }[]
 ): TrendRow[] {
-  return axis.flatMap((key, index) => {
+  return axis.map((key, index) => {
     const row: TrendRow = { date: formatChartDate(key) };
-    let hasValue = false;
     for (const item of series) {
       const value = item.values[index];
-      if (value == null || !Number.isFinite(value) || value <= 0) {
-        row[item.key] = null;
-        continue;
-      }
-      row[item.key] = value;
-      hasValue = true;
+      row[item.key] = value != null && Number.isFinite(value) ? value : 0;
     }
-    return hasValue ? [row] : [];
+    return row;
   });
 }

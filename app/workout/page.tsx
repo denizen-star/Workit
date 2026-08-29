@@ -13,7 +13,7 @@ import {
 } from '@/lib/bonusDay';
 import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
 import { formatClock } from '@/lib/formatDuration';
-import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
+import { estimateWorkoutSeconds, formatEstimateMinutes, REST_SECONDS } from '@/lib/estimateDuration';
 import {
   defaultSelectWeek,
   findIncompleteSession,
@@ -36,6 +36,7 @@ import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
+import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 
@@ -73,6 +74,7 @@ function WorkoutPageInner() {
   const selectWeekInit = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [soundOn, setSoundOn] = useState(true);
+  const [restExtraMinutes, setRestExtraMinutes] = useState(0);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
@@ -95,6 +97,7 @@ function WorkoutPageInner() {
           const enabled = normalizeSoundOn(data.user.soundOn);
           setSoundOn(enabled);
           setSoundEnabled(enabled);
+          setRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
@@ -523,6 +526,7 @@ function WorkoutPageInner() {
             exercises={workout.exercises}
             sessionMode={workoutMode}
             coachTone={coachTone}
+            restExtraMinutes={restExtraMinutes}
             onComplete={() => setConfirmComplete(true)}
             onTotals={handleLiftTotals}
           />
@@ -708,7 +712,12 @@ function WorkoutPageInner() {
                             : [];
                       const mode = pickedMode(week.weekNumber, day.dayNumber, incomplete);
                       const planned = applyWorkoutMode(day, mode);
-                      const estimate = formatEstimateMinutes(estimateWorkoutSeconds(planned));
+                      const estimate = formatEstimateMinutes(
+                        estimateWorkoutSeconds(
+                          planned,
+                          restSecondsWithExtra(restExtraMinutes, REST_SECONDS)
+                        )
+                      );
 
                       if (isCompleted && !incomplete) {
                         return (
