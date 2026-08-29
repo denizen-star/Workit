@@ -127,6 +127,25 @@ export function statsTable(rows: Array<[string, string]>) {
   );
 }
 
+export function hostedAsset(path: string) {
+  const clean = path.startsWith('/') ? path : '/' + path;
+  return appUrl() + clean;
+}
+
+export function emailArt(src: string, alt: string, width = 160) {
+  return (
+    '<p style="margin:0 0 14px;"><img src="' +
+    esc(src) +
+    '" alt="' +
+    esc(alt) +
+    '" width="' +
+    width +
+    '" style="display:block;width:' +
+    width +
+    'px;max-width:100%;height:auto;border:0;"/></p>'
+  );
+}
+
 export function cta(href: string, label: string) {
   return (
     '<p style="margin:20px 0 8px;"><a href="' +

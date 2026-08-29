@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, Info, ClipboardList } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, Info, ClipboardList } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
@@ -179,6 +179,7 @@ export default function AppMenu({
                   { href: '/performance', label: 'Your performance', Icon: TrendingUp },
                   { href: '/scoreboard', label: 'The house', Icon: Trophy },
                   { href: '/history', label: 'Completed log', Icon: ClipboardList },
+                  { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
                   { href: '/about', label: 'About program', Icon: Info },
                 ].map(({ href, label, Icon }) => {

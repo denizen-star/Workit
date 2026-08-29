@@ -17,6 +17,7 @@ import {
 } from '@/lib/athletePerformanceTypes';
 import { formatHardnessAvg } from '@/lib/hardness';
 import { isTestUserName } from '@/lib/householdUsers';
+import BeltChip from '@/components/BeltChip';
 import { firstName } from '@/lib/scoreboardTypes';
 import { HouseholdHardnessCharts } from '@/components/HardnessCharts';
 
@@ -225,16 +226,22 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<PerformancePeriod>('30');
   const [rows, setRows] = useState<HouseholdRow[]>([]);
+  const [belts, setBelts] = useState<Array<{ id: number; name: string; lockedWeeks: number; display: { name: string; fill: string } | null }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/athlete-performance?household=1&period=' + period)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+    Promise.all([
+      fetch('/api/athlete-performance?household=1&period=' + period),
+      fetch('/api/belts'),
+    ])
+      .then(async ([perfRes, beltsRes]) => {
         if (cancelled) return;
+        const data = perfRes.ok ? await perfRes.json() : null;
+        const beltData = beltsRes.ok ? await beltsRes.json() : null;
         setRows(Array.isArray(data?.rows) ? data.rows : []);
+        setBelts(Array.isArray(beltData?.household) ? beltData.household : []);
       })
       .catch(() => {
         if (!cancelled) setRows([]);
@@ -280,6 +287,16 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
             Gold is heaviest. % is vs next. Athlete counts are lifts led. Test left out. 15 / 30 /
             all, not the traffic range.
           </p>
+          {belts.length > 0 ? (
+            <div className="mb-4 grid gap-2">
+              {belts.map((row) => (
+                <div key={row.id} className="flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-white">{row.name}</p>
+                  <BeltChip lockedWeeks={row.lockedWeeks} name={row.display?.name} fill={row.display?.fill} />
+                </div>
+              ))}
+            </div>
+          ) : null}
           <PeriodPills period={period} onPick={setPeriod} />
           {loading ? (
             <p className="text-sm text-[#f6f1e3]/55">Loading lifts...</p>

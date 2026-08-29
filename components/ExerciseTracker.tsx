@@ -71,7 +71,7 @@ interface ExerciseTrackerProps {
   sessionMode?: WorkoutMode | string | null;
   coachTone?: CoachTone | string | null;
   restExtraMinutes?: number;
-  onComplete?: () => void;
+  onLiftsDone?: () => void;
   onTotals?: (totals: { lbs: number; reps: number }) => void;
 }
 
@@ -163,7 +163,7 @@ export default function ExerciseTracker({
   sessionMode,
   coachTone,
   restExtraMinutes = 0,
-  onComplete,
+  onLiftsDone,
   onTotals,
 }: ExerciseTrackerProps) {
   const tone = normalizeCoachTone(coachTone);
@@ -440,8 +440,9 @@ export default function ExerciseTracker({
         }
       }
 
+      const wasAllDone = exerciseSets.length > 0 && exerciseSets.every((item) => item.is_completed);
       const allCompleted = newSets.length > 0 && newSets.every((item) => item.is_completed);
-      if (allCompleted && onComplete) onComplete();
+      if (allCompleted && !wasAllDone && onLiftsDone) onLiftsDone();
     } catch (error) {
       console.error('Error saving set:', error);
     }

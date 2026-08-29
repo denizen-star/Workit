@@ -14,11 +14,16 @@ import { firstName } from '../lib/profile';
 
 async function householdRecipients() {
   const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
+  const activeDays = Math.max(0, Math.trunc(Number(CURRENT_RELEASE.activeInDays || 0)));
+  const recent =
+    onlyWorked && activeDays > 0
+      ? ` AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${activeDays} DAY)`
+      : '';
   const result = await query(
     onlyWorked
       ? `SELECT DISTINCT u.id, u.name, u.email
          FROM users u
-         INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
+         INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
          WHERE u.email IS NOT NULL AND u.email != ''
            AND ${SQL_EXCLUDE_TEST_USER}
          ORDER BY u.id ASC`

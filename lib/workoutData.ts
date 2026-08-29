@@ -2,6 +2,7 @@
 
 import { toTravelExercise } from '@/lib/travelExercises';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import { buildYearWeeks } from '@/lib/yearProgram';
 
 export interface Exercise {
   name: string;
@@ -49,7 +50,7 @@ export interface WeekPlan {
   days: WorkoutDay[];
 }
 
-export const workoutProgram: WeekPlan[] = [
+const FIRST_SIX: WeekPlan[] = [
   // Weeks 1-2: Adaptation
   {
     weekNumber: 1,
@@ -424,6 +425,8 @@ export const workoutProgram: WeekPlan[] = [
     ]
   }
 ];
+
+export const workoutProgram: WeekPlan[] = [...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)];
 
 export function getWeekPlan(weekNumber: number): WeekPlan | undefined {
   return workoutProgram.find(week => week.weekNumber === weekNumber);

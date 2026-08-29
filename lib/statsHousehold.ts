@@ -1,4 +1,6 @@
 import { query } from '@/lib/db';
+import { easternMondayKey } from '@/lib/analyticsTime';
+import { lockedWeekStreak } from '@/lib/bonusDay';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
@@ -34,28 +36,16 @@ export function workoutDateKey(value: unknown): string {
   return String(value || '').slice(0, 10);
 }
 
-export function countCurrentStreak(workoutDates: unknown[]): number {
-  if (workoutDates.length === 0) return 0;
-
-  const dates = workoutDates.map((value) => new Date(value as string | Date));
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  let currentStreak = 0;
-  for (let i = 0; i < dates.length; i++) {
-    const date = new Date(dates[i]);
-    date.setHours(0, 0, 0, 0);
-    const expectedDate = new Date(today);
-    expectedDate.setDate(today.getDate() - i);
-
-    if (date.getTime() === expectedDate.getTime()) {
-      currentStreak++;
-    } else {
-      break;
-    }
-  }
-
-  return currentStreak;
+export function thisWeekWeight(
+  daily: { workout_date: string; total_weight_lifted: number | string }[] | undefined,
+  now: Date = new Date()
+) {
+  const monday = easternMondayKey(now);
+  return (daily || []).reduce((sum, row) => {
+    const key = workoutDateKey(row.workout_date);
+    if (!key || key < monday) return sum;
+    return sum + (parseFloat(String(row.total_weight_lifted)) || 0);
+  }, 0);
 }
 
 function placeholders(ids: number[]) {
@@ -85,7 +75,7 @@ export async function householdHomeStats(
   const { sql, params } = placeholders(ids);
   const dailyDates = athleteDailyDates.map(workoutDateKey).filter(Boolean);
 
-  const [overall, timing, lastSessions, badges, weekly, streakDates, daily] = await Promise.all([
+  const [overall, timing, lastSessions, badges, weekly, daily] = await Promise.all([
     query(
       `SELECT
          ws.user_id,
@@ -142,17 +132,9 @@ export async function householdHomeStats(
        GROUP BY user_id, week_number`,
       params
     ),
-    query(
-      `SELECT user_id, workout_date
-       FROM daily_stats
-       WHERE user_id IN (${sql})
-         AND total_exercises_completed > 0
-       ORDER BY user_id, workout_date DESC`,
-      params
-    ),
     dailyDates.length > 0
       ? query(
-          `SELECT workout_date, AVG(total_weight_lifted) as avg_weight
+          `SELECT workout_date, COALESCE(SUM(total_weight_lifted), 0) as sum_weight
            FROM daily_stats
            WHERE user_id IN (${sql})
              AND total_weight_lifted > 0
@@ -160,7 +142,7 @@ export async function householdHomeStats(
            GROUP BY workout_date`,
           [...params, ...dailyDates]
         )
-      : Promise.resolve({ rows: [] as { workout_date: unknown; avg_weight: number }[] }),
+      : Promise.resolve({ rows: [] as { workout_date: unknown; sum_weight: number }[] }),
   ]);
 
   const overallRows = overall.rows as {
@@ -178,14 +160,6 @@ export async function householdHomeStats(
     badgesByUser.set(Number(row.user_id), Number(row.badges || 0));
   }
 
-  const datesByUser = new Map<number, unknown[]>();
-  for (const row of streakDates.rows as { user_id: number; workout_date: unknown }[]) {
-    const id = Number(row.user_id);
-    const list = datesByUser.get(id) || [];
-    list.push(row.workout_date);
-    datesByUser.set(id, list);
-  }
-
   const completedByUserWeek = new Map<string, number>();
   for (const row of weekly.rows as { user_id: number; week_number: number; completed_days: number }[]) {
     completedByUserWeek.set(
@@ -200,7 +174,19 @@ export async function householdHomeStats(
 
   return {
     workoutsCompleted: mean(overallRows.map((row) => Number(row.completed_workouts || 0))) ?? 0,
-    currentStreak: mean(ids.map((id) => countCurrentStreak(datesByUser.get(id) || []))) ?? 0,
+    currentStreak:
+      mean(
+        ids.map((id) =>
+          lockedWeekStreak(
+            new Map(
+              [1, 2, 3, 4, 5, 6].map((week) => [
+                week,
+                completedByUserWeek.get(`${id}-${week}`) || 0,
+              ])
+            )
+          )
+        )
+      ) ?? 0,
     totalWeightLifted: mean(overallRows.map((row) => Number(row.total_weight_lifted || 0))) ?? 0,
     badgesEarned: mean(ids.map((id) => badgesByUser.get(id) || 0)) ?? 0,
     lastWorkoutSeconds: mean(
@@ -219,9 +205,9 @@ export async function householdHomeStats(
         .map((row) => (row.total_seconds == null ? null : Number(row.total_seconds)))
         .filter((value): value is number => value != null)
     ),
-    daily: (daily.rows as { workout_date: unknown; avg_weight: number }[]).map((row) => ({
+    daily: (daily.rows as { workout_date: unknown; sum_weight: number }[]).map((row) => ({
       workout_date: workoutDateKey(row.workout_date),
-      avg_weight: Number(row.avg_weight || 0),
+      avg_weight: Number(row.sum_weight || 0) / ids.length,
     })),
     weekly: [1, 2, 3, 4, 5, 6].map((week_number) => ({
       week_number,

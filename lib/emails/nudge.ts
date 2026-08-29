@@ -53,6 +53,10 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     return { sent: false, skipped: 'program-complete' };
   }
 
+  if (target.type === 'hold') {
+    return { sent: false, skipped: 'week-holds-until-monday' };
+  }
+
   if (trainedToday(sessions, date) && target.type !== 'resume') {
     return { sent: false, skipped: 'already-trained' };
   }

@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { Dumbbell, ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import PinPad from '@/components/PinPad';
+import BeltChip from '@/components/BeltChip';
 import { trackAction } from '@/lib/analytics';
 
 type HouseholdUser = {
@@ -11,7 +12,77 @@ type HouseholdUser = {
   name: string;
   email?: string | null;
   has_pin: boolean;
+  active?: boolean;
+  newToTraining?: boolean;
+  beltName?: string | null;
+  beltFill?: string | null;
+  beltEarned?: boolean;
 };
+
+function byName(a: HouseholdUser, b: HouseholdUser) {
+  return a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }) || a.id - b.id;
+}
+
+function WhoFold({
+  title,
+  trailing,
+  defaultOpen,
+  children,
+}: {
+  title: string;
+  trailing?: string;
+  defaultOpen: boolean;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <div className="rounded-2xl border border-white/10 bg-black/20">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left"
+        aria-expanded={open}
+      >
+        <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">{title}</h3>
+        {trailing ? (
+          <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">{trailing}</span>
+        ) : (
+          <span className="ml-auto" />
+        )}
+        {open ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+        )}
+      </button>
+      {open ? <div className="space-y-3 border-t border-white/10 px-3 py-3">{children}</div> : null}
+    </div>
+  );
+}
+
+function WhoRow({ user, onPick }: { user: HouseholdUser; onPick: (user: HouseholdUser) => void }) {
+  const hint = user.newToTraining && !user.has_pin ? 'New to training' : user.has_pin ? 'Enter PIN' : 'Set up PIN';
+  return (
+    <button
+      type="button"
+      onClick={() => onPick(user)}
+      className="flex w-full min-h-16 items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-6 py-4 text-left transition hover:border-[#e8c547]/50 hover:bg-[#e8c547]/10"
+    >
+      <span className="min-w-0">
+        <span className="block text-xl font-black text-white">{user.name}</span>
+        {user.email && (
+          <span className="mt-0.5 block truncate text-sm text-[#f6f1e3]/50">{user.email}</span>
+        )}
+        {user.beltName && user.beltFill ? (
+          <span className="mt-2 block">
+            <BeltChip name={user.beltName} fill={user.beltFill} earned={Boolean(user.beltEarned)} />
+          </span>
+        ) : null}
+      </span>
+      <span className="shrink-0 text-sm text-[#f6f1e3]/55">{hint}</span>
+    </button>
+  );
+}
 
 type Step = 'pick' | 'login' | 'create-pin' | 'confirm-pin';
 
@@ -97,11 +168,25 @@ export default function WhoPage() {
   };
 
   const pickUser = (user: HouseholdUser) => {
+    if (user.newToTraining && !user.has_pin) {
+      trackAction('who_pick', { category: 'who', article_context: user.name });
+      setError('Use the invite link from your email to create a PIN.');
+      return;
+    }
     trackAction('who_pick', { category: 'who', article_context: user.name });
     setSelected(user);
     resetPinFlow();
     setStep(user.has_pin ? 'login' : 'create-pin');
   };
+
+  const gymUsers = useMemo(
+    () => users.filter((user) => user.active || user.newToTraining).sort(byName),
+    [users]
+  );
+  const backUsers = useMemo(
+    () => users.filter((user) => user.has_pin && !user.active).sort(byName),
+    [users]
+  );
 
   const goBack = () => {
     setSelected(null);
@@ -242,25 +327,22 @@ export default function WhoPage() {
               Tap your profile to continue
             </p>
 
-            <div className="mt-10 space-y-3">
-              {users.map((user) => (
-                <button
-                  key={user.id}
-                  type="button"
-                  onClick={() => pickUser(user)}
-                  className="flex w-full min-h-16 items-center justify-between rounded-2xl border border-white/10 bg-black/25 px-6 py-4 text-left transition hover:border-[#e8c547]/50 hover:bg-[#e8c547]/10"
-                >
-                  <span className="min-w-0">
-                    <span className="block text-xl font-black text-white">{user.name}</span>
-                    {user.email && (
-                      <span className="mt-0.5 block truncate text-sm text-[#f6f1e3]/50">{user.email}</span>
-                    )}
-                  </span>
-                  <span className="text-sm text-[#f6f1e3]/55">
-                    {user.has_pin ? 'Enter PIN' : 'Set up PIN'}
-                  </span>
-                </button>
-              ))}
+            <div className="mt-10 space-y-4">
+              {gymUsers.length > 0 ? (
+                <WhoFold title="Working the Gym" defaultOpen>
+                  {gymUsers.map((user) => (
+                    <WhoRow key={user.id} user={user} onPick={pickUser} />
+                  ))}
+                </WhoFold>
+              ) : null}
+
+              {backUsers.length > 0 ? (
+                <WhoFold title="Getting back on it!" trailing={String(backUsers.length)} defaultOpen={false}>
+                  {backUsers.map((user) => (
+                    <WhoRow key={user.id} user={user} onPick={pickUser} />
+                  ))}
+                </WhoFold>
+              ) : null}
 
               {users.length === 0 && (
                 <p className="text-center text-[#f6f1e3]/65">No profiles yet. Ask the app owner to add you.</p>
@@ -285,6 +367,11 @@ export default function WhoPage() {
             {selected?.email && (
               <p className="mt-1 text-center text-sm text-[#f6f1e3]/50">{selected.email}</p>
             )}
+            {selected?.beltName && selected.beltFill ? (
+              <div className="mt-3 flex justify-center">
+                <BeltChip name={selected.beltName} fill={selected.beltFill} earned={Boolean(selected.beltEarned)} />
+              </div>
+            ) : null}
             <p className="mt-2 text-center text-[#f6f1e3]/65">
               {step === 'login'
                 ? 'Enter your 4-digit PIN'

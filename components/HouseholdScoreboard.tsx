@@ -160,7 +160,7 @@ export default function HouseholdScoreboard({
                 roomy
                 kicker={place}
                 title={row.name}
-                headline={`${Math.round(row.volume).toLocaleString()}`}
+                headline={`${Math.round(row.volume).toLocaleString()} lb`}
                 sub={last}
                 metrics={[
                   { label: 'Workouts', value: String(row.workouts) },
@@ -174,6 +174,7 @@ export default function HouseholdScoreboard({
                   },
                   { label: 'Avg time', value: formatDuration(row.avgSeconds) },
                   { label: 'Medals', value: String(row.badges) },
+                  { label: 'Belt', value: row.beltName || '—' },
                 ]}
                 foot={tomScoreboardLine(row, index, rows)}
               />

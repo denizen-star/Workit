@@ -22,6 +22,7 @@ const LABELS: Record<MailTemplateId, string> = {
   week: 'Week locked',
   program: 'Program complete',
   badge: 'Badge',
+  belt: 'Diploma',
   scoreboard: 'Scoreboard',
   release: "What's new",
 };

@@ -71,10 +71,12 @@ export default function OptionalCard({
   sessionId,
   slot,
   onLbs,
+  cue,
 }: {
   sessionId: number;
   slot: OptionalSlot;
   onLbs?: (lbs: number) => void;
+  cue?: string;
 }) {
   const [state, setState] = useState<SlotState>({
     track: null,
@@ -309,6 +311,7 @@ export default function OptionalCard({
             <span>Optional · {label}</span>
             <span className="text-sm">+{OPTIONAL_SLOT_LBS} lb</span>
           </button>
+          {cue ? <p className="mt-3 text-base font-semibold text-[#f6f1e3]/75">{cue}</p> : null}
           {picking && (
             <div className="mt-3 grid grid-cols-2 gap-2">
               {optionalTracks().map((track) => (

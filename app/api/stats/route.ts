@@ -3,7 +3,8 @@ import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
-import { countCurrentStreak, householdHomeStats } from '@/lib/statsHousehold';
+import { lockedWeekStreak } from '@/lib/bonusDay';
+import { householdHomeStats } from '@/lib/statsHousehold';
 
 export async function GET(request: NextRequest) {
   try {
@@ -52,15 +53,20 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    const streakResult = await query(
-      `SELECT workout_date FROM daily_stats 
-       WHERE user_id = ? AND total_exercises_completed > 0
-       ORDER BY workout_date DESC`,
+    const weekCounts = await query(
+      `SELECT week_number, COUNT(CASE WHEN is_completed THEN 1 END) as completed_days
+       FROM workout_sessions
+       WHERE user_id = ?
+       GROUP BY week_number`,
       [userId]
     );
-
-    const currentStreak = countCurrentStreak(
-      streakResult.rows.map((row) => row.workout_date)
+    const currentStreak = lockedWeekStreak(
+      new Map(
+        (weekCounts.rows as { week_number: number; completed_days: number }[]).map((row) => [
+          Number(row.week_number),
+          Number(row.completed_days || 0),
+        ])
+      )
     );
 
     const durationStats = home

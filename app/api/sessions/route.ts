@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
+import { BELTS, lockedWeekCount, serializeBelt } from '@/lib/belts';
 import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -19,14 +20,49 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { weekNumber, dayNumber, workoutType, scheduledDate, workoutMode } = await request.json();
+    const { weekNumber, dayNumber, workoutType, scheduledDate, workoutMode, complete } = await request.json();
     const mode = String(workoutMode || '').trim().toLowerCase() === 'travel' ? 'travel' : 'gym';
+    const markComplete = Boolean(complete);
 
     const result = await query(
-      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, scheduled_date, started_at) 
-       VALUES (?, ?, ?, ?, ?, ?, NOW())`,
-      [user.id, weekNumber, dayNumber, workoutType, mode, scheduledDate]
+      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, scheduled_date, started_at, is_completed, completed_at, ended_at) 
+       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ${markComplete ? 'NOW()' : 'NULL'}, ${markComplete ? 'NOW()' : 'NULL'})`,
+      [user.id, weekNumber, dayNumber, workoutType, mode, scheduledDate, markComplete ? 1 : 0]
     );
+
+    if (markComplete) {
+      const sessionId = Number(result.insertId);
+      await updateDailyStats(sessionId, user.id);
+      const awardedBadges = await checkAndAwardBadges(user.id);
+      const all = await query(
+        'SELECT week_number, is_completed FROM workout_sessions WHERE user_id = ?',
+        [user.id]
+      );
+      const locked = lockedWeekCount(all.rows as Array<{ week_number: number; is_completed: unknown }>);
+      const thisWeekLocked =
+        (all.rows as Array<{ week_number: number; is_completed: unknown }>).filter(
+          (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
+        ).length >= 4;
+      const earnedBelt = thisWeekLocked
+        ? serializeBelt(BELTS.find((item) => item.weeks === locked) || null)
+        : null;
+      queueWorkoutCompleteEmails({
+        userId: user.id,
+        name: user.name,
+        email: user.email,
+        sessionId,
+        weekNumber: Number(weekNumber),
+        dayName: String(workoutType || ''),
+        awarded: awardedBadges,
+      });
+      return NextResponse.json({
+        success: true,
+        sessionId,
+        awardedBadges,
+        bonus: true,
+        earnedBelt,
+      });
+    }
 
     return NextResponse.json({ 
       success: true, 
@@ -227,20 +263,26 @@ export async function PUT(request: NextRequest) {
     }
 
     let uniqueBonusWeeks = 0;
+    let earnedBelt = null;
     if (isCompleted) {
       await updateDailyStats(Number(sessionId), user.id);
       const all = await query(
         'SELECT week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE user_id = ?',
         [user.id]
       );
-      uniqueBonusWeeks = bonusCount(
-        all.rows as Array<{
-          week_number: number;
-          day_number: number;
-          workout_type: string;
-          is_completed: number | boolean;
-        }>
-      );
+      const rows = all.rows as Array<{
+        week_number: number;
+        day_number: number;
+        workout_type: string;
+        is_completed: number | boolean;
+      }>;
+      uniqueBonusWeeks = bonusCount(rows);
+      const locked = lockedWeekCount(rows);
+      const thisWeekLocked = rows.filter((row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))).length >= 4;
+      if (!alreadyComplete && thisWeekLocked) {
+        const belt = BELTS.find((item) => item.weeks === locked);
+        earnedBelt = serializeBelt(belt || null);
+      }
     }
 
     return NextResponse.json({
@@ -250,6 +292,7 @@ export async function PUT(request: NextRequest) {
       bonusCount: uniqueBonusWeeks,
       optionalLbs,
       kickerLbs: Number(session.optional_kicker_lbs || 0),
+      earnedBelt,
     });
   } catch (error) {
     console.error('Error updating workout session:', error);

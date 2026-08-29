@@ -67,6 +67,28 @@ export function easternMidnightUtc(ymd: string): Date {
   return new Date(`${ymd}T00:00:00-05:00`);
 }
 
+/** 0 = Sunday … 6 = Saturday in America/New_York. */
+export function easternWeekday(d: Date = new Date()): number {
+  const label = new Intl.DateTimeFormat('en-US', {
+    timeZone: ANALYTICS_TIME_ZONE,
+    weekday: 'short',
+  }).format(d);
+  return ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].indexOf(label);
+}
+
+export function isEasternWeekend(d: Date = new Date()): boolean {
+  const day = easternWeekday(d);
+  return day === 0 || day === 6;
+}
+
+/** Monday YMD of the Eastern calendar week containing `d`. */
+export function easternMondayKey(d: Date = new Date()): string {
+  const ymd = easternYmd(d);
+  const weekday = easternWeekday(d);
+  const back = weekday === 0 ? 6 : weekday - 1;
+  return addCalendarDaysEastern(ymd, -back);
+}
+
 function addCalendarDaysEastern(ymd: string, delta: number): string {
   const noon = new Date(`${ymd}T12:00:00-05:00`);
   return easternYmd(addDays(noon, delta));

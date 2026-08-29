@@ -53,11 +53,11 @@ function LineRow({
       headline={formatPct(line.volumeChangePct)}
       sub={detail || undefined}
       metrics={[
-        { label: 'Wt', value: formatLbs(line.currentWeight) },
-        { label: 'Total', value: formatLbs(line.currentVolume) },
-        { label: '% chg', value: formatPct(line.volumeChangePct) },
-        { label: 'Prog', value: formatPct(line.progressionPct) },
-        { label: 'Hard', value: formatHardnessAvg(line.perception) },
+        { label: 'This weight', value: formatLbs(line.currentWeight) },
+        { label: 'This total', value: formatLbs(line.currentVolume) },
+        { label: 'Total vs last', value: formatPct(line.volumeChangePct) },
+        { label: 'Load vs last', value: formatPct(line.progressionPct) },
+        { label: 'How hard', value: formatHardnessAvg(line.perception) },
       ]}
     />
   );
@@ -268,7 +268,8 @@ export default function AthletePerformance({
     <div>
       {page ? (
         <p className="mb-3 text-xs text-[#f6f1e3]/55">
-          You vs last time. Weight, total, % change, progression, how hard.
+          You vs the last time you did that lift. This weight is the heaviest set. This total is
+          lb × reps. Green is up. Red is down. This is not vs the house.
         </p>
       ) : null}
       <PeriodPills

@@ -107,8 +107,10 @@ export default function DailyWeightChart({
         </div>
       </div>
       <p className="mb-4 text-base text-[#f6f1e3]/60">
-        <span className="font-semibold text-[#f6f1e3]">Cream</span> is you.{' '}
-        <span className="font-semibold text-[#c08457]">Copper</span> is the house (dashed).
+        <span className="font-semibold text-[#f6f1e3]">Cream</span> is your lb that day.{' '}
+        <span className="font-semibold text-[#c08457]">Copper</span> is the pack average that
+        day. The pack is people who finished a workout in the last 7 days. A miss counts as 0, so
+        copper is not just the heavy days. It sits above you only when that average beat your day.
       </p>
       <WeightTrendChart
         data={data}

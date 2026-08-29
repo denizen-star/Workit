@@ -16,43 +16,51 @@ export const CURRENT_RELEASE: {
   signer?: string;
   tone?: CoachTone;
   onlyAthletesWithWorkouts?: boolean;
+  activeInDays?: number;
   onlyAthletes?: string[];
   lead?: string;
   groups: ReleaseGroup[];
   wins: string[];
   also: string[];
 } = {
-  version: '4.5.0',
-  title: 'Gold is the order. Learn the colors, man.',
-  subject: 'Gold means move. Green means you did it.',
+  version: '5.0.0',
+  title: 'Belts. A year. You earn the paper.',
+  subject: 'Diplomas. 48 weeks. Finish after cooldown.',
   signer: 'Master Workit',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
+  activeInDays: 5,
   onlyAthletes: [],
   lead:
-    'Man. I painted the board so you stop guessing. Gold is the thing I want you to do. Green is done. Red is still a problem. Copper is the house. Cream is you. If you cannot read that, you are not looking.',
+    'Man. This is not a six-week visit. It is a year. You lock a week with four finishes. Gaps count. I put a chest on Home so you see the belt you hold, the one you are filling, and the one after that. Who shows who already earned it and who is still aiming. Do not confuse the two.',
   groups: [
     {
-      heading: 'What you will do with it',
+      heading: 'The year',
       wins: [
-        'Home week lock: gold tile is start here. Green is finished. Dashed is still owed. The legend sits there. Do not play dumb.',
-        'Week performance: green is more load or more reps. Red is you dropped weight or cut reps. I wrote the meaning on the tiles. Tap if you forgot.',
-        'Your line on the chart is cream. The house is copper dashed. I do not paint you gold. Gold is an order, not a trophy.',
-        'Invite a friend is gold with a plus. Restart stays quiet gray. Bring a man who will actually train.',
+        'Weeks 1 to 6 stay two lowers. That is the saddle.',
+        'Week 7 on: one lower, A then B week to week. Friday is Extra Upper. Saturday bonus is core in the app, or a run or yoga you mark. That mark still counts toward the four.',
       ],
     },
     {
-      heading: 'Where the extra work lives',
+      heading: 'The belts',
       wins: [
-        'Bonus and Optional flags moved to Your performance. Home stays quiet. Open the fold or the page and look at your Extra credit and Easy work.',
-        'How hard sits on those cards and the Home fold charts. I want to see if you are working or posing.',
-        'Daily weight and pack charts start on the first day you finished a session. Days before you existed on this program are gone. Rest days stay off the line. That was not a rest day. That was you not in the program yet.',
+        '2 weeks: Dipping your toes. 6: Got back in the saddle. 10: I see you getting stronger. 20: Steady. 24: Weigh-up sprint. 48: Arnold Status.',
+        'Open Belts. Before, During, After. Your row is ringed. The house is on that page too.',
+        'Mail: I tell you how many weeks you have locked. When you cross a belt I send the diploma. Medals still mail with the mark.',
+      ],
+    },
+    {
+      heading: 'Home and the session',
+      wins: [
+        'Last lift scrolls you to cooldown. Finish it sits under that. The header does not close the day.',
+        'The sentence is this week, Monday to Sunday Eastern. A locked week stays through Sunday. Next week starts Monday.',
+        'You vs the house is cream you, copper them. You / house is vs the average. Your performance is you vs last time. Learn the difference.',
       ],
     },
   ],
   wins: [],
   also: [
-    'Hard-refresh so you are on this build. Then open Home and read the week lock like an adult.',
+    'Hard-refresh. Open Home. Read the chest. Open Belts. If Who says Aiming, you have not locked it yet.',
     'Put Work-It on your iPhone home screen. Safari only. Steps at the bottom. Gold Start in the dock, man.',
   ],
 };

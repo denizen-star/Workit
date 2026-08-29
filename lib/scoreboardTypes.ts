@@ -24,6 +24,8 @@ export type HouseholdScoreboardRow = {
   avgSeconds: number | null;
   bestSessionVolume: number;
   badges: number;
+  beltName: string | null;
+  beltFill: string | null;
   lastWorkout: string | null;
   lastAt: string | null;
 };

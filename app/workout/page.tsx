@@ -25,7 +25,8 @@ import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
-import CompleteTakeover, { type TakeoverBadge } from '@/components/CompleteTakeover';
+import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/components/CompleteTakeover';
+import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
@@ -39,6 +40,8 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
+import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
+import { bonusActivityType } from '@/lib/bonusActivity';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -68,8 +71,12 @@ function WorkoutPageInner() {
   const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
   const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
+  const [earnedBelt, setEarnedBelt] = useState<TakeoverBelt | null>(null);
+  const [bonusPick, setBonusPick] = useState<{ weekNumber: number; dayNumber: number; mode: WorkoutMode } | null>(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const cooldownRef = useRef<HTMLDivElement>(null);
+  const [liftsDone, setLiftsDone] = useState(false);
   const autoOpened = useRef(false);
   const selectWeekInit = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
@@ -111,6 +118,7 @@ function WorkoutPageInner() {
       setWarmupLbs(0);
       setCooldownLbs(0);
       setPriorAllTimeLbs(0);
+      setLiftsDone(false);
       return;
     }
     let cancelled = false;
@@ -238,7 +246,7 @@ function WorkoutPageInner() {
     weekNumber: number,
     dayNumber: number,
     knownSessions?: WorkoutSessionRow[],
-    options?: { forceNew?: boolean; mode?: WorkoutMode }
+    options?: { forceNew?: boolean; mode?: WorkoutMode; skipBonusPick?: boolean }
   ) => {
     try {
       const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
@@ -258,6 +266,10 @@ function WorkoutPageInner() {
       }
 
       const mode = normalizeWorkoutMode(options?.mode);
+      if (isBonusDay(day) && weekNumber >= 7 && !options?.skipBonusPick) {
+        setBonusPick({ weekNumber, dayNumber, mode });
+        return;
+      }
       const response = await fetch('/api/sessions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -285,9 +297,44 @@ function WorkoutPageInner() {
         setErrorMessage('Could not start this workout. Try again in a moment.');
         setShowError(true);
       }
-    } catch (error) {
+      } catch (error) {
       console.error('Error starting workout:', error);
       setErrorMessage('Could not start this workout. Try again in a moment.');
+      setShowError(true);
+    }
+  };
+
+  const finishBonusActivity = async (label: string) => {
+    if (!bonusPick) return;
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          weekNumber: bonusPick.weekNumber,
+          dayNumber: bonusPick.dayNumber,
+          workoutType: bonusActivityType(label),
+          workoutMode: bonusPick.mode,
+          scheduledDate: new Date().toISOString().split('T')[0],
+          complete: true,
+        }),
+      });
+      if (!response.ok) {
+        setErrorMessage('Could not save that bonus. Try again.');
+        setShowError(true);
+        return;
+      }
+      const data = await response.json().catch(() => ({}));
+      setBonusPick(null);
+      await loadSessions();
+      setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
+      setEarnedBelt(data.earnedBelt || null);
+      setBonusFinish(true);
+      setCompleteLine(pickBonusCompleteLine(coachTone));
+      setShowSuccess(true);
+    } catch (error) {
+      console.error('Error saving bonus activity:', error);
+      setErrorMessage('Could not save that bonus. Try again.');
       setShowError(true);
     }
   };
@@ -377,6 +424,7 @@ function WorkoutPageInner() {
       setConfirmComplete(false);
       setCompleteStars(null);
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
+      setEarnedBelt(data.earnedBelt || null);
       const finishedBonus = Boolean(data.bonus);
       setBonusFinish(finishedBonus);
       setBonusFinishCount(Number(data.bonusCount || 0));
@@ -413,9 +461,10 @@ function WorkoutPageInner() {
     const workout = getCurrentWorkout();
     if (!workout) return null;
 
+    const wash = beltWashStyle(displayBelt(lockedWeekCount(sessions)));
     return (
-      <div className="min-h-screen">
-        <header className="glass-header sticky top-0 z-10">
+      <div className="min-h-screen" style={{ background: wash.background }}>
+        <header className="glass-header sticky top-0 z-10" style={{ borderBottomColor: wash.borderColor }}>
           <div className="container mx-auto px-4 py-2.5 sm:py-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">
               <div className="flex w-full items-center sm:w-auto sm:justify-start sm:gap-3">
@@ -501,13 +550,6 @@ function WorkoutPageInner() {
                 >
                   {soundOn ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
                 </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirmComplete(true)}
-                  className="min-h-11 shrink-0 rounded-2xl bg-[#e8c547] px-4 py-2 font-black text-[#1a1404]"
-                >
-                  Finish it
-                </button>
               </div>
             </div>
           </div>
@@ -527,14 +569,26 @@ function WorkoutPageInner() {
             sessionMode={workoutMode}
             coachTone={coachTone}
             restExtraMinutes={restExtraMinutes}
-            onComplete={() => setConfirmComplete(true)}
+            onLiftsDone={() => {
+              setLiftsDone(true);
+              window.requestAnimationFrame(() => {
+                cooldownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              });
+            }}
             onTotals={handleLiftTotals}
           />
-          <OptionalCard sessionId={currentSession} slot="cooldown" onLbs={handleCooldownLbs} />
+          <div ref={cooldownRef}>
+            <OptionalCard
+              sessionId={currentSession}
+              slot="cooldown"
+              onLbs={handleCooldownLbs}
+              cue={liftsDone ? 'Lifts are done. Easy cooldown, then Finish it.' : undefined}
+            />
+          </div>
           <button
             type="button"
             onClick={() => setConfirmComplete(true)}
-            className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404] sm:hidden"
+            className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404]"
           >
             Finish it
           </button>
@@ -562,6 +616,7 @@ function WorkoutPageInner() {
           open={showSuccess}
           line={completeLine}
           badges={awardedBadges}
+          earnedBelt={earnedBelt}
           bonus={bonusFinish}
           bonusCount={bonusFinishCount}
           optionalLbs={optionalFinishLbs}
@@ -573,6 +628,7 @@ function WorkoutPageInner() {
             setOptionalFinishLbs(0);
             setOptionalKickerLbs(0);
             setAwardedBadges([]);
+            setEarnedBelt(null);
             setCurrentSession(null);
             setSelectedDay(null);
             setStartedAt(null);
@@ -842,10 +898,22 @@ function WorkoutPageInner() {
         This clears all in-progress sets for that day and returns it to Start. Nothing is opened until you tap Start.
       </Modal>
 
+      <BonusPickModal
+        open={Boolean(bonusPick)}
+        onCore={() => {
+          const pick = bonusPick;
+          setBonusPick(null);
+          if (pick) startWorkout(pick.weekNumber, pick.dayNumber, undefined, { mode: pick.mode, skipBonusPick: true });
+        }}
+        onActivity={(label) => finishBonusActivity(label)}
+        onClose={() => setBonusPick(null)}
+      />
+
       <CompleteTakeover
         open={showSuccess}
         line={completeLine}
         badges={awardedBadges}
+        earnedBelt={earnedBelt}
         bonus={bonusFinish}
         bonusCount={bonusFinishCount}
         optionalLbs={optionalFinishLbs}
@@ -857,6 +925,7 @@ function WorkoutPageInner() {
           setOptionalFinishLbs(0);
           setOptionalKickerLbs(0);
           setAwardedBadges([]);
+          setEarnedBelt(null);
           setCurrentSession(null);
           setSelectedDay(null);
           setStartedAt(null);

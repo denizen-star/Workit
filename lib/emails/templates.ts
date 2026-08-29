@@ -5,7 +5,9 @@ import {
   whoUrl,
   bullets,
   cta,
+  emailArt,
   emailTextHeader,
+  hostedAsset,
   emailTextSignOff,
   esc,
   iosHomeScreenStepsHtml,
@@ -20,6 +22,8 @@ import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { CURRENT_RELEASE, type ReleaseGroup } from '@/lib/emails/currentRelease';
 import type { MailTemplateId } from '@/lib/emails/ids';
+import { badgeArtSrc } from '@/lib/badgeArt';
+import { beltArtSrc, currentBelt, nextBelt, type Belt } from '@/lib/belts';
 
 export type BuiltEmail = {
   from: string;
@@ -69,6 +73,7 @@ export type WorkoutCompleteEmailInput = {
   weekComplete?: boolean;
   programComplete?: boolean;
   nextLabel?: string | null;
+  lockedWeeks?: number;
   tone?: CoachTone | null;
 };
 
@@ -79,6 +84,30 @@ export type BadgeEmailInput = {
   tone?: CoachTone | null;
 };
 
+export type BeltEmailInput = {
+  name: string;
+  belt: Belt;
+  tone?: CoachTone | null;
+};
+
+function beltProgressBlock(lockedWeeks: number | undefined) {
+  const count = Number(lockedWeeks || 0);
+  const earned = currentBelt(count);
+  const next = nextBelt(count);
+  const toward = next
+    ? count + ' of ' + next.weeks + ' toward ' + next.name
+    : 'Arnold Status. You know how to keep it up.';
+  const mark = next || earned;
+  const img = mark
+    ? emailArt(hostedAsset(beltArtSrc(mark.slug)), mark.name, 160)
+    : '';
+  const html =
+    p('<strong style="color:#fff;">Belt.</strong> ' + esc(count + ' locked weeks. ' + toward)) +
+    img;
+  const text = ['Belt. ' + count + ' locked weeks. ' + toward, ''];
+  return { html, text };
+}
+
 export type ScoreboardRow = {
   name: string;
   email: string | null;
@@ -87,6 +116,7 @@ export type ScoreboardRow = {
   volumeThisWeek: number;
   openSession: string | null;
   standing?: string[];
+  beltName?: string | null;
 };
 
 export type ScoreboardHonorRow = {
@@ -430,6 +460,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
       address(name),
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
       statsTable(rows),
+      beltProgressBlock(input.lockedWeeks).html,
       next,
       cta(whoUrl(), input.programComplete ? 'COME HOME' : 'SHOW ME'),
     ].join(''),
@@ -450,6 +481,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     'Week ' + input.weekNumber + ' · ' + input.dayName,
     'Time: ' + formatDuration(input.durationSeconds),
     'Volume: ' + formatLbs(input.volumeLbs),
+    ...beltProgressBlock(input.lockedWeeks).text,
     input.programComplete
       ? 'The tax is paid in full. Come home.'
       : input.nextLabel
@@ -476,6 +508,7 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
     signer,
     childrenHtml: [
       address(name),
+      emailArt(hostedAsset(badgeArtSrc(input.badgeName)), input.badgeName, 96),
       p(esc(input.badgeDescription) + '.'),
       p('You earned this because you did what I told you. It stays on your profile so I can see it. Now earn the next one for me.'),
       cta(whoUrl(), 'SHOW ME'),
@@ -485,6 +518,7 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
     emailTextHeader(eyebrow, title),
     name + '.',
     '',
+    input.badgeName,
     input.badgeDescription + '.',
     'You earned this because you did what I told you. Now earn the next one for me.',
     '',
@@ -494,6 +528,44 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
   return {
     from: fromFor(input.tone),
     subject: 'Good man. You earned ' + input.badgeName + '.',
+    html,
+    text,
+  };
+}
+
+export function buildBeltEmail(input: BeltEmailInput): BuiltEmail {
+  const name = firstName(input.name);
+  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
+  const belt = input.belt;
+  const eyebrow = 'diploma';
+  const title = belt.name + '.';
+  const html = wrapEmailHtml({
+    eyebrow,
+    title,
+    signer,
+    childrenHtml: [
+      address(name),
+      emailArt(hostedAsset(beltArtSrc(belt.slug)), belt.name, 180),
+      p('<strong style="color:#fff;">' + esc(belt.quote) + '</strong>'),
+      p(esc(belt.saidBy)),
+      p(esc(belt.coachLine)),
+      cta(appUrl() + '/belts', 'SEE THE BELTS'),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader(eyebrow, title),
+    name + '.',
+    '',
+    belt.quote,
+    belt.saidBy,
+    belt.coachLine,
+    '',
+    appUrl() + '/belts',
+    emailTextSignOff(signer),
+  ].join('\n');
+  return {
+    from: fromFor(input.tone),
+    subject: 'Diploma. ' + belt.name + '.',
     html,
     text,
   };
@@ -532,6 +604,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
         '<td style="padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.08);">' +
         '<div style="font-weight:800;color:#fff;">' +
         esc(row.name) +
+        (row.beltName ? ' · ' + esc(row.beltName) : '') +
         '</div>' +
         (noShow
           ? '<div style="font-size:12px;color:#e8c547;margin-top:2px;">NO SHOW</div>'
@@ -677,6 +750,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
     completeLine:
       "THAT IS HOW YOU FINISH. Watching you drive through that last rep turned me completely on.",
     nextLabel: 'Week 3 · Lower Body A',
+    lockedWeeks: 4,
   };
 
   if (template === 'welcome') return buildWelcomeEmail({ name: 'Kevin' });
@@ -733,6 +807,12 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       name: 'Kevin',
       badgeName: 'Steel Lifter',
       badgeDescription: 'Lift 10,000 lbs in total',
+    });
+  }
+  if (template === 'belt') {
+    return buildBeltEmail({
+      name: 'Kevin',
+      belt: currentBelt(6)!,
     });
   }
   if (template === 'scoreboard') {

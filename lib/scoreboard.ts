@@ -1,3 +1,5 @@
+import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { displayBelt } from '@/lib/belts';
 import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
@@ -61,6 +63,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
   }[];
 
   if (rows.length === 0) return [];
+  const lockedByUser = await lockedWeeksByUser();
 
   const last = await query(
     `SELECT ws.user_id, ws.week_number, ws.workout_type, ws.completed_at
@@ -121,6 +124,7 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
   return rows
     .map((row) => {
       const lastRow = lastByUser.get(Number(row.id));
+      const belt = displayBelt(lockedByUser.get(Number(row.id)) || 0);
       return {
         id: Number(row.id),
         name: row.name,
@@ -131,6 +135,8 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
         avgSeconds: row.avg_seconds == null ? null : Number(row.avg_seconds),
         bestSessionVolume: bestByUser.get(Number(row.id)) || 0,
         badges: badgesByUser.get(Number(row.id)) || 0,
+        beltName: belt.name,
+        beltFill: belt.fill,
         lastWorkout: lastRow ? `Week ${lastRow.week_number} · ${lastRow.workout_type}` : null,
         lastAt: lastRow?.completed_at || null,
       };

@@ -6,7 +6,7 @@ import { Dumbbell, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import AthletePerformance from '@/components/AthletePerformance';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
-import ScanCard from '@/components/ScanCard';
+import YouHouseCols from '@/components/YouHouseCols';
 import WeekLock from '@/components/WeekLock';
 import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
@@ -19,10 +19,12 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
-import { workoutDateKey } from '@/lib/statsHousehold';
+import { thisWeekWeight } from '@/lib/statsHousehold';
 import { earliestKey } from '@/lib/chartTrend';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import InviteFriendModal from '@/components/InviteFriendModal';
+import BeltChest from '@/components/BeltChest';
+import { aimingCopy, lockedWeekCount } from '@/lib/belts';
 
 function formatCount(value: number | null | undefined) {
   return String(Math.round(Number(value || 0)));
@@ -32,20 +34,6 @@ function formatWeight(value: number | null | undefined) {
   return Math.round(Number(value || 0)).toLocaleString();
 }
 
-function lastDaysWeight(
-  daily: { workout_date: string; total_weight_lifted: number | string }[] | undefined,
-  days: number
-) {
-  const start = new Date();
-  start.setHours(0, 0, 0, 0);
-  start.setDate(start.getDate() - days);
-  const startKey = workoutDateKey(start);
-  return (daily || []).reduce((sum, row) => {
-    const key = workoutDateKey(row.workout_date);
-    if (!key || key < startKey) return sum;
-    return sum + (parseFloat(String(row.total_weight_lifted)) || 0);
-  }, 0);
-}
 
 function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
   return earliestKey(
@@ -144,9 +132,11 @@ export default function Home() {
       : null;
 
   const completed = Number(stats?.overall?.completed_workouts || 0);
+  const lockedWeeks = lockedWeekCount(sessions);
+  const beltCopy = aimingCopy(lockedWeeks);
   const allTime = Number(stats?.overall?.total_weight_lifted || 0);
-  const last7 = lastDaysWeight(stats?.daily, 7);
-  const last7Same = Math.round(last7) === Math.round(allTime) && allTime > 0;
+  const weekLbs = thisWeekWeight(stats?.daily);
+  const weekLbsSame = Math.round(weekLbs) === Math.round(allTime) && allTime > 0;
   const canInvite = !isTestUserName(userName);
   const inviteLinkClass =
     'mt-3 inline-flex min-h-11 items-center gap-2 text-base font-black text-[#e8c547]';
@@ -190,7 +180,33 @@ export default function Home() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="gold-hero p-6 sm:p-8">
-          {today.type === 'done' ? (
+          {today.type === 'hold' ? (
+            <>
+              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
+                Rest
+              </p>
+              <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
+                Week {today.week?.weekNumber} locked
+              </h2>
+              <p className="mt-3 text-lg text-[#f6f1e3]/75">
+                Week {(today.week?.weekNumber || 0) + 1} starts Monday.
+              </p>
+              <div className="mt-6 flex flex-wrap gap-3">
+                <Link
+                  href="/workout"
+                  className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                >
+                  Select Workout
+                </Link>
+              </div>
+              {canInvite && (
+                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                  <UserPlus className="h-4 w-4" />
+                  Invite a friend
+                </button>
+              )}
+            </>
+          ) : today.type === 'done' ? (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Program</p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
@@ -265,17 +281,18 @@ export default function Home() {
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <p className="mb-4 text-lg leading-relaxed text-[#f6f1e3]/90">
+            <p className="mb-3 text-lg leading-relaxed text-[#f6f1e3]/90">
               {stats
-                ? `${completed} of 24 days. ${formatWeight(allTime)} lb all-time.${
-                    last7Same
-                      ? ` Last 7 days is the same number — still week ${today.week?.weekNumber || 1}.`
-                      : last7 > 0
-                        ? ` Last 7 days ${formatWeight(last7)} lb.`
-                        : ''
-                  }`
+                ? `${beltCopy.line} ${formatWeight(allTime)} lb all-time.${
+                    weekLbsSame
+                      ? ` This week is the same number. Still week ${today.week?.weekNumber || 1}.`
+                      : weekLbs > 0
+                        ? ` This week ${formatWeight(weekLbs)} lb.`
+                        : ' This week 0 lb.'
+                  } ${completed} sessions done.`
                 : 'Loading your numbers...'}
             </p>
+            <BeltChest lockedWeeks={lockedWeeks} />
             <WeekLock week={today.week} sessions={sessions} />
             <WeekPerformance week={today.week} />
           </section>
@@ -320,28 +337,37 @@ export default function Home() {
               </button>
               {houseOpen && (
                 <div className="border-t border-white/10 px-5 pb-5 pt-4">
-                  <ScanCard
-                    you
-                    roomy
-                    title="You"
-                    headline={`${formatWeight(allTime)} lb`}
-                    sub={`${completed} of 24 days`}
-                    metrics={[
+                  <p className="text-base text-[#f6f1e3]/60">
+                    All-time numbers. House is the average of people who finished a workout in the
+                    last 7 days, including you. Not a pack total. Streak is locked weeks in a row
+                    (any 4 finished days). Rest days do not break it.
+                  </p>
+                  <YouHouseCols
+                    houseLabel="House avg"
+                    rows={[
                       {
                         label: 'Workouts',
-                        value: `${formatCount(completed)} · house ${formatCount(stats?.household?.workoutsCompleted)}`,
+                        you: formatCount(completed),
+                        house: formatCount(stats?.household?.workoutsCompleted),
                       },
                       {
                         label: 'Streak',
-                        value: `${formatCount(stats?.currentStreak)} day · house ${formatCount(stats?.household?.currentStreak)}`,
+                        you: `${formatCount(stats?.currentStreak)} ${
+                          Number(stats?.currentStreak || 0) === 1 ? 'week' : 'weeks'
+                        }`,
+                        house: `${formatCount(stats?.household?.currentStreak)} ${
+                          Number(stats?.household?.currentStreak || 0) === 1 ? 'week' : 'weeks'
+                        }`,
                       },
                       {
-                        label: 'Weight',
-                        value: `${formatWeight(allTime)} · house ${formatWeight(stats?.household?.totalWeightLifted)}`,
+                        label: 'All-time lb',
+                        you: `${formatWeight(allTime)} lb`,
+                        house: `${formatWeight(stats?.household?.totalWeightLifted)} lb`,
                       },
                       {
                         label: 'Medals',
-                        value: `${formatCount(badges?.earnedBadges?.length)}/${formatCount(badges?.allBadges?.length)} · house ${formatCount(stats?.household?.badgesEarned)}`,
+                        you: `${formatCount(badges?.earnedBadges?.length)}/${formatCount(badges?.allBadges?.length)}`,
+                        house: formatCount(stats?.household?.badgesEarned),
                       },
                     ]}
                   />

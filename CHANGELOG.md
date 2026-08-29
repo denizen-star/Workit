@@ -2,6 +2,28 @@
 
 ## Unreleased
 
+## 5.0.0 - 2026-08-29
+
+### Added
+- **48-week year.** Weeks 1–6 stay two lowers. Week 7+ one lower (A/B alternate), Extra Upper Friday, Bonus Core or a marked class
+- **Belts / diplomas** at 2, 6, 10, 20, 24, 48 locked weeks. `/belts` glossary (Before / During / After), Home trophy chest, Who pills, The house, admin
+- Recap mail shows belt progress + SVG. Crossing a belt sends a diploma mail. Medal mail includes the badge SVG
+- Week 7+ bonus: logged core, or searchable / typed activity (run, yoga, Hyrox, …) that still counts toward the 4
+
+### Changed
+- **Finish it** sits after cooldown on phone and desktop. Last lift scrolls there. It does not open Finish
+- Home banner is **this week** (Monday–Sunday, Eastern), not last 7 days. A locked week stays on Home through Sunday. Next week starts Monday
+- You vs the house cards are two columns: cream you, copper them. Rank is days first, then lb
+- You / house is you vs house **average**, not a pack total
+- Vs the house names the lift and says lead / trail / closest
+- Your performance cards say this weight, this total, vs last. That board is you vs you, not the house
+- Daily house line is pack sum ÷ pack size. A miss that day counts as 0
+- Streak is locked weeks in a row (any 4 finished days). Rest days do not break it
+- Who pills: solid = earned, outline **Aiming ·** = still working toward it
+
+### Fixed
+- Who no longer paints every athlete as if they already earned Dipping your toes
+
 ## 4.5.0 - 2026-08-28
 
 ### Added

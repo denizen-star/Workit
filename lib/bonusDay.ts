@@ -60,6 +60,27 @@ export function weekLocked(sessions: SessionLike[], weekNumber: number): boolean
   return completedInWeek(sessions, weekNumber).length >= REQUIRED_DAYS_TO_LOCK;
 }
 
+/** Locked weeks in a row, counting back from the latest week that exists. Rest days do not break it. */
+export function lockedWeekStreak(completedDaysByWeek: Map<number, number> | Record<number, number>): number {
+  const get =
+    completedDaysByWeek instanceof Map
+      ? (week: number) => completedDaysByWeek.get(week) || 0
+      : (week: number) => Number(completedDaysByWeek[week] || 0);
+  const latest = Math.max(
+    1,
+    ...workoutProgram.map((week) => week.weekNumber),
+    ...(completedDaysByWeek instanceof Map
+      ? [...completedDaysByWeek.keys()]
+      : Object.keys(completedDaysByWeek).map(Number))
+  );
+  let streak = 0;
+  for (let week = latest; week >= 1; week--) {
+    if (get(week) >= REQUIRED_DAYS_TO_LOCK) streak += 1;
+    else if (streak > 0) break;
+  }
+  return streak;
+}
+
 export function bonusCompletedInWeek(
   sessions: SessionLike[],
   weekNumber: number,

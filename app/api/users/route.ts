@@ -11,6 +11,9 @@ import {
 import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 import { queueWelcomeEmail } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
+import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { whoBelt } from '@/lib/belts';
+import { loadWhoRoster } from '@/lib/whoRoster';
 
 export async function GET(request: NextRequest) {
   try {
@@ -21,20 +24,22 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
       }
     }
-    const result = await query(
-      wantAll
-        ? 'SELECT id, name, email, pin_hash FROM users ORDER BY id ASC'
-        : 'SELECT id, name, email, pin_hash FROM users WHERE pin_hash IS NOT NULL ORDER BY id ASC'
-    );
-
-    const users = (result.rows as { id: number; name: string; email: string | null; pin_hash: string | null }[]).map(
-      (row) => ({
+    const roster = await loadWhoRoster(wantAll);
+    const locked = await lockedWeeksByUser();
+    const users = roster.map((row) => {
+      const belt = whoBelt(locked.get(Number(row.id)) || 0);
+      return {
         id: row.id,
         name: row.name,
         email: row.email,
-        has_pin: row.pin_hash != null,
-      })
-    );
+        has_pin: row.has_pin,
+        active: row.active,
+        newToTraining: row.newToTraining,
+        beltName: belt.name,
+        beltFill: belt.fill,
+        beltEarned: belt.earned,
+      };
+    });
 
     return NextResponse.json({ users });
   } catch (error) {

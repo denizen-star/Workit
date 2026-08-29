@@ -1,3 +1,4 @@
+import { isEasternWeekend } from "@/lib/analyticsTime";
 import { isBonusDay, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 
@@ -114,6 +115,15 @@ export function getTodayTarget(sessions: WorkoutSessionRow[]) {
   }
 
   const next = findNextProgramDay(sessions);
+  if (next && isEasternWeekend()) {
+    const prior = workoutProgram.find((item) => item.weekNumber === next.week.weekNumber - 1);
+    const nextTouched = sessions.some(
+      (session) => Number(session.week_number) === next.week.weekNumber
+    );
+    if (prior && weekLocked(sessions, prior.weekNumber) && !nextTouched) {
+      return { type: "hold" as const, session: null, week: prior, day: null };
+    }
+  }
   if (next) {
     return { type: "start" as const, session: null, week: next.week, day: next.day };
   }

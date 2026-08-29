@@ -3,6 +3,8 @@ import { householdExerciseCompare, rankingSummary, standingSummary } from '@/lib
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { isTestUserName } from '@/lib/householdUsers';
 import { householdOptionalHonor, sqlUserOptionalVolume } from '@/lib/optionals';
+import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { displayBelt } from '@/lib/belts';
 import { householdBonusHonor } from '@/lib/scoreboard';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildScoreboardEmail, type ScoreboardRow } from '@/lib/emails/templates';
@@ -23,6 +25,7 @@ async function loadScoreboardBoard() {
   );
   const compareById = new Map(compare.rows.map((row) => [row.userId, row]));
   const rows: ScoreboardRow[] = [];
+  const lockedByUser = await lockedWeeksByUser();
 
   for (const user of roster) {
     const weekStats = await query(
@@ -76,6 +79,7 @@ async function loadScoreboardBoard() {
       standing: isTestUserName(user.name)
         ? undefined
         : standingByName.get(user.name.trim().toLowerCase()),
+      beltName: displayBelt(lockedByUser.get(Number(user.id)) || 0).name,
     });
   }
 

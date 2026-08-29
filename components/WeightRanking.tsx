@@ -41,7 +41,7 @@ export default function WeightRanking({
               key={row.userId}
               className={`flex items-center justify-between gap-3 rounded-xl border px-4 py-3 ${
                 you
-                  ? 'border-[#e8c547]/70 bg-[#e8c547]/10'
+                  ? 'border-[#f6f1e3]/45 bg-white/[0.06]'
                   : 'border-white/10 bg-black/20'
               }`}
             >

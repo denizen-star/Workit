@@ -7,6 +7,7 @@ export const MAIL_TEMPLATES = [
   'week',
   'program',
   'badge',
+  'belt',
   'scoreboard',
   'release',
 ] as const;

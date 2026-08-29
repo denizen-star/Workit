@@ -9,11 +9,13 @@ import { pickCompleteLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import {
   buildBadgeEmail,
+  buildBeltEmail,
   buildInviteEmail,
   buildInviteNotifyEmail,
   buildWelcomeEmail,
   buildWorkoutCompleteEmail,
 } from '@/lib/emails/templates';
+import { BELTS } from '@/lib/belts';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
@@ -221,6 +223,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     weekComplete,
     programComplete,
     nextLabel,
+    lockedWeeks: weeks.rows.length,
     tone,
   });
 
@@ -231,6 +234,24 @@ export async function sendWorkoutCompleteBundle(opts: {
     to: opts.email,
     email: recap,
   });
+
+  if (weekComplete) {
+    const lockedWeeks = weeks.rows.length;
+    const earnedBelt = BELTS.find((belt) => belt.weeks === lockedWeeks);
+    if (earnedBelt) {
+      await claimAndSend({
+        userId: opts.userId,
+        template: 'belt',
+        dedupeKey: 'user:' + opts.userId + ':belt:' + earnedBelt.slug,
+        to: opts.email,
+        email: buildBeltEmail({
+          name: opts.name,
+          belt: earnedBelt,
+          tone,
+        }),
+      });
+    }
+  }
 
   const awarded = opts.awarded ?? await checkAndAwardBadges(opts.userId);
   for (const badge of awarded) {
