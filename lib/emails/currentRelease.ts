@@ -24,21 +24,21 @@ export const CURRENT_RELEASE: {
   also: string[];
 } = {
   version: '5.0.0',
-  title: 'Belts. A year. You earn the paper.',
-  subject: 'Diplomas. 48 weeks. Finish after cooldown.',
+  title: 'A year. Belts. You earn the paper.',
+  subject: 'New orders. 48 weeks. Diplomas.',
   signer: 'Master Workit',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
-  activeInDays: 5,
+  activeInDays: 14,
   onlyAthletes: [],
   lead:
-    'Man. This is not a six-week visit. It is a year. You lock a week with four finishes. Gaps count. I put a chest on Home so you see the belt you hold, the one you are filling, and the one after that. Who shows who already earned it and who is still aiming. Do not confuse the two.',
+    'Man. Six weeks was the visit. This is the year. You lock a week with four finishes. Gaps still count. I put a chest on Home so you see the belt you hold, the one you are filling, and the one after that. Who shows who already earned it and who is still aiming. Do not mix those up.',
   groups: [
     {
       heading: 'The year',
       wins: [
-        'Weeks 1 to 6 stay two lowers. That is the saddle.',
-        'Week 7 on: one lower, A then B week to week. Friday is Extra Upper. Saturday bonus is core in the app, or a run or yoga you mark. That mark still counts toward the four.',
+        'Weeks 1 to 6 stay two lowers. That is the saddle. Stay on it.',
+        'Week 7 on: one lower, A then B. Friday is Extra Upper. Saturday bonus is core in the app, or a run or class you mark. That mark still counts toward the four.',
       ],
     },
     {
@@ -46,7 +46,7 @@ export const CURRENT_RELEASE: {
       wins: [
         '2 weeks: Dipping your toes. 6: Got back in the saddle. 10: I see you getting stronger. 20: Steady. 24: Weigh-up sprint. 48: Arnold Status.',
         'Open Belts. Before, During, After. Your row is ringed. The house is on that page too.',
-        'Mail: I tell you how many weeks you have locked. When you cross a belt I send the diploma. Medals still mail with the mark.',
+        'I tell you how many weeks you have locked. Cross a belt and I send the diploma. Medals still come with the mark.',
       ],
     },
     {
