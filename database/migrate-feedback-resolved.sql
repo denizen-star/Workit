@@ -1,0 +1,2 @@
+ALTER TABLE feedback
+  ADD COLUMN resolved_at TIMESTAMP NULL;

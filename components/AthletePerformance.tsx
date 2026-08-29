@@ -114,10 +114,13 @@ function SummaryCard({
       kicker={athleteName || 'Your performance'}
       title={athleteName ? `${athleteName} vs last time` : 'You vs last time'}
       headline={`${summary.gains} up · ${summary.losses} down`}
-      sub={`Perception ${summary.perception == null ? '—' : formatHardnessAvg(summary.perception)}`}
+      sub={`How hard ${summary.perception == null ? '—' : formatHardnessAvg(summary.perception)}${
+        summary.perceptionCount ? ` · ${summary.perceptionCount} sets` : ''
+      }`}
       metrics={[
         { label: 'Gains', value: String(summary.gains) },
         { label: 'Losses', value: String(summary.losses) },
+        { label: 'Hard', value: formatHardnessAvg(summary.perception) },
         { label: 'Wt up', value: String(summary.weightClimbing) },
         { label: 'Wt down', value: String(summary.weightDropping) },
         { label: 'Reps up', value: String(summary.repsClimbing) },
@@ -178,10 +181,10 @@ export function AthletePerformanceBoardView({
   return (
     <div className="space-y-3">
       <SummaryCard summary={summary} athleteName={athleteName} />
-      {page ? <HardnessCharts board={board} athleteName={athleteName} /> : null}
+      <HardnessCharts board={board} athleteName={athleteName} />
       {page && gainers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Gainers</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6d8b6e]">Gainers</p>
           {gainers.map((row) => (
             <LineRow key={row.key} line={row} />
           ))}
@@ -189,7 +192,7 @@ export function AthletePerformanceBoardView({
       )}
       {page && losers.length > 0 && (
         <div className="space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Losers</p>
+          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a35d52]">Losers</p>
           {losers.map((row) => (
             <LineRow key={row.key} line={row} />
           ))}
@@ -265,7 +268,7 @@ export default function AthletePerformance({
     <div>
       {page ? (
         <p className="mb-3 text-xs text-[#f6f1e3]/55">
-          You vs last time. Weight, total, % change, progression.
+          You vs last time. Weight, total, % change, progression, how hard.
         </p>
       ) : null}
       <PeriodPills

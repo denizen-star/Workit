@@ -272,7 +272,7 @@ export default function OptionalCard({
     <div className="glass-card p-5">
       {done ? (
         <div className="flex items-center gap-3">
-          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#e8c547] text-[#1a1404]">
+          <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-[#6d8b6e] text-[#1a1404]">
             <Check className="h-5 w-5" />
           </span>
           <div>
@@ -362,7 +362,7 @@ export default function OptionalCard({
 
               {guided && circuitDone ? (
                 <>
-                  <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#e8c547] text-[#1a1404]">
+                  <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#6d8b6e] text-[#1a1404]">
                     <Check className="h-8 w-8" />
                   </span>
                   <p className="mt-6 text-3xl font-black text-white">That is the five.</p>

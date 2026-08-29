@@ -7,19 +7,23 @@ import {
   CHART_HOUSE,
   CHART_YOU,
   compactTrendRows,
+  earliestKey,
   pointsOnAxis,
   trendAxis,
   type TrendMode,
   type TrendRange,
 } from '@/lib/chartTrend';
 
-/** Home Quiet daily weight. You = gold. House avg = copper (dashed). */
+/** Home Quiet daily weight. You = cream. House = copper dashed. */
 export default function DailyWeightChart({
   dailyStats,
   householdDaily,
+  programStart,
 }: {
   dailyStats: { workout_date: string; total_weight_lifted: number | string }[];
   householdDaily?: { workout_date: string; avg_weight: number }[];
+  /** First finished session. Days before this stay off the chart. */
+  programStart?: string | null;
 }) {
   const [range, setRange] = useState<TrendRange>('7');
   const [mode, setMode] = useState<TrendMode>('daily');
@@ -40,10 +44,13 @@ export default function DailyWeightChart({
     return map;
   }, [householdDaily]);
 
-  const axis = useMemo(
-    () => trendAxis([...youByDate.keys(), ...houseByDate.keys()], range),
-    [youByDate, houseByDate, range]
-  );
+  const axis = useMemo(() => {
+    const floor =
+      programStart ||
+      earliestKey([...youByDate.keys()]) ||
+      earliestKey([...houseByDate.keys()]);
+    return trendAxis([...youByDate.keys(), ...houseByDate.keys()], range, floor);
+  }, [youByDate, houseByDate, range, programStart]);
 
   const data = useMemo(
     () =>
@@ -100,8 +107,8 @@ export default function DailyWeightChart({
         </div>
       </div>
       <p className="mb-4 text-base text-[#f6f1e3]/60">
-        <span className="font-semibold text-[#e8c547]">Gold</span> is you.{' '}
-        <span className="font-semibold text-[#c08457]">Copper</span> is house avg (dashed).
+        <span className="font-semibold text-[#f6f1e3]">Cream</span> is you.{' '}
+        <span className="font-semibold text-[#c08457]">Copper</span> is the house (dashed).
       </p>
       <WeightTrendChart
         data={data}

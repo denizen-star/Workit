@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 4.5.0 - 2026-08-28
+
+### Added
+- Notes and thumbs **Mark done** (`feedback.resolved_at`). Open / Done pills
+- Color system: gold = take this action, green = done/good, red = still a problem, copper = the house, cream = you
+
+### Changed
+- Optional + Bonus flag strip lives on **Your performance**, not Home
+- Invite a friend is gold (Restart stays quiet gray)
+- Daily weight / pack charts start at the first finished session. Days before the program stay off
+- Week lock: gold = start here, green = done. Week performance: green / red
+- How hard on Your performance cards and Home fold charts
+
+### Fixed
+- Week tiles say what good and bad mean without a tap
+
 ## 4.4.0 - 2026-08-28
 
 ### Added

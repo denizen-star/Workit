@@ -194,7 +194,7 @@ export default function HouseholdScoreboard({
           aria-expanded={open}
         >
           <Trophy className="h-6 w-6 text-[#e8c547]" />
-          <h2 className="text-2xl font-black text-white">The house</h2>
+          <h2 className="text-2xl font-black text-[#c08457]">The house</h2>
           <span className="ml-auto text-sm text-[#f6f1e3]/65">{scoreboardRangeLabel(period)}</span>
           {open ? (
             <ChevronUp className="h-5 w-5 text-[#f6f1e3]/65" />

@@ -10,11 +10,12 @@ export type ScanMetric = {
 
 /**
  * Dense scan row used on Home Quiet, Scoreboard, and Your performance.
- * Gold chrome matches the live scoreboard first-place card.
+ * Cream = you. Copper = the house. Gold is for actions, not identity.
  * `roomy` is the 50+ size for Home and The house.
  */
 export default function ScanCard({
   you = false,
+  house = false,
   roomy = false,
   kicker,
   title,
@@ -26,6 +27,7 @@ export default function ScanCard({
   sparkTone = 'plain',
 }: {
   you?: boolean;
+  house?: boolean;
   roomy?: boolean;
   kicker?: string;
   title: string;
@@ -48,23 +50,23 @@ export default function ScanCard({
     <div
       className={`rounded-2xl border ${
         roomy ? 'px-6 py-5' : 'px-3 py-2.5'
-      } ${you ? 'border-[#e8c547]/70 bg-[#e8c547]/10' : 'border-white/10 bg-black/25'}`}
+      } ${you ? 'border-[#f6f1e3]/45 bg-white/[0.06]' : 'border-white/10 bg-black/25'}`}
     >
       <div className="flex items-center gap-3">
         {spark ? <SpikeChart values={spark} tone={sparkTone} roomy={roomy} /> : null}
         <div className="min-w-0 flex-1">
           {kicker ? (
             <p
-              className={`font-semibold uppercase tracking-[0.16em] text-[#f6f1e3]/55 ${
-                roomy ? 'text-sm' : 'text-[10px] text-[#f6f1e3]/45'
-              }`}
+              className={`font-semibold uppercase tracking-[0.16em] ${
+                house ? 'text-[#c08457]' : 'text-[#f6f1e3]/55'
+              } ${roomy ? 'text-sm' : 'text-[10px]'}`}
             >
               {kicker}
             </p>
           ) : null}
           <p
             className={`truncate font-black ${roomy ? 'text-xl' : 'text-sm'} ${
-              you ? 'text-[#e8c547]' : 'text-white'
+              you ? 'text-[#f6f1e3]' : 'text-white'
             }`}
           >
             {title}

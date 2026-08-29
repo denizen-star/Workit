@@ -15,7 +15,7 @@ export default function SpikeChart({
   const max = Math.max(...points, 1);
   const gap = 1;
   const barWidth = Math.max(1.5, (width - gap * (points.length - 1)) / points.length);
-  const fill = tone === 'up' ? '#22c55e' : tone === 'down' ? '#ff2a2a' : '#e8c547';
+  const fill = tone === 'up' ? '#6d8b6e' : tone === 'down' ? '#a35d52' : 'rgba(246, 241, 227, 0.55)';
 
   return (
     <svg

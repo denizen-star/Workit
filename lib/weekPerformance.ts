@@ -7,8 +7,8 @@ export type WeekKpi = {
   key: WeekKpiKey;
   label: string;
   count: number;
-  /** Gold = you are doing this. Outline = the cue. Dashed = nothing to compare. */
-  state: 'done' | 'now' | 'open';
+  /** Earth green = good. Earth red = bad. Dashed = nothing to compare. */
+  state: 'good' | 'bad' | 'open';
   status: string;
 };
 
@@ -52,14 +52,14 @@ export function weekPerformanceCounts(
 
 function moreState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status'> {
   if (compared === 0) return { state: 'open', status: '—' };
-  if (count > 0) return { state: 'done', status: String(count) };
-  return { state: 'now', status: 'Now' };
+  if (count > 0) return { state: 'good', status: String(count) };
+  return { state: 'bad', status: '0' };
 }
 
 function lessState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status'> {
   if (compared === 0) return { state: 'open', status: '—' };
-  if (count === 0) return { state: 'done', status: 'Done' };
-  return { state: 'now', status: String(count) };
+  if (count === 0) return { state: 'good', status: '0' };
+  return { state: 'bad', status: String(count) };
 }
 
 export function weekPerformanceKpis(counts: WeekPerformanceCounts): WeekKpi[] {

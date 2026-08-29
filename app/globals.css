@@ -4,6 +4,10 @@
   --background: #07070a;
   --foreground: #f6f1e3;
   --gold: #e8c547;
+  --good: #6d8b6e;
+  --bad: #a35d52;
+  --house: #c08457;
+  --you: #f6f1e3;
 }
 
 @theme inline {

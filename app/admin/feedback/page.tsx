@@ -14,6 +14,7 @@ type FeedbackItem = {
   message: string;
   exercise_name: string | null;
   mailed_at: string | null;
+  resolved_at: string | null;
   created_at: string;
   user_name: string;
 };
@@ -25,6 +26,7 @@ export default function AdminFeedbackPage() {
   const [status, setStatus] = useState('');
   const [busy, setBusy] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [showDone, setShowDone] = useState(false);
 
   const load = async () => {
     const [listRes, statsRes] = await Promise.all([
@@ -48,6 +50,28 @@ export default function AdminFeedbackPage() {
   useEffect(() => {
     load();
   }, []);
+
+  const markResolved = async (item: FeedbackItem, resolved: boolean) => {
+    setBusy(true);
+    setStatus('');
+    try {
+      const response = await fetch('/api/admin/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'resolve', id: item.id, resolved }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        setStatus(data.error || 'Could not update this note');
+        return;
+      }
+      await load();
+    } catch {
+      setStatus('Could not update this note');
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const sendDigest = async () => {
     setBusy(true);
@@ -100,17 +124,51 @@ export default function AdminFeedbackPage() {
         </div>
         {status ? <p className="mb-4 text-sm font-semibold text-[#e8c547]">{status}</p> : null}
 
-        {items.length === 0 ? (
-          <p className="text-sm text-[#f6f1e3]/55">No notes yet. I am waiting.</p>
+        <div className="mb-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => setShowDone(false)}
+            className={`min-h-11 rounded-2xl border px-4 text-sm font-black ${
+              !showDone
+                ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                : 'border-white/10 text-[#f6f1e3]/70'
+            }`}
+          >
+            Open
+          </button>
+          <button
+            type="button"
+            onClick={() => setShowDone(true)}
+            className={`min-h-11 rounded-2xl border px-4 text-sm font-black ${
+              showDone
+                ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                : 'border-white/10 text-[#f6f1e3]/70'
+            }`}
+          >
+            Done
+          </button>
+        </div>
+
+        {items.filter((item) => (showDone ? item.resolved_at : !item.resolved_at)).length === 0 ? (
+          <p className="text-sm text-[#f6f1e3]/55">
+            {items.length === 0
+              ? 'No notes yet. I am waiting.'
+              : showDone
+                ? 'Nothing marked done yet.'
+                : 'Inbox is clear.'}
+          </p>
         ) : (
           <ul className="space-y-3">
-            {items.map((item) => (
+            {items
+              .filter((item) => (showDone ? item.resolved_at : !item.resolved_at))
+              .map((item) => (
               <li key={item.id} className="glass-card p-4">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="font-black text-white">{item.user_name}</p>
                   <p className="text-xs text-[#f6f1e3]/45">
                     {new Date(item.created_at).toLocaleString()}
                     {item.mailed_at ? ' · mailed' : ''}
+                    {item.resolved_at ? ' · done' : ''}
                   </p>
                 </div>
                 <p className="mt-1 text-xs font-semibold uppercase tracking-wider text-[#e8c547]">
@@ -121,6 +179,14 @@ export default function AdminFeedbackPage() {
                 {item.message ? (
                   <p className="mt-2 whitespace-pre-wrap text-sm text-[#f6f1e3]/80">{item.message}</p>
                 ) : null}
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={() => markResolved(item, !item.resolved_at)}
+                  className="mt-3 inline-flex min-h-10 items-center rounded-xl border border-[#e8c547]/50 px-3 text-sm font-black text-[#e8c547] disabled:opacity-60"
+                >
+                  {item.resolved_at ? 'Open again' : 'Mark done'}
+                </button>
               </li>
             ))}
           </ul>

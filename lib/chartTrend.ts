@@ -1,9 +1,10 @@
 import { workoutDateKey } from '@/lib/statsHousehold';
+import { TONE_HOUSE, TONE_YOU } from '@/lib/uiTone';
 
-/** You / the person looking. */
-export const CHART_YOU = '#e8c547';
-/** House avg. Copper, not cream — cream disappeared on the dark page. */
-export const CHART_HOUSE = '#c08457';
+/** You. Cream. Gold is for actions, not the line. */
+export const CHART_YOU = TONE_YOU;
+/** The house. Copper dashed. */
+export const CHART_HOUSE = TONE_HOUSE;
 
 const PACK_STROKES = [
   '#f6f1e3',
@@ -59,45 +60,24 @@ export function inRange(date: string, range: TrendRange) {
   return key >= start;
 }
 
-function todayKey() {
-  return workoutDateKey(new Date());
+export function earliestKey(dates: Array<string | null | undefined>) {
+  const keys = dates.map((value) => workoutDateKey(value)).filter(Boolean).sort();
+  return keys[0] || null;
 }
 
-function shiftKey(key: string, days: number) {
-  const date = new Date(`${key}T12:00:00`);
-  date.setDate(date.getDate() + days);
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+/** Lift days in range, never before the program's first lift. */
+export function trendAxis(
+  dates: string[],
+  range: TrendRange,
+  notBefore?: string | null
+) {
+  const floor = workoutDateKey(notBefore || '') || null;
+  return [...new Set(dates.map(workoutDateKey).filter(Boolean))]
+    .filter((key) => inRange(key, range) && (!floor || key >= floor))
+    .sort();
 }
 
-function eachDay(start: string, end: string) {
-  const days: string[] = [];
-  if (!start || !end || start > end) return days;
-  let cursor = start;
-  while (cursor <= end) {
-    days.push(cursor);
-    cursor = shiftKey(cursor, 1);
-    if (days.length > 800) break;
-  }
-  return days;
-}
-
-/** Every calendar day in the window, including rest days. */
-export function trendAxis(dates: string[], range: TrendRange) {
-  const keys = [...new Set(dates.map(workoutDateKey).filter(Boolean))].sort();
-  const end = todayKey();
-  if (range === 'all') {
-    if (keys.length === 0) return [];
-    return eachDay(keys[0], end < keys[keys.length - 1] ? keys[keys.length - 1] : end);
-  }
-  const start = cutoffKey(range);
-  if (!start) return keys;
-  return eachDay(start, end);
-}
-
-/** Rest days are 0 (daily) or held total (cumulative) so each line runs across the window. */
+/** Values on lift days. Daily is that day's lb. Cumulative sums across those days. */
 export function pointsOnAxis(
   axis: string[],
   byDate: Map<string, number>,
@@ -106,7 +86,7 @@ export function pointsOnAxis(
   if (mode !== 'cumulative') {
     return axis.map((date) => {
       const value = byDate.get(date);
-      return value != null && value > 0 ? value : 0;
+      return value != null && value > 0 ? value : null;
     });
   }
 
@@ -114,7 +94,7 @@ export function pointsOnAxis(
   return axis.map((date) => {
     const value = byDate.get(date);
     if (value != null && value > 0) sum += value;
-    return sum;
+    return sum > 0 ? sum : null;
   });
 }
 
@@ -134,16 +114,16 @@ export function formatChartDate(key: string) {
 
 export type TrendRow = Record<string, string | number | null>;
 
-/** One row per calendar day. Rest days stay on the line at 0 / held total. */
+/** One row per lift day. Missing series stay null so the line skips rest. */
 export function compactTrendRows(
   axis: string[],
-  series: { key: string; values: (number | undefined)[] }[]
+  series: { key: string; values: (number | null | undefined)[] }[]
 ): TrendRow[] {
   return axis.map((key, index) => {
     const row: TrendRow = { date: formatChartDate(key) };
     for (const item of series) {
       const value = item.values[index];
-      row[item.key] = value != null && Number.isFinite(value) ? value : 0;
+      row[item.key] = value != null && Number.isFinite(value) ? value : null;
     }
     return row;
   });

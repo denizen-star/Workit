@@ -124,7 +124,7 @@ export default function CompletedLog({
               >
                 <div className="flex min-w-0 items-start gap-2 text-left">
                   {weekDone ? (
-                    <Check className="mt-0.5 h-6 w-6 shrink-0 text-[#e8c547]" strokeWidth={3} />
+                    <Check className="mt-0.5 h-6 w-6 shrink-0 text-[#6d8b6e]" strokeWidth={3} />
                   ) : null}
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-x-4 gap-y-1">

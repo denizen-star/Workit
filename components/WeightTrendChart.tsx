@@ -48,7 +48,7 @@ function TrendTooltip({
   );
 }
 
-/** Shared gold-you / copper-house line chart. Rest days stay on the line. */
+/** Shared cream-you / copper-house line chart. Lift days only. */
 export default function WeightTrendChart({
   data,
   lines,

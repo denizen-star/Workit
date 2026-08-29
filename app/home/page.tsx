@@ -2,11 +2,10 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Dumbbell, ChevronDown, ChevronUp } from 'lucide-react';
+import { Dumbbell, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
 import AthletePerformance from '@/components/AthletePerformance';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
-import FlagStrip from '@/components/FlagStrip';
 import ScanCard from '@/components/ScanCard';
 import WeekLock from '@/components/WeekLock';
 import WeekPerformance from '@/components/WeekPerformance';
@@ -21,6 +20,7 @@ import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
 import { workoutDateKey } from '@/lib/statsHousehold';
+import { earliestKey } from '@/lib/chartTrend';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import InviteFriendModal from '@/components/InviteFriendModal';
 
@@ -45,6 +45,14 @@ function lastDaysWeight(
     if (!key || key < startKey) return sum;
     return sum + (parseFloat(String(row.total_weight_lifted)) || 0);
   }, 0);
+}
+
+function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
+  return earliestKey(
+    sessions
+      .filter((session) => Boolean(Number(session.is_completed)))
+      .map((session) => session.completed_at || session.started_at || session.created_at)
+  );
 }
 
 export default function Home() {
@@ -141,7 +149,7 @@ export default function Home() {
   const last7Same = Math.round(last7) === Math.round(allTime) && allTime > 0;
   const canInvite = !isTestUserName(userName);
   const inviteLinkClass =
-    'mt-3 inline-flex min-h-11 items-center text-base font-semibold text-[#f6f1e3]/55';
+    'mt-3 inline-flex min-h-11 items-center gap-2 text-base font-black text-[#e8c547]';
 
   if (loading) {
     return (
@@ -199,6 +207,7 @@ export default function Home() {
               </div>
               {canInvite && (
                 <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                  <UserPlus className="h-4 w-4" />
                   Invite a friend
                 </button>
               )}
@@ -246,6 +255,7 @@ export default function Home() {
               )}
               {canInvite && (
                 <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                  <UserPlus className="h-4 w-4" />
                   Invite a friend
                 </button>
               )}
@@ -272,7 +282,11 @@ export default function Home() {
 
           {stats?.daily && stats.daily.length > 0 && (
             <section>
-              <DailyWeightChart dailyStats={stats.daily} householdDaily={stats.household?.daily} />
+              <DailyWeightChart
+                dailyStats={stats.daily}
+                householdDaily={stats.household?.daily}
+                programStart={earliestCompletedDate(sessions)}
+              />
             </section>
           )}
 
@@ -281,10 +295,6 @@ export default function Home() {
               <YouVsLeader userId={userId} />
             </section>
           )}
-
-          <section>
-            <FlagStrip sessions={sessions} week={today.week} />
-          </section>
 
           <section>
             <AthletePerformance variant="home" />
@@ -298,7 +308,7 @@ export default function Home() {
                 className="flex min-h-14 w-full items-center gap-3 px-5 py-4 text-left"
                 aria-expanded={houseOpen}
               >
-                <h2 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">You / house</h2>
+                <h2 className="text-base font-black uppercase tracking-[0.16em] text-[#c08457]">You / house</h2>
                 <span className="ml-auto truncate text-sm text-[#f6f1e3]/55">
                   {completed} · {formatWeight(allTime)} lb
                 </span>

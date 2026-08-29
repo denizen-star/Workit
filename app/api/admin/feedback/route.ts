@@ -8,15 +8,28 @@ import { buildFeedbackDigestEmail, feedbackMailTo } from '@/lib/emails/feedback'
 export async function GET() {
   try {
     await requireAdmin();
-    const result = await query(
-      `SELECT
-         f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
-         f.page_url, f.mailed_at, f.created_at, u.name as user_name
-       FROM feedback f
-       INNER JOIN users u ON u.id = f.user_id
-       ORDER BY f.created_at DESC
-       LIMIT 200`
-    );
+    let result;
+    try {
+      result = await query(
+        `SELECT
+           f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
+           f.page_url, f.mailed_at, f.resolved_at, f.created_at, u.name as user_name
+         FROM feedback f
+         INNER JOIN users u ON u.id = f.user_id
+         ORDER BY f.resolved_at IS NULL DESC, f.created_at DESC
+         LIMIT 200`
+      );
+    } catch {
+      result = await query(
+        `SELECT
+           f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
+           f.page_url, f.mailed_at, f.created_at, u.name as user_name
+         FROM feedback f
+         INNER JOIN users u ON u.id = f.user_id
+         ORDER BY f.created_at DESC
+         LIMIT 200`
+      );
+    }
     return NextResponse.json({ items: result.rows });
   } catch (error) {
     if (error instanceof AuthError) {
@@ -31,6 +44,25 @@ export async function POST(request: NextRequest) {
   try {
     await requireAdmin();
     const body = await request.json().catch(() => ({}));
+    if (body.action === 'resolve') {
+      const id = Number(body.id);
+      if (!Number.isFinite(id) || id <= 0) {
+        return NextResponse.json({ error: 'Note required' }, { status: 400 });
+      }
+      const resolved = body.resolved !== false;
+      try {
+        await query(
+          resolved
+            ? 'UPDATE feedback SET resolved_at = COALESCE(resolved_at, NOW()) WHERE id = ?'
+            : 'UPDATE feedback SET resolved_at = NULL WHERE id = ?',
+          [id]
+        );
+      } catch {
+        return NextResponse.json({ error: 'Could not mark this note' }, { status: 500 });
+      }
+      return NextResponse.json({ success: true, id, resolved });
+    }
+
     if (body.action !== 'digest') {
       return NextResponse.json({ error: 'Unknown action' }, { status: 400 });
     }

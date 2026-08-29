@@ -118,7 +118,7 @@ export default function CompletedSessionCard({
           aria-expanded={open}
         >
           <div className="mb-1 flex items-center gap-2">
-            <Check className="h-6 w-6 shrink-0 text-[#e8c547]" strokeWidth={3} />
+            <Check className="h-6 w-6 shrink-0 text-[#6d8b6e]" strokeWidth={3} />
             <h4 className="text-lg font-black text-white">{session.workout_type}</h4>
           </div>
           {focus && <p className="text-sm text-[#f6f1e3]/65">{focus}</p>}
@@ -179,7 +179,7 @@ export default function CompletedSessionCard({
                       className="flex items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2"
                     >
                       <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                        <Check className="h-4 w-4 text-[#e8c547]" strokeWidth={3} />
+                        <Check className="h-4 w-4 text-[#6d8b6e]" strokeWidth={3} />
                         Set {set.set_number}
                       </span>
                       <span className="text-sm font-semibold text-[#f6f1e3]/85">

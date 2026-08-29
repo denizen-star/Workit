@@ -41,6 +41,7 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
     return (
       <ScanCard
         you
+        house
         roomy
         kicker="The house"
         title={`${firstName(you.name)} · you`}
@@ -59,6 +60,7 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
   return (
     <ScanCard
       you
+      house
       roomy
       kicker="The house"
         title={`You vs ${firstName(rival.name)}`}

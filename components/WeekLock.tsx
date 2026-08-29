@@ -19,12 +19,13 @@ function isDayDone(day: WorkoutDay, week: WeekPlan, sessions: WorkoutSessionRow[
   );
 }
 
+const LEGEND = 'Gold = start here. Green = done. Dashed = still open.';
+
 const HELP: Record<string, string> = {
-  header:
-    'Four required days this week. Gold means paid. Now is the next one you still owe. Lock the week when all four are done.',
-  done: 'Done. You finished this required day. It counts toward locking the week.',
-  now: 'Now. This is the next unpaid required day. Start here.',
-  open: 'Still open. You owe this day before the week locks.',
+  header: `Four required days this week. ${LEGEND} Lock the week when all four are green.`,
+  done: 'Green. You finished this required day. It counts toward locking the week.',
+  now: 'Gold. This is the next unpaid required day. Start here.',
+  open: 'Dashed. You still owe this day before the week locks.',
 };
 
 export default function WeekLock({
@@ -69,7 +70,7 @@ export default function WeekLock({
           return (
             <div
               key={day.dayNumber}
-              className={`h-2.5 flex-1 rounded-full ${filled ? 'bg-[#e8c547]' : 'bg-white/10'}`}
+              className={`h-2.5 flex-1 rounded-full ${filled ? 'bg-[#6d8b6e]' : 'bg-white/10'}`}
             />
           );
         })}
@@ -82,7 +83,7 @@ export default function WeekLock({
             onClick={() => setHelp(HELP[state])}
             className={`flex-1 rounded-2xl px-1.5 py-5 text-center ${
               state === 'done'
-                ? 'border border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
+                ? 'border border-[#6d8b6e] bg-[#6d8b6e] text-[#1a1404]'
                 : state === 'now'
                   ? 'border-2 border-[#e8c547] bg-[#e8c547]/10'
                   : 'border border-dashed border-white/15 bg-transparent'
@@ -118,7 +119,7 @@ export default function WeekLock({
           </button>
         ))}
       </div>
-      {help ? <p className="mt-3 text-sm text-[#f6f1e3]/70">{help}</p> : null}
+      <p className="mt-3 text-sm text-[#f6f1e3]/70">{help || LEGEND}</p>
     </div>
   );
 }

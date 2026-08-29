@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Clock, Flag } from 'lucide-react';
 import {
   bonusCompletedInWeek,
@@ -10,17 +11,10 @@ import {
   optionalCountInWeek,
   optionalWeekCount,
 } from '@/lib/optionals';
-import type { WorkoutSessionRow } from '@/lib/nextWorkout';
+import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import type { WeekPlan } from '@/lib/workoutData';
 
-/** Compact bonus + optional flags. Same data as the old Home cards, no glass cards. */
-export default function FlagStrip({
-  sessions,
-  week,
-}: {
-  sessions: WorkoutSessionRow[];
-  week: WeekPlan | null;
-}) {
+function Flags({ sessions, week }: { sessions: WorkoutSessionRow[]; week: WeekPlan | null }) {
   const bonusDays = bonusCount(sessions);
   const hasBonus = weekHasBonus(week);
   const thisWeekBonus = week ? bonusCompletedInWeek(sessions, week.weekNumber) : false;
@@ -40,7 +34,11 @@ export default function FlagStrip({
           <Flag className="mt-0.5 h-5 w-5 shrink-0 text-[#e8c547]" />
           <span>
             {hasBonus && week ? (
-              <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">
+              <span
+                className={`text-base font-black uppercase tracking-[0.14em] ${
+                  thisWeekBonus ? 'text-[#6d8b6e]' : 'text-[#e8c547]'
+                }`}
+              >
                 {thisWeekBonus ? `Bonus done · Week ${week.weekNumber}` : `Bonus still open · Week ${week.weekNumber}`}
               </span>
             ) : (
@@ -68,4 +66,42 @@ export default function FlagStrip({
       </p>
     </div>
   );
+}
+
+/** Bonus + optional flags. Lives on Your performance, not Home. */
+export default function FlagStrip({
+  sessions: sessionsProp,
+  week: weekProp,
+}: {
+  sessions?: WorkoutSessionRow[];
+  week?: WeekPlan | null;
+}) {
+  const [sessions, setSessions] = useState<WorkoutSessionRow[] | null>(sessionsProp || null);
+  const [week, setWeek] = useState<WeekPlan | null>(weekProp ?? null);
+
+  useEffect(() => {
+    if (sessionsProp) {
+      setSessions(sessionsProp);
+      setWeek(weekProp ?? getTodayTarget(sessionsProp).week);
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/sessions')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (cancelled) return;
+        const rows = (data?.sessions || []) as WorkoutSessionRow[];
+        setSessions(rows);
+        setWeek(getTodayTarget(rows).week);
+      })
+      .catch(() => {
+        if (!cancelled) setSessions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionsProp, weekProp]);
+
+  if (!sessions) return null;
+  return <Flags sessions={sessions} week={week} />;
 }

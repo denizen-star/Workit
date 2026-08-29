@@ -8,6 +8,7 @@ import {
   CHART_HOUSE,
   CHART_YOU,
   compactTrendRows,
+  earliestKey,
   pointsOnAxis,
   trendAxis,
   type TrendLine,
@@ -21,7 +22,7 @@ function mean(values: number[]) {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
 }
 
-/** Pack chart: every athlete, copper house avg excluding Test, gold = you. */
+/** Pack chart: cream = you, copper dashed = the house. Test left out of the avg. */
 export default function HouseholdWeightChart({
   points,
   highlightUserId,
@@ -44,10 +45,10 @@ export default function HouseholdWeightChart({
       .filter((athlete) => athlete.byDate.size > 0);
   }, [points]);
 
-  const axis = useMemo(
-    () => trendAxis(points.map((point) => point.workout_date), 'all'),
-    [points]
-  );
+  const axis = useMemo(() => {
+    const dates = points.map((point) => point.workout_date);
+    return trendAxis(dates, 'all', earliestKey(dates));
+  }, [points]);
 
   const pack = useMemo(
     () => athletes.filter((athlete) => !isTestUserName(athlete.name)),
@@ -119,8 +120,8 @@ export default function HouseholdWeightChart({
         </div>
       </div>
       <p className="mb-4 text-base text-[#f6f1e3]/55">
-        <span className="font-semibold text-[#e8c547]">Gold</span> is you.{' '}
-        <span className="font-semibold text-[#c08457]">Copper dashed</span> is house avg, Test left out.
+        <span className="font-semibold text-[#f6f1e3]">Cream</span> is you.{' '}
+        <span className="font-semibold text-[#c08457]">Copper dashed</span> is the house. Test left out.
       </p>
       <WeightTrendChart data={data} lines={lines} height={240} />
     </div>

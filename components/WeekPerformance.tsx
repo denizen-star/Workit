@@ -14,13 +14,16 @@ const EMPTY = weekPerformanceKpis({
   repsDown: 0,
 });
 
+const GOOD = '#6d8b6e';
+const BAD = '#a35d52';
+const LEGEND = 'Green = good. Red = still a problem. Dashed = no last time yet.';
+
 const HELP: Record<string, string> = {
-  header:
-    'This program week vs the last time you did those lifts. Gold means you did the job. Outline means that cue still needs work.',
-  loadUp: 'More load. How many lifts you added weight to vs last time.',
-  repsUp: 'More reps. How many lifts you added reps to vs last time.',
-  loadDown: 'Less drop. How many lifts you cut weight on. Gold Done means you did not drop any.',
-  repsDown: 'Less cut. How many lifts you cut reps on. Gold Done means you did not cut any.',
+  header: `This program week vs the last time you did those lifts. ${LEGEND}`,
+  loadUp: 'More load. Green is how many lifts you added weight to. Red 0 means you did not add load.',
+  repsUp: 'More reps. Green is how many lifts you added reps to. Red 0 means you did not add reps.',
+  loadDown: 'Less drop. Green 0 means you did not cut weight. Red is how many lifts you dropped.',
+  repsDown: 'Less cut. Green 0 means you did not cut reps. Red is how many lifts you cut.',
 };
 
 function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
@@ -29,30 +32,34 @@ function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
       type="button"
       onClick={onHelp}
       className={`flex-1 rounded-2xl px-1.5 py-5 text-center ${
-        kpi.state === 'done'
-          ? 'border border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
-          : kpi.state === 'now'
-            ? 'border-2 border-[#e8c547] bg-[#e8c547]/10'
+        kpi.state === 'good'
+          ? 'border text-[#1a1404]'
+          : kpi.state === 'bad'
+            ? 'border-2 text-white'
             : 'border border-dashed border-white/15 bg-transparent'
       }`}
+      style={
+        kpi.state === 'good'
+          ? { borderColor: GOOD, backgroundColor: GOOD }
+          : kpi.state === 'bad'
+            ? { borderColor: BAD, backgroundColor: 'rgba(163, 93, 82, 0.18)' }
+            : undefined
+      }
     >
       <p
         className={`text-base font-semibold ${
-          kpi.state === 'done' ? 'text-[#1a1404]' : kpi.state === 'now' ? 'text-white' : 'text-[#f6f1e3]/50'
+          kpi.state === 'good' ? 'text-[#1a1404]' : kpi.state === 'bad' ? 'text-[#f6f1e3]' : 'text-[#f6f1e3]/50'
         }`}
       >
         {kpi.label}
       </p>
       <p
         className={`mt-1 inline-flex items-center justify-center gap-1 text-base font-black ${
-          kpi.state === 'done'
-            ? 'text-[#1a1404]'
-            : kpi.state === 'now'
-              ? 'text-[#e8c547]'
-              : 'text-[#f6f1e3]/40'
+          kpi.state === 'good' ? 'text-[#1a1404]' : kpi.state === 'bad' ? '' : 'text-[#f6f1e3]/40'
         }`}
+        style={kpi.state === 'bad' ? { color: BAD } : undefined}
       >
-        {kpi.state === 'done' ? (
+        {kpi.state === 'good' ? (
           <>
             <Check className="h-4 w-4" strokeWidth={3} />
             {kpi.status}
@@ -94,7 +101,7 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
 
   const kpis = counts ? weekPerformanceKpis(counts) : EMPTY;
   const compared = counts?.compared ?? 0;
-  const filled = kpis.filter((kpi) => kpi.state === 'done').length;
+  const filled = kpis.filter((kpi) => kpi.state === 'good').length;
 
   if (!week) return null;
 
@@ -114,7 +121,7 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
         {[0, 1, 2, 3].map((index) => (
           <div
             key={index}
-            className={`h-2.5 flex-1 rounded-full ${index < filled ? 'bg-[#e8c547]' : 'bg-white/10'}`}
+            className={`h-2.5 flex-1 rounded-full ${index < filled ? 'bg-[#6d8b6e]' : 'bg-white/10'}`}
           />
         ))}
       </div>
@@ -123,7 +130,7 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
           <KpiTile key={kpi.key} kpi={kpi} onHelp={() => setHelp(HELP[kpi.key])} />
         ))}
       </div>
-      {help ? <p className="mt-3 text-sm text-[#f6f1e3]/70">{help}</p> : null}
+      <p className="mt-3 text-sm text-[#f6f1e3]/70">{help || LEGEND}</p>
     </div>
   );
 }
