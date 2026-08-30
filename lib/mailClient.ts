@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import type { SendMailOptions, Transporter } from 'nodemailer';
+import { archiveSentEmail, type MailArchiveMeta } from './emails/archive';
 
 export function isEmailEnabled() {
   const v = process.env.EMAIL_ENABLED;
@@ -42,7 +43,10 @@ export type MailPayload = {
   bcc?: string | string[];
   cc?: string | string[];
   attachments?: SendMailOptions['attachments'];
+  archive?: MailArchiveMeta;
 };
+
+export type { MailArchiveMeta };
 
 export const OPS_BCC = 'info@kervinapps.com';
 
@@ -88,8 +92,9 @@ export async function sendEmail(payload: MailPayload): Promise<string | null> {
     return null;
   }
 
+  const from = payload.from || defaultFrom();
   const info = await transporter.sendMail({
-    from: payload.from || defaultFrom(),
+    from,
     to: Array.isArray(payload.to) ? payload.to.join(', ') : payload.to,
     subject: payload.subject,
     html: payload.html,
@@ -99,5 +104,15 @@ export async function sendEmail(payload: MailPayload): Promise<string | null> {
     attachments: payload.attachments,
   });
 
-  return info.messageId || null;
+  const messageId = info.messageId || null;
+  await archiveSentEmail({
+    to: payload.to,
+    from,
+    subject: payload.subject,
+    html: payload.html,
+    text: payload.text,
+    messageId,
+    archive: payload.archive,
+  });
+  return messageId;
 }

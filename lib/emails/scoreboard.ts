@@ -104,18 +104,18 @@ export async function buildLiveScoreboard(opts?: { userId?: number | null }) {
 
 function scoreboardRecipients(users: RosterUser[]) {
   const seen = new Set<string>();
-  const recipients: { userId: number | null; email: string }[] = [];
+  const recipients: { userId: number | null; name: string | null; email: string }[] = [];
 
   for (const user of users) {
     const email = (user.email || '').trim().toLowerCase();
     if (!email || seen.has(email)) continue;
     seen.add(email);
-    recipients.push({ userId: user.id, email });
+    recipients.push({ userId: user.id, name: user.name, email });
   }
 
   const extra = extraScoreboardTo()?.toLowerCase();
   if (extra && !seen.has(extra)) {
-    recipients.push({ userId: null, email: extra });
+    recipients.push({ userId: null, name: null, email: extra });
   }
 
   return recipients;
@@ -143,7 +143,11 @@ export async function sendScoreboardEmail(opts?: { force?: boolean }) {
       optionalHonor: board.optionalHonor,
     });
     if (opts?.force) {
-      const id = await sendNow(recipient.email, email);
+      const id = await sendNow(recipient.email, email, {
+        userId: recipient.userId,
+        athleteName: recipient.name,
+        template: 'scoreboard',
+      });
       results.push({
         to: recipient.email,
         sent: Boolean(id),
@@ -156,6 +160,7 @@ export async function sendScoreboardEmail(opts?: { force?: boolean }) {
     results.push(
       await claimAndSend({
         userId: recipient.userId,
+        athleteName: recipient.name,
         template: 'scoreboard',
         dedupeKey: date + ':user:' + (recipient.userId ?? recipient.email),
         to: recipient.email,

@@ -75,7 +75,8 @@ export async function POST(request: NextRequest) {
           topic,
           message,
           pageUrl,
-        })
+        }),
+        { userId: user.id, athleteName: user.name, template: 'feedback' }
       );
       if (mailId && insert.insertId) {
         await query('UPDATE feedback SET mailed_at = CURRENT_TIMESTAMP WHERE id = ?', [insert.insertId]).catch(

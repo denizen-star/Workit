@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { sendEmail, isEmailEnabled } from '@/lib/mailClient';
+import type { MailArchiveMeta } from '@/lib/emails/archive';
 import type { BuiltEmail } from '@/lib/emails/templates';
 
 export type SendResult = {
@@ -15,6 +16,7 @@ function isDuplicateKeyError(error: unknown) {
 
 export async function claimAndSend(opts: {
   userId?: number | null;
+  athleteName?: string | null;
   template: string;
   dedupeKey: string;
   to: string;
@@ -45,6 +47,11 @@ export async function claimAndSend(opts: {
       subject: opts.email.subject,
       html: opts.email.html,
       text: opts.email.text,
+      archive: {
+        userId: opts.userId,
+        athleteName: opts.athleteName,
+        template: opts.template,
+      },
     });
     if (!id) {
       if (claimed) {
@@ -74,12 +81,17 @@ export async function claimAndSend(opts: {
   }
 }
 
-export async function sendNow(to: string, email: BuiltEmail): Promise<string | null> {
+export async function sendNow(
+  to: string,
+  email: BuiltEmail,
+  archive?: MailArchiveMeta
+): Promise<string | null> {
   return sendEmail({
     to,
     from: email.from,
     subject: email.subject,
     html: email.html,
     text: email.text,
+    archive,
   });
 }

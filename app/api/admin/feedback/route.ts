@@ -42,7 +42,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    await requireAdmin();
+    const admin = await requireAdmin();
     const body = await request.json().catch(() => ({}));
     if (body.action === 'resolve') {
       const id = Number(body.id);
@@ -98,7 +98,8 @@ export async function POST(request: NextRequest) {
           exerciseName: row.exercise_name,
           message: row.message,
         })),
-      })
+      }),
+      { athleteName: admin.name, template: 'feedback_digest' }
     );
 
     if (!id) {

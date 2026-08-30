@@ -43,11 +43,16 @@ export async function sendInviteEmail(opts: {
     claimUrl: claimUrl(opts.rawToken),
   });
   if (!opts.dedupe) {
-    const id = await sendNow(opts.email, email);
+    const id = await sendNow(opts.email, email, {
+      userId: opts.id,
+      athleteName: opts.name,
+      template: 'invite',
+    });
     return { sent: Boolean(id), skipped: id ? undefined : ('smtp' as const) };
   }
   return claimAndSend({
     userId: opts.id,
+    athleteName: opts.name,
     template: 'invite',
     dedupeKey: 'user:' + opts.id + ':invite',
     to: opts.email,
@@ -64,7 +69,10 @@ async function sendInviteNotifyEmail(opts: {
   const to = feedbackMailTo();
   if (!to) return;
   const email = buildInviteNotifyEmail(opts);
-  await sendNow(to, email);
+  await sendNow(to, email, {
+    athleteName: opts.inviteeName,
+    template: 'invite_notify',
+  });
 }
 
 export function queueInviteEmail(opts: {
@@ -109,6 +117,7 @@ export async function sendWelcomeEmail(user: { id: number; name: string; email: 
   const email = buildWelcomeEmail({ name: user.name });
   return claimAndSend({
     userId: user.id,
+    athleteName: user.name,
     template: 'welcome',
     dedupeKey: 'user:' + user.id,
     to: user.email,
@@ -125,7 +134,11 @@ export async function resendWelcomeEmails() {
   const results = [];
   for (const user of result.rows as { id: number; name: string; email: string }[]) {
     const email = buildWelcomeEmail({ name: user.name });
-    const id = await sendNow(user.email, email);
+    const id = await sendNow(user.email, email, {
+      userId: user.id,
+      athleteName: user.name,
+      template: 'welcome',
+    });
     results.push({
       userId: user.id,
       to: user.email,
@@ -229,6 +242,7 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   await claimAndSend({
     userId: opts.userId,
+    athleteName: opts.name,
     template: programComplete ? 'program' : weekComplete ? 'week' : 'complete',
     dedupeKey: 'session:' + opts.sessionId,
     to: opts.email,
@@ -241,6 +255,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     if (earnedBelt) {
       await claimAndSend({
         userId: opts.userId,
+        athleteName: opts.name,
         template: 'belt',
         dedupeKey: 'user:' + opts.userId + ':belt:' + earnedBelt.slug,
         to: opts.email,
@@ -264,6 +279,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     });
     await claimAndSend({
       userId: opts.userId,
+      athleteName: opts.name,
       template: 'badge',
       dedupeKey: 'user:' + opts.userId + ':badge:' + badge.id,
       to: opts.email,

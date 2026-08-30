@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 5.1.0 - 2026-08-30
+
+### Added
+- Text archive of every successful send in `email_archive` (date, athlete name, From name, destination, template, subject, body). No HTML or images. No in-app viewer. Includes `/document` release mail
+
 ## 5.0.0 - 2026-08-29
 
 ### Added

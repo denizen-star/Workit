@@ -88,7 +88,11 @@ export async function POST(request: NextRequest) {
     }
 
     const email = sampleEmail(template);
-    const id = await sendNow(to, email);
+    const id = await sendNow(to, email, {
+      userId: admin.id,
+      athleteName: admin.name,
+      template,
+    });
     if (!id) {
       return NextResponse.json({ error: 'Send failed — check SMTP' }, { status: 500 });
     }

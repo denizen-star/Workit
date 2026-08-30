@@ -27,14 +27,14 @@ async function householdRecipients() {
          WHERE u.email IS NOT NULL AND u.email != ''
            AND ${SQL_EXCLUDE_TEST_USER}
          ORDER BY u.id ASC`
-      : `SELECT name, email FROM users
+      : `SELECT id, name, email FROM users
          WHERE email IS NOT NULL AND email != ''
          ORDER BY id ASC`
   );
   const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) =>
     name.trim().toLowerCase()
   );
-  const rows = (result.rows as { name: string; email: string | null }[]).filter(
+  const rows = (result.rows as { id: number; name: string; email: string | null }[]).filter(
     (row) => {
       if (!row.email) return false;
       if (only.length === 0) return true;
@@ -78,6 +78,11 @@ async function main() {
       html: email.html,
       text: email.text,
       from: email.from,
+      archive: {
+        userId: user.id,
+        athleteName: user.name,
+        template: 'release',
+      },
     });
     if (!id) {
       console.error('[send-release-email] failed for', user.email);

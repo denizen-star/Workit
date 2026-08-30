@@ -89,6 +89,7 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
 
   return claimAndSend({
     userId: user.id,
+    athleteName: user.name,
     template,
     dedupeKey,
     to: user.email,
