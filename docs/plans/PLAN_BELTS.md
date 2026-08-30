@@ -12,7 +12,7 @@ Turn Work-It into a 48-week year with belt diplomas. Weeks 1 to 6 stay the curre
 - **Weeks 7 to 48 are generated from templates**, not 42 pasted copies. Odd week: Lower A. Even week: Lower B. Extra-upper pack index = floor((week - 7) / 6). Block notes + How hard bands are copy only.
 - **Compounds stay.** Extra upper and bonus are what rotate so people do not get bored.
 - **Belts are not medals.** `/belts` is for everyone: aiming copy, house pack, and the Before / During / After glossary. Badge table unchanged.
-- **Current belt wash on every live session.** Light treatment so glass cards stay readable. Cream and pale yellow stays a tint, not a flood. New belt unlock also colors the finish takeover.
+- **Current belt wash on every live session.** Page, header, and glass cards take the belt fill (`displayBelt`: last earned, else aiming). Same fills. Stronger tint so it reads. Home and Select stay default. New belt unlock also colors the finish takeover.
 - **No copper and no app gold as belt fills.** Arnold trim `#e8c547` is the one gold exception.
 - **After 48 locked weeks:** out of scope. Keep training, keep Arnold, decide reset later.
 - **Copy:** no em dashes. Quote, attribution name, then coach line.

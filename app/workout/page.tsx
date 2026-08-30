@@ -468,7 +468,10 @@ function WorkoutPageInner() {
 
     const wash = beltWashStyle(displayBelt(lockedWeekCount(sessions)));
     return (
-      <div className="min-h-screen" style={{ background: wash.background }}>
+      <div
+        className="belt-session min-h-screen"
+        style={{ background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
+      >
         <header className="glass-header sticky top-0 z-10" style={{ borderBottomColor: wash.borderColor }}>
           <div className="container mx-auto px-4 py-2.5 sm:py-4">
             <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between sm:gap-3">

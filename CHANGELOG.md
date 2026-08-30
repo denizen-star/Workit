@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 5.2.2 - 2026-08-30
+
+### Changed
+- Live workout wash is louder: the belt you hold (or the one you are aiming for) tints the page, header, and cards. Home and Select Workout stay the default dark page
+
 ## 5.2.1 - 2026-08-30
 
 ### Changed

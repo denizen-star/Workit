@@ -198,18 +198,24 @@ export function aimingCopy(lockedWeeks: number) {
   };
 }
 
-/** Light tint so glass cards stay readable. Cream and pale yellow stay a wash, not a flood. */
-export function beltWashStyle(belt: Belt): { background: string; borderColor: string } {
+/** Live-session wash. Same belt fills; page, header, and cards pick up the tint. */
+export function beltWashStyle(belt: Belt): { background: string; borderColor: string; rgb: string } {
   const light = belt.paper === 'light';
-  const alpha = light ? 0.1 : 0.16;
+  const glow = light ? 0.55 : 0.42;
+  const veil = light ? 0.22 : 0.24;
   const raw = belt.fill.replace('#', '');
   const n = raw.length === 3 ? raw.split('').map((c) => c + c).join('') : raw;
   const r = parseInt(n.slice(0, 2), 16);
   const g = parseInt(n.slice(2, 4), 16);
   const b = parseInt(n.slice(4, 6), 16);
   return {
-    background: `radial-gradient(900px 420px at 50% -8%, rgba(${r},${g},${b},${alpha}), transparent 58%), #07070a`,
-    borderColor: `rgba(${r},${g},${b},${light ? 0.28 : 0.4})`,
+    rgb: `${r} ${g} ${b}`,
+    background: [
+      `radial-gradient(140% 90% at 50% 12%, rgba(${r},${g},${b},${glow}), transparent 68%)`,
+      `rgba(${r},${g},${b},${veil})`,
+      '#07070a',
+    ].join(', '),
+    borderColor: `rgba(${r},${g},${b},${light ? 0.55 : 0.6})`,
   };
 }
 
