@@ -5,7 +5,21 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import PinPad from '@/components/PinPad';
 import BeltChip from '@/components/BeltChip';
+import HelpSheet, { HelpTrigger } from '@/components/HelpSheet';
 import { trackAction } from '@/lib/analytics';
+import {
+  DEAD_CLAIM_LINE,
+  DEAD_RESET_LINE,
+  FORGOT_PIN_NOTICE,
+  HOME_SCREEN_BEATS,
+  HOME_SCREEN_LINE,
+  HOME_SCREEN_TITLE,
+  RESET_PIN_LINES,
+  WHAT_IS_WORKIT_BULLETS,
+  WHAT_IS_WORKIT_LEAD,
+  WHAT_IS_WORKIT_TITLE,
+  WHO_CLAIM_LINES,
+} from '@/lib/helpCopy';
 
 type HouseholdUser = {
   id: number;
@@ -85,6 +99,7 @@ function WhoRow({ user, onPick }: { user: HouseholdUser; onPick: (user: Househol
 }
 
 type Step = 'pick' | 'login' | 'create-pin' | 'confirm-pin';
+type HelpKind = 'what' | 'home' | null;
 
 export default function WhoPage() {
   const router = useRouter();
@@ -95,13 +110,22 @@ export default function WhoPage() {
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [claimToken, setClaimToken] = useState('');
+  const [resetToken, setResetToken] = useState('');
+  const [help, setHelp] = useState<HelpKind>(null);
 
   useEffect(() => {
-    const token = new URLSearchParams(window.location.search).get('claim') || '';
-    if (token) {
-      loadClaim(token);
+    const params = new URLSearchParams(window.location.search);
+    const claim = params.get('claim') || '';
+    const reset = params.get('reset') || '';
+    if (claim) {
+      loadClaim(claim);
+      return;
+    }
+    if (reset) {
+      loadReset(reset);
       return;
     }
     loadUsers();
@@ -128,7 +152,7 @@ export default function WhoPage() {
       const data = await response.json();
       if (!response.ok) {
         setClaimToken('');
-        setError(data.error || 'Invite link is not valid');
+        setError(DEAD_CLAIM_LINE);
         await loadUsersKeepingError();
         return;
       }
@@ -141,7 +165,34 @@ export default function WhoPage() {
       setStep('create-pin');
     } catch {
       setClaimToken('');
-      setError('Invite link is not valid');
+      setError(DEAD_CLAIM_LINE);
+      await loadUsersKeepingError();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadReset = async (token: string) => {
+    setResetToken(token);
+    try {
+      const response = await fetch('/api/auth/reset?token=' + encodeURIComponent(token));
+      const data = await response.json();
+      if (!response.ok) {
+        setResetToken('');
+        setError(DEAD_RESET_LINE);
+        await loadUsersKeepingError();
+        return;
+      }
+      setSelected({
+        id: data.user.id,
+        name: data.user.name,
+        email: data.user.email,
+        has_pin: true,
+      });
+      setStep('create-pin');
+    } catch {
+      setResetToken('');
+      setError(DEAD_RESET_LINE);
       await loadUsersKeepingError();
     } finally {
       setLoading(false);
@@ -164,6 +215,7 @@ export default function WhoPage() {
     setPin('');
     setConfirmPin('');
     setError('');
+    setNotice('');
     setSubmitting(false);
   };
 
@@ -192,8 +244,9 @@ export default function WhoPage() {
     setSelected(null);
     resetPinFlow();
     setClaimToken('');
+    setResetToken('');
     setStep('pick');
-    if (typeof window !== 'undefined' && window.location.search.includes('claim=')) {
+    if (typeof window !== 'undefined' && /claim=|reset=/.test(window.location.search)) {
       router.replace('/who');
     }
   };
@@ -244,15 +297,19 @@ export default function WhoPage() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/set-pin', {
+      const response = await fetch(resetToken ? '/api/auth/reset-pin' : '/api/auth/set-pin', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: selected.id,
-          pin: firstPin,
-          confirmPin: secondPin,
-          inviteToken: claimToken || undefined,
-        }),
+        body: JSON.stringify(
+          resetToken
+            ? { token: resetToken, pin: firstPin, confirmPin: secondPin }
+            : {
+                userId: selected.id,
+                pin: firstPin,
+                confirmPin: secondPin,
+                inviteToken: claimToken || undefined,
+              }
+        ),
       });
 
       const data = await response.json();
@@ -266,7 +323,7 @@ export default function WhoPage() {
         return;
       }
 
-      trackAction('login', { category: 'who', cta_type: 'set-pin' });
+      trackAction('login', { category: 'who', cta_type: resetToken ? 'reset-pin' : 'set-pin' });
       router.push('/home');
       router.refresh();
     } catch {
@@ -276,6 +333,22 @@ export default function WhoPage() {
       setStep('create-pin');
       setSubmitting(false);
     }
+  };
+
+  const requestForgotPin = async () => {
+    if (!selected?.email) return;
+    setError('');
+    setNotice('');
+    try {
+      await fetch('/api/auth/forgot-pin', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: selected.id }),
+      });
+    } catch {
+      // Same notice either way. Do not leak mail state.
+    }
+    setNotice(FORGOT_PIN_NOTICE);
   };
 
   const handlePinChange = (value: string) => {
@@ -300,6 +373,10 @@ export default function WhoPage() {
     }
   };
 
+  const showClaimIntro = Boolean(claimToken) && (step === 'create-pin' || step === 'confirm-pin');
+  const showResetIntro = Boolean(resetToken) && (step === 'create-pin' || step === 'confirm-pin');
+  const canForgot = step === 'login' && Boolean(selected?.email?.trim());
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -315,6 +392,11 @@ export default function WhoPage() {
           <div className="flex items-center gap-3">
             <Dumbbell className="h-8 w-8 text-[#e8c547]" />
             <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
+            {step !== 'pick' ? (
+              <div className="ml-auto">
+                <HelpTrigger label={WHAT_IS_WORKIT_TITLE} onClick={() => setHelp('what')} />
+              </div>
+            ) : null}
           </div>
         </div>
       </header>
@@ -322,7 +404,10 @@ export default function WhoPage() {
       <div className="container mx-auto max-w-lg px-4 py-10">
         {step === 'pick' ? (
           <>
-            <h2 className="text-center text-3xl font-black text-white">Who&apos;s working out?</h2>
+            <div className="flex items-start justify-center gap-1">
+              <h2 className="text-center text-3xl font-black text-white">Who&apos;s working out?</h2>
+              <HelpTrigger label={WHAT_IS_WORKIT_TITLE} onClick={() => setHelp('what')} />
+            </div>
             <p className="mt-2 text-center text-[#f6f1e3]/65">
               Tap your profile to continue
             </p>
@@ -380,6 +465,26 @@ export default function WhoPage() {
                   : 'Enter your PIN again to confirm'}
             </p>
 
+            {showClaimIntro ? (
+              <div className="mt-4 space-y-2 text-center text-sm leading-relaxed text-[#f6f1e3]/70">
+                {WHO_CLAIM_LINES.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+                <p className="pt-1 font-semibold text-[#e8c547]">
+                  {HOME_SCREEN_LINE}
+                  <HelpTrigger label={HOME_SCREEN_TITLE} onClick={() => setHelp('home')} />
+                </p>
+              </div>
+            ) : null}
+
+            {showResetIntro ? (
+              <div className="mt-4 space-y-2 text-center text-sm leading-relaxed text-[#f6f1e3]/70">
+                {RESET_PIN_LINES.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
+              </div>
+            ) : null}
+
             <div className="mt-10">
               <PinPad
                 value={step === 'confirm-pin' ? confirmPin : pin}
@@ -388,12 +493,39 @@ export default function WhoPage() {
               />
             </div>
 
+            {canForgot ? (
+              <button
+                type="button"
+                onClick={requestForgotPin}
+                className="mx-auto mt-6 block min-h-11 text-sm font-semibold text-[#e8c547]"
+              >
+                Forgot PIN
+              </button>
+            ) : null}
+
+            {notice && (
+              <p className="mt-6 text-center text-sm font-semibold text-[#e8c547]">{notice}</p>
+            )}
             {error && (
               <p className="mt-6 text-center text-sm font-semibold text-rose-400">{error}</p>
             )}
           </>
         )}
       </div>
+
+      <HelpSheet
+        open={help === 'what'}
+        title={WHAT_IS_WORKIT_TITLE}
+        lead={WHAT_IS_WORKIT_LEAD}
+        bullets={WHAT_IS_WORKIT_BULLETS}
+        onClose={() => setHelp(null)}
+      />
+      <HelpSheet
+        open={help === 'home'}
+        title={HOME_SCREEN_TITLE}
+        bullets={HOME_SCREEN_BEATS}
+        onClose={() => setHelp(null)}
+      />
     </div>
   );
 }

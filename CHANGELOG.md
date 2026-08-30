@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 5.3.0 - 2026-08-30
+
+### Added
+- **What is Work-It?** on Who. Short definition, then bullets. Claim also gets a short home-screen `?`
+- **Forgot PIN** on login when that profile has email. Mail brings a one-hour link to set four new digits
+- **`?` on every live lift.** Trainer-plain How (gym and travel). The italic note is off the card
+
+### Changed
+- Invite claim: three short lines under the name, then the pad. Dead links stay on Who and ask for a resend
+
 ## 5.2.2 - 2026-08-30
 
 ### Changed

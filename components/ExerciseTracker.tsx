@@ -14,6 +14,8 @@ import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/worko
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { parseHardness, type HardnessScore } from '@/lib/hardness';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
+import HelpSheet, { HowTrigger } from './HelpSheet';
+import { howForExercise } from '@/lib/exerciseHow';
 import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
 import VideoModal from './VideoModal';
 import PrFlash from './PrFlash';
@@ -191,6 +193,7 @@ export default function ExerciseTracker({
     body: string;
   } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
+  const [howNotes, setHowNotes] = useState<string | null>(null);
 
   useEffect(() => {
     setRestSeconds(restClock);
@@ -642,12 +645,26 @@ export default function ExerciseTracker({
         const currentMax = completedWeights.length ? Math.max(...completedWeights) : 0;
         const beatLastWeek = lastWeek != null && currentMax > lastWeek;
         const lastTime = lastBestFor(exercise.name, history);
+        const how = howForExercise(exercise.name) || howForExercise(gym.name);
 
         return (
           <div key={gym.name} className="glass-card p-5">
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
+                <div className="flex items-start gap-1">
+                  {how ? (
+                    <button
+                      type="button"
+                      onClick={() => setHowNotes(how)}
+                      className="text-left text-2xl font-black tracking-tight text-white"
+                    >
+                      {exercise.name}
+                    </button>
+                  ) : (
+                    <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
+                  )}
+                  {how ? <HowTrigger onClick={() => setHowNotes(how)} /> : null}
+                </div>
                 <p className="mt-1 text-sm text-[#f6f1e3]/70">
                   Target: {exercise.sets} sets × {exercise.reps}
                 </p>
@@ -740,10 +757,6 @@ export default function ExerciseTracker({
               saved={thumbs[exercise.name] || thumbs[gym.name]}
               onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
             />
-
-            {exercise.notes && (
-              <p className="mb-4 text-sm italic text-white/90">{exercise.notes}</p>
-            )}
 
             <div className="mb-4 flex flex-wrap gap-2">
               {lastTime && (
@@ -1010,6 +1023,13 @@ export default function ExerciseTracker({
         body={setFlash?.body || ''}
         variant={setFlash?.variant || 'up'}
         onClose={() => setSetFlash(null)}
+      />
+
+      <HelpSheet
+        open={!!howNotes}
+        title="How"
+        body={howNotes ? <p className="text-base leading-relaxed text-[#f6f1e3]/80">{howNotes}</p> : null}
+        onClose={() => setHowNotes(null)}
       />
     </div>
   );

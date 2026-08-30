@@ -23,6 +23,10 @@ export function claimUrl(rawToken: string) {
   return whoUrl() + '?claim=' + encodeURIComponent(rawToken);
 }
 
+export function resetUrl(rawToken: string) {
+  return whoUrl() + '?reset=' + encodeURIComponent(rawToken);
+}
+
 export function esc(s: string) {
   return String(s || '')
     .replace(/&/g, '&amp;')

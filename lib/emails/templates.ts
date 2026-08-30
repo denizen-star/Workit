@@ -3,6 +3,7 @@ import { formatDuration } from '@/lib/formatDuration';
 import {
   appUrl,
   whoUrl,
+  resetUrl,
   bullets,
   cta,
   emailArt,
@@ -50,6 +51,11 @@ export type InviteNotifyEmailInput = {
   inviterEmail: string | null;
   inviteeName: string;
   inviteeEmail: string;
+};
+
+export type PinResetEmailInput = {
+  name: string;
+  resetUrl: string;
 };
 
 export type NudgeEmailInput = {
@@ -448,6 +454,40 @@ export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
   return {
     from: fromFor(input.tone),
     subject: luna ? 'You are welcome. Work-It.' : grey ? 'You are mine. Work-It.' : "You're mine. Work-It.",
+    html,
+    text,
+  };
+}
+
+export function buildPinResetEmail(input: PinResetEmailInput): BuiltEmail {
+  const name = firstName(input.name);
+  const url = input.resetUrl;
+  const html = wrapEmailHtml({
+    eyebrow: 'PIN',
+    title: 'New four digits',
+    subtitle: '- Work-It',
+    signer: voiceDisplayName('master'),
+    childrenHtml: [
+      address(name),
+      p('You asked to change your PIN, man. Open the link. Create four digits. Confirm them.'),
+      p('If that was not you, ignore this. Your old PIN still works until you finish.'),
+      cta(url, 'SET A NEW PIN'),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader('PIN', 'New four digits\n- Work-It'),
+    name + '.',
+    '',
+    'You asked to change your PIN, man. Open the link. Create four digits. Confirm them.',
+    'If that was not you, ignore this. Your old PIN still works until you finish.',
+    '',
+    url,
+    '',
+    emailTextSignOff(voiceDisplayName('master')),
+  ].join('\n');
+  return {
+    from: fromFor('master'),
+    subject: 'New PIN. Work-It.',
     html,
     text,
   };
@@ -952,6 +992,12 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       inviterName: 'Kevin Leacock',
       inviterEmail: 'leacock.kervin@gmail.com',
       claimUrl: whoUrl() + '?claim=preview',
+    });
+  }
+  if (template === 'pin_reset') {
+    return buildPinResetEmail({
+      name: 'Kevin',
+      resetUrl: resetUrl('preview'),
     });
   }
   if (template === 'nudge') {

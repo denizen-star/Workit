@@ -12,12 +12,13 @@ import {
   buildBeltEmail,
   buildInviteEmail,
   buildInviteNotifyEmail,
+  buildPinResetEmail,
   buildWelcomeEmail,
   buildWorkoutCompleteEmail,
 } from '@/lib/emails/templates';
 import { BELTS } from '@/lib/belts';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
-import { claimUrl } from '@/lib/emailLayout';
+import { claimUrl, resetUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
 
 const BADGE_EMAIL_TYPES = new Set([
@@ -94,6 +95,25 @@ export function queueInviteEmail(opts: {
       inviterEmail: opts.inviterEmail,
       inviteeName: opts.name,
       inviteeEmail: opts.email,
+    });
+  });
+}
+
+export function queuePinResetEmail(opts: {
+  id: number;
+  name: string;
+  email: string;
+  rawToken: string;
+}) {
+  after(async () => {
+    const email = buildPinResetEmail({
+      name: opts.name,
+      resetUrl: resetUrl(opts.rawToken),
+    });
+    await sendNow(opts.email, email, {
+      userId: opts.id,
+      athleteName: opts.name,
+      template: 'pin_reset',
     });
   });
 }
