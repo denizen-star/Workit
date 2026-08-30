@@ -11,6 +11,9 @@ type LinePack = {
   complete: readonly string[];
   bonusComplete: readonly string[];
   optionalComplete: readonly string[];
+  weekPlace1: readonly string[];
+  weekPlace2: readonly string[];
+  weekPlace3: readonly string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -138,6 +141,21 @@ const MASTER: LinePack = {
     'Five hundred on the house. Cheap if you stay. Costly if you skip. You stayed.',
     'Extra minutes. Extra iron. I heard it. Hunt.',
     'Warmup and cooldown are not decoration. You treated them like tax. That is how a man closes a gap.',
+  ],
+  weekPlace1: [
+    'You owned the week. Days and iron. The house saw it, man.',
+    'First. Not a vote. You took it. Good man.',
+    'Gold is not decoration. You paid for it in sessions.',
+  ],
+  weekPlace2: [
+    'Second. Close enough to hunt. I still mark you, man.',
+    'Silver. You showed. First still has a name. Take it next week.',
+    'Two is not last. Stay on the board.',
+  ],
+  weekPlace3: [
+    'Third. You are on the metal. That is not nothing, man.',
+    'Bronze. The house counted you. Do not make me drop you.',
+    'You placed. Soft men did not. Remember that.',
   ],
   setUpTitle: 'GOOD MAN',
   setUpBody: 'I like where this is going. Stay there.',
@@ -273,6 +291,21 @@ const JAMES: LinePack = {
     'Extra minutes. Extra iron. I heard it. So did the board.',
     'Warmup and cooldown count when you take them. You took them. Good man.',
   ],
+  weekPlace1: [
+    'You took the week. I wanted that. You have it.',
+    'First. I noticed. I meant to.',
+    'Gold. You showed up more, then you lifted more. That is how I keep score.',
+  ],
+  weekPlace2: [
+    'Second. I can still see you from first. Stay there.',
+    'Silver. Close. I do not do consolation. I do next week.',
+    'You placed. I wanted more. You can give it.',
+  ],
+  weekPlace3: [
+    'Third. You are on the board. I keep you there if you stay honest.',
+    'Bronze. Not first. Not gone. That is a choice I will watch.',
+    'You placed. Come back heavier. I will be here.',
+  ],
   setUpTitle: 'I LIKE THIS',
   setUpBody: 'The load is climbing. Stay with it.',
   setDownTitle: 'That is not what we agreed',
@@ -407,6 +440,21 @@ const SERGEANT: LinePack = {
     'Easy does not mean empty. You stayed for the whole ten. Beautiful.',
     'You did not have to add those minutes. You added them. Carry that quietly.',
   ],
+  weekPlace1: [
+    'You took the week. Quiet gold. Stay kind with it.',
+    'First. You showed up and the work held. Beautiful.',
+    'The house saw the week in you. Rest. Then keep it honest.',
+  ],
+  weekPlace2: [
+    'Second. Close. Soft face. The work is still yours.',
+    'Silver. You stayed with the week. That counts.',
+    'You placed. Breathe. Next week is another floor.',
+  ],
+  weekPlace3: [
+    'Third. You are on the metal. Carry that quietly.',
+    'Bronze. You showed. That is enough to stand on.',
+    'You placed. Soft finish. Come back present.',
+  ],
   setUpTitle: 'This is growth',
   setUpBody: 'I like where this is going. Stay with it.',
   setDownTitle: 'Come back to your last weight',
@@ -532,6 +580,14 @@ export function pickOptionalCompleteLine(tone?: CoachTone | null): string {
       ? live.optionalComplete
       : PACKS[id].optionalComplete;
   return pickFrom(pool, `optional:${id}`);
+}
+
+export function pickWeekPlaceLine(place: 1 | 2 | 3, tone?: CoachTone | null): string {
+  const id = normalizeCoachTone(tone);
+  const key = place === 1 ? 'weekPlace1' : place === 2 ? 'weekPlace2' : 'weekPlace3';
+  const live = getLinePack(id);
+  const pool = live?.[key] && live[key].length ? live[key] : PACKS[id][key];
+  return pickFrom(pool, `week-place:${id}:${place}`);
 }
 
 export function setProgressCopy(

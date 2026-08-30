@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 5.4.0 - 2026-08-30
+
+### Added
+- **Week medals.** After Sunday, the closed Eastern week (Mon–Sun) gets gold / silver / bronze. Same rank as The house: finished days, then total lb
+- First Home open after that Monday: celebration shout if you placed 1st, 2nd, or 3rd. Then your disc stays on the Start card. No place → nothing
+- **Last weeks** on Medals: every weekly gold / silver / bronze you earned
+- Kevin-only **Week medals** table on The house: athlete rows × gold / silver / bronze counts
+
 ## 5.3.0 - 2026-08-30
 
 ### Added

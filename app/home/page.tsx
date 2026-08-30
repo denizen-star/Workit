@@ -24,7 +24,11 @@ import { earliestKey } from '@/lib/chartTrend';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import BeltChest from '@/components/BeltChest';
+import WeekMedal from '@/components/WeekMedal';
+import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import { aimingCopy, lockedWeekCount } from '@/lib/belts';
+import { markWeekPodiumSeen, shouldShowWeekPodiumTakeover } from '@/lib/weekPodiumSeen';
+import { isWeekPlace, type WeekPodiumYou } from '@/lib/weekPodium';
 
 function formatCount(value: number | null | undefined) {
   return String(Math.round(Number(value || 0)));
@@ -57,6 +61,8 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [houseOpen, setHouseOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
+  const [weekYou, setWeekYou] = useState<(WeekPodiumYou & { line: string }) | null>(null);
+  const [weekTakeover, setWeekTakeover] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -93,13 +99,19 @@ export default function Home() {
 
     const loadStats = async () => {
       try {
-        const [statsRes, badgesRes] = await Promise.all([
+        const [statsRes, badgesRes, podiumRes] = await Promise.all([
           fetch('/api/stats?home=1'),
           fetch('/api/badges'),
+          fetch('/api/week-podium'),
         ]);
         if (cancelled) return;
         if (statsRes.ok) setStats(await statsRes.json());
         if (badgesRes.ok) setBadges(await badgesRes.json());
+        if (podiumRes.ok) {
+          const podium = await podiumRes.json();
+          const you = podium?.you as (WeekPodiumYou & { line: string }) | null;
+          setWeekYou(you && isWeekPlace(you.place) ? you : null);
+        }
       } catch (error) {
         console.error('Error loading home stats:', error);
       }
@@ -111,6 +123,11 @@ export default function Home() {
       cancelled = true;
     };
   }, []);
+
+  useEffect(() => {
+    if (userId == null || !weekYou) return;
+    if (shouldShowWeekPodiumTakeover(userId, weekYou)) setWeekTakeover(true);
+  }, [userId, weekYou]);
 
   const today = getTodayTarget(sessions);
   const todayHref =
@@ -179,7 +196,12 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="gold-hero p-6 sm:p-8">
+        <div className={`gold-hero relative p-6 sm:p-8${weekYou ? ' pr-24 sm:pr-28' : ''}`}>
+          {weekYou ? (
+            <div className="absolute right-6 top-6 sm:right-8 sm:top-8">
+              <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
+            </div>
+          ) : null}
           {today.type === 'hold' ? (
             <>
               <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
@@ -378,6 +400,17 @@ export default function Home() {
         </div>
       </div>
       <InviteFriendModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
+      {weekYou ? (
+        <WeekPodiumTakeover
+          open={weekTakeover}
+          place={weekYou.place}
+          line={weekYou.line}
+          onClose={() => {
+            if (userId != null) markWeekPodiumSeen(userId, weekYou.weekMonday);
+            setWeekTakeover(false);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

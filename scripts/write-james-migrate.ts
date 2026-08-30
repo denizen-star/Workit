@@ -21,6 +21,13 @@ function lineRows(voiceId: string) {
   pack.optionalComplete.forEach((body, sort) => {
     rows.push(`(${sql(voiceId)}, 'optional_complete', ${sort + 1}, NULL, ${sql(body)}, 1)`);
   });
+  (['weekPlace1', 'weekPlace2', 'weekPlace3'] as const).forEach((key, index) => {
+    pack[key].forEach((body, sort) => {
+      rows.push(
+        `(${sql(voiceId)}, ${sql('week_place_' + (index + 1))}, ${sort + 1}, NULL, ${sql(body)}, 1)`
+      );
+    });
+  });
   rows.push(
     `(${sql(voiceId)}, 'set_up', 0, ${sql(pack.setUpTitle)}, ${sql(pack.setUpBody)}, 1)`
   );

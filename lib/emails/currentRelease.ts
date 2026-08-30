@@ -26,33 +26,27 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '5.3.0',
-  title: 'Who you are. How you lift.',
-  subject: 'Who you are. How you lift.',
+  version: '5.4.0',
+  title: 'The week has metal.',
+  subject: 'The week has metal.',
   signer: 'Master Tom Iron',
   tone: 'master',
-  intro: 'You will know the door now. You will know the lift. I do not leave you guessing, man.',
-  mid: 'Tap the mark. Read it. Then get under the bar. Quit stays outside.',
-  close: 'Hard-refresh. Open Who if you forgot the PIN. Then report in.',
+  intro:
+    'The week has a top now. Days first. Then iron. I mark 1st, 2nd, 3rd. You will know if you placed, man.',
+  mid: 'Sunday ends the week. Monday I tell the ones who placed. The rest get silence. Hunt.',
+  close: 'Hard-refresh. Open Home. If you earned metal, take it. Then get under the bar.',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: [],
   lead: '',
   groups: [
     {
-      heading: 'Who',
+      heading: 'The week',
       wins: [
-        "What is Work-It? — tap the mark next to Who's working out. What the app is. Then four short points.",
-        'Claim — three lines. Make the PIN. Gold Start is next.',
-        'Home screen — on claim, a short mark. Safari. Share. Add.',
-        'Forgot PIN — under the pad if that name has mail. I send a link. One hour. New four digits.',
-      ],
-    },
-    {
-      heading: 'The lift',
-      wins: [
-        'How — the mark on the name. Gym or travel. Plain trainer talk.',
-        'The card — the long italic line is gone. Stills and video stay.',
+        'After Sunday — that Mon–Sun week locks. Same score as The house. Days, then total lb.',
+        'Monday — first open, a shout if you are 1st, 2nd, or 3rd. Gold. Silver. Bronze.',
+        'Home — your disc sits on Start if you placed. No place, no mark.',
+        'Medals — Last weeks keeps every place you earned.',
       ],
     },
   ],

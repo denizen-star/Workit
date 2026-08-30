@@ -16,6 +16,9 @@ export type LinePack = {
   complete: string[];
   bonusComplete: string[];
   optionalComplete: string[];
+  weekPlace1: string[];
+  weekPlace2: string[];
+  weekPlace3: string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -61,6 +64,9 @@ function emptyPack(): LinePack {
     complete: [],
     bonusComplete: [],
     optionalComplete: [],
+    weekPlace1: [],
+    weekPlace2: [],
+    weekPlace3: [],
     setUpTitle: '',
     setUpBody: '',
     setDownTitle: '',
@@ -214,6 +220,9 @@ export function catalogFromRows(
     if (row.bucket === 'optional_complete') {
       pack.optionalComplete.push(row.body);
     }
+    if (row.bucket === 'week_place_1') pack.weekPlace1.push(row.body);
+    if (row.bucket === 'week_place_2') pack.weekPlace2.push(row.body);
+    if (row.bucket === 'week_place_3') pack.weekPlace3.push(row.body);
   }
 
   return { voices: nextVoices, packs: nextPacks };

@@ -86,10 +86,10 @@ export function easternMondayKey(d: Date = new Date()): string {
   const ymd = easternYmd(d);
   const weekday = easternWeekday(d);
   const back = weekday === 0 ? 6 : weekday - 1;
-  return addCalendarDaysEastern(ymd, -back);
+  return addEasternCalendarDays(ymd, -back);
 }
 
-function addCalendarDaysEastern(ymd: string, delta: number): string {
+export function addEasternCalendarDays(ymd: string, delta: number): string {
   const noon = new Date(`${ymd}T12:00:00-05:00`);
   return easternYmd(addDays(noon, delta));
 }
@@ -99,7 +99,7 @@ function buildDayLabels(startYmd: string, endYmdInclusive: string): string[] {
   let cur = startYmd;
   while (cur <= endYmdInclusive) {
     labels.push(cur);
-    cur = addCalendarDaysEastern(cur, 1);
+    cur = addEasternCalendarDays(cur, 1);
   }
   return labels;
 }
@@ -136,7 +136,7 @@ export function resolveAnalyticsWindow(range: AnalyticsRangeId, now = new Date()
   }
 
   if (range === 'yesterday') {
-    const ymdY = addCalendarDaysEastern(ymdToday, -1);
+    const ymdY = addEasternCalendarDays(ymdToday, -1);
     const yStart = easternMidnightUtc(ymdY);
     const yEndEx = addDays(yStart, 1);
     return {
@@ -150,15 +150,15 @@ export function resolveAnalyticsWindow(range: AnalyticsRangeId, now = new Date()
   if (range === 'all') {
     return {
       bucket: 'day',
-      labels: buildDayLabels(addCalendarDaysEastern(ymdToday, -89), ymdToday),
-      rangeStartUtc: easternMidnightUtc(addCalendarDaysEastern(ymdToday, -89)),
+      labels: buildDayLabels(addEasternCalendarDays(ymdToday, -89), ymdToday),
+      rangeStartUtc: easternMidnightUtc(addEasternCalendarDays(ymdToday, -89)),
       rangeEndExclusiveUtc: tomorrowStartUtc,
     };
   }
 
   let startYmd: string;
-  if (range === '7d') startYmd = addCalendarDaysEastern(ymdToday, -6);
-  else if (range === '30d') startYmd = addCalendarDaysEastern(ymdToday, -29);
+  if (range === '7d') startYmd = addEasternCalendarDays(ymdToday, -6);
+  else if (range === '30d') startYmd = addEasternCalendarDays(ymdToday, -29);
   else {
     const y = Number(ymdToday.slice(0, 4));
     const m = Number(ymdToday.slice(5, 7));
