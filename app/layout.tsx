@@ -57,18 +57,49 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <script
             dangerouslySetInnerHTML={{
               __html: `
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.getRegistrations().then(function(regs) {
-                  return Promise.all(regs.map(function(reg) { return reg.unregister(); }));
-                }).then(function() {
-                  if (!window.caches) return;
-                  return caches.keys().then(function(keys) {
-                    return Promise.all(keys.map(function(key) { return caches.delete(key); }));
+            (function () {
+              var KEY = 'workit_css_reload';
+              function clearAndReload() {
+                if (sessionStorage.getItem(KEY)) return;
+                sessionStorage.setItem(KEY, '1');
+                var done = function () { location.reload(); };
+                var chain = Promise.resolve();
+                if ('serviceWorker' in navigator) {
+                  chain = navigator.serviceWorker.getRegistrations().then(function (regs) {
+                    return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
                   });
-                }).catch(function() {});
+                }
+                chain.then(function () {
+                  if (!window.caches) return;
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+                  });
+                }).then(done).catch(done);
+              }
+              function sheetDead() {
+                var bg = getComputedStyle(document.body).backgroundColor;
+                return bg === 'rgba(0, 0, 0, 0)' || bg === 'rgb(255, 255, 255)';
+              }
+              if ('serviceWorker' in navigator) {
+                navigator.serviceWorker.getRegistrations().then(function (regs) {
+                  return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
+                }).then(function () {
+                  if (!window.caches) return;
+                  return caches.keys().then(function (keys) {
+                    return Promise.all(keys.map(function (key) { return caches.delete(key); }));
+                  });
+                }).catch(function () {});
+              }
+              document.querySelectorAll('link[rel="stylesheet"]').forEach(function (link) {
+                link.addEventListener('error', clearAndReload);
+                fetch(link.href, { cache: 'no-store', method: 'HEAD' }).then(function (res) {
+                  if (!res.ok) clearAndReload();
+                }).catch(clearAndReload);
               });
-            }
+              setTimeout(function () {
+                if (sheetDead()) clearAndReload();
+              }, 400);
+            })();
           `,
             }}
           />
