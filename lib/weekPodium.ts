@@ -6,6 +6,7 @@ import {
 } from '@/lib/analyticsTime';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
+import { REQUIRED_DAYS_TO_LOCK } from '@/lib/bonusDay';
 import { isTestUserName, SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import { workoutDateKey } from '@/lib/statsHousehold';
@@ -26,6 +27,12 @@ export type WeekPodiumRow = {
 export type WeekPodiumYou = {
   weekMonday: string;
   place: WeekPlace;
+};
+
+export type WeekMissYou = {
+  weekMonday: string;
+  workouts: number;
+  line: string;
 };
 
 /** Mondays of Eastern weeks whose Sunday has already ended. Current week is never included. */
@@ -280,6 +287,22 @@ export async function loadWeekMedalCounts(): Promise<WeekMedalCountRow[]> {
     if (isMissingPodiumTable(error)) return [];
     throw error;
   }
+}
+
+/** Finished sessions in a closed Eastern Mon–Sun week. Same window as the podium. */
+export async function countUserClosedWeekWorkouts(userId: number, monday: string): Promise<number> {
+  const { startUtc, endUtc } = weekWindowUtc(monday);
+  const result = await query(
+    `SELECT COUNT(*) as n
+     FROM workout_sessions ws
+     WHERE ws.user_id = ? AND ws.is_completed = 1 ${windowSql('ws')}`,
+    [userId, startUtc, endUtc]
+  );
+  return Number((result.rows[0] as { n: number } | undefined)?.n || 0);
+}
+
+export function missedTheWeek(workouts: number) {
+  return workouts < REQUIRED_DAYS_TO_LOCK;
 }
 
 export async function loadUserWeekMedals(userId: number, userName: string): Promise<WeekPodiumYou[]> {

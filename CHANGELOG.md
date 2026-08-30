@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 5.5.0 - 2026-08-30
+
+### Added
+- **Tom, if you leave a session open.** Home says it. Resume says it. The come-back mail says it: you're late; late again and you stay out of the house
+- More Tom lines in the session (start, middle, finish) and on How hard 5: **DO YOU GIVE?** / You must give
+- Last week short of 4 finished sessions and no medal: first Home open, Tom asks if you were busy and if there is a booming market for you. Once. Test never sees it
+
 ## 5.4.0 - 2026-08-30
 
 ### Added

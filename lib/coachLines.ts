@@ -1,5 +1,6 @@
 import { getLinePack, packIsUsable } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { firstName } from '@/lib/profile';
 
 export type { CoachTone };
 
@@ -14,6 +15,8 @@ type LinePack = {
   weekPlace1: readonly string[];
   weekPlace2: readonly string[];
   weekPlace3: readonly string[];
+  resume: readonly string[];
+  missedWeek: readonly string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -39,6 +42,9 @@ const MASTER: LinePack = {
     'That first plate is a promise. Do not make me collect later.',
     'Count the breath. Then move. Hesitation is a tell.',
     'I am watching. Take the bar.',
+    "You don't ask where we're going. You just sit under the bar and keep your hands on the weights.",
+    "Stand straight. If you're going to carry yourself like that, don't do it around me.",
+    'I am structured',
   ],
   mid: [
     'You are not tired. You are being trained. Difference.',
@@ -57,6 +63,9 @@ const MASTER: LinePack = {
     'Stay mean with the iron. Soft hands lose bars.',
     'Give me the next set like it owes you money.',
     'Perfect form. No excuses. Push.',
+    "I don't need you to think about it. I need you to do it.",
+    "You like being told what to do, don't you?",
+    'What am I going to do with you?',
   ],
   final: [
     'Those last two reps belong to me.',
@@ -127,6 +136,9 @@ const MASTER: LinePack = {
     'Another brick. Serious work today.',
     'When it got heavy you found another gear. I saw that.',
     'The battle is won. Recover. Then come home.',
+    "You can get started on dinner. You're useful now.",
+    'Eat up. You look like a gust of wind could knock you off the back.',
+    "That's enough out of you for today.",
   ],
   bonusComplete: [
     'You did not owe me that, man. You paid anyway. That earns aftercare. I look after my men.',
@@ -157,6 +169,10 @@ const MASTER: LinePack = {
     'Bronze. The house counted you. Do not make me drop you.',
     'You placed. Soft men did not. Remember that.',
   ],
+  resume: ["You're late. If you're late again, you stay out of the house."],
+  missedWeek: [
+    'Oh, sorry... were you busy?\nIs there a booming market for {name}?',
+  ],
   setUpTitle: 'GOOD MAN',
   setUpBody: 'I like where this is going. Stay there.',
   setDownTitle: 'That is not the load',
@@ -166,7 +182,7 @@ const MASTER: LinePack = {
     2: { title: 'LIGHT WORK', body: 'You had more in the tank. I felt it.' },
     3: { title: 'HONEST SET', body: 'That is a working set. Stay there or go up.' },
     4: { title: 'THAT COST YOU', body: 'Good man. Hard is the point. Stay there.' },
-    5: { title: 'MAX EFFORT', body: 'You emptied it. I saw that.' },
+    5: { title: 'DO YOU GIVE?', body: 'You must give.' },
   },
 };
 
@@ -306,6 +322,8 @@ const JAMES: LinePack = {
     'Bronze. Not first. Not gone. That is a choice I will watch.',
     'You placed. Come back heavier. I will be here.',
   ],
+  resume: [],
+  missedWeek: [],
   setUpTitle: 'I LIKE THIS',
   setUpBody: 'The load is climbing. Stay with it.',
   setDownTitle: 'That is not what we agreed',
@@ -455,6 +473,8 @@ const SERGEANT: LinePack = {
     'Bronze. You showed. That is enough to stand on.',
     'You placed. Soft finish. Come back present.',
   ],
+  resume: [],
+  missedWeek: [],
   setUpTitle: 'This is growth',
   setUpBody: 'I like where this is going. Stay with it.',
   setDownTitle: 'Come back to your last weight',
@@ -554,6 +574,14 @@ export function pickExitLine(tone?: CoachTone | null): string {
   return pickFrom(packFor(tone).exit, `exit:${normalizeCoachTone(tone)}`);
 }
 
+export function pickResumeLine(tone?: CoachTone | null): string {
+  const id = normalizeCoachTone(tone);
+  const live = getLinePack(id);
+  const pool = live?.resume && live.resume.length ? live.resume : PACKS[id].resume;
+  if (pool.length) return pickFrom(pool, `resume:${id}`);
+  return pickExitLine(tone);
+}
+
 export function pickCompleteLine(tone?: CoachTone | null): string {
   return pickFrom(packFor(tone).complete, `complete:${normalizeCoachTone(tone)}`);
 }
@@ -580,6 +608,14 @@ export function pickOptionalCompleteLine(tone?: CoachTone | null): string {
       ? live.optionalComplete
       : PACKS[id].optionalComplete;
   return pickFrom(pool, `optional:${id}`);
+}
+
+export function pickMissedWeekLine(name: string, tone?: CoachTone | null): string {
+  const id = normalizeCoachTone(tone);
+  const live = getLinePack(id);
+  const pool = live?.missedWeek && live.missedWeek.length ? live.missedWeek : PACKS[id].missedWeek;
+  const template = pool[0] || PACKS.master.missedWeek[0];
+  return template.replace(/\{name\}/g, firstName(name));
 }
 
 export function pickWeekPlaceLine(place: 1 | 2 | 3, tone?: CoachTone | null): string {

@@ -18,7 +18,7 @@ import {
   wrapEmailHtml,
 } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
-import { pickCoachLine, pickExitLine } from '@/lib/coachLines';
+import { pickCoachLine, pickResumeLine } from '@/lib/coachLines';
 import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { CURRENT_RELEASE, type ReleaseGroup } from '@/lib/emails/currentRelease';
@@ -527,7 +527,7 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const tone = normalizeCoachTone(input.tone);
   const luna = tone === 'luna';
-  const shout = input.mode === 'resume' ? pickExitLine(input.tone) : pickCoachLine(0, 3, input.tone);
+  const shout = input.mode === 'resume' ? pickResumeLine(input.tone) : pickCoachLine(0, 3, input.tone);
   const signer = voiceDisplayName(tone);
   const eyebrow = input.mode === 'resume' ? (luna ? 'still open' : 'unfinished') : luna ? 'when you are ready' : 'get to it';
   const title =

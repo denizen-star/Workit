@@ -19,6 +19,8 @@ export type LinePack = {
   weekPlace1: string[];
   weekPlace2: string[];
   weekPlace3: string[];
+  resume: string[];
+  missedWeek: string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -67,6 +69,8 @@ function emptyPack(): LinePack {
     weekPlace1: [],
     weekPlace2: [],
     weekPlace3: [],
+    resume: [],
+    missedWeek: [],
     setUpTitle: '',
     setUpBody: '',
     setDownTitle: '',
@@ -223,6 +227,8 @@ export function catalogFromRows(
     if (row.bucket === 'week_place_1') pack.weekPlace1.push(row.body);
     if (row.bucket === 'week_place_2') pack.weekPlace2.push(row.body);
     if (row.bucket === 'week_place_3') pack.weekPlace3.push(row.body);
+    if (row.bucket === 'resume') pack.resume.push(row.body);
+    if (row.bucket === 'missed_week') pack.missedWeek.push(row.body);
   }
 
   return { voices: nextVoices, packs: nextPacks };

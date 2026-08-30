@@ -26,9 +26,17 @@ import InviteFriendModal from '@/components/InviteFriendModal';
 import BeltChest from '@/components/BeltChest';
 import WeekMedal from '@/components/WeekMedal';
 import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
+import WeekMissTakeover from '@/components/WeekMissTakeover';
+import { hydrateCoachCatalog } from '@/lib/coachCatalog';
+import { pickResumeLine } from '@/lib/coachLines';
 import { aimingCopy, lockedWeekCount } from '@/lib/belts';
-import { markWeekPodiumSeen, shouldShowWeekPodiumTakeover } from '@/lib/weekPodiumSeen';
-import { isWeekPlace, type WeekPodiumYou } from '@/lib/weekPodium';
+import {
+  markWeekMissSeen,
+  markWeekPodiumSeen,
+  shouldShowWeekMissTakeover,
+  shouldShowWeekPodiumTakeover,
+} from '@/lib/weekPodiumSeen';
+import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
 
 function formatCount(value: number | null | undefined) {
   return String(Math.round(Number(value || 0)));
@@ -62,14 +70,21 @@ export default function Home() {
   const [houseOpen, setHouseOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [weekYou, setWeekYou] = useState<(WeekPodiumYou & { line: string }) | null>(null);
+  const [weekMiss, setWeekMiss] = useState<WeekMissYou | null>(null);
   const [weekTakeover, setWeekTakeover] = useState(false);
+  const [weekMissTakeover, setWeekMissTakeover] = useState(false);
+  const [resumeLine, setResumeLine] = useState('');
 
   useEffect(() => {
     let cancelled = false;
 
     const loadShell = async () => {
       try {
-        const [meRes, sessionsRes] = await Promise.all([fetch('/api/me'), fetch('/api/sessions')]);
+        const [meRes, sessionsRes, catalogRes] = await Promise.all([
+          fetch('/api/me'),
+          fetch('/api/sessions'),
+          fetch('/api/coach-catalog'),
+        ]);
 
         if (cancelled) return;
 
@@ -89,6 +104,10 @@ export default function Home() {
         if (sessionsRes.ok) {
           const sessionData = await sessionsRes.json();
           setSessions(sessionData.sessions || []);
+        }
+
+        if (catalogRes.ok) {
+          hydrateCoachCatalog(await catalogRes.json());
         }
       } catch (error) {
         console.error('Error loading home shell:', error);
@@ -110,7 +129,9 @@ export default function Home() {
         if (podiumRes.ok) {
           const podium = await podiumRes.json();
           const you = podium?.you as (WeekPodiumYou & { line: string }) | null;
+          const miss = podium?.miss as WeekMissYou | null;
           setWeekYou(you && isWeekPlace(you.place) ? you : null);
+          setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
         }
       } catch (error) {
         console.error('Error loading home stats:', error);
@@ -128,6 +149,19 @@ export default function Home() {
     if (userId == null || !weekYou) return;
     if (shouldShowWeekPodiumTakeover(userId, weekYou)) setWeekTakeover(true);
   }, [userId, weekYou]);
+
+  useEffect(() => {
+    if (userId == null || !weekMiss || weekYou) return;
+    if (shouldShowWeekMissTakeover(userId, weekMiss)) setWeekMissTakeover(true);
+  }, [userId, weekMiss, weekYou]);
+
+  useEffect(() => {
+    if (getTodayTarget(sessions).type !== 'resume') {
+      setResumeLine('');
+      return;
+    }
+    setResumeLine(pickResumeLine(userTone));
+  }, [sessions, userTone]);
 
   const today = getTodayTarget(sessions);
   const todayHref =
@@ -259,6 +293,9 @@ export default function Home() {
                 Week {today.week?.weekNumber} · {today.day?.name}
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">{today.day?.focus}</p>
+              {today.type === 'resume' && resumeLine && (
+                <p className="mt-3 text-lg leading-relaxed text-[#f6f1e3]/90">{resumeLine}</p>
+              )}
               {todayEstimate && (
                 <p className="mt-3 text-base font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
               )}
@@ -408,6 +445,16 @@ export default function Home() {
           onClose={() => {
             if (userId != null) markWeekPodiumSeen(userId, weekYou.weekMonday);
             setWeekTakeover(false);
+          }}
+        />
+      ) : null}
+      {weekMiss && !weekYou ? (
+        <WeekMissTakeover
+          open={weekMissTakeover}
+          line={weekMiss.line}
+          onClose={() => {
+            if (userId != null) markWeekMissSeen(userId, weekMiss.weekMonday);
+            setWeekMissTakeover(false);
           }}
         />
       ) : null}

@@ -30,9 +30,10 @@ import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
+import ResumeTakeover from '@/components/ResumeTakeover';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -60,6 +61,8 @@ function WorkoutPageInner() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [exitLine, setExitLine] = useState('');
+  const [confirmResume, setConfirmResume] = useState(false);
+  const [resumeLine, setResumeLine] = useState('');
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
@@ -113,6 +116,11 @@ function WorkoutPageInner() {
         console.error('Error loading workout prefs / coach catalog:', error);
       });
   }, []);
+
+  useEffect(() => {
+    if (!confirmResume) return;
+    setResumeLine(pickResumeLine(coachTone));
+  }, [confirmResume, coachTone]);
 
   useEffect(() => {
     if (!currentSession) {
@@ -243,6 +251,7 @@ function WorkoutPageInner() {
     const start = new Date(session.started_at || session.created_at || Date.now()).getTime();
     setStartedAt(start);
     setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
+    setConfirmResume(true);
   };
 
   const startWorkout = async (
@@ -602,6 +611,11 @@ function WorkoutPageInner() {
           </button>
         </div>
 
+        <ResumeTakeover
+          open={confirmResume}
+          line={resumeLine}
+          onClose={() => setConfirmResume(false)}
+        />
         <ExitTakeover
           open={confirmExit}
           line={exitLine}

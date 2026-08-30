@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser, isAdminUser } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
-import { pickWeekPlaceLine } from '@/lib/coachLines';
+import { pickMissedWeekLine, pickWeekPlaceLine } from '@/lib/coachLines';
 import { isTestUserName } from '@/lib/householdUsers';
 import {
+  countUserClosedWeekWorkouts,
   ensureClosedWeekPodiums,
   lastClosedMonday,
   loadUserWeekMedals,
   loadWeekMedalCounts,
+  missedTheWeek,
+  type WeekMissYou,
   type WeekPodiumYou,
 } from '@/lib/weekPodium';
 
@@ -35,9 +38,22 @@ export async function GET() {
         }
       : null;
 
+    let miss: WeekMissYou | null = null;
+    if (weekMonday && !you && !isTestUserName(user.name)) {
+      const workouts = await countUserClosedWeekWorkouts(user.id, weekMonday);
+      if (missedTheWeek(workouts)) {
+        miss = {
+          weekMonday,
+          workouts,
+          line: pickMissedWeekLine(user.name, user.coachTone),
+        };
+      }
+    }
+
     return NextResponse.json({
       weekMonday,
       you,
+      miss,
       history,
       ...(isAdminUser(user) ? { counts: await loadWeekMedalCounts() } : {}),
     });

@@ -26,27 +26,33 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '5.4.0',
-  title: 'The week has metal.',
-  subject: 'The week has metal.',
+  version: '5.5.0',
+  title: 'Do not leave the hour open.',
+  subject: 'Do not leave the hour open.',
   signer: 'Master Tom Iron',
   tone: 'master',
   intro:
-    'The week has a top now. Days first. Then iron. I mark 1st, 2nd, 3rd. You will know if you placed, man.',
-  mid: 'Sunday ends the week. Monday I tell the ones who placed. The rest get silence. Hunt.',
-  close: 'Hard-refresh. Open Home. If you earned metal, take it. Then get under the bar.',
+    'An open session is not a rest, man. It is you walking out on work I still own. I will say it once. I do not repeat myself for quit.',
+  mid: 'I have more to say under the bar. You do not get to pick the line. You lift.',
+  close: 'Hard-refresh. If a session is still open, come back. Then stay until I dismiss you.',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: [],
+  onlyAthletes: ['Kevin'],
   lead: '',
   groups: [
     {
-      heading: 'The week',
+      heading: 'Left open',
       wins: [
-        'After Sunday — that Mon–Sun week locks. Same score as The house. Days, then total lb.',
-        'Monday — first open, a shout if you are 1st, 2nd, or 3rd. Gold. Silver. Bronze.',
-        'Home — your disc sits on Start if you placed. No place, no mark.',
-        'Medals — Last weeks keeps every place you earned.',
+        'Home — Pick back up. I tell you that you are late.',
+        'Resume — same line when you walk back in.',
+        'Mail — if the hour is still open, I send it. Late again and you stay out of the house.',
+      ],
+    },
+    {
+      heading: 'Under the bar',
+      wins: [
+        'Start / middle / finish — more of my voice in the session.',
+        'How hard 5 — DO YOU GIVE? You must give.',
       ],
     },
   ],
