@@ -43,8 +43,8 @@ If you're unsure about intent behind a change or user-facing impact, **ask the u
 
 After the docs are updated, **always** mail household users. Do not skip this step.
 
-1. Rewrite `lib/emails/currentRelease.ts` from **CHANGELOG Unreleased** in **Master Workit** voice: gay dominant top drill sergeant. Address them as **man**. Sign off **Master Workit**.
+1. Rewrite `lib/emails/currentRelease.ts` from **CHANGELOG Unreleased**. Sandwich: `intro` / `mid` / `close` in **Master Tom Iron** (quit as a noun, address **man** in the body, no orphan `Man.` greeting). The `groups` middle is **plain English and visual** (`label — fact`). No developer words. Sign **Master Tom Iron**. James Grey and Luna Meadows recipients get their own intro/mid/close automatically. No Add-to-Home-Screen block on release.
 2. This mail is **for users**, not ops. No Netlify, env vars, cron secrets, Admin Mail, BCC, or deploy checklists.
-3. Keep `version` / `title` / `wins` / `also` current. Wins are orders, not a changelog dump.
+3. Keep `version` / `title` / `groups` current. Feature lines are facts, not a dump.
 4. Run `npm run mail:release` (needs `.env.local` SMTP). That sends to every `users.email` and BCCs `info@kervinapps.com`.
 5. In the reply, say who it went to (count, not a dump of secrets) and the subject. If SMTP fails, say so — still finish the docs.

@@ -32,7 +32,7 @@ import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -66,6 +66,7 @@ function WorkoutPageInner() {
   const [completeStars, setCompleteStars] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [completeLine, setCompleteLine] = useState('');
+  const [replenishLine, setReplenishLine] = useState('');
   const [bonusFinish, setBonusFinish] = useState(false);
   const [bonusFinishCount, setBonusFinishCount] = useState(0);
   const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
@@ -108,7 +109,9 @@ function WorkoutPageInner() {
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
-      .catch(() => {});
+      .catch((error) => {
+        console.error('Error loading workout prefs / coach catalog:', error);
+      });
   }, []);
 
   useEffect(() => {
@@ -331,6 +334,7 @@ function WorkoutPageInner() {
       setEarnedBelt(data.earnedBelt || null);
       setBonusFinish(true);
       setCompleteLine(pickBonusCompleteLine(coachTone));
+      setReplenishLine(pickReplenishLine());
       setShowSuccess(true);
     } catch (error) {
       console.error('Error saving bonus activity:', error);
@@ -439,6 +443,7 @@ function WorkoutPageInner() {
             ? pickBonusCompleteLine(coachTone)
             : pickCompleteLine(coachTone)
       );
+      setReplenishLine(pickReplenishLine());
       setShowSuccess(true);
     } catch (error) {
       console.error('Error completing workout:', error);
@@ -615,6 +620,7 @@ function WorkoutPageInner() {
         <CompleteTakeover
           open={showSuccess}
           line={completeLine}
+          replenish={replenishLine}
           badges={awardedBadges}
           earnedBelt={earnedBelt}
           bonus={bonusFinish}
@@ -912,6 +918,7 @@ function WorkoutPageInner() {
       <CompleteTakeover
         open={showSuccess}
         line={completeLine}
+        replenish={replenishLine}
         badges={awardedBadges}
         earnedBelt={earnedBelt}
         bonus={bonusFinish}

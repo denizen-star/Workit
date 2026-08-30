@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
           (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
         ).length >= 4;
       const earnedBelt = thisWeekLocked
-        ? serializeBelt(BELTS.find((item) => item.weeks === locked) || null)
+        ? serializeBelt(BELTS.find((item) => item.weeks === locked) || null, user.coachTone)
         : null;
       queueWorkoutCompleteEmails({
         userId: user.id,
@@ -281,7 +281,7 @@ export async function PUT(request: NextRequest) {
       const thisWeekLocked = rows.filter((row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))).length >= 4;
       if (!alreadyComplete && thisWeekLocked) {
         const belt = BELTS.find((item) => item.weeks === locked);
-        earnedBelt = serializeBelt(belt || null);
+        earnedBelt = serializeBelt(belt || null, user.coachTone);
       }
     }
 

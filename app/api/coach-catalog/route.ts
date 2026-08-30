@@ -12,13 +12,18 @@ export async function GET() {
 
     await loadCoachCatalogFromDb();
     const master = getLinePack('master');
-    const sergeant = getLinePack('sergeant');
+    const luna = getLinePack('luna');
+    const james = getLinePack('james');
 
     return NextResponse.json({
       voices: getCoachVoices(),
       packs:
-        packIsUsable(master) && packIsUsable(sergeant)
-          ? { master, sergeant }
+        packIsUsable(master) && packIsUsable(luna)
+          ? {
+              master,
+              luna,
+              ...(packIsUsable(james) ? { james } : {}),
+            }
           : undefined,
     });
   } catch (error) {

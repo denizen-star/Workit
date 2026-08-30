@@ -19,6 +19,9 @@ export const CURRENT_RELEASE: {
   activeInDays?: number;
   onlyAthletes?: string[];
   lead?: string;
+  intro?: string;
+  mid?: string;
+  close?: string;
   groups: ReleaseGroup[];
   wins: string[];
   also: string[];
@@ -26,41 +29,59 @@ export const CURRENT_RELEASE: {
   version: '5.0.0',
   title: 'A year. Belts. You earn the paper.',
   subject: 'New orders. 48 weeks. Diplomas.',
-  signer: 'Master Workit',
+  signer: 'Master Tom Iron',
   tone: 'master',
+  intro: 'Do not skim. These are orders. Read them. I do not repeat myself for quit.',
+  mid: 'I put the year on paper. Stay on it.',
+  close: 'Hard-refresh. Open Home. Then get under the bar.',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: [],
-  lead:
-    'Man. Six weeks was the visit. This is the year. You lock a week with four finishes. Gaps still count. I put a chest on Home so you see the belt you hold, the one you are filling, and the one after that. Who shows who already earned it and who is still aiming. Do not mix those up.',
+  lead: '',
   groups: [
     {
       heading: 'The year',
       wins: [
-        'Weeks 1 to 6 stay two lowers. That is the saddle. Stay on it.',
-        'Week 7 on: one lower, A then B. Friday is Extra Upper. Saturday bonus is core in the app, or a run or class you mark. That mark still counts toward the four.',
+        'Weeks 1 to 6 — two lower days. That is the start.',
+        'Week 7 on — one lower, A then B.',
+        'Friday — Extra Upper.',
+        'Saturday bonus — core in the app, or a run or class you mark.',
+        'Lock a week — four finishes. Missed days still count.',
       ],
     },
     {
       heading: 'The belts',
       wins: [
-        '2 weeks: Dipping your toes. 6: Got back in the saddle. 10: I see you getting stronger. 20: Steady. 24: Weigh-up sprint. 48: Arnold Status.',
-        'Open Belts. Before, During, After. Your row is ringed. The house is on that page too.',
-        'I tell you how many weeks you have locked. Cross a belt and I send the diploma. Medals still come with the mark.',
+        '2 weeks — Dipping your toes',
+        '6 weeks — Got back in the saddle',
+        '10 weeks — I see you getting stronger',
+        '20 weeks — Steady',
+        '24 weeks — Weigh-up sprint',
+        '48 weeks — Arnold Status',
       ],
     },
     {
-      heading: 'Home and the session',
+      heading: 'Home',
       wins: [
-        'Last lift scrolls you to cooldown. Finish it sits under that. The header does not close the day.',
-        'The sentence is this week, Monday to Sunday Eastern. A locked week stays through Sunday. Next week starts Monday.',
-        'You vs the house is cream you, copper them. You / house is vs the average. Your performance is you vs last time. Learn the difference.',
+        'Three belts — the one you hold, the one you are filling, the next one.',
+      ],
+    },
+    {
+      heading: 'Who',
+      wins: [
+        'Solid — you earned that belt',
+        'Aiming — you have not locked it yet',
+      ],
+    },
+    {
+      heading: 'The session',
+      wins: [
+        'Last lift — scrolls you to Easy cooldown',
+        'Finish it — under that card, phone and desktop',
+        'Header — does not close the day',
       ],
     },
   ],
   wins: [],
-  also: [
-    'Hard-refresh. Open Home. Read the chest. Open Belts. If Who says Aiming, you have not locked it yet.',
-    'Put Work-It on your iPhone home screen. Safari only. Steps at the bottom. Gold Start in the dock, man.',
-  ],
+  also: [],
 };

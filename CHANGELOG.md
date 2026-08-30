@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 5.2.0 - 2026-08-30
+
+### Added
+- **James Grey** in Edit profile (`james`). British want. Gym-plain, not office talk. Mail follows the pick
+- **Luna Meadows** to par: Nicole McPherson register (soft voice, hard work). Her mail, belts, and bonus care follow the pick
+- After every finished workout, a shuffled recover tip (water / food) under the finish shout and in the recap mail
+
+### Changed
+- Luna Meadows id is `luna` (old `sergeant` still reads until `migrate-luna-id.sql`)
+- Master Tom Iron copy: implication and control. Quit is the noun. Aftercare on bonus, not sex. Signer Master Tom Iron on his mail, including release
+- Release mail is a sandwich: voice intro / mid / close, plain labeled facts in the middle. No Add to Home Screen on release
+
 ## 5.1.0 - 2026-08-30
 
 ### Added

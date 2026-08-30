@@ -23,7 +23,7 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { CURRENT_RELEASE, type ReleaseGroup } from '@/lib/emails/currentRelease';
 import type { MailTemplateId } from '@/lib/emails/ids';
 import { badgeArtSrc } from '@/lib/badgeArt';
-import { beltArtSrc, currentBelt, nextBelt, type Belt } from '@/lib/belts';
+import { beltArtSrc, beltCoachLine, currentBelt, nextBelt, type Belt } from '@/lib/belts';
 
 export type BuiltEmail = {
   from: string;
@@ -34,6 +34,7 @@ export type BuiltEmail = {
 
 export type WelcomeEmailInput = {
   name: string;
+  tone?: CoachTone | null;
 };
 
 export type InviteEmailInput = {
@@ -41,6 +42,7 @@ export type InviteEmailInput = {
   inviterName: string;
   inviterEmail: string | null;
   claimUrl: string;
+  tone?: CoachTone | null;
 };
 
 export type InviteNotifyEmailInput = {
@@ -70,6 +72,7 @@ export type WorkoutCompleteEmailInput = {
   setCount?: number | null;
   exerciseCount?: number | null;
   completeLine: string;
+  replenishLine?: string | null;
   weekComplete?: boolean;
   programComplete?: boolean;
   nextLabel?: string | null;
@@ -211,11 +214,15 @@ export type ReleaseEmailInput = {
   title: string;
   subject?: string;
   lead?: string;
+  intro?: string;
+  mid?: string;
+  close?: string;
   wins: string[];
   groups?: ReleaseGroup[];
   also?: string[];
   tone?: CoachTone | null;
   signer?: string;
+  homeScreen?: boolean;
 };
 
 function releaseGroups(input: ReleaseEmailInput): ReleaseGroup[] {
@@ -224,22 +231,72 @@ function releaseGroups(input: ReleaseEmailInput): ReleaseGroup[] {
   return [];
 }
 
+function releaseFactHtml(item: string) {
+  const parts = item.split(/\s+—\s+/);
+  if (parts.length < 2) {
+    return (
+      '<div style="margin:0 0 8px;font-size:15px;line-height:1.5;color:#f6f1e3;">' +
+      esc(item) +
+      '</div>'
+    );
+  }
+  return (
+    '<tr>' +
+    '<td valign="top" style="padding:4px 12px 8px 0;font-size:13px;font-weight:800;color:#e8c547;white-space:nowrap;">' +
+    esc(parts[0]) +
+    '</td>' +
+    '<td valign="top" style="padding:4px 0 8px;font-size:15px;line-height:1.45;color:#f6f1e3;">' +
+    esc(parts.slice(1).join(' — ')) +
+    '</td></tr>'
+  );
+}
+
 function releaseGroupsHtml(groups: ReleaseGroup[]) {
   return groups
-    .map(
-      (group) =>
-        p('<strong style="color:#e8c547;">' + esc(group.heading) + '</strong>') +
-        bullets(group.wins)
-    )
+    .map((group) => {
+      const labeled = group.wins.some((item) => /\s+—\s+/.test(item));
+      const body = labeled
+        ? '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px;">' +
+          group.wins.map(releaseFactHtml).join('') +
+          '</table>'
+        : bullets(group.wins);
+      return p('<strong style="color:#e8c547;">' + esc(group.heading.toUpperCase()) + '</strong>') + body;
+    })
     .join('');
 }
 
 function releaseGroupsText(groups: ReleaseGroup[]) {
   return groups.flatMap((group) => [
     group.heading.toUpperCase(),
-    ...group.wins.map((item) => '  - ' + item),
+    ...group.wins.map((item) => '  ' + item),
     '',
   ]);
+}
+
+function releaseVoice(tone?: CoachTone | null) {
+  const id = normalizeCoachTone(tone);
+  if (id === 'james') {
+    return {
+      intro: 'You will read this. I want you to understand it.',
+      mid: 'This is what changed. Keep it.',
+      close: 'Refresh. Then come back to me.',
+      eyebrow: 'a note · ',
+    };
+  }
+  if (id === 'luna') {
+    return {
+      intro: 'Read this when you can. I want it to be clear.',
+      mid: 'This is what changed. Take it in.',
+      close: 'Refresh. Then come back when you are ready.',
+      eyebrow: 'a note · ',
+    };
+  }
+  return {
+    intro: 'Do not skim. These are orders. Read them. I do not repeat myself for quit.',
+    mid: 'I put the year on paper. Stay on it.',
+    close: 'Hard-refresh. Open Home. Then get under the bar.',
+    eyebrow: 'new orders · ',
+  };
 }
 
 function fromFor(tone?: CoachTone | null) {
@@ -253,24 +310,52 @@ function address(name: string) {
 export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const url = whoUrl();
-  const eyebrow = 'roster';
-  const title = "You're mine now";
+  const tone = normalizeCoachTone(input.tone);
+  const grey = tone === 'james';
+  const luna = tone === 'luna';
+  const signer = voiceDisplayName(tone);
+  const eyebrow = luna ? 'welcome' : 'roster';
+  const title = luna ? 'You are welcome here' : grey ? 'You are mine now' : "You're mine now";
   const subtitle = '- by invitation only';
+  const open = luna
+    ? 'I have a place for you on the floor. Come when you are ready. And do come.'
+    : grey
+      ? 'I have you now. That was not a suggestion.'
+      : 'I put you on the roster. That was not a suggestion.';
+  const next = luna
+    ? 'Open the app. Pick your name. Set your PIN. Then begin. I will keep the work honest.'
+    : grey
+      ? 'Open the app. Pick your name. Punch your PIN. Then get under the bar. I want to see what you are.'
+      : 'Open the app. Pick your name. Punch your PIN. Then get under the bar and show me what you are made of.';
+  const pin = luna
+    ? 'Want a different PIN? Edit profile. Same four digits is fine. I care that you show up.'
+    : grey
+      ? 'Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed. I care that you show up.'
+      : 'Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed. I do not care as long as you show up.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
     subtitle,
+    signer,
     childrenHtml: [
       address(name),
-      p('I put you on the roster. That was not a suggestion.'),
-      p('Open the app. Pick your name. Punch your PIN. Then get under the bar and show me what you are made of.'),
-      p('Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed. I do not care as long as you show up.'),
-      bullets([
-        'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
-        'Every set logged. Rest when I say. Badges when you earn them.',
-        'Your numbers stay on your profile so I can inspect you.',
-      ]),
-      cta(url, 'REPORT IN'),
+      p(open),
+      p(next),
+      p(pin),
+      bullets(
+        luna
+          ? [
+              'Six weeks. Upper. Lower. The load grows. You will finish it.',
+              'Every set logged. Rest when it is time. Badges when you earn them.',
+              'Your numbers stay with you so we can see the work.',
+            ]
+          : [
+              'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
+              'Every set logged. Rest when I say. Badges when you earn them.',
+              'Your numbers stay on your profile so I can inspect you.',
+            ]
+      ),
+      cta(url, luna ? 'COME TRAIN' : 'REPORT IN'),
       iosHomeScreenStepsHtml(),
     ].join(''),
   });
@@ -278,40 +363,68 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     emailTextHeader(eyebrow, title + '\n' + subtitle),
     name + '.',
     '',
-    'I put you on the roster. That was not a suggestion.',
-    'Open the app. Pick your name. Punch your PIN. Then get under the bar.',
-    'Want a different PIN? Report in, open Edit profile, and set one. Same four digits is allowed.',
+    open,
+    next,
+    pin,
     '',
     url,
     '',
     iosHomeScreenStepsText(),
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ].join('\n');
-  return { from: fromFor(), subject: "You're mine. Work-It.", html, text };
+  return {
+    from: fromFor(input.tone),
+    subject: luna ? 'You are welcome. Work-It.' : grey ? 'You are mine. Work-It.' : "You're mine. Work-It.",
+    html,
+    text,
+  };
 }
 
 export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const url = input.claimUrl;
+  const tone = normalizeCoachTone(input.tone);
+  const grey = tone === 'james';
+  const luna = tone === 'luna';
+  const signer = voiceDisplayName(tone);
   const inviter = input.inviterEmail
     ? input.inviterName + ' (' + input.inviterEmail + ')'
     : input.inviterName;
-  const eyebrow = 'roster';
-  const title = "You're mine now";
+  const eyebrow = luna ? 'welcome' : 'roster';
+  const title = luna ? 'You are welcome here' : grey ? 'You are mine now' : "You're mine now";
   const subtitle = '- by invitation only';
+  const put = luna
+    ? esc(inviter) + ' saved you a place on the floor. Come when you are ready. And do come.'
+    : grey
+      ? esc(inviter) + ' put you on my watch. That was not a suggestion.'
+      : esc(inviter) + ' put you on my roster. That was not a suggestion.';
+  const next = luna
+    ? 'Open the link. Create your 4-digit PIN. Confirm it. Then begin. I will keep the work honest.'
+    : grey
+      ? 'Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar. I want to see what you are.'
+      : 'Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar and show me what you are made of.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
     subtitle,
+    signer,
     childrenHtml: [
       address(name),
-      p(esc(inviter) + ' put you on my roster. That was not a suggestion.'),
-      p('Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar and show me what you are made of.'),
-      bullets([
-        'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
-        'Every set logged. Rest when I say. Badges when you earn them.',
-        'Your numbers stay on your profile so I can inspect you.',
-      ]),
+      p(put),
+      p(next),
+      bullets(
+        luna
+          ? [
+              'Six weeks. Upper. Lower. The load grows. You will finish it.',
+              'Every set logged. Rest when it is time. Badges when you earn them.',
+              'Your numbers stay with you so we can see the work.',
+            ]
+          : [
+              'Six weeks. Upper. Lower. Progressive overload. You will finish it.',
+              'Every set logged. Rest when I say. Badges when you earn them.',
+              'Your numbers stay on your profile so I can inspect you.',
+            ]
+      ),
       cta(url, 'CREATE YOUR PIN'),
       iosHomeScreenStepsHtml(),
     ].join(''),
@@ -320,15 +433,24 @@ export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
     emailTextHeader(eyebrow, title + '\n' + subtitle),
     name + '.',
     '',
-    inviter + ' put you on my roster. That was not a suggestion.',
-    'Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar.',
+    luna
+      ? inviter + ' saved you a place on the floor. Come when you are ready. And do come.'
+      : inviter + (grey ? ' put you on my watch. That was not a suggestion.' : ' put you on my roster. That was not a suggestion.'),
+    luna
+      ? 'Open the link. Create your 4-digit PIN. Confirm it. Then begin.'
+      : 'Open the link. Create your 4-digit PIN. Confirm it. Then get under the bar.',
     '',
     url,
     '',
     iosHomeScreenStepsText(),
-    emailTextSignOff(),
+    emailTextSignOff(signer),
   ].join('\n');
-  return { from: fromFor(), subject: "You're mine. Work-It.", html, text };
+  return {
+    from: fromFor(input.tone),
+    subject: luna ? 'You are welcome. Work-It.' : grey ? 'You are mine. Work-It.' : "You're mine. Work-It.",
+    html,
+    text,
+  };
 }
 
 export function buildInviteNotifyEmail(input: InviteNotifyEmailInput): BuiltEmail {
@@ -363,17 +485,49 @@ export function buildInviteNotifyEmail(input: InviteNotifyEmailInput): BuiltEmai
 
 export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
+  const tone = normalizeCoachTone(input.tone);
+  const luna = tone === 'luna';
   const shout = input.mode === 'resume' ? pickExitLine(input.tone) : pickCoachLine(0, 3, input.tone);
-  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
-  const eyebrow = input.mode === 'resume' ? 'unfinished' : 'get to it';
+  const signer = voiceDisplayName(tone);
+  const eyebrow = input.mode === 'resume' ? (luna ? 'still open' : 'unfinished') : luna ? 'when you are ready' : 'get to it';
   const title =
     input.mode === 'resume'
-      ? 'Did I give you permission to quit?'
-      : input.dayName + '. Now.';
+      ? luna
+        ? 'Stay. The session is still open.'
+        : 'Did I give you permission to quit?'
+      : luna
+        ? input.dayName + '. When you are ready.'
+        : input.dayName + '. Now.';
   const estimate = input.estimate
-    ? p(esc(input.estimate) + '. That time belongs to me.')
+    ? p(esc(input.estimate) + (luna ? '. That time is yours. Stay with it.' : '. That time belongs to me.'))
     : '';
   const href = input.href.startsWith('http') ? input.href : appUrl() + input.href;
+  const body =
+    input.mode === 'resume'
+      ? luna
+        ? 'Week ' +
+          esc(String(input.weekNumber)) +
+          ' · ' +
+          esc(input.dayName) +
+          ' is still open. Come back to the floor. Breathe. Finish it.'
+        : 'Week ' +
+          esc(String(input.weekNumber)) +
+          ' · ' +
+          esc(input.dayName) +
+          ' is still open. An unfinished session is a humiliation. Get back under the bar.'
+      : luna
+        ? 'Week ' +
+          esc(String(input.weekNumber)) +
+          ' · ' +
+          esc(input.dayName) +
+          (input.focus ? ' · ' + esc(input.focus) : '') +
+          '. That hour is waiting. I will hold it with you.'
+        : 'Week ' +
+          esc(String(input.weekNumber)) +
+          ' · ' +
+          esc(input.dayName) +
+          (input.focus ? ' · ' + esc(input.focus) : '') +
+          '. I own that session.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
@@ -381,28 +535,19 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
     childrenHtml: [
       address(name),
       p('<strong style="color:#fff;">' + esc(shout) + '</strong>'),
-      p(
-        input.mode === 'resume'
-          ? 'Week ' +
-              esc(String(input.weekNumber)) +
-              ' · ' +
-              esc(input.dayName) +
-              ' is still open. An unfinished session is a humiliation. Get back under the bar.'
-          : 'Week ' +
-              esc(String(input.weekNumber)) +
-              ' · ' +
-              esc(input.dayName) +
-              (input.focus ? ' · ' + esc(input.focus) : '') +
-              '. I own that session.'
-      ),
+      p(body),
       estimate,
-      cta(href, input.mode === 'resume' ? 'FINISH IT' : 'GET TO IT'),
+      cta(href, input.mode === 'resume' ? (luna ? 'STAY WITH IT' : 'FINISH IT') : luna ? 'BEGIN' : 'GET TO IT'),
     ].join(''),
   });
   const subject =
     input.mode === 'resume'
-      ? 'Get back under the bar — ' + input.dayName
-      : 'Get to it — ' + input.dayName;
+      ? luna
+        ? 'Stay with it — ' + input.dayName
+        : 'Get back under the bar — ' + input.dayName
+      : luna
+        ? 'Begin — ' + input.dayName
+        : 'Get to it — ' + input.dayName;
   const text = [
     emailTextHeader(eyebrow, title),
     name + '.',
@@ -410,8 +555,12 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
     shout,
     '',
     input.mode === 'resume'
-      ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is still open. Finish it.'
-      : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. I own that session.',
+      ? luna
+        ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is still open. Come back. Finish it.'
+        : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is still open. Finish it.'
+      : luna
+        ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. I will hold it with you.'
+        : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. I own that session.',
     '',
     href,
     emailTextSignOff(signer),
@@ -426,13 +575,21 @@ function formatLbs(value: number | null | undefined) {
 
 export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
-  const eyebrow = input.programComplete ? 'program complete' : input.weekComplete ? 'week locked' : 'paid';
+  const tone = normalizeCoachTone(input.tone);
+  const luna = tone === 'luna';
+  const signer = voiceDisplayName(tone);
+  const eyebrow = input.programComplete ? 'program complete' : input.weekComplete ? 'week locked' : luna ? 'complete' : 'paid';
   const title = input.programComplete
-    ? 'Six weeks. You did not break.'
+    ? luna
+      ? 'Six weeks. You stayed.'
+      : 'Six weeks. You did not break.'
     : input.weekComplete
-      ? 'Week ' + input.weekNumber + ' is locked. You paid.'
-      : input.dayName + ' is done. Good man.';
+      ? luna
+        ? 'Week ' + input.weekNumber + ' is locked. You finished what you came for.'
+        : 'Week ' + input.weekNumber + ' is locked. You paid.'
+      : luna
+        ? input.dayName + ' is done. Beautiful.'
+        : input.dayName + ' is done. Good man.';
 
   const rows: Array<[string, string]> = [
     ['Workout', 'Week ' + input.weekNumber + ' · ' + input.dayName],
@@ -443,12 +600,20 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
   ];
 
   const next = input.programComplete
-    ? p('The tax is paid in full. Recover like a pro. Then come home and let me reward you.')
+    ? p(
+        luna
+          ? 'The work is complete. Rest. Then come home.'
+          : 'The tax is paid in full. Recover like a pro. Then come home and let me reward you.'
+      )
     : input.nextLabel
       ? p(
-          'Next up belongs to me: <strong style="color:#fff;">' +
-            esc(input.nextLabel) +
-            '</strong>. Don\'t get soft.'
+          luna
+            ? 'Next is waiting: <strong style="color:#fff;">' +
+              esc(input.nextLabel) +
+              '</strong>. Soft start. Then we work.'
+            : 'Next up belongs to me: <strong style="color:#fff;">' +
+              esc(input.nextLabel) +
+              '</strong>. Don\'t get soft.'
         )
       : '';
 
@@ -459,18 +624,25 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     childrenHtml: [
       address(name),
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
+      input.replenishLine ? p(esc(input.replenishLine)) : '',
       statsTable(rows),
       beltProgressBlock(input.lockedWeeks).html,
       next,
-      cta(whoUrl(), input.programComplete ? 'COME HOME' : 'SHOW ME'),
+      cta(whoUrl(), input.programComplete ? 'COME HOME' : luna ? 'I AM HERE' : 'SHOW ME'),
     ].join(''),
   });
 
   const subject = input.programComplete
-    ? 'Program complete. You are mine.'
+    ? luna
+      ? 'The year is yours.'
+      : 'Program complete. You are mine.'
     : input.weekComplete
-      ? 'Week ' + input.weekNumber + ' locked. Don\'t get soft.'
-      : 'Paid. ' + input.dayName + ' is done.';
+      ? luna
+        ? 'Week ' + input.weekNumber + ' locked. Rest.'
+        : 'Week ' + input.weekNumber + ' locked. Don\'t get soft.'
+      : luna
+        ? 'Complete. ' + input.dayName + ' is done.'
+        : 'Paid. ' + input.dayName + ' is done.';
 
   const text = [
     emailTextHeader(eyebrow, title),
@@ -478,14 +650,19 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     '',
     input.completeLine,
     '',
+    ...(input.replenishLine ? [input.replenishLine, ''] : []),
     'Week ' + input.weekNumber + ' · ' + input.dayName,
     'Time: ' + formatDuration(input.durationSeconds),
     'Volume: ' + formatLbs(input.volumeLbs),
     ...beltProgressBlock(input.lockedWeeks).text,
     input.programComplete
-      ? 'The tax is paid in full. Come home.'
+      ? luna
+        ? 'The work is complete. Come home.'
+        : 'The tax is paid in full. Come home.'
       : input.nextLabel
-        ? 'Next belongs to me: ' + input.nextLabel
+        ? luna
+          ? 'Next is waiting: ' + input.nextLabel
+          : 'Next belongs to me: ' + input.nextLabel
         : '',
     '',
     whoUrl(),
@@ -499,9 +676,11 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
 
 export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = voiceDisplayName(normalizeCoachTone(input.tone));
+  const tone = normalizeCoachTone(input.tone);
+  const luna = tone === 'luna';
+  const signer = voiceDisplayName(tone);
   const eyebrow = 'earned';
-  const title = 'Good man. ' + input.badgeName + '.';
+  const title = luna ? 'Well done. ' + input.badgeName + '.' : 'Good man. ' + input.badgeName + '.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
@@ -510,8 +689,12 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
       address(name),
       emailArt(hostedAsset(badgeArtSrc(input.badgeName)), input.badgeName, 96),
       p(esc(input.badgeDescription) + '.'),
-      p('You earned this because you did what I told you. It stays on your profile so I can see it. Now earn the next one for me.'),
-      cta(whoUrl(), 'SHOW ME'),
+      p(
+        luna
+          ? 'You earned this because you stayed with the work. It lives on your profile. The next one will wait.'
+          : 'You earned this because you did what I told you. It stays on your profile so I can see it. Now earn the next one for me.'
+      ),
+      cta(whoUrl(), luna ? 'I AM HERE' : 'SHOW ME'),
     ].join(''),
   });
   const text = [
@@ -520,14 +703,16 @@ export function buildBadgeEmail(input: BadgeEmailInput): BuiltEmail {
     '',
     input.badgeName,
     input.badgeDescription + '.',
-    'You earned this because you did what I told you. Now earn the next one for me.',
+    luna
+      ? 'You earned this because you stayed with the work. The next one will wait.'
+      : 'You earned this because you did what I told you. Now earn the next one for me.',
     '',
     whoUrl(),
     emailTextSignOff(signer),
   ].join('\n');
   return {
     from: fromFor(input.tone),
-    subject: 'Good man. You earned ' + input.badgeName + '.',
+    subject: luna ? 'Well done. You earned ' + input.badgeName + '.' : 'Good man. You earned ' + input.badgeName + '.',
     html,
     text,
   };
@@ -548,7 +733,7 @@ export function buildBeltEmail(input: BeltEmailInput): BuiltEmail {
       emailArt(hostedAsset(beltArtSrc(belt.slug)), belt.name, 180),
       p('<strong style="color:#fff;">' + esc(belt.quote) + '</strong>'),
       p(esc(belt.saidBy)),
-      p(esc(belt.coachLine)),
+      p(esc(beltCoachLine(belt, input.tone))),
       cta(appUrl() + '/belts', 'SEE THE BELTS'),
     ].join(''),
   });
@@ -558,7 +743,7 @@ export function buildBeltEmail(input: BeltEmailInput): BuiltEmail {
     '',
     belt.quote,
     belt.saidBy,
-    belt.coachLine,
+    beltCoachLine(belt, input.tone),
     '',
     appUrl() + '/belts',
     emailTextSignOff(signer),
@@ -632,7 +817,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     eyebrow,
     title,
     childrenHtml: [
-      p('I do not care about feelings. I care who showed up and who went soft.'),
+      p('I do not care about feelings. I care who showed up and who went soft. Quit does not get a row of honor.'),
       p('Open sessions are unfinished business. I see them.'),
       rankingHtml,
       yoursHtml,
@@ -648,7 +833,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   const text = [
     emailTextHeader(eyebrow, title),
     '',
-    'I do not care about feelings. I care who showed up and who went soft.',
+    'I do not care about feelings. I care who showed up and who went soft. Quit does not get a row of honor.',
     '',
     ...(input.ranking && input.ranking.length
       ? ['Best day / Total weight.', ...input.ranking.map((line) => '  ' + line), '']
@@ -685,54 +870,61 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
 
 export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const signer = input.signer || voiceDisplayName(normalizeCoachTone(input.tone));
-  const sergeant = normalizeCoachTone(input.tone) === 'sergeant';
-  const ordersLine = sergeant
-    ? 'Do not skim this like a changelog. These are notes from your guide. Stay with them.'
-    : 'Do not skim this like a changelog, sissy. These are orders from Master Tom Iron.';
-  const refreshLine = sergeant
-    ? 'Hard-refresh if you are still on the old build. Then come train with me.'
-    : 'Hard-refresh if you are still running the old build. Then get under the bar.';
-  const eyebrow = sergeant ? 'a note · ' + input.version : 'new orders · ' + input.version;
+  const tone = normalizeCoachTone(input.tone);
+  const voice = releaseVoice(tone);
+  const signer =
+    tone === 'master' ? input.signer || voiceDisplayName(tone) : voiceDisplayName(tone);
+  const intro = tone === 'master' ? input.intro || voice.intro : voice.intro;
+  const mid = tone === 'master' ? input.mid || voice.mid : voice.mid;
+  const close = tone === 'master' ? input.close || voice.close : voice.close;
+  const eyebrow = voice.eyebrow + input.version;
   const groups = releaseGroups(input);
+  const first = groups[0] ? [groups[0]] : [];
+  const rest = groups.slice(1);
   const html = wrapEmailHtml({
     eyebrow,
     title: input.title,
     signer,
     childrenHtml: [
       address(name),
-      input.lead ? p(esc(input.lead)) : '',
-      p(ordersLine),
-      p(refreshLine),
-      releaseGroupsHtml(groups),
+      p(esc(intro)),
+      releaseGroupsHtml(first),
+      mid ? p(esc(mid)) : '',
+      releaseGroupsHtml(rest),
       input.also && input.also.length
         ? p('<strong style="color:#fff;">and you will also:</strong>') + bullets(input.also)
         : '',
-      cta(whoUrl(), 'REPORT IN'),
-      iosHomeScreenStepsHtml(),
+      p(esc(close)),
+      cta(whoUrl(), tone === 'luna' ? 'COME TRAIN' : 'REPORT IN'),
+      input.homeScreen ? iosHomeScreenStepsHtml() : '',
     ].join(''),
   });
   const text = [
     emailTextHeader(eyebrow, input.title),
     name + '.',
     '',
-    ...(input.lead ? [input.lead, ''] : []),
-    ordersLine,
+    intro,
     '',
-    refreshLine,
-    '',
-    ...releaseGroupsText(groups),
+    ...releaseGroupsText(first),
+    ...(mid ? [mid, ''] : []),
+    ...releaseGroupsText(rest),
     ...(input.also && input.also.length
       ? ['And you will also:', ...input.also.map((item) => '  - ' + item), '']
       : []),
-    whoUrl(),
+    close,
     '',
-    iosHomeScreenStepsText(),
+    whoUrl(),
+    ...(input.homeScreen ? ['', iosHomeScreenStepsText()] : []),
     emailTextSignOff(signer),
   ].join('\n');
   return {
-    from: fromFor(input.tone),
-    subject: input.subject || 'New orders — ' + input.title,
+    from: fromFor(tone),
+    subject:
+      input.subject && tone === 'master'
+        ? input.subject
+        : tone === 'master'
+          ? 'New orders — ' + input.title
+          : 'A note — ' + input.title,
     html,
     text,
   };
@@ -747,8 +939,8 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
     volumeLbs: 12450,
     setCount: 18,
     exerciseCount: 6,
-    completeLine:
-      "THAT IS HOW YOU FINISH. Watching you drive through that last rep turned me completely on.",
+    completeLine: 'That is how you finish. I watched. You do not get to look away.',
+    replenishLine: 'Rehydrate with at least 16 ounces of water.',
     nextLabel: 'Week 3 · Lower Body A',
     lockedWeeks: 4,
   };

@@ -11,6 +11,7 @@ import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
 import { buildReleaseEmail } from '../lib/emails/templates';
 import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
 import { firstName } from '../lib/profile';
+import { normalizeCoachTone } from '../lib/coachTone';
 
 async function householdRecipients() {
   const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
@@ -21,20 +22,20 @@ async function householdRecipients() {
       : '';
   const result = await query(
     onlyWorked
-      ? `SELECT DISTINCT u.id, u.name, u.email
+      ? `SELECT DISTINCT u.id, u.name, u.email, u.coach_tone
          FROM users u
          INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
          WHERE u.email IS NOT NULL AND u.email != ''
            AND ${SQL_EXCLUDE_TEST_USER}
          ORDER BY u.id ASC`
-      : `SELECT id, name, email FROM users
+      : `SELECT id, name, email, coach_tone FROM users
          WHERE email IS NOT NULL AND email != ''
          ORDER BY id ASC`
   );
   const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) =>
     name.trim().toLowerCase()
   );
-  const rows = (result.rows as { id: number; name: string; email: string | null }[]).filter(
+  const rows = (result.rows as { id: number; name: string; email: string | null; coach_tone?: string | null }[]).filter(
     (row) => {
       if (!row.email) return false;
       if (only.length === 0) return true;
@@ -68,9 +69,12 @@ async function main() {
 
   let sent = 0;
   for (const user of recipients) {
+    const tone = normalizeCoachTone(user.coach_tone);
     const email = buildReleaseEmail({
       name: user.name,
       ...CURRENT_RELEASE,
+      tone,
+      signer: tone === 'master' ? CURRENT_RELEASE.signer : undefined,
     });
     const id = await sendEmail({
       to: user.email as string,

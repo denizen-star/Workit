@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
       email,
       inviterName: user.name,
       inviterEmail: user.email,
+      inviterId: user.id,
       rawToken: raw,
     });
 

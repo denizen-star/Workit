@@ -63,6 +63,7 @@ export async function POST(request: NextRequest) {
       email: guest.email,
       inviterName,
       inviterEmail,
+      inviterId: guest.invited_by || user.id,
       rawToken,
     });
 

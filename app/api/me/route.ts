@@ -11,7 +11,7 @@ import {
   updateSoundOn,
   updateRestExtraMinutes,
 } from '@/lib/auth';
-import { isCoachTone } from '@/lib/coachTone';
+import { asCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
@@ -50,7 +50,7 @@ export async function PATCH(request: NextRequest) {
     const name = normalizeName(body.name);
     const email = normalizeEmail(body.email);
     const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
-    const coachTone = isCoachTone(body.coachTone) ? body.coachTone : user.coachTone;
+    const coachTone = asCoachTone(body.coachTone) ?? user.coachTone;
     const soundOn = body.soundOn === undefined ? user.soundOn : normalizeSoundOn(body.soundOn);
     const restExtraMinutes =
       body.restExtraMinutes === undefined

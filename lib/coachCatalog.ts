@@ -1,4 +1,4 @@
-import { isCoachTone, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { asCoachTone, normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 
 export type CoachVoiceRecord = {
   id: CoachTone;
@@ -23,22 +23,32 @@ export type LinePack = {
   hardness: Partial<Record<1 | 2 | 3 | 4 | 5, { title: string; body: string }>>;
 };
 
+const VOICE_ORDER: CoachTone[] = ['master', 'james', 'luna'];
+
 export const FALLBACK_VOICES: CoachVoiceRecord[] = [
   {
     id: 'master',
     displayName: 'Master Tom Iron',
     fromName: 'Master Tom Iron',
-    blurb: 'The original voice. Direct. I own you. I call you sissy. Good man stays good man.',
+    blurb: 'Direct. I own you. Quit is not a name I use. Good man stays good man.',
     description:
-      'Dominant drill-sergeant coach. Direct, possessive, and demanding. He calls you man or sissy, owns the session, and treats every rep as tax. Praise is earned. Quitting is not a conversation.',
+      'Enigmatic master. Direct, possessive, and demanding. He takes you under his wing. He calls you man. Quit is not a name he uses. Praise is earned. Aftercare is the reward for extra work.',
   },
   {
-    id: 'sergeant',
+    id: 'james',
+    displayName: 'James Grey',
+    fromName: 'James Grey',
+    blurb: 'Grey. Private. He wants you present, and he wants it kept.',
+    description:
+      'Precise, British. He takes you under his watch. He wants you and hates how much. Praise is rare. The session is not a joke.',
+  },
+  {
+    id: 'luna',
     displayName: 'Luna Meadows',
     fromName: 'Luna Meadows',
-    blurb: 'A warm, grounded guide. Present. Gentle. She keeps you in the work.',
+    blurb: 'Calm. Soft. She will still hold you in the hard part.',
     description:
-      'Warm, grounded guide. Present and gentle, but she does not let you leave the work. She talks in breath, ease, and devotion. The standard stays; the voice stays kind.',
+      'Melodic and still. She talks like a moving meditation: breath, alignment, stay. The work can burn. The voice does not. Praise is quiet. Leaving early is not the practice.',
   },
 ];
 
@@ -68,7 +78,7 @@ export function fallbackVoice(tone?: CoachTone | null) {
 }
 
 export function getCoachVoices() {
-  return voices;
+  return [...voices].sort((a, b) => VOICE_ORDER.indexOf(a.id) - VOICE_ORDER.indexOf(b.id));
 }
 
 export function getCoachToneOptions() {
@@ -104,13 +114,24 @@ export function hydrateCoachCatalog(input: {
   packs?: Partial<Record<CoachTone, LinePack>>;
 }) {
   if (input.voices?.length) {
-    const next = input.voices.filter((voice) => isCoachTone(voice.id));
+    const next: CoachVoiceRecord[] = [];
+    for (const voice of input.voices) {
+      const id = asCoachTone(voice.id);
+      if (!id || next.some((item) => item.id === id)) continue;
+      next.push({ ...voice, id });
+    }
+    const seen = new Set(next.map((voice) => voice.id));
+    for (const fallback of FALLBACK_VOICES) {
+      if (!seen.has(fallback.id)) next.push(fallback);
+    }
     if (next.length) voices = next;
   }
-  if (input.packs?.master && input.packs?.sergeant) {
+  const lunaPack = input.packs?.luna || (input.packs as { sergeant?: LinePack } | undefined)?.sergeant;
+  if (input.packs?.master && lunaPack) {
     packs = {
       master: input.packs.master,
-      sergeant: input.packs.sergeant,
+      luna: lunaPack,
+      james: input.packs.james || emptyPack(),
     };
   }
 }
@@ -133,9 +154,10 @@ export function catalogFromRows(
 ) {
   const nextVoices: CoachVoiceRecord[] = [];
   for (const row of voiceRows) {
-    if (!isCoachTone(row.id)) continue;
+    const id = asCoachTone(row.id);
+    if (!id || nextVoices.some((voice) => voice.id === id)) continue;
     nextVoices.push({
-      id: row.id,
+      id,
       displayName: row.display_name,
       description: row.description,
       blurb: row.blurb,
@@ -145,12 +167,18 @@ export function catalogFromRows(
 
   const nextPacks: Record<CoachTone, LinePack> = {
     master: emptyPack(),
-    sergeant: emptyPack(),
+    james: emptyPack(),
+    luna: emptyPack(),
   };
+  const seenLine = new Set<string>();
 
   for (const row of lineRows) {
-    if (!isCoachTone(row.voice_id)) continue;
-    const pack = nextPacks[row.voice_id];
+    const voiceId = asCoachTone(row.voice_id);
+    if (!voiceId) continue;
+    const lineKey = `${voiceId}:${row.bucket}:${row.sort_order}`;
+    if (seenLine.has(lineKey)) continue;
+    seenLine.add(lineKey);
+    const pack = nextPacks[voiceId];
     if (row.bucket === 'set_up') {
       pack.setUpTitle = row.title || '';
       pack.setUpBody = row.body;

@@ -5,7 +5,7 @@ import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume } from '@/lib/optionals';
 import { getUserTone } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
-import { pickCompleteLine } from '@/lib/coachLines';
+import { pickCompleteLine, pickReplenishLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import {
   buildBadgeEmail,
@@ -33,14 +33,17 @@ export async function sendInviteEmail(opts: {
   email: string;
   inviterName: string;
   inviterEmail: string | null;
+  inviterId?: number | null;
   rawToken: string;
   dedupe: boolean;
 }) {
+  const tone = opts.inviterId ? await getUserTone(opts.inviterId) : undefined;
   const email = buildInviteEmail({
     name: opts.name,
     inviterName: opts.inviterName,
     inviterEmail: opts.inviterEmail,
     claimUrl: claimUrl(opts.rawToken),
+    tone,
   });
   if (!opts.dedupe) {
     const id = await sendNow(opts.email, email, {
@@ -81,6 +84,7 @@ export function queueInviteEmail(opts: {
   email: string;
   inviterName: string;
   inviterEmail: string | null;
+  inviterId?: number | null;
   rawToken: string;
 }) {
   after(async () => {
@@ -100,6 +104,7 @@ export async function resendInviteEmail(opts: {
   email: string;
   inviterName: string;
   inviterEmail: string | null;
+  inviterId?: number | null;
   rawToken: string;
 }) {
   return sendInviteEmail({ ...opts, dedupe: false });
@@ -114,7 +119,7 @@ export function queueWelcomeEmail(user: { id: number; name: string; email: strin
 
 export async function sendWelcomeEmail(user: { id: number; name: string; email: string | null }) {
   if (!user.email) return { sent: false, skipped: 'no-address' as const };
-  const email = buildWelcomeEmail({ name: user.name });
+  const email = buildWelcomeEmail({ name: user.name, tone: await getUserTone(user.id) });
   return claimAndSend({
     userId: user.id,
     athleteName: user.name,
@@ -133,7 +138,7 @@ export async function resendWelcomeEmails() {
   );
   const results = [];
   for (const user of result.rows as { id: number; name: string; email: string }[]) {
-    const email = buildWelcomeEmail({ name: user.name });
+    const email = buildWelcomeEmail({ name: user.name, tone: await getUserTone(user.id) });
     const id = await sendNow(user.email, email, {
       userId: user.id,
       athleteName: user.name,
@@ -233,6 +238,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     setCount: Number(totalRow.set_count || 0),
     exerciseCount: Number(totalRow.exercise_count || 0),
     completeLine: pickCompleteLine(tone),
+    replenishLine: pickReplenishLine(),
     weekComplete,
     programComplete,
     nextLabel,

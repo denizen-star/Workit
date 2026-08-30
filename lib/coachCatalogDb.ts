@@ -38,7 +38,7 @@ export async function loadCoachCatalogFromDb() {
           sort_order: number;
         }>
       );
-      if (catalog.voices.length && packIsUsable(catalog.packs.master) && packIsUsable(catalog.packs.sergeant)) {
+      if (catalog.voices.length && packIsUsable(catalog.packs.master) && packIsUsable(catalog.packs.luna)) {
         hydrateCoachCatalog(catalog);
         loaded = true;
       }

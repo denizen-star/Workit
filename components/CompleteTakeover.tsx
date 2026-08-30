@@ -22,6 +22,7 @@ export type TakeoverBelt = {
 interface CompleteTakeoverProps {
   open: boolean;
   line: string;
+  replenish?: string;
   badges?: TakeoverBadge[];
   earnedBelt?: TakeoverBelt | null;
   bonus?: boolean;
@@ -40,6 +41,7 @@ function splitLine(line: string) {
 export default function CompleteTakeover({
   open,
   line,
+  replenish,
   badges = [],
   earnedBelt = null,
   bonus = false,
@@ -169,6 +171,11 @@ export default function CompleteTakeover({
             {body ? (
               <p className="mt-6 text-lg font-medium leading-relaxed text-[#f6f1e3]/85 sm:text-xl">
                 {body}
+              </p>
+            ) : null}
+            {replenish ? (
+              <p className="mt-6 text-base font-medium leading-relaxed text-[#e8c547] sm:text-lg">
+                {replenish}
               </p>
             ) : null}
           </>

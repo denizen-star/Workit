@@ -1,3 +1,5 @@
+import { normalizeCoachTone } from '@/lib/coachTone';
+
 export type BeltState = 'before' | 'during' | 'after';
 
 export type Belt = {
@@ -9,6 +11,8 @@ export type Belt = {
   quote: string;
   saidBy: string;
   coachLine: string;
+  coachLineJames?: string;
+  coachLineLuna?: string;
   /** Dark ink on a light paper diploma. */
   paper: 'light' | 'dark';
 };
@@ -21,7 +25,9 @@ export const BELTS: Belt[] = [
     fill: '#f6f1e3',
     quote: 'Failure is an attitude, not an outcome.',
     saidBy: 'Tom Platz',
-    coachLine: 'You showed up. Two locked weeks. The water is not that cold, man.',
+    coachLine: 'Two locked weeks. You showed up. I have you, man.',
+    coachLineJames: 'Two locked weeks. You showed up. I have you now.',
+    coachLineLuna: 'Two locked weeks. You showed up. Soft start. Stay with it.',
     paper: 'light',
   },
   {
@@ -32,6 +38,8 @@ export const BELTS: Belt[] = [
     quote: 'Yeah buddy! Light weight, baby!',
     saidBy: 'Ronnie',
     coachLine: 'Six locked weeks. You are in the program, not visiting it.',
+    coachLineJames: 'Six locked weeks. You are in the program, not visiting it.',
+    coachLineLuna: 'Six locked weeks. You are in the program now. Breathe. Keep going.',
     paper: 'light',
   },
   {
@@ -42,6 +50,8 @@ export const BELTS: Belt[] = [
     quote: 'If I can change, and you can change, everybody can change!',
     saidBy: 'Rocky',
     coachLine: 'Ten locked weeks. The work is sticking.',
+    coachLineJames: 'Ten locked weeks. The work is sticking. I noticed.',
+    coachLineLuna: 'Ten locked weeks. The work is sticking. I can see it.',
     paper: 'dark',
   },
   {
@@ -52,6 +62,8 @@ export const BELTS: Belt[] = [
     quote: 'All I wanna do is go the distance.',
     saidBy: 'Rocky',
     coachLine: 'Twenty locked weeks. This is a habit. Your body can tell.',
+    coachLineJames: 'Twenty locked weeks. This is a habit. I intend to keep you in it.',
+    coachLineLuna: 'Twenty locked weeks. This is a habit. Your body already knows.',
     paper: 'light',
   },
   {
@@ -62,6 +74,8 @@ export const BELTS: Belt[] = [
     quote: "It ain't about how hard you hit. It's about how hard you can get hit and keep moving forward.",
     saidBy: 'Rocky',
     coachLine: 'Twenty-four locked weeks. The bar should be moving. Prove it.',
+    coachLineJames: 'Twenty-four locked weeks. The bar should be moving. Show me.',
+    coachLineLuna: 'Twenty-four locked weeks. The bar should be moving. Stay honest with it.',
     paper: 'dark',
   },
   {
@@ -73,6 +87,8 @@ export const BELTS: Belt[] = [
     quote: 'You pick it up, you put it down.',
     saidBy: 'Arnold',
     coachLine: 'Forty-eight locked weeks. You know how to keep it up.',
+    coachLineJames: 'Forty-eight locked weeks. You know how to keep it up.',
+    coachLineLuna: 'Forty-eight locked weeks. You know how to keep showing up.',
     paper: 'dark',
   },
 ];
@@ -105,6 +121,13 @@ export function currentBelt(lockedWeeks: number): Belt | null {
     if (lockedWeeks >= belt.weeks) earned = belt;
   }
   return earned;
+}
+
+export function beltCoachLine(belt: Belt, tone?: string | null) {
+  const id = normalizeCoachTone(tone);
+  if (id === 'james' && belt.coachLineJames) return belt.coachLineJames;
+  if (id === 'luna' && belt.coachLineLuna) return belt.coachLineLuna;
+  return belt.coachLine;
 }
 
 export function nextBelt(lockedWeeks: number): Belt | null {
@@ -190,7 +213,7 @@ export function beltWashStyle(belt: Belt): { background: string; borderColor: st
   };
 }
 
-export function serializeBelt(belt: Belt | null) {
+export function serializeBelt(belt: Belt | null, tone?: string | null) {
   if (!belt) return null;
   return {
     weeks: belt.weeks,
@@ -200,7 +223,7 @@ export function serializeBelt(belt: Belt | null) {
     trim: belt.trim || null,
     quote: belt.quote,
     saidBy: belt.saidBy,
-    coachLine: belt.coachLine,
+    coachLine: beltCoachLine(belt, tone),
     paper: belt.paper,
   };
 }
