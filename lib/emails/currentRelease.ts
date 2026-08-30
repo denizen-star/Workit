@@ -26,14 +26,14 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '5.0.0',
-  title: 'A year. Belts. You earn the paper.',
+  version: '5.2.0',
+  title: 'A year. Belts. You pick the voice.',
   subject: 'New orders. 48 weeks. Diplomas.',
   signer: 'Master Tom Iron',
   tone: 'master',
-  intro: 'Do not skim. These are orders. Read them. I do not repeat myself for quit.',
-  mid: 'I put the year on paper. Stay on it.',
-  close: 'Hard-refresh. Open Home. Then get under the bar.',
+  intro: 'Do not skim. The year is on paper. You pick who owns the hour. I do not repeat myself for quit.',
+  mid: 'I put the year and the voices on paper. Stay on them, man.',
+  close: 'Hard-refresh. Open Edit profile if you want a different coach. Then get under the bar.',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: [],
@@ -61,24 +61,33 @@ export const CURRENT_RELEASE: {
       ],
     },
     {
-      heading: 'Home',
+      heading: 'Home and Who',
       wins: [
-        'Three belts — the one you hold, the one you are filling, the next one.',
-      ],
-    },
-    {
-      heading: 'Who',
-      wins: [
-        'Solid — you earned that belt',
-        'Aiming — you have not locked it yet',
+        'Home — the belt you hold, the one you are filling, the next one.',
+        'Solid — you earned that belt.',
+        'Aiming — you have not locked it yet.',
       ],
     },
     {
       heading: 'The session',
       wins: [
-        'Last lift — scrolls you to Easy cooldown',
-        'Finish it — under that card, phone and desktop',
-        'Header — does not close the day',
+        'Last lift — scrolls you to Easy cooldown.',
+        'Finish it — under that card, phone and desktop.',
+      ],
+    },
+    {
+      heading: 'The coaches',
+      wins: [
+        'James Grey — British. Private. He wants you present.',
+        'Luna Meadows — Calm. Soft. She still holds the hard part.',
+        'Master Tom Iron — I own the session. Quit is not a name I use.',
+      ],
+    },
+    {
+      heading: 'After you finish',
+      wins: [
+        'Recover tip — water and food, under the shout and in the recap.',
+        'Letters — they follow the coach you pick.',
       ],
     },
   ],

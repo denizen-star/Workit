@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 5.2.1 - 2026-08-30
+
+### Changed
+- Household release mail is one letter: 48-week year, belts, and the three coaches
+- Belt and badge art in mail always loads from the live site, not localhost
+
 ## 5.2.0 - 2026-08-30
 
 ### Added

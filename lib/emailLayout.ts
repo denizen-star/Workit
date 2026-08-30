@@ -129,7 +129,9 @@ export function statsTable(rows: Array<[string, string]>) {
 
 export function hostedAsset(path: string) {
   const clean = path.startsWith('/') ? path : '/' + path;
-  return appUrl() + clean;
+  // Always the live host. Local APP_URL / URL would make belt and badge art
+  // point at localhost, which inboxes cannot load.
+  return LIVE_APP_URL + clean;
 }
 
 export function emailArt(src: string, alt: string, width = 160) {
