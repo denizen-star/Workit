@@ -1,14 +1,18 @@
 'use client';
 
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import ScanCard from '@/components/ScanCard';
+import FlagStrip from '@/components/FlagStrip';
 import {
   PERFORMANCE_PERIODS,
+  addPerformanceFlags,
+  emptyPerformanceFlags,
   formatLbs,
   formatPct,
   type AthletePerformanceBoard,
+  type PerformanceFlags,
   type PerformanceLine,
   type PerformancePeriod,
   type PerformanceSummary,
@@ -16,11 +20,22 @@ import {
 } from '@/lib/athletePerformanceTypes';
 import { formatHardnessAvg } from '@/lib/hardness';
 import HardnessCharts from '@/components/HardnessCharts';
+import { mergeAthletePerformanceBoards } from '@/lib/mergeAthletePerformance';
+import { firstName } from '@/lib/scoreboardTypes';
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = {
-  '15': '15 days',
-  '30': '30 days',
-  all: 'All time',
+  t: 'T',
+  't-1': 'T-1',
+  't-7': 'T-7',
+  't-15': 'T-15',
+  't-30': 'T-30',
+  all: 'All',
+};
+
+type HouseholdRow = AthletePerformanceBoard & {
+  userId: number;
+  name: string;
+  flags?: PerformanceFlags;
 };
 
 function formatWhen(value: string | null) {
@@ -138,7 +153,7 @@ export function PeriodPills({
   onPick: (value: PerformancePeriod) => void;
 }) {
   return (
-    <div className="mb-3 grid grid-cols-3 gap-2">
+    <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
       {PERFORMANCE_PERIODS.map((option) => {
         const selected = option === period;
         return (
@@ -164,10 +179,13 @@ export function AthletePerformanceBoardView({
   board,
   page,
   athleteName,
+  layout = 'classic',
 }: {
   board: AthletePerformanceBoard;
   page: boolean;
   athleteName?: string;
+  /** `detail` is `/performance` only. Admin keeps `classic`. */
+  layout?: 'classic' | 'detail';
 }) {
   const summary = board.summary;
   const gainers = [...board.exercises]
@@ -178,39 +196,122 @@ export function AthletePerformanceBoardView({
     .filter((row) => row.result === 'loss')
     .sort((a, b) => (a.volumeChangePct || 0) - (b.volumeChangePct || 0));
 
+  const gainerBlock =
+    page && gainers.length > 0 ? (
+      <div className="space-y-2">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6d8b6e]">Gainers</p>
+        {gainers.map((row) => (
+          <LineRow key={row.key} line={row} />
+        ))}
+      </div>
+    ) : null;
+  const loserBlock =
+    page && losers.length > 0 ? (
+      <div className="space-y-2">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a35d52]">Losers</p>
+        {losers.map((row) => (
+          <LineRow key={row.key} line={row} />
+        ))}
+      </div>
+    ) : null;
+  const everyLift = page ? (
+    <Fold title="Every lift" hint={`${board.exercises.length} lifts`}>
+      {board.exercises.map((row) => (
+        <LineRow key={row.key} line={row} />
+      ))}
+    </Fold>
+  ) : null;
+  const byWorkout = page ? (
+    <Fold title="By workout" hint={`${board.workouts.length} days`}>
+      {board.workouts.map((workout) => (
+        <WorkoutBlock key={workout.workoutType} workout={workout} />
+      ))}
+    </Fold>
+  ) : null;
+
+  if (page && layout === 'detail') {
+    return (
+      <div className="space-y-3">
+        <SummaryCard summary={summary} athleteName={athleteName} />
+        <HardnessCharts board={board} athleteName={athleteName} section="workout" />
+        {byWorkout}
+        {gainerBlock}
+        {loserBlock}
+        <HardnessCharts board={board} athleteName={athleteName} section="lift" />
+        {everyLift}
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-3">
       <SummaryCard summary={summary} athleteName={athleteName} />
       <HardnessCharts board={board} athleteName={athleteName} />
-      {page && gainers.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6d8b6e]">Gainers</p>
-          {gainers.map((row) => (
-            <LineRow key={row.key} line={row} />
-          ))}
+      {gainerBlock}
+      {loserBlock}
+      {everyLift}
+      {byWorkout}
+    </div>
+  );
+}
+
+function AthleteFilter({
+  rows,
+  selected,
+  onToggle,
+  onCheckAll,
+}: {
+  rows: HouseholdRow[];
+  selected: number[];
+  onToggle: (userId: number) => void;
+  onCheckAll: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const label =
+    selected.length === 0
+      ? 'No athletes'
+      : selected.length === 1
+        ? firstName(rows.find((row) => row.userId === selected[0])?.name || 'You')
+        : `${selected.length} athletes`;
+
+  return (
+    <div className="relative mb-3">
+      <button
+        type="button"
+        onClick={() => setOpen((current) => !current)}
+        className="flex min-h-12 w-full items-center justify-between rounded-2xl border border-[#e8c547]/40 bg-black/25 px-3 text-left text-base font-semibold text-[#e8c547]"
+        aria-expanded={open}
+      >
+        <span>{label}</span>
+        {open ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+      </button>
+      {open && (
+        <div className="absolute z-20 mt-2 w-full space-y-1 rounded-2xl border border-white/10 bg-[#141414] p-2 shadow-xl">
+          <button
+            type="button"
+            onClick={onCheckAll}
+            className="flex min-h-11 w-full items-center rounded-xl px-3 text-left text-sm font-semibold text-[#e8c547]"
+          >
+            Check all
+          </button>
+          {rows.map((row) => {
+            const checked = selected.includes(row.userId);
+            return (
+              <label
+                key={row.userId}
+                className="flex min-h-11 items-center gap-3 rounded-xl px-3 text-[#f6f1e3]/85"
+              >
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => onToggle(row.userId)}
+                  className="h-4 w-4 accent-[#e8c547]"
+                />
+                <span className="text-sm font-semibold">{row.name}</span>
+              </label>
+            );
+          })}
         </div>
-      )}
-      {page && losers.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a35d52]">Losers</p>
-          {losers.map((row) => (
-            <LineRow key={row.key} line={row} />
-          ))}
-        </div>
-      )}
-      {page && (
-        <Fold title="Every lift" hint={`${board.exercises.length} lifts`}>
-          {board.exercises.map((row) => (
-            <LineRow key={row.key} line={row} />
-          ))}
-        </Fold>
-      )}
-      {page && (
-        <Fold title="By workout" hint={`${board.workouts.length} days`}>
-          {board.workouts.map((workout) => (
-            <WorkoutBlock key={workout.workoutType} workout={workout} />
-          ))}
-        </Fold>
       )}
     </div>
   );
@@ -223,46 +324,92 @@ export default function AthletePerformance({
 }) {
   const page = variant === 'page';
   const [open, setOpen] = useState(page);
-  const [period, setPeriod] = useState<PerformancePeriod>('15');
+  const [period, setPeriod] = useState<PerformancePeriod>('t');
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
+  const [household, setHousehold] = useState<HouseholdRow[] | null>(null);
+  const [selected, setSelected] = useState<number[]>([]);
+  const [isAdmin, setIsAdmin] = useState<boolean | null>(page ? null : false);
   const [hidden, setHidden] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/athlete-performance?period=' + period)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+
+    const load = async () => {
+      if (page) {
+        const meRes = await fetch('/api/me');
+        const me = meRes.ok ? await meRes.json() : null;
+        const admin = Boolean(me?.user?.isAdmin);
+        const userId = Number(me?.user?.id);
         if (cancelled) return;
-        if (data?.hidden) {
-          setHidden(true);
-          setBoard(null);
+        setIsAdmin(admin);
+
+        if (admin) {
+          const res = await fetch('/api/athlete-performance?household=1&includeTest=1&period=' + period);
+          const data = res.ok ? await res.json() : null;
+          if (cancelled) return;
+          const rows = (Array.isArray(data?.rows) ? data.rows : []) as HouseholdRow[];
+          setHousehold(rows);
+          setHidden(false);
+          setSelected((current) => {
+            if (current.length > 0) return current.filter((id) => rows.some((row) => row.userId === id));
+            return Number.isFinite(userId) ? [userId] : [];
+          });
           return;
         }
-        setHidden(false);
-        setBoard(data as AthletePerformanceBoard);
-      })
+      }
+
+      const res = await fetch('/api/athlete-performance?period=' + period);
+      const data = res.ok ? await res.json() : null;
+      if (cancelled) return;
+      setHousehold(null);
+      if (data?.hidden) {
+        setHidden(true);
+        setBoard(null);
+        return;
+      }
+      setHidden(false);
+      setBoard(data as AthletePerformanceBoard);
+    };
+
+    load()
       .catch(() => {
         if (!cancelled) {
           setHidden(false);
           setBoard(null);
+          setHousehold(null);
         }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
-  }, [period]);
+  }, [page, period]);
+
+  const merged = useMemo(() => {
+    if (!household) return board;
+    const rows = household.filter((row) => selected.includes(row.userId));
+    return mergeAthletePerformanceBoards(rows, period);
+  }, [board, household, period, selected]);
+
+  const flags = useMemo(() => {
+    if (!household) return null;
+    return household
+      .filter((row) => selected.includes(row.userId))
+      .reduce((sum, row) => addPerformanceFlags(sum, row.flags || emptyPerformanceFlags()), emptyPerformanceFlags());
+  }, [household, selected]);
 
   if (hidden) return null;
 
-  const summary = board?.summary;
+  const summary = merged?.summary;
   const trailing = summary ? `${summary.gains} up · ${summary.losses} down` : undefined;
   const empty =
-    !loading && !!board && board.exercises.length === 0 && board.workouts.length === 0;
+    !loading && !!merged && merged.exercises.length === 0 && merged.workouts.length === 0;
+  const noneSelected = page && isAdmin && selected.length === 0;
 
   const body = (
     <div>
@@ -279,16 +426,32 @@ export default function AthletePerformance({
           setLoading(true);
         }}
       />
+      {page && isAdmin === true && household ? (
+        <AthleteFilter
+          rows={household}
+          selected={selected}
+          onToggle={(userId) => {
+            setSelected((current) =>
+              current.includes(userId) ? current.filter((id) => id !== userId) : [...current, userId]
+            );
+          }}
+          onCheckAll={() => setSelected(household.map((row) => row.userId))}
+        />
+      ) : null}
       {loading ? (
         <p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>
+      ) : noneSelected ? (
+        <p className="text-sm text-[#f6f1e3]/55">No athletes selected.</p>
       ) : empty ? (
         <p className="text-sm text-[#f6f1e3]/55">
           No finished workouts in this window. Log a session and this fills in.
         </p>
-      ) : board ? (
-        <AthletePerformanceBoardView board={board} page={page} />
+      ) : merged ? (
+        <AthletePerformanceBoardView board={merged} page={page} layout={page ? 'detail' : 'classic'} />
       ) : null}
-      {!page && board ? (
+      {page && isAdmin === true && flags ? <FlagStrip period={period} flags={flags} /> : null}
+      {page && isAdmin === false ? <FlagStrip period={period} /> : null}
+      {!page && merged ? (
         <Link
           href="/performance"
           className="mt-4 inline-flex min-h-11 items-center text-base font-semibold text-[#e8c547]"

@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 5.6.0 - 2026-08-31
+
+### Changed
+- **Your performance** reads top to bottom: you vs last time, how hard by workout, by workout, gainers, losers, how hard by lift, every lift. Bonus done and optional sit at the bottom
+- Day pills are Eastern **T / T-1 / T-7 / T-15 / T-30 / All**. Opens on today. Same pills on the Home fold and on Admin Athletes. Home fold and Admin Athletes keep their old section order
+
+### Added
+- Kevin: check one or more athletes at the top of Your performance. Their weight and totals add on the same cards. Uncheck all and the board is empty. Test is in the list
+
 ## 5.5.0 - 2026-08-30
 
 ### Added

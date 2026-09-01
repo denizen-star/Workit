@@ -1,51 +1,27 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Clock, Flag } from 'lucide-react';
-import {
-  bonusCompletedInWeek,
-  bonusCount,
-  weekHasBonus,
-} from '@/lib/bonusDay';
-import {
-  optionalCountInWeek,
-  optionalWeekCount,
-} from '@/lib/optionals';
-import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
-import type { WeekPlan } from '@/lib/workoutData';
+import { type PerformanceFlags, type PerformancePeriod } from '@/lib/athletePerformanceTypes';
+import { performanceFlagsForSessions } from '@/lib/performanceFlags';
+import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 
-function Flags({ sessions, week }: { sessions: WorkoutSessionRow[]; week: WeekPlan | null }) {
-  const bonusDays = bonusCount(sessions);
-  const hasBonus = weekHasBonus(week);
-  const thisWeekBonus = week ? bonusCompletedInWeek(sessions, week.weekNumber) : false;
-  const optionalWeeks = optionalWeekCount(sessions);
-  const thisWeek = week
-    ? optionalCountInWeek(sessions, week.weekNumber)
-    : { warmups: 0, cooldowns: 0 };
-
-  if (!hasBonus && bonusDays === 0 && thisWeek.warmups === 0 && thisWeek.cooldowns === 0 && optionalWeeks === 0) {
+function Flags({ flags }: { flags: PerformanceFlags }) {
+  if (flags.bonusDays === 0 && flags.warmups === 0 && flags.cooldowns === 0 && flags.optionalWeeks === 0) {
     return null;
   }
 
   return (
-    <div className="flex flex-wrap items-start gap-x-8 gap-y-3 text-base">
-      {(hasBonus || bonusDays > 0) && (
+    <div className="mt-6 flex flex-wrap items-start gap-x-8 gap-y-3 text-base">
+      {flags.bonusDays > 0 && (
         <p className="inline-flex items-start gap-2.5 text-[#f6f1e3]/80">
           <Flag className="mt-0.5 h-5 w-5 shrink-0 text-[#e8c547]" />
           <span>
-            {hasBonus && week ? (
-              <span
-                className={`text-base font-black uppercase tracking-[0.14em] ${
-                  thisWeekBonus ? 'text-[#6d8b6e]' : 'text-[#e8c547]'
-                }`}
-              >
-                {thisWeekBonus ? `Bonus done · Week ${week.weekNumber}` : `Bonus still open · Week ${week.weekNumber}`}
-              </span>
-            ) : (
-              <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">Bonus</span>
-            )}
+            <span className="text-base font-black uppercase tracking-[0.14em] text-[#6d8b6e]">
+              Bonus done
+            </span>
             <span className="mt-1 block font-semibold text-white">
-              {bonusDays} bonus {bonusDays === 1 ? 'day' : 'days'}
+              {flags.bonusDays} bonus {flags.bonusDays === 1 ? 'day' : 'days'}
             </span>
           </span>
         </p>
@@ -54,13 +30,13 @@ function Flags({ sessions, week }: { sessions: WorkoutSessionRow[]; week: WeekPl
         <Clock className="mt-0.5 h-5 w-5 shrink-0 text-[#e8c547]" />
         <span>
           <span className="text-base font-black uppercase tracking-[0.14em] text-[#e8c547]">
-            {week ? `Optional · Week ${week.weekNumber}` : 'Optional'}
+            Optional
           </span>
           <span className="mt-1 block font-semibold text-white">
-            {thisWeek.warmups} warmup · {thisWeek.cooldowns} cooldown
+            {flags.warmups} warmup · {flags.cooldowns} cooldown
           </span>
           <span className="block text-base text-[#f6f1e3]/60">
-            {optionalWeeks} optional {optionalWeeks === 1 ? 'week' : 'weeks'}
+            {flags.optionalWeeks} optional {flags.optionalWeeks === 1 ? 'week' : 'weeks'}
           </span>
         </span>
       </p>
@@ -68,21 +44,22 @@ function Flags({ sessions, week }: { sessions: WorkoutSessionRow[]; week: WeekPl
   );
 }
 
-/** Bonus + optional flags. Lives on Your performance, not Home. */
+/** Bonus + optional flags. Lives at the bottom of Your performance. */
 export default function FlagStrip({
   sessions: sessionsProp,
-  week: weekProp,
+  period = 'all',
+  flags: flagsProp,
 }: {
   sessions?: WorkoutSessionRow[];
-  week?: WeekPlan | null;
+  period?: PerformancePeriod;
+  flags?: PerformanceFlags | null;
 }) {
   const [sessions, setSessions] = useState<WorkoutSessionRow[] | null>(sessionsProp || null);
-  const [week, setWeek] = useState<WeekPlan | null>(weekProp ?? null);
 
   useEffect(() => {
+    if (flagsProp) return;
     if (sessionsProp) {
       setSessions(sessionsProp);
-      setWeek(weekProp ?? getTodayTarget(sessionsProp).week);
       return;
     }
     let cancelled = false;
@@ -90,9 +67,7 @@ export default function FlagStrip({
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (cancelled) return;
-        const rows = (data?.sessions || []) as WorkoutSessionRow[];
-        setSessions(rows);
-        setWeek(getTodayTarget(rows).week);
+        setSessions((data?.sessions || []) as WorkoutSessionRow[]);
       })
       .catch(() => {
         if (!cancelled) setSessions([]);
@@ -100,8 +75,15 @@ export default function FlagStrip({
     return () => {
       cancelled = true;
     };
-  }, [sessionsProp, weekProp]);
+  }, [flagsProp, sessionsProp]);
 
-  if (!sessions) return null;
-  return <Flags sessions={sessions} week={week} />;
+  const flags = useMemo(() => {
+    if (flagsProp) return flagsProp;
+    if (!sessions) return null;
+    return performanceFlagsForSessions(sessions, period);
+  }, [flagsProp, period, sessions]);
+
+  if (!flags) return null;
+  return <Flags flags={flags} />;
 }
+

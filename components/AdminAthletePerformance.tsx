@@ -224,7 +224,7 @@ function AthleteFold({ row, lifts }: { row: HouseholdRow; lifts: LiftBoard[] }) 
 /** Admin Analytics: lift comparison across athletes, then each vs last time. Test stays off. */
 export default function AdminAthletePerformance({ filterUserId }: { filterUserId: string }) {
   const [open, setOpen] = useState(false);
-  const [period, setPeriod] = useState<PerformancePeriod>('30');
+  const [period, setPeriod] = useState<PerformancePeriod>('t');
   const [rows, setRows] = useState<HouseholdRow[]>([]);
   const [belts, setBelts] = useState<Array<{ id: number; name: string; lockedWeeks: number; display: { name: string; fill: string } | null }>>([]);
   const [loading, setLoading] = useState(true);

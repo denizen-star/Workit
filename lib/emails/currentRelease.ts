@@ -9,6 +9,13 @@ export type ReleaseGroup = {
   wins: string[];
 };
 
+export type ReleaseCopy = {
+  intro?: string;
+  mid?: string;
+  close?: string;
+  groups?: ReleaseGroup[];
+};
+
 export const CURRENT_RELEASE: {
   version: string;
   title: string;
@@ -23,39 +30,77 @@ export const CURRENT_RELEASE: {
   mid?: string;
   close?: string;
   groups: ReleaseGroup[];
+  /** Extra / replacement copy for Kevin only. Athletes never see this. */
+  kevin?: ReleaseCopy;
   wins: string[];
   also: string[];
 } = {
-  version: '5.5.0',
-  title: 'Do not leave the hour open.',
-  subject: 'Do not leave the hour open.',
+  version: '5.6.0',
+  title: 'Read the board from the top.',
+  subject: 'Read the board from the top.',
   signer: 'Master Tom Iron',
   tone: 'master',
   intro:
-    'An open session is not a rest, man. It is you walking out on work I still own. I will say it once. I do not repeat myself for quit.',
-  mid: 'I have more to say under the bar. You do not get to pick the line. You lift.',
-  close: 'Hard-refresh. If a session is still open, come back. Then stay until I dismiss you.',
+    'Your performance is in order now, man. You vs last time first. Then the rest. I do not repeat myself for quit.',
+  mid: 'The days sit on the pills. Today is T. You start there.',
+  close: 'Hard-refresh. Open Your performance. Start at the top. Stay until you have read it.',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Kevin'],
   lead: '',
   groups: [
     {
-      heading: 'Left open',
+      heading: 'Your performance',
       wins: [
-        'Home — Pick back up. I tell you that you are late.',
-        'Resume — same line when you walk back in.',
-        'Mail — if the hour is still open, I send it. Late again and you stay out of the house.',
+        'You vs last time — first.',
+        'How hard by workout — next.',
+        'The day. Then who went up. Then who went down.',
+        'How hard by lift. Then every lift.',
+        'Bonus done and optional — at the bottom.',
       ],
     },
     {
-      heading: 'Under the bar',
+      heading: 'The days',
       wins: [
-        'Start / middle / finish — more of my voice in the session.',
-        'How hard 5 — DO YOU GIVE? You must give.',
+        'T — today. T-1 — yesterday.',
+        'T-7, T-15, T-30, All — the last days, including today.',
+        'Opens on T.',
       ],
     },
   ],
+  kevin: {
+    intro:
+      'Same board, man. You keep the house. Check a name when you want more than you.',
+    mid: 'The cards add. Empty is empty. I do not stack a second page for you.',
+    close: 'Hard-refresh. Open Your performance. Start with you. Then pick who you want.',
+    groups: [
+      {
+        heading: 'Your performance',
+        wins: [
+          'You vs last time — first.',
+          'How hard by workout — next.',
+          'The day. Then who went up. Then who went down.',
+          'How hard by lift. Then every lift.',
+          'Bonus done and optional — at the bottom.',
+        ],
+      },
+      {
+        heading: 'The days',
+        wins: [
+          'T — today. T-1 — yesterday.',
+          'T-7, T-15, T-30, All — the last days, including today.',
+          'Opens on T.',
+        ],
+      },
+      {
+        heading: 'More than you',
+        wins: [
+          'Check one name or more at the top.',
+          'Their weight and totals add on the same cards.',
+          'Check all if you want the lot. Uncheck all and it stays empty.',
+        ],
+      },
+    ],
+  },
   wins: [],
   also: [],
 };

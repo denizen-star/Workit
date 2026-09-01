@@ -6,14 +6,18 @@ import { DAY_TYPE_ORDER } from '@/lib/feedback';
 import { parseHardness } from '@/lib/hardness';
 import { bestLoggedSet, loadDelta, setDirection, tailHoldStreak } from '@/lib/setHistory';
 import {
+  normalizePerformancePeriod,
   pctChange,
   type AthletePerformanceBoard,
   type ExerciseTrend,
+  type PerformanceFlags,
   type PerformancePeriod,
   type PerformanceSummary,
   type WorkoutExerciseTrend,
   type WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
+import { inPeriodWindow, performancePeriodWindow } from '@/lib/performancePeriod';
+import { performanceFlagsForSessions, type FlagSessionRow } from '@/lib/performanceFlags';
 
 export type {
   AthletePerformanceBoard,
@@ -26,6 +30,7 @@ export type {
 export {
   PERFORMANCE_PERIODS,
   isPerformancePeriod,
+  normalizePerformancePeriod,
   performanceRangeLabel,
 } from '@/lib/athletePerformanceTypes';
 
@@ -106,17 +111,8 @@ function isoDate(value: string | Date | null | undefined): string | null {
   return date.toISOString();
 }
 
-function periodStartMs(period: PerformancePeriod): number | null {
-  if (period === 'all') return null;
-  const days = period === '30' ? 30 : 15;
-  return Date.now() - days * 24 * 60 * 60 * 1000;
-}
-
-function inWindow(doneAt: string | null, startMs: number | null): boolean {
-  if (startMs == null) return true;
-  if (!doneAt) return false;
-  const time = new Date(doneAt).getTime();
-  return Number.isFinite(time) && time >= startMs;
+function inWindow(doneAt: string | null, period: PerformancePeriod): boolean {
+  return inPeriodWindow(doneAt, performancePeriodWindow(period));
 }
 
 function classify(current: { weight: number; reps: number }, prior: { weight: number; reps: number } | null) {
@@ -182,7 +178,7 @@ function avg(sum: number, count: number): number | null {
 
 export async function athletePerformance(
   userId: number,
-  period: PerformancePeriod
+  rawPeriod: PerformancePeriod | string
 ): Promise<AthletePerformanceBoard> {
   const sessionCols = `ws.id as session_id, ws.week_number, ws.day_number, ws.workout_type,
             COALESCE(ws.completed_at, ws.created_at) as done_at`;
@@ -209,7 +205,7 @@ export async function athletePerformance(
     );
     rows = (result.rows as SetRow[]).map((row) => ({ ...row, hardness: null }));
   }
-  const startMs = periodStartMs(period);
+  const period = normalizePerformancePeriod(rawPeriod);
 
   type SessionBucket = {
     sessionId: number;
@@ -286,7 +282,7 @@ export async function athletePerformance(
   let perceptionCount = 0;
 
   for (const [key, row] of byExercise) {
-    const windowHistory = row.history.filter((item) => inWindow(item.doneAt, startMs));
+    const windowHistory = row.history.filter((item) => inWindow(item.doneAt, period));
     if (!windowHistory.length) continue;
 
     const current = windowHistory[windowHistory.length - 1];
@@ -350,7 +346,7 @@ export async function athletePerformance(
 
   const workouts: WorkoutTrend[] = [];
   for (const [workoutType, history] of byWorkout) {
-    const windowSessions = history.filter((session) => inWindow(session.doneAt, startMs));
+    const windowSessions = history.filter((session) => inWindow(session.doneAt, period));
     if (!windowSessions.length) continue;
     const current = windowSessions[windowSessions.length - 1];
     const currentIndex = history.findIndex((session) => session.sessionId === current.sessionId);
@@ -468,26 +464,52 @@ export async function athletePerformance(
   return { period, summary, exercises, workouts };
 }
 
-/** Every household athlete except Test. Same you-vs-you board as `/performance`. */
-export async function householdAthletePerformance(period: PerformancePeriod) {
-  const users = await query(
-    `SELECT DISTINCT u.id, u.name
-     FROM users u
-     INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
-     WHERE ${SQL_EXCLUDE_TEST_USER}
-     ORDER BY u.name ASC`
-  );
+export type HouseholdPerformanceRow = AthletePerformanceBoard & {
+  userId: number;
+  name: string;
+  flags: PerformanceFlags;
+};
 
-  const rows = await Promise.all(
+async function loadFlagSessions(userId: number): Promise<FlagSessionRow[]> {
+  const result = await query(
+    `SELECT week_number, day_number, workout_type, is_completed, completed_at,
+            warmup_completed_at, cooldown_completed_at
+     FROM workout_sessions
+     WHERE user_id = ?`,
+    [userId]
+  );
+  return result.rows as FlagSessionRow[];
+}
+
+/** Admin Athletes: finished sessions, Test out. Performance filter: every profile, Test in. */
+export async function householdAthletePerformance(
+  period: PerformancePeriod,
+  options?: { includeTest?: boolean }
+): Promise<HouseholdPerformanceRow[]> {
+  const resolved = normalizePerformancePeriod(period);
+  const users = options?.includeTest
+    ? await query('SELECT id, name FROM users ORDER BY name ASC, id ASC')
+    : await query(
+        `SELECT DISTINCT u.id, u.name
+         FROM users u
+         INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
+         WHERE ${SQL_EXCLUDE_TEST_USER}
+         ORDER BY u.name ASC`
+      );
+
+  return Promise.all(
     (users.rows as { id: number; name: string }[]).map(async (row) => {
-      const board = await athletePerformance(Number(row.id), period);
+      const userId = Number(row.id);
+      const [board, sessions] = await Promise.all([
+        athletePerformance(userId, resolved),
+        loadFlagSessions(userId),
+      ]);
       return {
-        userId: Number(row.id),
+        userId,
         name: row.name,
+        flags: performanceFlagsForSessions(sessions, resolved),
         ...board,
       };
     })
   );
-
-  return rows;
 }

@@ -70,9 +70,19 @@ async function main() {
   let sent = 0;
   for (const user of recipients) {
     const tone = normalizeCoachTone(user.coach_tone);
+    const forKevin = firstName(user.name).toLowerCase() === 'kevin' && CURRENT_RELEASE.kevin;
+    const copy = forKevin
+      ? {
+          ...CURRENT_RELEASE,
+          intro: CURRENT_RELEASE.kevin?.intro ?? CURRENT_RELEASE.intro,
+          mid: CURRENT_RELEASE.kevin?.mid ?? CURRENT_RELEASE.mid,
+          close: CURRENT_RELEASE.kevin?.close ?? CURRENT_RELEASE.close,
+          groups: CURRENT_RELEASE.kevin?.groups ?? CURRENT_RELEASE.groups,
+        }
+      : CURRENT_RELEASE;
     const email = buildReleaseEmail({
       name: user.name,
-      ...CURRENT_RELEASE,
+      ...copy,
       tone,
       signer: tone === 'master' ? CURRENT_RELEASE.signer : undefined,
     });

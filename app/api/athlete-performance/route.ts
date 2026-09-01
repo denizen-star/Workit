@@ -3,7 +3,7 @@ import { AuthError, getCurrentUser, requireAdmin } from '@/lib/auth';
 import {
   athletePerformance,
   householdAthletePerformance,
-  isPerformancePeriod,
+  normalizePerformancePeriod,
   type PerformancePeriod,
 } from '@/lib/athletePerformance';
 
@@ -14,12 +14,14 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const requested = request.nextUrl.searchParams.get('period') || '15';
-    const period: PerformancePeriod = isPerformancePeriod(requested) ? requested : '15';
+    const period: PerformancePeriod = normalizePerformancePeriod(
+      request.nextUrl.searchParams.get('period')
+    );
 
     if (request.nextUrl.searchParams.get('household') === '1') {
       await requireAdmin();
-      const rows = await householdAthletePerformance(period);
+      const includeTest = request.nextUrl.searchParams.get('includeTest') === '1';
+      const rows = await householdAthletePerformance(period, { includeTest });
       return NextResponse.json({ hidden: false, period, rows });
     }
 

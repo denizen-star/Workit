@@ -28,33 +28,43 @@ function shortName(name: string) {
 export default function HardnessCharts({
   board,
   athleteName,
+  section = 'all',
 }: {
   board: AthletePerformanceBoard;
   athleteName?: string;
+  /** `workout` / `lift` split the page; `all` is Home fold and Admin. */
+  section?: 'all' | 'workout' | 'lift';
 }) {
-  const byWorkout = board.workouts
-    .filter((row) => row.perception != null)
-    .map((row) => ({
-      label: row.workoutType.replace(' Body ', ' '),
-      hard: Number(row.perception),
-    }));
-  const byLift = board.exercises
-    .filter((row) => row.perception != null)
-    .sort((a, b) => (b.perception || 0) - (a.perception || 0))
-    .slice(0, 12)
-    .map((row) => ({
-      label: shortName(row.name),
-      hard: Number(row.perception),
-    }));
+  const showWorkout = section !== 'lift';
+  const showLift = section !== 'workout';
+  const byWorkout = showWorkout
+    ? board.workouts
+        .filter((row) => row.perception != null)
+        .map((row) => ({
+          label: row.workoutType.replace(' Body ', ' '),
+          hard: Number(row.perception),
+        }))
+    : [];
+  const byLift = showLift
+    ? board.exercises
+        .filter((row) => row.perception != null)
+        .sort((a, b) => (b.perception || 0) - (a.perception || 0))
+        .slice(0, 12)
+        .map((row) => ({
+          label: shortName(row.name),
+          hard: Number(row.perception),
+        }))
+    : [];
 
   if (byWorkout.length === 0 && byLift.length === 0) return null;
 
   const who = athleteName ? firstName(athleteName) : 'You';
+  const title = section === 'lift' ? `Difficulty by lift · ${who}` : `Difficulty · ${who}`;
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
-        Difficulty · {who}
+        {title}
       </p>
       <p className="text-sm text-[#f6f1e3]/55">How hard 1–5. Easy through Max. Only logged sets count.</p>
       {byWorkout.length > 0 && (
