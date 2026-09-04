@@ -4,7 +4,12 @@ import { AuthError, requireAdmin } from '@/lib/auth';
 import { isFeedbackResolution } from '@/lib/feedback';
 import { loadRatingStats } from '@/lib/ratings';
 import { sendNow } from '@/lib/emails/send';
-import { buildFeedbackDigestEmail, feedbackMailTo } from '@/lib/emails/feedback';
+import {
+  buildFeedbackDigestEmail,
+  feedbackMailTo,
+  queueFeedbackLiveEmail,
+  queueFeedbackWontDoEmail,
+} from '@/lib/emails/feedback';
 
 export async function GET() {
   try {
@@ -86,6 +91,12 @@ export async function POST(request: NextRequest) {
         }
       } catch {
         return NextResponse.json({ error: 'Could not mark this note' }, { status: 500 });
+      }
+      if (resolved && resolution === 'done') {
+        queueFeedbackLiveEmail(id);
+      }
+      if (resolved && resolution === 'wont_do') {
+        queueFeedbackWontDoEmail(id);
       }
       return NextResponse.json({ success: true, id, resolved, resolution: resolved ? resolution : null });
     }
