@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { Check, Clock, Play, X } from 'lucide-react';
 import { formatClock } from '@/lib/formatDuration';
 import VideoModal from '@/components/VideoModal';
+import ExerciseThumbs, { type ExerciseThumb } from '@/components/ExerciseThumbs';
 import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
   OPTIONAL_LEVELS,
@@ -21,6 +22,7 @@ import {
   optionalSlotLabel,
   optionalTimerReady,
   optionalTrackLabel,
+  optionalThumbName,
   optionalTrackLevelLabel,
   optionalTracks,
   parseOptionalLevel,
@@ -114,10 +116,29 @@ export default function OptionalCard({
   const completing = useRef(false);
   const [slotReady, setSlotReady] = useState(false);
   const [mounted, setMounted] = useState(false);
+  const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch('/api/feedback?sessionId=' + sessionId)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data) => {
+        if (cancelled || !data?.thumbs) return;
+        const next: Record<string, ExerciseThumb> = {};
+        for (const thumb of data.thumbs as ExerciseThumb[]) {
+          next[thumb.exerciseName] = thumb;
+        }
+        setThumbs(next);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [sessionId]);
 
   const finishSlot = (circuitComplete = false) => {
     if (completing.current) return;
@@ -500,6 +521,18 @@ export default function OptionalCard({
                       <p className="mx-auto mt-4 max-w-md text-lg font-medium leading-relaxed text-[#f6f1e3]/85">
                         {step.body}
                       </p>
+                      {guided && state.track ? (
+                        <div className="mx-auto mt-4 flex justify-center">
+                          <ExerciseThumbs
+                            sessionId={sessionId}
+                            exerciseName={optionalThumbName(slot, state.track, step.title)}
+                            saved={thumbs[optionalThumbName(slot, state.track, step.title)]}
+                            onSaved={(thumb) =>
+                              setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))
+                            }
+                          />
+                        </div>
+                      ) : null}
                     </>
                   ) : null}
                   {guided ? (
@@ -549,12 +582,9 @@ export default function OptionalCard({
             ) : null}
             <VideoModal
               open={Boolean(videoOpen && videoStep?.videoId)}
-              title={
-                videoStep && state.track
-                  ? `${optionalTrackLevelLabel(state.track, state.level)} · ${videoStep.title}`
-                  : ''
-              }
+              title={videoStep?.title || ''}
               videoId={videoStep?.videoId || ''}
+              how={videoStep?.body || null}
               onClose={() => {
                 setVideoOpen(false);
                 setVideoStep(null);

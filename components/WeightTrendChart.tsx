@@ -1,10 +1,11 @@
 'use client';
 
 import {
+  Area,
   CartesianGrid,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -39,11 +40,17 @@ function TrendTooltip({
   return (
     <div className="px-3 py-2 text-sm" style={tooltipStyle}>
       <p className="mb-1 font-semibold text-[#e8c547]">{label}</p>
-      {items.map((item) => (
-        <p key={String(item.dataKey)} style={{ color: item.color || '#f6f1e3' }}>
-          {item.name}: {Math.round(Number(item.value)).toLocaleString()} lb
-        </p>
-      ))}
+      {items.map((item) => {
+        const hard = item.name === 'Effort' || item.dataKey === 'hard';
+        return (
+          <p key={String(item.dataKey)} style={{ color: item.color || '#f6f1e3' }}>
+            {item.name}:{' '}
+            {hard
+              ? Number(item.value).toFixed(1)
+              : `${Math.round(Number(item.value)).toLocaleString()} lb`}
+          </p>
+        );
+      })}
     </div>
   );
 }
@@ -53,34 +60,62 @@ export default function WeightTrendChart({
   data,
   lines,
   height = 200,
+  hardnessKey,
 }: {
   data: TrendRow[];
   lines: TrendLine[];
   height?: number;
+  hardnessKey?: string;
 }) {
   const visible = lines.filter((line) => data.some((row) => hasWeight(row[line.key])));
+  const hardKey = hardnessKey;
+  const showHard = Boolean(hardKey && data.some((row) => hasWeight(row[hardKey])));
   if (data.length === 0 || visible.length === 0) {
     return <p className="text-sm text-[#f6f1e3]/55">No sessions in this window.</p>;
   }
 
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <LineChart data={data}>
+      <ComposedChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
         <XAxis dataKey="date" tick={{ fill: '#e8c547', fontSize: 13 }} />
         <YAxis
+          yAxisId="lb"
           tick={{ fill: '#e8c547', fontSize: 13 }}
           width={52}
           tickFormatter={(value) => Number(value).toLocaleString()}
         />
+        {showHard ? (
+          <YAxis
+            yAxisId="hard"
+            orientation="right"
+            domain={[1, 5]}
+            ticks={[1, 2, 3, 4, 5]}
+            tick={{ fill: '#f6f1e3', fontSize: 12 }}
+            width={28}
+          />
+        ) : null}
         <Tooltip content={<TrendTooltip />} filterNull />
         <Legend
           wrapperStyle={{ color: '#f6f1e3', fontSize: 14, paddingTop: 10 }}
           iconType="plainline"
         />
+        {hardKey && showHard ? (
+          <Area
+            yAxisId="hard"
+            type="monotone"
+            dataKey={hardKey}
+            name="Effort"
+            fill="rgba(246, 241, 227, 0.22)"
+            stroke="rgba(246, 241, 227, 0.35)"
+            connectNulls
+            isAnimationActive={false}
+          />
+        ) : null}
         {visible.map((line) => (
           <Line
             key={line.key}
+            yAxisId="lb"
             type="monotone"
             dataKey={line.key}
             name={line.name}
@@ -92,7 +127,7 @@ export default function WeightTrendChart({
             isAnimationActive={false}
           />
         ))}
-      </LineChart>
+      </ComposedChart>
     </ResponsiveContainer>
   );
 }

@@ -10,10 +10,11 @@ interface VideoModalProps {
   title: string;
   videoId: string;
   videos?: ExerciseVideo[];
+  how?: string | null;
   onClose: () => void;
 }
 
-export default function VideoModal({ open, title, videoId, videos, onClose }: VideoModalProps) {
+export default function VideoModal({ open, title, videoId, videos, how, onClose }: VideoModalProps) {
   const options = videos?.length ? videos : videoId ? [{ id: videoId, label: "Form video" }] : [];
   const [activeId, setActiveId] = useState(options[0]?.id || videoId);
 
@@ -97,6 +98,7 @@ export default function VideoModal({ open, title, videoId, videos, onClose }: Vi
           </div>
         )}
         <div className="px-5 py-4">
+          {how ? <p className="mb-4 text-base leading-relaxed text-[#f6f1e3]/80">{how}</p> : null}
           <a
             href={youtubeWatchUrl(currentId)}
             target="_blank"

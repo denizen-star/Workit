@@ -3,7 +3,7 @@ import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { setVolume } from '@/lib/exerciseKind';
 import { DAY_TYPE_ORDER } from '@/lib/feedback';
-import { parseHardness } from '@/lib/hardness';
+import { effortFromVolume, parseHardness } from '@/lib/hardness';
 import { bestLoggedSet, loadDelta, setDirection, tailHoldStreak } from '@/lib/setHistory';
 import {
   normalizePerformancePeriod,
@@ -12,6 +12,7 @@ import {
   type ExerciseTrend,
   type PerformanceFlags,
   type PerformancePeriod,
+  type PerformanceResult,
   type PerformanceSummary,
   type WorkoutExerciseTrend,
   type WorkoutTrend,
@@ -71,6 +72,7 @@ type SessionLift = {
   weight: number;
   reps: number;
   volume: number;
+  effort: number;
   hardnessSum: number;
   hardnessCount: number;
 };
@@ -82,6 +84,20 @@ function liftVolume(name: string, sets: LoggedSet[]) {
     (sum, set) => sum + setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps),
     0
   );
+}
+
+function liftEffort(name: string, sets: LoggedSet[]) {
+  return sets.reduce((sum, set) => {
+    const raw = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps);
+    return sum + effortFromVolume(raw, set.hardness);
+  }, 0);
+}
+
+function effortResult(current: number, prior: number | null): PerformanceResult {
+  if (prior == null) return 'first';
+  if (current > prior) return 'gain';
+  if (current < prior) return 'loss';
+  return 'held';
 }
 
 function sparkSeries(history: { volume: number }[], endIndex: number) {
@@ -158,6 +174,14 @@ function sessionVolume(session: { lifts: Map<string, { name: string; sets: Logge
   let total = 0;
   for (const lift of session.lifts.values()) {
     total += liftVolume(lift.name, lift.sets);
+  }
+  return total;
+}
+
+function sessionEffort(session: { lifts: Map<string, { name: string; sets: LoggedSet[] }> }) {
+  let total = 0;
+  for (const lift of session.lifts.values()) {
+    total += liftEffort(lift.name, lift.sets);
   }
   return total;
 }
@@ -278,6 +302,7 @@ export async function athletePerformance(
         weight: best.weight_lbs ?? 0,
         reps: best.actual_reps ?? 0,
         volume: liftVolume(lift.name, lift.sets),
+        effort: liftEffort(lift.name, lift.sets),
         hardnessSum: hardnessValues.reduce((sum, value) => sum + value, 0),
         hardnessCount: hardnessValues.length,
       });
@@ -302,8 +327,16 @@ export async function athletePerformance(
     const volumes = row.history.slice(0, currentIndex + 1);
     const weights = volumes.map((item) => item.weight);
     const reps = volumes.map((item) => item.reps);
+    const effortHistory = volumes.map((item) => ({ volume: item.effort }));
+    const rawHistory = volumes.map((item) => ({ volume: item.volume }));
     const volume = volumeMetrics(
-      volumes,
+      effortHistory,
+      currentIndex,
+      current.effort,
+      prior ? prior.effort : null
+    );
+    const raw = volumeMetrics(
+      rawHistory,
       currentIndex,
       current.volume,
       prior ? prior.volume : null
@@ -318,17 +351,23 @@ export async function athletePerformance(
       name: row.name,
       currentWeight: current.weight,
       currentReps: current.reps,
-      currentVolume: volume.currentVolume,
+      currentVolume: current.volume,
       priorWeight: prior ? prior.weight : null,
       priorReps: prior ? prior.reps : null,
-      priorVolume: volume.priorVolume,
+      priorVolume: prior ? prior.volume : null,
+      effortVolume: current.effort,
+      priorEffortVolume: prior ? prior.effort : null,
       weightChangePct: pctChange(current.weight, prior ? prior.weight : null),
       volumeChangePct: volume.volumeChangePct,
       progressionPct: volume.progressionPct,
+      rawVolumeChangePct: raw.volumeChangePct,
+      rawProgressionPct: raw.progressionPct,
       spark: volume.spark,
+      sparkRaw: raw.spark,
       weightDelta: classified.weightDelta,
       repsDelta: classified.repsDelta,
-      result: classified.result,
+      result: effortResult(current.effort, prior ? prior.effort : null),
+      rawResult: effortResult(current.volume, prior ? prior.volume : null),
       weightStreak: tailHoldStreak(weights),
       repsStreak: tailHoldStreak(reps),
       perception: avg(windowPerceptionSum, windowPerceptionCount),
@@ -378,20 +417,33 @@ export async function athletePerformance(
             weight: best.weight_lbs ?? 0,
             reps: best.actual_reps ?? 0,
             volume: liftVolume(lift.name, lift.sets),
+            effort: liftEffort(lift.name, lift.sets),
           };
         })
-        .filter((item): item is { sessionId: number; weight: number; reps: number; volume: number } => item != null);
+        .filter(
+          (
+            item
+          ): item is {
+            sessionId: number;
+            weight: number;
+            reps: number;
+            volume: number;
+            effort: number;
+          } => item != null
+        );
 
       const liftIndex = liftHistory.findIndex((item) => item.sessionId === current.sessionId);
       if (liftIndex < 0) continue;
       const liftCurrent = liftHistory[liftIndex];
       const liftPrior = liftIndex > 0 ? liftHistory[liftIndex - 1] : null;
-      const classified = classify(
-        { weight: liftCurrent.weight, reps: liftCurrent.reps },
-        liftPrior ? { weight: liftPrior.weight, reps: liftPrior.reps } : null
-      );
       const volume = volumeMetrics(
-        liftHistory,
+        liftHistory.map((item) => ({ volume: item.effort })),
+        liftIndex,
+        liftCurrent.effort,
+        liftPrior ? liftPrior.effort : null
+      );
+      const raw = volumeMetrics(
+        liftHistory.map((item) => ({ volume: item.volume })),
         liftIndex,
         liftCurrent.volume,
         liftPrior ? liftPrior.volume : null
@@ -403,15 +455,21 @@ export async function athletePerformance(
         name: currentLift.name,
         currentWeight: liftCurrent.weight,
         currentReps: liftCurrent.reps,
-        currentVolume: volume.currentVolume,
+        currentVolume: liftCurrent.volume,
         priorWeight: liftPrior ? liftPrior.weight : null,
         priorReps: liftPrior ? liftPrior.reps : null,
-        priorVolume: volume.priorVolume,
+        priorVolume: liftPrior ? liftPrior.volume : null,
+        effortVolume: liftCurrent.effort,
+        priorEffortVolume: liftPrior ? liftPrior.effort : null,
         weightChangePct: pctChange(liftCurrent.weight, liftPrior ? liftPrior.weight : null),
         volumeChangePct: volume.volumeChangePct,
         progressionPct: volume.progressionPct,
+        rawVolumeChangePct: raw.volumeChangePct,
+        rawProgressionPct: raw.progressionPct,
         spark: volume.spark,
-        result: classified.result,
+        sparkRaw: raw.spark,
+        result: effortResult(liftCurrent.effort, liftPrior ? liftPrior.effort : null),
+        rawResult: effortResult(liftCurrent.volume, liftPrior ? liftPrior.volume : null),
         perception: avg(
           hardnessValues.reduce((sum, value) => sum + value, 0),
           hardnessValues.length
@@ -420,10 +478,14 @@ export async function athletePerformance(
     }
     workoutExercises.sort((a, b) => a.name.localeCompare(b.name));
 
-    const sessionVolumes = history.map((session) => ({ volume: sessionVolume(session) }));
+    const sessionEfforts = history.map((session) => ({ volume: sessionEffort(session) }));
     const currentVol = sessionVolume(current);
     const priorVol = prior ? sessionVolume(prior) : null;
-    const volume = volumeMetrics(sessionVolumes, currentIndex, currentVol, priorVol);
+    const currentEffort = sessionEffort(current);
+    const priorEffort = prior ? sessionEffort(prior) : null;
+    const volume = volumeMetrics(sessionEfforts, currentIndex, currentEffort, priorEffort);
+    const sessionRaws = history.map((session) => ({ volume: sessionVolume(session) }));
+    const raw = volumeMetrics(sessionRaws, currentIndex, currentVol, priorVol);
     const currentWeight = sessionBestWeight(current);
     const priorWeight = prior ? sessionBestWeight(prior) : null;
 
@@ -431,14 +493,20 @@ export async function athletePerformance(
       name: workoutType,
       workoutType,
       currentWeight,
-      currentVolume: volume.currentVolume,
+      currentVolume: currentVol,
       priorWeight,
-      priorVolume: volume.priorVolume,
+      priorVolume: priorVol,
+      effortVolume: currentEffort,
+      priorEffortVolume: priorEffort,
       weightChangePct: pctChange(currentWeight, priorWeight),
       volumeChangePct: volume.volumeChangePct,
       progressionPct: volume.progressionPct,
+      rawVolumeChangePct: raw.volumeChangePct,
+      rawProgressionPct: raw.progressionPct,
       spark: volume.spark,
-      result: volumeResult(currentVol, priorVol),
+      sparkRaw: raw.spark,
+      result: volumeResult(currentEffort, priorEffort),
+      rawResult: volumeResult(currentVol, priorVol),
       perception: avg(
         workoutExercises.reduce((sum, item) => sum + (item.perception || 0), 0),
         workoutExercises.filter((item) => item.perception != null).length
@@ -528,6 +596,12 @@ export async function householdAthletePerformance(
             place: null,
             line: emptyWindowLine(row.name),
           };
+        if (snapshot) {
+          snapshot = {
+            ...snapshot,
+            row: { ...snapshot.row, perception: board.summary.perception },
+          };
+        }
       } catch (error) {
         console.error('Error getting performance snapshot:', error);
       }
@@ -550,7 +624,13 @@ export async function athletePerformanceWithSnapshot(
   const board = await athletePerformance(userId, rawPeriod);
   try {
     const snapshot = await performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod));
-    return { ...board, snapshot };
+    return {
+      ...board,
+      snapshot: {
+        ...snapshot,
+        row: { ...snapshot.row, perception: board.summary.perception },
+      },
+    };
   } catch (error) {
     console.error('Error getting performance snapshot:', error);
     return board;

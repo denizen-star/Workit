@@ -4,6 +4,7 @@ import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume } from '@/lib/optionals';
+import { effortFromVolume } from '@/lib/hardness';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export type CompareMetric = 'weight' | 'reps';
@@ -38,6 +39,9 @@ export type WeightRank = {
   rank: number;
   bestDay: number;
   totalWeight: number;
+  /** Display only. Rank stays on raw bestDay / totalWeight. */
+  effortBestDay: number;
+  effortTotalWeight: number;
 };
 
 export type ExerciseCompareBoard = {
@@ -133,6 +137,8 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
   athletes: { userId: number; name: string }[];
   sessions: SessionDay[];
   volumeByUser: Map<number, number>;
+  effortByUser: Map<number, number>;
+  effortBestDayByUser: Map<number, number>;
 }> {
   const filter = windowFilter(window);
 
@@ -154,7 +160,8 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
          es.exercise_name,
          es.target_reps,
          es.weight_lbs,
-         es.actual_reps
+         es.actual_reps,
+         es.hardness
        FROM exercise_sets es
        INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
        INNER JOIN users u ON u.id = ws.user_id
@@ -165,13 +172,12 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
       filter.params
     ),
     query(
-      `SELECT ws.user_id, COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as optional_lbs
+      `SELECT ws.user_id, ws.id as session_id, ${sqlSessionOptionalVolume('ws')} as optional_lbs
        FROM workout_sessions ws
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
          AND ${SQL_EXCLUDE_TEST_USER}
-         ${filter.sql}
-       GROUP BY ws.user_id`,
+         ${filter.sql}`,
       filter.params
     ),
   ]);
@@ -183,6 +189,8 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
 
   const sessionTotals = new Map<string, SessionDay>();
   const volumeByUser = new Map<number, number>();
+  const effortByUser = new Map<number, number>();
+  const sessionEffort = new Map<string, { userId: number; effort: number }>();
 
   for (const row of setResult.rows as {
     user_id: number;
@@ -193,13 +201,17 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     target_reps: string | null;
     weight_lbs: number | null;
     actual_reps: number | null;
+    hardness: number | null;
   }[]) {
     const userId = Number(row.user_id);
-    volumeByUser.set(
-      userId,
-      (volumeByUser.get(userId) || 0) +
-        setVolume(row.exercise_name, row.target_reps, row.weight_lbs, row.actual_reps)
-    );
+    const raw = setVolume(row.exercise_name, row.target_reps, row.weight_lbs, row.actual_reps);
+    const effort = effortFromVolume(raw, row.hardness);
+    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + raw);
+    effortByUser.set(userId, (effortByUser.get(userId) || 0) + effort);
+    const sessionKey = `${userId}:${Number(row.session_id)}`;
+    const bucket = sessionEffort.get(sessionKey);
+    if (bucket) bucket.effort += effort;
+    else sessionEffort.set(sessionKey, { userId, effort });
 
     const kind = getExerciseKind(row.exercise_name, row.target_reps || '');
     if (kind === 'timed' || kind === 'distance') continue;
@@ -207,13 +219,13 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     const weight = Number(row.weight_lbs) || 0;
     const reps = Number(row.actual_reps) || 0;
     const key = exerciseHistoryKey(row.exercise_name);
-    const bucket = `${Number(row.user_id)}:${Number(row.session_id)}:${key}`;
-    const current = sessionTotals.get(bucket);
+    const movementKey = `${Number(row.user_id)}:${Number(row.session_id)}:${key}`;
+    const current = sessionTotals.get(movementKey);
     if (current) {
       if (weight > 0) current.weight += weight;
       if (reps > 0) current.reps += reps;
     } else {
-      sessionTotals.set(bucket, {
+      sessionTotals.set(movementKey, {
         userId: Number(row.user_id),
         name: row.user_name,
         sessionDate: toIso(row.session_at),
@@ -224,12 +236,34 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     }
   }
 
-  for (const row of optionalResult.rows as { user_id: number; optional_lbs: number }[]) {
+  for (const row of optionalResult.rows as {
+    user_id: number;
+    session_id: number;
+    optional_lbs: number;
+  }[]) {
     const userId = Number(row.user_id);
-    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + Number(row.optional_lbs || 0));
+    const optional = Number(row.optional_lbs || 0);
+    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + optional);
+    effortByUser.set(userId, (effortByUser.get(userId) || 0) + optional);
+    const sessionKey = `${userId}:${Number(row.session_id)}`;
+    const bucket = sessionEffort.get(sessionKey);
+    if (bucket) bucket.effort += optional;
+    else sessionEffort.set(sessionKey, { userId, effort: optional });
   }
 
-  return { athletes, sessions: [...sessionTotals.values()], volumeByUser };
+  const effortBestDayByUser = new Map<number, number>();
+  for (const item of sessionEffort.values()) {
+    const current = effortBestDayByUser.get(item.userId) || 0;
+    if (item.effort > current) effortBestDayByUser.set(item.userId, item.effort);
+  }
+
+  return {
+    athletes,
+    sessions: [...sessionTotals.values()],
+    volumeByUser,
+    effortByUser,
+    effortBestDayByUser,
+  };
 }
 
 function movementsFor(sessions: SessionDay[], metric: CompareMetric): Movement[] {
@@ -357,7 +391,9 @@ function trioForAthlete(
 function overallWeightRanking(
   athletes: { userId: number; name: string }[],
   sessions: SessionDay[],
-  volumeByUser: Map<number, number>
+  volumeByUser: Map<number, number>,
+  effortByUser: Map<number, number>,
+  effortBestDayByUser: Map<number, number>
 ): WeightRank[] {
   const best = new Map<string, { userId: number; name: string; score: number }>();
   for (const day of sessions) {
@@ -382,6 +418,8 @@ function overallWeightRanking(
       name: names.get(userId) || sessions.find((day) => day.userId === userId)?.name || 'Athlete',
       bestDay: bestDayByUser.get(userId) || 0,
       totalWeight: volumeByUser.get(userId) || 0,
+      effortBestDay: effortBestDayByUser.get(userId) || 0,
+      effortTotalWeight: effortByUser.get(userId) || 0,
     }))
     .filter((row) => row.bestDay > 0 || row.totalWeight > 0)
     .sort(
@@ -398,7 +436,8 @@ function overallWeightRanking(
 export async function householdExerciseCompare(
   window: ExerciseCompareWindow
 ): Promise<ExerciseCompareBoard> {
-  const { athletes, sessions, volumeByUser } = await loadSessionDays(window);
+  const { athletes, sessions, volumeByUser, effortByUser, effortBestDayByUser } =
+    await loadSessionDays(window);
   const weightMoves = movementsFor(sessions, 'weight');
   const repsMoves = movementsFor(sessions, 'reps');
   return {
@@ -408,7 +447,13 @@ export async function householdExerciseCompare(
       weight: trioForAthlete(athlete, weightMoves, 'lb'),
       reps: trioForAthlete(athlete, repsMoves, 'reps'),
     })),
-    ranking: overallWeightRanking(athletes, sessions, volumeByUser),
+    ranking: overallWeightRanking(
+      athletes,
+      sessions,
+      volumeByUser,
+      effortByUser,
+      effortBestDayByUser
+    ),
   };
 }
 
@@ -491,8 +536,10 @@ export function formatK(value: number) {
   return `${Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)}k`;
 }
 
-function pairLine(entry: WeightRank) {
-  return `Best day ${formatK(entry.bestDay)} · Total weight ${formatK(entry.totalWeight)}`;
+function pairLine(entry: WeightRank, effort = false) {
+  const best = effort ? entry.effortBestDay : entry.bestDay;
+  const total = effort ? entry.effortTotalWeight : entry.totalWeight;
+  return `Best day ${formatK(best)} · Total weight ${formatK(total)}`;
 }
 
 export function rankingSummary(ranking: WeightRank[]): string[] {
@@ -501,7 +548,8 @@ export function rankingSummary(ranking: WeightRank[]): string[] {
 
 export function overallRankSentence(
   athlete: { userId?: number; name: string },
-  ranking: WeightRank[]
+  ranking: WeightRank[],
+  effort = false
 ): string | null {
   const you =
     athlete.userId != null
@@ -510,7 +558,7 @@ export function overallRankSentence(
   if (!you) return null;
   const who = firstName(athlete.name);
   const pack = ranking.length;
-  const yours = pairLine(you);
+  const yours = pairLine(you, effort);
   if (you.rank === 1) {
     return `${who} is 1st of ${pack}. ${yours}.`;
   }

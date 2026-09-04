@@ -47,364 +47,446 @@ function isLowerB(dayName: string) {
   return /lower body b/i.test(dayName);
 }
 
+function cue(
+  title: string,
+  warmup: string,
+  cooldown: string,
+  id: string,
+  videoId: string
+): Cue {
+  return { title, warmup, cooldown, id, videoId };
+}
+
+const HOLD = {
+  neck: cue(
+    'Neck',
+    'Slow look left and right. Switch sides halfway. No forcing.',
+    'Softer turns. Let the neck empty.',
+    'Side_Neck_Stretch',
+    'was4RtzpfJs'
+  ),
+  shoulders: cue(
+    'Shoulders',
+    'Roll them back. Open the chest a little.',
+    'Slow rolls. Drop what the press left behind.',
+    'Shoulder_Circles',
+    'X3-gKPNyrTA'
+  ),
+  chest: cue(
+    'Chest',
+    'Hands on a wall or behind you. Open without a fight.',
+    'Same wall. Stay. Breathe into the stretch.',
+    'Chest_And_Front_Of_Shoulder_Stretch',
+    'NS64IgKUyeY'
+  ),
+  lats: cue(
+    'Lats',
+    "Child's pose or a wall reach. Walk the hands away. Soft elbows.",
+    'Longer reach. Let the lats melt after the rows.',
+    'One_Arm_Against_Wall',
+    'eqVMAPM00DM'
+  ),
+  thoracic: cue(
+    'Thoracic',
+    'Cat-cow or an easy open-book on your side. Move with the breath.',
+    'Slower cat-cow. Nothing left to prove in the spine.',
+    'Spinal_Stretch',
+    'y39PrKY_4JM'
+  ),
+  wrists: cue(
+    'Wrists',
+    'Palms on a wall, fingers down, or an easy overhead triceps fold.',
+    'Wrist fold, then shake the hands out.',
+    'Wrist_Circles',
+    'D4-jQu5GfBg'
+  ),
+  catCow: cue(
+    'Cat-cow',
+    'On all fours. Round and arch with the breath.',
+    'Slower rounds. Let the upper back go.',
+    'Cat_Stretch',
+    'y39PrKY_4JM'
+  ),
+  thread: cue(
+    'Thread-the-needle',
+    'Slide one arm under the chest. Both sides.',
+    'Stay in the twist a little longer. Switch.',
+    'Middle_Back_Stretch',
+    'VpW33Celubg'
+  ),
+  puppy: cue(
+    'Puppy pose',
+    'Hips over knees. Walk the hands forward. Chest toward the floor.',
+    'Same shape. Softer elbows. Long exhales.',
+    'Childs_Pose',
+    'eqVMAPM00DM'
+  ),
+  eagle: cue(
+    'Eagle arms',
+    'Wrap the arms. Lift the elbows. Both sides if one wrap is enough.',
+    'Cow-face or eagle. Unwind slow.',
+    'Round_The_World_Shoulder_Stretch',
+    'X3-gKPNyrTA'
+  ),
+  mermaid: cue(
+    'Mermaid',
+    'Sit. One hand down. Other arm overhead. Side body. Switch halfway.',
+    'Same side bend. Less reach, more breath.',
+    'Standing_Lateral_Stretch',
+    'H9xuMZaiNJY'
+  ),
+  supineTwist: cue(
+    'Supine twist',
+    'On your back, knees together, let them fall to one side. Switch halfway.',
+    'Knees heavy. Look the other way. Then rest.',
+    'Knee_Across_The_Body',
+    'i-y8pp5EfYw'
+  ),
+  downDogPuppy: cue(
+    'Down dog to puppy',
+    'Down dog first. Then walk the hands and drop the chest. Stay.',
+    'Skip the push. Puppy only. Long stay.',
+    'Pyramid',
+    'zqwK6J3yHfA'
+  ),
+  longPuppy: cue(
+    'Long puppy',
+    'Chest lower. Shoulders load. Ribs quiet.',
+    'Foreheads toward the floor. Soft neck.',
+    'Upper_Back-Leg_Grab',
+    'eqVMAPM00DM'
+  ),
+  cowFace: cue(
+    'Cow-face arms',
+    'One elbow up, one down. Both sides. Longer than Medium.',
+    'Same bind. Less pull.',
+    'Overhead_Triceps',
+    '80Y3HHMgo6w'
+  ),
+  calves: cue(
+    'Calves',
+    'Heel down, knee soft. Switch sides halfway.',
+    'Heel down. Let the legs empty.',
+    'Standing_Gastrocnemius_Calf_Stretch',
+    'i1eJqJ3v3lQ'
+  ),
+  hipFlexors: cue(
+    'Hip flexors',
+    'Half-kneeling lunge. Back glute squeezed. Not a backbend.',
+    'Same kneel. Softer. You already did the work.',
+    'Kneeling_Hip_Flexor',
+    'YQmpO9VT2X4'
+  ),
+  adductors: cue(
+    'Adductors',
+    'Easy side lunge. Sit between the knees as far as is kind.',
+    'Wide knees. No bounce.',
+    'Adductor',
+    'YQmpO9VT2X4'
+  ),
+  quads: cue(
+    'Quads',
+    'Stand or lie on your side. Heel toward the glute. Switch halfway.',
+    'Same fold. Slower.',
+    'On_Your_Side_Quad_Stretch',
+    'CAq9vV7gkrs'
+  ),
+  figureFour: cue(
+    'Figure-four',
+    'Ankle on the other knee. Sit tall, then fold a little.',
+    'Reclined figure-four. Heavy hips.',
+    'Ankle_On_The_Knee',
+    '-g0nuyTHMrI'
+  ),
+  hamstrings: cue(
+    'Hamstrings',
+    'Easy fold or a long sit. Soft knees. No yanking.',
+    'Longer fold. Soft knees still.',
+    'Seated_Floor_Hamstring_Stretch',
+    'wr_8aak4Wbc'
+  ),
+  downDog: cue(
+    'Down dog',
+    'Pedal the heels. Soft knees if the hamstrings talk.',
+    'Down dog, then drop to the knees when you need.',
+    'Inchworm',
+    'zqwK6J3yHfA'
+  ),
+  lowLunge: cue(
+    'Low lunge',
+    'Back knee down. Both sides. Hips square.',
+    'Same lunge. Less depth, more breath.',
+    'Intermediate_Hip_Flexor_and_Quad_Stretch',
+    'YQmpO9VT2X4'
+  ),
+  lizard: cue(
+    'Lizard',
+    'Hands inside the front foot. Elbows toward the floor if it is kind.',
+    'Lizard, stay. Switch halfway.',
+    'Worlds_Greatest_Stretch',
+    'YQmpO9VT2X4'
+  ),
+  halfSplit: cue(
+    'Half split',
+    'Front heel. Hips back. Fold over the leg.',
+    'Same fold. Softer knee.',
+    'Runners_Stretch',
+    'wr_8aak4Wbc'
+  ),
+  reclinedPigeon: cue(
+    'Reclined pigeon',
+    'Figure-four on your back. Draw the thigh in.',
+    'Same shape. Let the hip sink.',
+    'Lying_Glute',
+    '0_zPqA65Nok'
+  ),
+  butterfly: cue(
+    'Butterfly',
+    'Soles together. Or happy baby if the hips prefer it.',
+    'Butterfly or happy baby. Stay easy.',
+    'Lying_Bent_Leg_Groin',
+    'JJAHGpe0AVU'
+  ),
+  lowLungeReach: cue(
+    'Low lunge reach',
+    'Knee down. Arm up on the back-leg side. Tiny side bend. Switch.',
+    'Lunge without the reach if the hip is done.',
+    'Standing_Hip_Flexors',
+    'YQmpO9VT2X4'
+  ),
+  pigeon: cue(
+    'Pigeon',
+    'Front shin across. Fold only if the hip allows.',
+    'Pigeon or reclined figure-four. No forcing.',
+    'IT_Band_and_Glute_Stretch',
+    '0_zPqA65Nok'
+  ),
+  frogFold: cue(
+    'Frog to fold',
+    'Wide-knee child’s pose or frog, then a long hamstring fold.',
+    'Wide knees, then a soft forward fold until the hold ends.',
+    'The_Straddle',
+    'wr_8aak4Wbc'
+  ),
+  deadBug: cue(
+    'Dead bug',
+    'Back stays on the floor. Slow opposite arm and leg.',
+    'Slower than the warmup. Floor is a friend.',
+    'Dead_Bug',
+    '4XLEnwUr1d8'
+  ),
+  birdDog: cue(
+    'Bird dog',
+    'Opposite arm and leg. Pause. Not a long front plank.',
+    'Smaller reach. Quiet hips.',
+    'Superman',
+    'ZdAHe9_HeEw'
+  ),
+  heelTaps: cue(
+    'Heel taps',
+    'Knees bent. Tap one heel then the other. Soft.',
+    'Same taps. Smaller.',
+    'Alternate_Heel_Touchers',
+    '9bR-elyolBQ'
+  ),
+  sideLyingHold: cue(
+    'Side-lying hold',
+    'On your side. Knees down. Hips stacked. Switch halfway.',
+    'Short side hold. Then roll onto your back.',
+    'Side_Bridge',
+    'rCxF2nG9vQ0'
+  ),
+  easyHollow: cue(
+    'Easy hollow',
+    'Knees bent. Low back glued down. Shoulders heavy.',
+    'Even smaller. Stop while it is kind.',
+    'Stomach_Vacuum',
+    'RUNrHkbP4Pc'
+  ),
+  breatheDown: cue(
+    'Breathe down',
+    'On your back, hands on ribs. Long easy breaths.',
+    "Child's pose or on your back. Long easy breaths.",
+    'Hug_Knees_To_Chest',
+    'zqwK6J3yHfA'
+  ),
+  pilatesBreath: cue(
+    'Pilates breath',
+    'Ribs in. Long exhale. Quiet belly.',
+    'Same breath. You already worked.',
+    'Standing_Pelvic_Tilt',
+    'zqwK6J3yHfA'
+  ),
+  singleLegStretch: cue(
+    'Single-leg stretch',
+    'One knee in. One long. Switch. Head can stay down.',
+    'Slower switches. Neck soft.',
+    'One_Knee_To_Chest',
+    '9bR-elyolBQ'
+  ),
+  crissCross: cue(
+    'Criss-cross',
+    'Small. Shoulders only as high as the neck stays kind.',
+    'Tiny rotation. Or skip to a side breath if the neck talks.',
+    'Cross-Body_Crunch',
+    'RUNrHkbP4Pc'
+  ),
+  sideLyingKick: cue(
+    'Side-lying kick',
+    'Small front and back. Both sides.',
+    'Even smaller kicks. Then rest on that side.',
+    'Side_Leg_Raises',
+    'rCxF2nG9vQ0'
+  ),
+  rest: cue(
+    'Rest',
+    'Knees into the chest, or hands on ribs.',
+    'Knees in. Let the belly go.',
+    'Hug_A_Ball',
+    'zqwK6J3yHfA'
+  ),
+  hundred: cue(
+    'The hundred',
+    'Knees tabletop. Arms pump. Breath in fives.',
+    'Half the pumps. Or hold tabletop and breathe.',
+    'Crunches',
+    'RUNrHkbP4Pc'
+  ),
+  doubleLeg: cue(
+    'Double-leg stretch',
+    'Reach long. Circle home. Back stays down.',
+    'Shorter reach. Same back rule.',
+    'Scissor_Kick',
+    '4XLEnwUr1d8'
+  ),
+  sideKick: cue(
+    'Side kick series',
+    'Front, back, then a small lift. Both sides.',
+    'Front and back only.',
+    'Hip_Circles_prone',
+    'rCxF2nG9vQ0'
+  ),
+  teaser: cue(
+    'Teaser prep',
+    'Legs tabletop. Roll the shoulders up. Hold. Not a full teaser unless it is clean.',
+    'Shoulders stay down. Hands on ribs.',
+    'Decline_Crunch',
+    'RUNrHkbP4Pc'
+  ),
+  childs: cue(
+    "Child's pose",
+    'Hips to heels. Arms long. Stay.',
+    'Forehead down. Long breaths until the hold ends.',
+    'Childs_Pose',
+    'zqwK6J3yHfA'
+  ),
+  gluteBridge: cue(
+    'Glute bridge',
+    'Easy squeeze at the top. No rush.',
+    'Short squeeze. Then let the floor take you.',
+    'Butt_Lift_Bridge',
+    'X_IGw8U_e38'
+  ),
+  bear: cue(
+    'Bear hold',
+    'Hands and toes. Knees an inch off the floor. Quiet spine.',
+    'Shorter bear, or a dead bug if the wrists are done.',
+    'Plank',
+    'ASdvN_XEl_c'
+  ),
+  easySidePlank: cue(
+    'Easy side plank',
+    'Knees down. Hips high. Switch halfway.',
+    'Short side. Then roll down.',
+    'Push_Up_to_Side_Plank',
+    'rCxF2nG9vQ0'
+  ),
+  shoulderBridge: cue(
+    'Shoulder bridge',
+    'Squeeze, lower slow.',
+    'Smaller lift. Slow lower.',
+    'Pelvic_Tilt_Into_Bridge',
+    'X_IGw8U_e38'
+  ),
+  marchingBridge: cue(
+    'Marching bridge',
+    'One foot lifts. Hips stay level.',
+    'Tiny marches. Or a still bridge.',
+    'Physioball_Hip_Bridge',
+    'X_IGw8U_e38'
+  ),
+  toeTaps: cue(
+    'Toe taps',
+    'Tabletop. Tap one toe, then the other. Back stays down.',
+    'Slower taps.',
+    'Front_Leg_Raises',
+    '4XLEnwUr1d8'
+  ),
+  saw: cue(
+    'Saw',
+    'Sit tall. Twist. Reach to the little toe. Soft knees.',
+    'Smaller twist. Sit on a cushion if you need.',
+    'Russian_Twist',
+    'RUNrHkbP4Pc'
+  ),
+  clams: cue(
+    'Clams',
+    'Side-lying. Knees bent. Open the top knee. Both sides.',
+    'Small clams, or a still side-lying rest.',
+    'Side_Lying_Groin_Stretch',
+    'X_IGw8U_e38'
+  ),
+  singleLegBridge: cue(
+    'Single-leg bridge',
+    'Both sides. Hips level.',
+    'Shorter, or both feet down.',
+    'Single_Leg_Glute_Bridge',
+    'X_IGw8U_e38'
+  ),
+  rollUp: cue(
+    'Roll-up',
+    'Half roll-up if the back talks. Stack one bone at a time.',
+    'Tiny curl. Neck soft.',
+    'Lower_Back_Curl',
+    'RUNrHkbP4Pc'
+  ),
+  boat: cue(
+    'Boat',
+    'Knees bent. Hold. Then 90/90 breathing on the back.',
+    'Skip the boat. 90/90 on the back until the hold ends.',
+    'Tuck_Crunch',
+    'RUNrHkbP4Pc'
+  ),
+};
+
 const STRETCH_UPPER: Record<OptionalLevel, Cue[]> = {
-  easy: [
-    {
-      title: 'Neck',
-      warmup: 'Slow look left and right. Switch sides halfway. No forcing.',
-      cooldown: 'Softer turns. Let the neck empty.',
-      id: 'Side_Neck_Stretch',
-      videoId: 'was4RtzpfJs',
-    },
-    {
-      title: 'Shoulders',
-      warmup: 'Roll them back. Open the chest a little.',
-      cooldown: 'Slow rolls. Drop what the press left behind.',
-      id: 'Shoulder_Circles',
-      videoId: 'NS64IgKUyeY',
-    },
-    {
-      title: 'Chest',
-      warmup: 'Hands on a wall or behind you. Open without a fight.',
-      cooldown: 'Same wall. Stay. Breathe into the stretch.',
-      id: 'Chest_And_Front_Of_Shoulder_Stretch',
-      videoId: 'NS64IgKUyeY',
-    },
-    {
-      title: 'Lats',
-      warmup: "Child's pose or a wall reach. Walk the hands away. Soft elbows.",
-      cooldown: 'Longer reach. Let the lats melt after the rows.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Thoracic',
-      warmup: 'Cat-cow or an easy open-book on your side. Move with the breath.',
-      cooldown: 'Slower cat-cow. Nothing left to prove in the spine.',
-      id: 'Cat_Stretch',
-      videoId: 'y39PrKY_4JM',
-    },
-    {
-      title: 'Wrists',
-      warmup: 'Palms on a wall, fingers down, or an easy overhead triceps fold.',
-      cooldown: 'Wrist fold, then shake the hands out.',
-      id: 'Shoulder_Circles',
-      videoId: 'NS64IgKUyeY',
-    },
-  ],
-  medium: [
-    {
-      title: 'Cat-cow',
-      warmup: 'On all fours. Round and arch with the breath.',
-      cooldown: 'Slower rounds. Let the upper back go.',
-      id: 'Cat_Stretch',
-      videoId: 'y39PrKY_4JM',
-    },
-    {
-      title: 'Thread-the-needle',
-      warmup: 'Slide one arm under the chest. Both sides.',
-      cooldown: 'Stay in the twist a little longer. Switch.',
-      id: 'Cat_Stretch',
-      videoId: 'y39PrKY_4JM',
-    },
-    {
-      title: 'Puppy pose',
-      warmup: 'Hips over knees. Walk the hands forward. Chest toward the floor.',
-      cooldown: 'Same shape. Softer elbows. Long exhales.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Eagle arms',
-      warmup: 'Wrap the arms. Lift the elbows. Both sides if one wrap is enough.',
-      cooldown: 'Cow-face or eagle. Unwind slow.',
-      id: 'Shoulder_Circles',
-      videoId: 'NS64IgKUyeY',
-    },
-    {
-      title: 'Mermaid',
-      warmup: 'Sit. One hand down. Other arm overhead. Side body. Switch halfway.',
-      cooldown: 'Same side bend. Less reach, more breath.',
-      id: 'Side_Neck_Stretch',
-      videoId: 'was4RtzpfJs',
-    },
-    {
-      title: 'Supine twist',
-      warmup: 'On your back, knees together, let them fall to one side. Switch halfway.',
-      cooldown: 'Knees heavy. Look the other way. Then rest.',
-      id: 'Cat_Stretch',
-      videoId: 'y39PrKY_4JM',
-    },
-  ],
-  hard: [
-    {
-      title: 'Down dog to puppy',
-      warmup: 'Down dog first. Then walk the hands and drop the chest. Stay.',
-      cooldown: 'Skip the push. Puppy only. Long stay.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Thread-the-needle',
-      warmup: 'Arm under, then stay in the bind. Both sides.',
-      cooldown: 'Bind if it is kind. No yanking the shoulder.',
-      id: 'Cat_Stretch',
-      videoId: 'y39PrKY_4JM',
-    },
-    {
-      title: 'Long puppy',
-      warmup: 'Chest lower. Shoulders load. Ribs quiet.',
-      cooldown: 'Foreheads toward the floor. Soft neck.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Cow-face arms',
-      warmup: 'One elbow up, one down. Both sides. Longer than Medium.',
-      cooldown: 'Same bind. Less pull.',
-      id: 'Shoulder_Circles',
-      videoId: 'NS64IgKUyeY',
-    },
-    {
-      title: 'Mermaid',
-      warmup: 'Deeper side bend. Both sides. Stay at the end.',
-      cooldown: 'Side bend, then sit tall and breathe.',
-      id: 'Side_Neck_Stretch',
-      videoId: 'was4RtzpfJs',
-    },
-    {
-      title: 'Supine twist',
-      warmup: 'Arm on the floor. Look the other way. Then a short child’s pose.',
-      cooldown: 'Twist, then child’s pose until the hold ends.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-  ],
+  easy: [HOLD.neck, HOLD.shoulders, HOLD.chest, HOLD.lats, HOLD.thoracic, HOLD.wrists],
+  medium: [HOLD.catCow, HOLD.thread, HOLD.puppy, HOLD.eagle, HOLD.mermaid, HOLD.supineTwist],
+  hard: [HOLD.downDogPuppy, HOLD.thread, HOLD.longPuppy, HOLD.cowFace, HOLD.mermaid, HOLD.supineTwist],
 };
 
 const STRETCH_LOWER: Record<OptionalLevel, Cue[]> = {
-  easy: [
-    {
-      title: 'Calves',
-      warmup: 'Heel down, knee soft. Switch sides halfway.',
-      cooldown: 'Heel down. Let the legs empty.',
-      id: 'Standing_Gastrocnemius_Calf_Stretch',
-      videoId: 'i1eJqJ3v3lQ',
-    },
-    {
-      title: 'Hip flexors',
-      warmup: 'Half-kneeling lunge. Back glute squeezed. Not a backbend.',
-      cooldown: 'Same kneel. Softer. You already did the work.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Adductors',
-      warmup: 'Easy side lunge. Sit between the knees as far as is kind.',
-      cooldown: 'Wide knees. No bounce.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Quads',
-      warmup: 'Stand or lie on your side. Heel toward the glute. Switch halfway.',
-      cooldown: 'Same fold. Slower.',
-      id: 'Split_Squat_with_Dumbbells',
-      videoId: 'BhQimqvU1tM',
-    },
-    {
-      title: 'Figure-four',
-      warmup: 'Ankle on the other knee. Sit tall, then fold a little.',
-      cooldown: 'Reclined figure-four. Heavy hips.',
-      id: 'Butt_Lift_Bridge',
-      videoId: '0_zPqA65Nok',
-    },
-    {
-      title: 'Hamstrings',
-      warmup: 'Easy fold or a long sit. Soft knees. No yanking.',
-      cooldown: 'Longer fold. Soft knees still.',
-      id: 'Romanian_Deadlift',
-      videoId: 'wr_8aak4Wbc',
-    },
-  ],
-  medium: [
-    {
-      title: 'Down dog',
-      warmup: 'Pedal the heels. Soft knees if the hamstrings talk.',
-      cooldown: 'Down dog, then drop to the knees when you need.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Low lunge',
-      warmup: 'Back knee down. Both sides. Hips square.',
-      cooldown: 'Same lunge. Less depth, more breath.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Lizard',
-      warmup: 'Hands inside the front foot. Elbows toward the floor if it is kind.',
-      cooldown: 'Lizard, stay. Switch halfway.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Half split',
-      warmup: 'Front heel. Hips back. Fold over the leg.',
-      cooldown: 'Same fold. Softer knee.',
-      id: 'Romanian_Deadlift',
-      videoId: 'wr_8aak4Wbc',
-    },
-    {
-      title: 'Reclined pigeon',
-      warmup: 'Figure-four on your back. Draw the thigh in.',
-      cooldown: 'Same shape. Let the hip sink.',
-      id: 'Butt_Lift_Bridge',
-      videoId: '0_zPqA65Nok',
-    },
-    {
-      title: 'Butterfly',
-      warmup: 'Soles together. Or happy baby if the hips prefer it.',
-      cooldown: 'Butterfly or happy baby. Stay easy.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-  ],
-  hard: [
-    {
-      title: 'Down dog',
-      warmup: 'Long stay. Heels working toward the floor.',
-      cooldown: 'Shorter dog, then child’s pose.',
-      id: 'Cat_Stretch',
-      videoId: 'eqVMAPM00DM',
-    },
-    {
-      title: 'Low lunge reach',
-      warmup: 'Knee down. Arm up on the back-leg side. Tiny side bend. Switch.',
-      cooldown: 'Lunge without the reach if the hip is done.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Lizard',
-      warmup: 'Both sides. Stay at the end range.',
-      cooldown: 'Same pose. No extra depth.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-    {
-      title: 'Half split',
-      warmup: 'Longer fold. Hips point down the mat.',
-      cooldown: 'Fold, then sit up and shake the legs.',
-      id: 'Romanian_Deadlift',
-      videoId: 'wr_8aak4Wbc',
-    },
-    {
-      title: 'Pigeon',
-      warmup: 'Front shin across. Fold only if the hip allows.',
-      cooldown: 'Pigeon or reclined figure-four. No forcing.',
-      id: 'Butt_Lift_Bridge',
-      videoId: '0_zPqA65Nok',
-    },
-    {
-      title: 'Frog to fold',
-      warmup: 'Wide-knee child’s pose or frog, then a long hamstring fold.',
-      cooldown: 'Wide knees, then a soft forward fold until the hold ends.',
-      id: 'Groiners',
-      videoId: 'YQmpO9VT2X4',
-    },
-  ],
+  easy: [HOLD.calves, HOLD.hipFlexors, HOLD.adductors, HOLD.quads, HOLD.figureFour, HOLD.hamstrings],
+  medium: [HOLD.downDog, HOLD.lowLunge, HOLD.lizard, HOLD.halfSplit, HOLD.reclinedPigeon, HOLD.butterfly],
+  hard: [HOLD.downDog, HOLD.lowLungeReach, HOLD.lizard, HOLD.halfSplit, HOLD.pigeon, HOLD.frogFold],
 };
 
 const CORE_UPPER_EASY: Cue[] = [
-  {
-    title: 'Dead bug',
-    warmup: 'Back stays on the floor. Slow opposite arm and leg.',
-    cooldown: 'Slower than the warmup. Floor is a friend.',
-    id: 'Dead_Bug',
-    videoId: '4XLEnwUr1d8',
-  },
-  {
-    title: 'Bird dog',
-    warmup: 'Opposite arm and leg. Pause. Not a long front plank.',
-    cooldown: 'Smaller reach. Quiet hips.',
-    id: 'Superman',
-    videoId: 'cc6UVRS7PW4',
-  },
-  {
-    title: 'Heel taps',
-    warmup: 'Knees bent. Tap one heel then the other. Soft.',
-    cooldown: 'Same taps. Smaller.',
-    id: 'Alternate_Heel_Touchers',
-    videoId: '9bR-elyolBQ',
-  },
-  {
-    title: 'Side-lying hold',
-    warmup: 'On your side. Knees down. Hips stacked. Switch halfway.',
-    cooldown: 'Short side hold. Then roll onto your back.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
-  },
-  {
-    title: 'Easy hollow',
-    warmup: 'Knees bent. Low back glued down. Shoulders heavy.',
-    cooldown: 'Even smaller. Stop while it is kind.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Breathe down',
-    warmup: "On your back, hands on ribs. Long easy breaths.",
-    cooldown: "Child's pose or on your back. Long easy breaths.",
-    id: 'Cat_Stretch',
-    videoId: 'eqVMAPM00DM',
-  },
+  HOLD.deadBug,
+  HOLD.birdDog,
+  HOLD.heelTaps,
+  HOLD.sideLyingHold,
+  HOLD.easyHollow,
+  HOLD.breatheDown,
 ];
 
 const CORE_UPPER_MEDIUM: Cue[] = [
-  {
-    title: 'Pilates breath',
-    warmup: 'Ribs in. Long exhale. Quiet belly.',
-    cooldown: 'Same breath. You already worked.',
-    id: 'Cat_Stretch',
-    videoId: 'eqVMAPM00DM',
-  },
-  {
-    title: 'Single-leg stretch',
-    warmup: 'One knee in. One long. Switch. Head can stay down.',
-    cooldown: 'Slower switches. Neck soft.',
-    id: 'Alternate_Heel_Touchers',
-    videoId: '9bR-elyolBQ',
-  },
-  {
-    title: 'Bird dog',
-    warmup: 'Pause at the end of each reach.',
-    cooldown: 'Hold the shape. Less reach.',
-    id: 'Superman',
-    videoId: 'cc6UVRS7PW4',
-  },
-  {
-    title: 'Criss-cross',
-    warmup: 'Small. Shoulders only as high as the neck stays kind.',
-    cooldown: 'Tiny rotation. Or skip to a side breath if the neck talks.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Side-lying kick',
-    warmup: 'Small front and back. Both sides.',
-    cooldown: 'Even smaller kicks. Then rest on that side.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
-  },
-  {
-    title: 'Rest',
-    warmup: 'Knees into the chest, or hands on ribs.',
-    cooldown: 'Knees in. Let the belly go.',
-    id: 'Cat_Stretch',
-    videoId: 'eqVMAPM00DM',
-  },
+  HOLD.pilatesBreath,
+  HOLD.singleLegStretch,
+  HOLD.birdDog,
+  HOLD.crissCross,
+  HOLD.sideLyingKick,
+  HOLD.rest,
 ];
 
 const CORE_UPPER_MEDIUM_B: Cue[] = [
@@ -412,70 +494,30 @@ const CORE_UPPER_MEDIUM_B: Cue[] = [
   CORE_UPPER_MEDIUM[1],
   CORE_UPPER_MEDIUM[2],
   {
-    title: 'Side-lying kick',
+    ...HOLD.sideLyingKick,
     warmup: 'Skip the crunch series. Small front and back kicks. Both sides.',
     cooldown: 'Side kicks only. Neck stays down.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
   },
   CORE_UPPER_MEDIUM[4],
   CORE_UPPER_MEDIUM[5],
 ];
 
 const CORE_UPPER_HARD: Cue[] = [
-  {
-    title: 'The hundred',
-    warmup: 'Knees tabletop. Arms pump. Breath in fives.',
-    cooldown: 'Half the pumps. Or hold tabletop and breathe.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Double-leg stretch',
-    warmup: 'Reach long. Circle home. Back stays down.',
-    cooldown: 'Shorter reach. Same back rule.',
-    id: 'Dead_Bug',
-    videoId: '4XLEnwUr1d8',
-  },
-  {
-    title: 'Criss-cross',
-    warmup: 'Slower. Both sides. Neck kind.',
-    cooldown: 'Tiny. Or stay in tabletop.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Side kick series',
-    warmup: 'Front, back, then a small lift. Both sides.',
-    cooldown: 'Front and back only.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
-  },
-  {
-    title: 'Teaser prep',
-    warmup: 'Legs tabletop. Roll the shoulders up. Hold. Not a full teaser unless it is clean.',
-    cooldown: 'Shoulders stay down. Hands on ribs.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: "Child's pose",
-    warmup: 'Hips to heels. Arms long. Stay.',
-    cooldown: 'Forehead down. Long breaths until the hold ends.',
-    id: 'Childs_Pose',
-    videoId: 'zqwK6J3yHfA',
-  },
+  HOLD.hundred,
+  HOLD.doubleLeg,
+  HOLD.crissCross,
+  HOLD.sideKick,
+  HOLD.teaser,
+  HOLD.childs,
 ];
 
 const CORE_UPPER_HARD_B: Cue[] = [
   CORE_UPPER_HARD[0],
   CORE_UPPER_HARD[1],
   {
-    title: 'Bird dog',
+    ...HOLD.birdDog,
     warmup: 'Pause three counts. No criss-cross on this pull day.',
     cooldown: 'Small bird dog. Then rest.',
-    id: 'Superman',
-    videoId: 'cc6UVRS7PW4',
   },
   CORE_UPPER_HARD[3],
   CORE_UPPER_HARD[4],
@@ -484,155 +526,66 @@ const CORE_UPPER_HARD_B: Cue[] = [
 
 const CORE_LOWER_EASY: Cue[] = [
   {
-    title: 'Dead bug',
-    warmup: 'Back stays on the floor. Slow opposite arm and leg.',
+    ...HOLD.deadBug,
     cooldown: 'Slower. Brace like a hinge, then let it go.',
-    id: 'Dead_Bug',
-    videoId: '4XLEnwUr1d8',
   },
+  HOLD.gluteBridge,
   {
-    title: 'Glute bridge',
-    warmup: 'Easy squeeze at the top. No rush.',
-    cooldown: 'Short squeeze. Then let the floor take you.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
-  },
-  {
-    title: 'Heel taps',
+    ...HOLD.heelTaps,
     warmup: 'Knees bent, or a marching bridge if the hips want it.',
     cooldown: 'Soft taps. Hips heavy.',
-    id: 'Alternate_Heel_Touchers',
-    videoId: '9bR-elyolBQ',
   },
+  HOLD.bear,
+  HOLD.easySidePlank,
   {
-    title: 'Bear hold',
-    warmup: 'Hands and toes. Knees an inch off the floor. Quiet spine.',
-    cooldown: 'Shorter bear, or a dead bug if the wrists are done.',
-    id: 'Plank',
-    videoId: 'ASdvN_XEl_c',
-  },
-  {
-    title: 'Easy side plank',
-    warmup: 'Knees down. Hips high. Switch halfway.',
-    cooldown: 'Short side. Then roll down.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
-  },
-  {
-    title: 'Cat-cow',
+    ...HOLD.catCow,
     warmup: 'Round and arch, then child’s pose if you have time.',
     cooldown: 'Cat-cow, then child’s pose. Long breaths.',
-    id: 'Cat_Stretch',
-    videoId: 'y39PrKY_4JM',
   },
 ];
 
 const CORE_LOWER_MEDIUM: Cue[] = [
+  HOLD.shoulderBridge,
+  HOLD.marchingBridge,
+  HOLD.toeTaps,
+  HOLD.saw,
+  HOLD.clams,
   {
-    title: 'Shoulder bridge',
-    warmup: 'Squeeze, lower slow.',
-    cooldown: 'Smaller lift. Slow lower.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
-  },
-  {
-    title: 'Marching bridge',
-    warmup: 'One foot lifts. Hips stay level.',
-    cooldown: 'Tiny marches. Or a still bridge.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
-  },
-  {
-    title: 'Toe taps',
-    warmup: 'Tabletop. Tap one toe, then the other. Back stays down.',
-    cooldown: 'Slower taps.',
-    id: 'Dead_Bug',
-    videoId: '4XLEnwUr1d8',
-  },
-  {
-    title: 'Saw',
-    warmup: 'Sit tall. Twist. Reach to the little toe. Soft knees.',
-    cooldown: 'Smaller twist. Sit on a cushion if you need.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Clams',
-    warmup: 'Side-lying. Knees bent. Open the top knee. Both sides.',
-    cooldown: 'Small clams, or a still side-lying rest.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
-  },
-  {
-    title: "Child's pose",
+    ...HOLD.childs,
     warmup: 'Hips to heels. Breathe into the back.',
     cooldown: 'Stay. You are cooling.',
-    id: 'Childs_Pose',
-    videoId: 'zqwK6J3yHfA',
   },
 ];
 
 const DEAD_BUG_LONG: Cue = {
-  title: 'Dead bug',
+  ...HOLD.deadBug,
   warmup: 'Longer. Legs can stay bent. Back glued down. Hip thrust already owns the bridge.',
   cooldown: 'Slow dead bug. No bridge on this hinge day.',
-  id: 'Dead_Bug',
-  videoId: '4XLEnwUr1d8',
 };
 
 const CORE_LOWER_HARD: Cue[] = [
   {
-    title: 'Shoulder bridge',
+    ...HOLD.shoulderBridge,
     warmup: 'Two-count hold at the top.',
     cooldown: 'One squeeze, then down.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
   },
+  HOLD.singleLegBridge,
+  HOLD.rollUp,
   {
-    title: 'Single-leg bridge',
-    warmup: 'Both sides. Hips level.',
-    cooldown: 'Shorter, or both feet down.',
-    id: 'Butt_Lift_Bridge',
-    videoId: 'X_IGw8U_e38',
-  },
-  {
-    title: 'Roll-up',
-    warmup: 'Half roll-up if the back talks. Stack one bone at a time.',
-    cooldown: 'Tiny curl. Neck soft.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
-  {
-    title: 'Saw',
+    ...HOLD.saw,
     warmup: 'Fuller twist. Soft knees still.',
     cooldown: 'Easy twist. Sit tall.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
   },
-  {
-    title: 'Side kick series',
-    warmup: 'Front, back, small lift. Both sides.',
-    cooldown: 'Front and back only.',
-    id: 'Side_Bridge',
-    videoId: 'rCxF2nG9vQ0',
-  },
-  {
-    title: 'Boat',
-    warmup: 'Knees bent. Hold. Then 90/90 breathing on the back.',
-    cooldown: 'Skip the boat. 90/90 on the back until the hold ends.',
-    id: 'Crunches',
-    videoId: 'RUNrHkbP4Pc',
-  },
+  HOLD.sideKick,
+  HOLD.boat,
 ];
 
 const CORE_LOWER_HARD_B: Cue[] = [
   DEAD_BUG_LONG,
   {
-    title: 'Dead bug',
+    ...HOLD.deadBug,
     warmup: 'Keep going. No single-leg bridge. Hip thrust is the day.',
     cooldown: 'Same dead bug. Soft.',
-    id: 'Dead_Bug',
-    videoId: '4XLEnwUr1d8',
   },
   CORE_LOWER_HARD[2],
   CORE_LOWER_HARD[3],

@@ -6,7 +6,14 @@ import SpikeChart from '@/components/SpikeChart';
 export type ScanMetric = {
   label: string;
   value: string;
+  tone?: 'up' | 'down' | 'plain';
 };
+
+function toneClass(tone: ScanMetric['tone'], roomy: boolean) {
+  if (tone === 'up') return 'text-[#6d8b6e]';
+  if (tone === 'down') return 'text-[#a35d52]';
+  return roomy ? 'text-[#f6f1e3]/90' : 'text-[#f6f1e3]/85';
+}
 
 /**
  * Dense scan row used on Home Quiet, Scoreboard, and Your performance.
@@ -22,6 +29,7 @@ export default function ScanCard({
   headline,
   sub,
   metrics,
+  metricLayout = 'grid',
   foot,
   spark,
   sparkTone = 'plain',
@@ -34,6 +42,8 @@ export default function ScanCard({
   headline: string;
   sub?: string;
   metrics: ScanMetric[];
+  /** `row` keeps label and value on one line. */
+  metricLayout?: 'grid' | 'row';
   foot?: string;
   spark?: number[];
   sparkTone?: 'up' | 'down' | 'plain';
@@ -77,34 +87,56 @@ export default function ScanCard({
         </p>
       </div>
       {sub ? (
-        <p className={`mt-1 text-[#f6f1e3]/60 ${roomy ? 'text-base leading-snug' : 'truncate text-xs text-[#f6f1e3]/50'}`}>
+        <p
+          className={`mt-1 text-[#f6f1e3]/60 ${
+            roomy
+              ? 'text-base leading-snug'
+              : metricLayout === 'row'
+                ? 'text-xs leading-snug text-[#f6f1e3]/55'
+                : 'truncate text-xs text-[#f6f1e3]/50'
+          }`}
+        >
           {sub}
         </p>
       ) : null}
       {metrics.length > 0 ? (
-        <div
-          className={`mt-3 grid ${roomy ? 'gap-x-4 gap-y-3' : 'mt-2 gap-x-2 gap-y-1'}`}
-          style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
-        >
-          {metrics.map((item) => (
-            <div key={item.label} className="min-w-0">
+        metricLayout === 'row' ? (
+          <div className={`flex flex-wrap gap-x-3 ${roomy ? 'mt-3 gap-y-1.5' : 'mt-2 gap-y-1'}`}>
+            {metrics.map((item) => (
               <p
-                className={`font-semibold uppercase tracking-wider text-[#f6f1e3]/50 ${
-                  roomy ? 'text-sm' : 'text-[9px] text-[#f6f1e3]/40'
-                }`}
+                key={item.label}
+                className={`min-w-0 ${roomy ? 'text-base' : 'text-[12px] leading-tight'}`}
               >
-                {item.label}
+                <span className="font-semibold text-[#f6f1e3]/45">{item.label} </span>
+                <span className={`font-semibold ${toneClass(item.tone, roomy)}`}>{item.value}</span>
               </p>
-              <p
-                className={`font-semibold text-[#f6f1e3]/90 ${
-                  roomy ? 'text-lg' : 'truncate text-[11px] text-[#f6f1e3]/85'
-                }`}
-              >
-                {item.value}
-              </p>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        ) : (
+          <div
+            className={`mt-3 grid ${roomy ? 'gap-x-4 gap-y-3' : 'mt-2 gap-x-2 gap-y-1'}`}
+            style={{ gridTemplateColumns: `repeat(${columns}, minmax(0, 1fr))` }}
+          >
+            {metrics.map((item) => (
+              <div key={item.label} className="min-w-0">
+                <p
+                  className={`font-semibold uppercase tracking-wider text-[#f6f1e3]/50 ${
+                    roomy ? 'text-sm' : 'text-[9px] text-[#f6f1e3]/40'
+                  }`}
+                >
+                  {item.label}
+                </p>
+                <p
+                  className={`font-semibold ${toneClass(item.tone, roomy)} ${
+                    roomy ? 'text-lg' : 'truncate text-[11px]'
+                  }`}
+                >
+                  {item.value}
+                </p>
+              </div>
+            ))}
+          </div>
+        )
       ) : null}
       {foot ? (
         <p

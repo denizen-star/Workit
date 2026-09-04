@@ -11,6 +11,7 @@ import {
   emptyPerformanceFlags,
   formatLbs,
   formatPct,
+  pctChange,
   type AthletePerformanceBoard,
   type PerformanceFlags,
   type PerformanceLine,
@@ -18,7 +19,7 @@ import {
   type PerformanceSummary,
   type WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
-import { formatHardnessAvg } from '@/lib/hardness';
+import { formatHardnessWithPct } from '@/lib/hardness';
 import HardnessCharts from '@/components/HardnessCharts';
 import HouseholdAthleteCard from '@/components/HouseholdAthleteCard';
 import { mergeAthletePerformanceBoards } from '@/lib/mergeAthletePerformance';
@@ -53,6 +54,33 @@ function toneFor(result: PerformanceLine['result']): 'up' | 'down' | 'plain' {
   return 'plain';
 }
 
+function lineView(line: PerformanceLine) {
+  return {
+    spark: line.spark,
+    result: line.result,
+    volumeChangePct: line.volumeChangePct,
+    progressionPct: line.progressionPct,
+    volume: line.effortVolume,
+  };
+}
+
+function toneFromPct(value: number | null | undefined): 'up' | 'down' | 'plain' {
+  if (value == null || !Number.isFinite(value) || value === 0) return 'plain';
+  return value > 0 ? 'up' : 'down';
+}
+
+function verdictLabel(result: PerformanceLine['result']) {
+  if (result === 'gain') return 'Up';
+  if (result === 'loss') return 'Down';
+  if (result === 'first') return 'First';
+  if (result === 'held') return 'Held';
+  return 'Mixed';
+}
+
+function hasReps(line: PerformanceLine): line is PerformanceLine & { currentReps: number; priorReps: number | null } {
+  return 'currentReps' in line;
+}
+
 function LineRow({
   line,
   label,
@@ -62,19 +90,34 @@ function LineRow({
   label?: string;
   detail?: string | null;
 }) {
+  const view = lineView(line);
+  const reps = hasReps(line) ? line.currentReps : null;
+  const repsChange = hasReps(line) ? pctChange(line.currentReps, line.priorReps) : null;
+  const now = [
+    `${formatLbs(line.currentWeight)} lb`,
+    reps != null ? `${Math.round(reps)} reps` : null,
+    `${formatLbs(view.volume)} total`,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const vs = formatPct(view.volumeChangePct);
+  const headline =
+    view.result === 'first' ? 'First' : view.volumeChangePct == null ? verdictLabel(view.result) : `${verdictLabel(view.result)} · ${vs}`;
   return (
     <ScanCard
-      spark={line.spark}
-      sparkTone={toneFor(line.result)}
+      spark={view.spark}
+      sparkTone={toneFor(view.result)}
       title={label || line.name}
-      headline={formatPct(line.volumeChangePct)}
-      sub={detail || undefined}
+      headline={headline}
+      sub={[now, detail].filter(Boolean).join(' · ') || undefined}
+      metricLayout="row"
       metrics={[
-        { label: 'This weight', value: formatLbs(line.currentWeight) },
-        { label: 'This total', value: formatLbs(line.currentVolume) },
-        { label: 'Total vs last', value: formatPct(line.volumeChangePct) },
-        { label: 'Load vs last', value: formatPct(line.progressionPct) },
-        { label: 'How hard', value: formatHardnessAvg(line.perception) },
+        { label: 'Weight', value: formatPct(line.weightChangePct), tone: toneFromPct(line.weightChangePct) },
+        ...(reps != null
+          ? [{ label: 'Reps', value: formatPct(repsChange), tone: toneFromPct(repsChange) }]
+          : []),
+        { label: 'Total', value: vs, tone: toneFromPct(view.volumeChangePct) },
+        { label: 'Effort', value: formatHardnessWithPct(line.perception) },
       ]}
     />
   );
@@ -117,32 +160,61 @@ function Fold({
   );
 }
 
+function compareStory(up: number, down: number, noun: string) {
+  if (up === 0 && down === 0) return `${noun} has nothing to compare.`;
+  if (up > down) return `${noun} moving up.`;
+  if (down > up) return `${noun} moving down.`;
+  return `${noun} mixed.`;
+}
+
+function summaryStory(summary: PerformanceSummary, gains: number, losses: number) {
+  const lifts =
+    gains + losses === 0
+      ? 'No lift to compare yet.'
+      : gains > losses
+        ? `${gains} lifts are up. ${losses} ${losses === 1 ? 'is' : 'are'} down.`
+        : losses > gains
+          ? `${losses} lifts are down. ${gains} ${gains === 1 ? 'is' : 'are'} up.`
+          : `${gains} up, ${losses} down. Even.`;
+  return [
+    lifts,
+    compareStory(summary.weightClimbing, summary.weightDropping, 'Weight'),
+    compareStory(summary.repsClimbing, summary.repsDropping, 'Reps'),
+    `Effort ${formatHardnessWithPct(summary.perception)}${
+      summary.perceptionCount ? ` on ${summary.perceptionCount} sets` : ''
+    }.`,
+  ].join(' ');
+}
+
+function SectionLabel({ children, hint }: { children: ReactNode; hint?: string }) {
+  return (
+    <div className="mb-2">
+      <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">{children}</p>
+      {hint ? <p className="mt-1 text-sm text-[#f6f1e3]/55">{hint}</p> : null}
+    </div>
+  );
+}
+
 function SummaryCard({
   summary,
   athleteName,
+  board,
 }: {
   summary: PerformanceSummary;
   athleteName?: string;
+  board: AthletePerformanceBoard;
 }) {
+  const gains = board.exercises.filter((row) => lineView(row).result === 'gain').length;
+  const losses = board.exercises.filter((row) => lineView(row).result === 'loss').length;
   return (
     <ScanCard
       you={!athleteName}
       roomy={!athleteName}
-      kicker={athleteName || 'Your performance'}
+      kicker={athleteName || undefined}
       title={athleteName ? `${athleteName} vs last time` : 'You vs last time'}
-      headline={`${summary.gains} up · ${summary.losses} down`}
-      sub={`How hard ${summary.perception == null ? '—' : formatHardnessAvg(summary.perception)}${
-        summary.perceptionCount ? ` · ${summary.perceptionCount} sets` : ''
-      }`}
-      metrics={[
-        { label: 'Gains', value: String(summary.gains) },
-        { label: 'Losses', value: String(summary.losses) },
-        { label: 'Hard', value: formatHardnessAvg(summary.perception) },
-        { label: 'Wt up', value: String(summary.weightClimbing) },
-        { label: 'Wt down', value: String(summary.weightDropping) },
-        { label: 'Reps up', value: String(summary.repsClimbing) },
-        { label: 'Reps down', value: String(summary.repsDropping) },
-      ]}
+      headline={`${gains} up · ${losses} down`}
+      sub={summaryStory(summary, gains, losses)}
+      metrics={[]}
     />
   );
 }
@@ -155,7 +227,7 @@ export function PeriodPills({
   onPick: (value: PerformancePeriod) => void;
 }) {
   return (
-    <div className="mb-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+    <div className="flex min-w-0 flex-1 gap-1 overflow-x-auto">
       {PERFORMANCE_PERIODS.map((option) => {
         const selected = option === period;
         return (
@@ -163,7 +235,7 @@ export function PeriodPills({
             key={option}
             type="button"
             onClick={() => onPick(option)}
-            className={`min-h-12 rounded-2xl border text-base font-semibold ${
+            className={`min-h-10 min-w-0 flex-1 rounded-2xl border px-1 text-sm font-semibold ${
               selected
                 ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
                 : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
@@ -191,17 +263,22 @@ export function AthletePerformanceBoardView({
 }) {
   const summary = board.summary;
   const gainers = [...board.exercises]
-    .filter((row) => row.result === 'gain')
-    .sort((a, b) => (b.volumeChangePct || 0) - (a.volumeChangePct || 0))
-    .slice(0, 4);
+    .filter((row) => lineView(row).result === 'gain')
+    .sort((a, b) => (lineView(b).volumeChangePct || 0) - (lineView(a).volumeChangePct || 0));
   const losers = [...board.exercises]
-    .filter((row) => row.result === 'loss')
-    .sort((a, b) => (a.volumeChangePct || 0) - (b.volumeChangePct || 0));
+    .filter((row) => lineView(row).result === 'loss')
+    .sort((a, b) => (lineView(a).volumeChangePct || 0) - (lineView(b).volumeChangePct || 0));
+  const held = board.exercises.filter((row) => {
+    const result = lineView(row).result;
+    return result === 'held' || result === 'first' || result === 'mixed';
+  });
 
   const gainerBlock =
     page && gainers.length > 0 ? (
       <div className="space-y-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6d8b6e]">Gainers</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#6d8b6e]">
+          Moving up · {gainers.length}
+        </p>
         {gainers.map((row) => (
           <LineRow key={row.key} line={row} />
         ))}
@@ -210,11 +287,21 @@ export function AthletePerformanceBoardView({
   const loserBlock =
     page && losers.length > 0 ? (
       <div className="space-y-2">
-        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a35d52]">Losers</p>
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#a35d52]">
+          Moving down · {losers.length}
+        </p>
         {losers.map((row) => (
           <LineRow key={row.key} line={row} />
         ))}
       </div>
+    ) : null;
+  const heldBlock =
+    page && held.length > 0 ? (
+      <Fold title="Held / first" hint={`${held.length} lifts`}>
+        {held.map((row) => (
+          <LineRow key={row.key} line={row} />
+        ))}
+      </Fold>
     ) : null;
   const everyLift = page ? (
     <Fold title="Every lift" hint={`${board.exercises.length} lifts`}>
@@ -230,27 +317,31 @@ export function AthletePerformanceBoardView({
       ))}
     </Fold>
   ) : null;
+  const charts = (
+    <Fold title="Effort by day / lift" hint="1–5">
+      <HardnessCharts board={board} athleteName={athleteName} />
+    </Fold>
+  );
 
   if (page && layout === 'detail') {
     return (
       <div className="space-y-3">
-        <SummaryCard summary={summary} athleteName={athleteName} />
-        <HardnessCharts board={board} athleteName={athleteName} section="workout" />
-        {byWorkout}
         {gainerBlock}
         {loserBlock}
-        <HardnessCharts board={board} athleteName={athleteName} section="lift" />
+        {heldBlock}
         {everyLift}
+        {byWorkout}
+        {charts}
       </div>
     );
   }
 
   return (
     <div className="space-y-3">
-      <SummaryCard summary={summary} athleteName={athleteName} />
-      <HardnessCharts board={board} athleteName={athleteName} />
+      <SummaryCard summary={summary} athleteName={athleteName} board={board} />
       {gainerBlock}
       {loserBlock}
+      {charts}
       {everyLift}
       {byWorkout}
     </div>
@@ -416,27 +507,26 @@ export default function AthletePerformance({
 
   if (hidden) return null;
 
-  const summary = merged?.summary;
-  const trailing = summary ? `${summary.gains} up · ${summary.losses} down` : undefined;
+  const trailing = merged
+    ? `${merged.exercises.filter((row) => lineView(row).result === 'gain').length} up · ${
+        merged.exercises.filter((row) => lineView(row).result === 'loss').length
+      } down`
+    : undefined;
   const empty =
     !loading && !!merged && merged.exercises.length === 0 && merged.workouts.length === 0;
   const noneSelected = page && isAdmin && selected.length === 0;
 
   const body = (
     <div>
-      {page ? (
-        <p className="mb-3 text-xs text-[#f6f1e3]/55">
-          You vs the last time you did that lift. This weight is the heaviest set. This total is
-          lb × reps. Green is up. Red is down. This is not vs the house.
-        </p>
-      ) : null}
-      <PeriodPills
-        period={period}
-        onPick={(value) => {
-          setPeriod(value);
-          setLoading(true);
-        }}
-      />
+      <div className="mb-3">
+        <PeriodPills
+          period={period}
+          onPick={(value) => {
+            setPeriod(value);
+            setLoading(true);
+          }}
+        />
+      </div>
       {page && isAdmin === true && household ? (
         <AthleteFilter
           rows={household}
@@ -449,17 +539,6 @@ export default function AthletePerformance({
           onCheckAll={() => setSelected(household.map((row) => row.userId))}
         />
       ) : null}
-      {!loading && !noneSelected && snapshots.length > 0 ? (
-        <div className="mb-3 space-y-3">
-          {snapshots.map((snapshot) => (
-            <HouseholdAthleteCard
-              key={snapshot.row.id}
-              snapshot={snapshot}
-              you={snapshots.length === 1}
-            />
-          ))}
-        </div>
-      ) : null}
       {loading ? (
         <p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>
       ) : noneSelected ? (
@@ -468,11 +547,44 @@ export default function AthletePerformance({
         <p className="text-sm text-[#f6f1e3]/55">
           No finished workouts in this window. Log a session and this fills in.
         </p>
+      ) : merged && page ? (
+        <div className="space-y-8">
+          <section>
+            <SectionLabel hint="The read on this window vs last time you did those lifts.">
+              Summary
+            </SectionLabel>
+            <SummaryCard summary={merged.summary} board={merged} />
+          </section>
+          {snapshots.length > 0 || flags ? (
+            <section>
+              <SectionLabel hint="What you did in this window. Totals use Effort. Place is vs the house on raw iron.">
+                Details
+              </SectionLabel>
+              {snapshots.length > 0 ? (
+                <div className="space-y-3">
+                  {snapshots.map((snapshot) => (
+                    <HouseholdAthleteCard
+                      key={snapshot.row.id}
+                      snapshot={snapshot}
+                      you={snapshots.length === 1}
+                    />
+                  ))}
+                </div>
+              ) : null}
+              {isAdmin === true && flags ? <div className="mt-3"><FlagStrip period={period} flags={flags} /></div> : null}
+              {isAdmin === false ? <div className="mt-3"><FlagStrip period={period} /></div> : null}
+            </section>
+          ) : null}
+          <section>
+            <SectionLabel hint="Each lift vs the last time you did it. Green is up. Red is down.">
+              Progression
+            </SectionLabel>
+            <AthletePerformanceBoardView board={merged} page layout="detail" />
+          </section>
+        </div>
       ) : merged ? (
-        <AthletePerformanceBoardView board={merged} page={page} layout={page ? 'detail' : 'classic'} />
+        <AthletePerformanceBoardView board={merged} page={false} layout="classic" />
       ) : null}
-      {page && isAdmin === true && flags ? <FlagStrip period={period} flags={flags} /> : null}
-      {page && isAdmin === false ? <FlagStrip period={period} /> : null}
       {!page && merged ? (
         <Link
           href="/performance"
@@ -513,10 +625,12 @@ function WorkoutBlock({ workout }: { workout: WorkoutTrend }) {
   const [open, setOpen] = useState(false);
   const when = formatWhen(workout.currentDate);
   const prior = formatWhen(workout.priorDate);
+  const gains = workout.exercises.filter((row) => lineView(row).result === 'gain').length;
+  const losses = workout.exercises.filter((row) => lineView(row).result === 'loss').length;
   const detail = [
     when ? (prior ? `${when} vs ${prior}` : when) : null,
     workout.weekNumber ? `Week ${workout.weekNumber}` : null,
-    `${workout.gains} up · ${workout.losses} down`,
+    `${gains} up · ${losses} down`,
   ]
     .filter(Boolean)
     .join(' · ');

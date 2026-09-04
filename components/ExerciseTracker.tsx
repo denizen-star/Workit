@@ -1009,6 +1009,7 @@ export default function ExerciseTracker({
         title={activeVideo?.title || ''}
         videoId={activeVideo?.videoId || ''}
         videos={activeVideo?.videos}
+        how={activeVideo ? howForExercise(activeVideo.title) : null}
         onClose={() => setActiveVideo(null)}
       />
 

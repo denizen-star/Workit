@@ -28,6 +28,10 @@ export type HouseholdScoreboardRow = {
   beltFill: string | null;
   lastWorkout: string | null;
   lastAt: string | null;
+  /** Display only. Does not change house rank. */
+  perception?: number | null;
+  effortVolume?: number;
+  bestSessionEffort?: number;
 };
 
 export type ScoreboardDailyPoint = {
@@ -49,6 +53,14 @@ export function scoreboardRangeLabel(period: ScoreboardPeriod) {
 
 export function firstName(name: string) {
   return String(name || '').trim().split(/\s+/)[0] || 'You';
+}
+
+export function scoreboardVolume(row: HouseholdScoreboardRow) {
+  return row.effortVolume != null ? row.effortVolume : row.volume;
+}
+
+export function scoreboardBestDay(row: HouseholdScoreboardRow) {
+  return row.bestSessionEffort != null ? row.bestSessionEffort : row.bestSessionVolume;
 }
 
 export function placeLabel(place: number | null | undefined) {

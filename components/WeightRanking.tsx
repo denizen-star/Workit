@@ -23,7 +23,7 @@ export default function WeightRanking({
 
   const highlight = highlightUserId != null ? ranking.find((row) => row.userId === highlightUserId) : undefined;
   const sentence = highlight
-    ? overallRankSentence({ userId: highlight.userId, name: highlight.name }, ranking)
+    ? overallRankSentence({ userId: highlight.userId, name: highlight.name }, ranking, true)
     : null;
 
   return (
@@ -49,8 +49,8 @@ export default function WeightRanking({
                 <span className="text-[#e8c547]">{ordinalRank(row.rank)}</span> {label}
               </p>
               <div className="flex items-start gap-4">
-                <Stat label="Best day" value={row.bestDay} />
-                <Stat label="Total weight" value={row.totalWeight} />
+                <Stat label="Best day" value={row.effortBestDay} />
+                <Stat label="Total weight" value={row.effortTotalWeight} />
               </div>
             </div>
           );

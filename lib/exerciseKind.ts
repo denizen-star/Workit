@@ -144,3 +144,9 @@ export function sqlSetVolume(alias?: string): string {
     ELSE ${col("weight_lbs")} * ${col("actual_reps")}
   END`;
 }
+
+/** Raw set volume × How hard. Skip How hard = Fair (60%). */
+export function sqlSetEffortVolume(alias?: string): string {
+  const col = (column: string) => (alias ? `${alias}.${column}` : column);
+  return `(${sqlSetVolume(alias)}) * (COALESCE(${col("hardness")}, 3) * 0.2)`;
+}

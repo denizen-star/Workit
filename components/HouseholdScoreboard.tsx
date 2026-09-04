@@ -5,9 +5,12 @@ import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import ScanCard from '@/components/ScanCard';
 import HouseholdWeightChart from '@/components/HouseholdWeightChart';
 import { formatDuration } from '@/lib/formatDuration';
+import { formatHardnessWithPct } from '@/lib/hardness';
 import {
   SCOREBOARD_PERIODS,
+  scoreboardBestDay,
   scoreboardRangeLabel,
+  scoreboardVolume,
   tomScoreboardLine,
   type BonusHonorRow,
   type HouseholdScoreboardRow,
@@ -99,8 +102,8 @@ export default function HouseholdScoreboard({
       )}
 
       <p className="mb-3 text-base text-[#f6f1e3]/60">
-        Household only. Finished workouts count. Rank is workouts, then volume. Come take someone&apos;s
-        place.
+        Household only. Finished workouts count. Rank is workouts, then raw iron. The lb is after
+        Effort. Come take someone&apos;s place.
       </p>
 
       {loading ? (
@@ -160,7 +163,7 @@ export default function HouseholdScoreboard({
                 roomy
                 kicker={place}
                 title={row.name}
-                headline={`${Math.round(row.volume).toLocaleString()} lb`}
+                headline={`${Math.round(scoreboardVolume(row)).toLocaleString()} lb`}
                 sub={last}
                 metrics={[
                   { label: 'Workouts', value: String(row.workouts) },
@@ -168,13 +171,14 @@ export default function HouseholdScoreboard({
                   { label: 'Heaviest', value: row.heaviest ? `${Math.round(row.heaviest)} lb` : '—' },
                   {
                     label: 'Best day',
-                    value: row.bestSessionVolume
-                      ? `${Math.round(row.bestSessionVolume).toLocaleString()}`
+                    value: scoreboardBestDay(row)
+                      ? `${Math.round(scoreboardBestDay(row)).toLocaleString()}`
                       : '—',
                   },
                   { label: 'Avg time', value: formatDuration(row.avgSeconds) },
                   { label: 'Medals', value: String(row.badges) },
                   { label: 'Belt', value: row.beltName || '—' },
+                  { label: 'Effort', value: formatHardnessWithPct(row.perception) },
                 ]}
                 foot={tomScoreboardLine(row, index, rows)}
               />

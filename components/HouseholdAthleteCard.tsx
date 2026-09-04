@@ -2,8 +2,11 @@
 
 import ScanCard from '@/components/ScanCard';
 import { formatDuration } from '@/lib/formatDuration';
+import { formatHardnessWithPct } from '@/lib/hardness';
 import {
   placeLabel,
+  scoreboardBestDay,
+  scoreboardVolume,
   tomScoreboardLine,
   type HouseholdScoreboardRow,
   type PerformanceSnapshot,
@@ -39,6 +42,8 @@ export default function HouseholdAthleteCard({
   if (!card) return null;
   const place =
     snapshot != null ? snapshot.place : index == null ? null : index + 1;
+  const volume = scoreboardVolume(card);
+  const best = scoreboardBestDay(card);
   const foot =
     snapshot?.line ||
     (row && rows && index != null ? tomScoreboardLine(row, index, rows) : undefined);
@@ -49,7 +54,7 @@ export default function HouseholdAthleteCard({
       roomy
       kicker={placeLabel(place)}
       title={card.name}
-      headline={`${Math.round(card.volume).toLocaleString()} lb`}
+      headline={`${Math.round(volume).toLocaleString()} lb`}
       sub={lastSub(card)}
       metrics={[
         { label: 'Workouts', value: String(card.workouts) },
@@ -57,13 +62,12 @@ export default function HouseholdAthleteCard({
         { label: 'Heaviest', value: card.heaviest ? `${Math.round(card.heaviest)} lb` : '—' },
         {
           label: 'Best day',
-          value: card.bestSessionVolume
-            ? `${Math.round(card.bestSessionVolume).toLocaleString()}`
-            : '—',
+          value: best ? `${Math.round(best).toLocaleString()}` : '—',
         },
         { label: 'Avg time', value: formatDuration(card.avgSeconds) },
         { label: 'Medals', value: String(card.badges) },
         { label: 'Belt', value: card.beltName || '—' },
+        { label: 'Effort', value: formatHardnessWithPct(card.perception) },
       ]}
       foot={foot}
     />

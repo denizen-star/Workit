@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 5.8.0 - 2026-09-04
+
+### Added
+- **Hold line** on Home Today: last same day, heaviest set, Effort you voted. Wraps. First time: log the iron and Effort
+- Live session: best-effort portrait lock. Rest and set chimes fire when the clock hits
+- Stretch / Core: a still for each hold. Travel hanging knees / ab wheel: two video tabs
+
+### Changed
+- Stats lb is **after Effort** (How hard 1–5; skip = Fair / 60%). Optional +500 stays raw. Place, week medals, live Today bar, and badge iron stay on raw
+- Effort on tiles: `4.3 · 86%`. Daily chart cream is Effort lb; the wash is your How hard that day
+- Home Quiet: `W3 - Lower B`. One row: Start WO / Resume WO, Select WO, Invite. No belt-hunt sentence under the hero
+- Your performance: Summary, then Details, then Progression. One lift line. One metric row. Period pills stay on one row
+- Stronger is more iron (or the same) while Effort holds or drops. If the total rose only because Effort rose, you pushed harder
+
 ## 5.7.0 - 2026-09-04
 
 ### Added

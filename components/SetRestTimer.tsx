@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import { formatClock } from "@/lib/formatDuration";
-import { unlockAudio } from "@/lib/playChime";
+import { armRestAlarm, cancelRestAlarm, unlockAudio } from "@/lib/playChime";
 import GetToItModal from "./GetToItModal";
 import { REST_SECONDS } from "@/lib/estimateDuration";
 
@@ -39,14 +39,19 @@ export default function SetRestTimer({
     unlockAudio();
     finishedRef.current = false;
     endAtRef.current = Date.now() + restFor * 1000;
+    armRestAlarm(restFor);
     setShowGetToIt(false);
     setRemaining(restFor);
     setRunning(true);
+    return () => {
+      cancelRestAlarm();
+    };
   }, [startToken, restFor]);
 
   useEffect(() => {
     if (!cancelled) return;
     finishedRef.current = true;
+    cancelRestAlarm();
     setRunning(false);
     setShowGetToIt(false);
   }, [cancelled]);
@@ -111,6 +116,7 @@ export default function SetRestTimer({
               onClick={() => {
                 if (finishedRef.current) return;
                 finishedRef.current = true;
+                cancelRestAlarm();
                 setRunning(false);
                 setRemaining(0);
                 if (!cancelled) setShowGetToIt(true);

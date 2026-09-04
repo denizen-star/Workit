@@ -24,3 +24,26 @@ export function formatHardnessAvg(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
   return value.toFixed(1);
 }
+
+/** 1.0 = 20% … 5.0 = 100%. 4.3 = 86%. */
+export function hardnessPercent(value: number): number {
+  return Math.round(Number(value) * 20);
+}
+
+export function formatHardnessWithPct(value: number | null | undefined): string {
+  if (value == null || !Number.isFinite(value)) return '—';
+  const score = Math.round(value * 10) / 10;
+  return `${score.toFixed(1)} · ${hardnessPercent(score)}%`;
+}
+
+/** Skipped How hard counts as Fair. 1=20% · 2=40% · 3=60% · 4=80% · 5=100%. */
+export const DEFAULT_HARDNESS: HardnessScore = 3;
+
+export function hardnessEffortFactor(value: unknown): number {
+  const score = parseHardness(value) ?? DEFAULT_HARDNESS;
+  return score * 0.2;
+}
+
+export function effortFromVolume(volume: number, hardness: unknown): number {
+  return Number(volume || 0) * hardnessEffortFactor(hardness);
+}

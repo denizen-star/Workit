@@ -59,14 +59,14 @@ export default function HardnessCharts({
   if (byWorkout.length === 0 && byLift.length === 0) return null;
 
   const who = athleteName ? firstName(athleteName) : 'You';
-  const title = section === 'lift' ? `Difficulty by lift · ${who}` : `Difficulty · ${who}`;
+  const title = section === 'lift' ? `Effort by lift · ${who}` : `Effort · ${who}`;
 
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
         {title}
       </p>
-      <p className="text-sm text-[#f6f1e3]/55">How hard 1–5. Easy through Max. Only logged sets count.</p>
+      <p className="text-sm text-[#f6f1e3]/55">Effort 1–5. Easy through Max. Only logged sets count.</p>
       {byWorkout.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-semibold text-[#f6f1e3]/70">By workout</p>
@@ -76,7 +76,7 @@ export default function HardnessCharts({
               <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
               <YAxis domain={[0, 5]} tick={{ fill: '#f6f1e3', fontSize: 11 }} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="hard" name="How hard" fill="#e8c547" />
+              <Bar dataKey="hard" name="Effort" fill="#e8c547" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -90,7 +90,7 @@ export default function HardnessCharts({
               <XAxis type="number" domain={[0, 5]} tick={{ fill: '#e8c547', fontSize: 11 }} />
               <YAxis type="category" dataKey="label" width={110} tick={{ fill: '#f6f1e3', fontSize: 10 }} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="hard" name="How hard" fill="#e8c547" />
+              <Bar dataKey="hard" name="Effort" fill="#e8c547" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -145,9 +145,9 @@ export function HouseholdHardnessCharts({
   return (
     <div className="space-y-4 rounded-2xl border border-white/10 bg-black/20 px-3 py-3">
       <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">
-        Difficulty · house
+        Effort · house
       </p>
-      <p className="text-sm text-[#f6f1e3]/55">How hard 1–5 by athlete, workout, and lift. Test left out.</p>
+      <p className="text-sm text-[#f6f1e3]/55">Effort 1–5 by athlete, workout, and lift. Test left out.</p>
       {byAthlete.length > 0 && (
         <div>
           <p className="mb-2 text-xs font-semibold text-[#f6f1e3]/70">By athlete</p>
@@ -157,7 +157,7 @@ export function HouseholdHardnessCharts({
               <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
               <YAxis domain={[0, 5]} tick={{ fill: '#f6f1e3', fontSize: 11 }} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="hard" name="How hard" fill="#e8c547" />
+              <Bar dataKey="hard" name="Effort" fill="#e8c547" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -171,7 +171,7 @@ export function HouseholdHardnessCharts({
               <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
               <YAxis domain={[0, 5]} tick={{ fill: '#f6f1e3', fontSize: 11 }} width={28} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="hard" name="How hard" fill="#e8c547" />
+              <Bar dataKey="hard" name="Effort" fill="#e8c547" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -185,7 +185,7 @@ export function HouseholdHardnessCharts({
               <XAxis type="number" domain={[0, 5]} tick={{ fill: '#e8c547', fontSize: 11 }} />
               <YAxis type="category" dataKey="label" width={110} tick={{ fill: '#f6f1e3', fontSize: 10 }} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="hard" name="How hard" fill="#e8c547" />
+              <Bar dataKey="hard" name="Effort" fill="#e8c547" />
             </BarChart>
           </ResponsiveContainer>
         </div>

@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import YouHouseCols from '@/components/YouHouseCols';
 import { formatDuration } from '@/lib/formatDuration';
-import { firstName, type HouseholdScoreboardRow } from '@/lib/scoreboardTypes';
+import { formatHardnessWithPct } from '@/lib/hardness';
+import {
+  firstName,
+  scoreboardBestDay,
+  scoreboardVolume,
+  type HouseholdScoreboardRow,
+} from '@/lib/scoreboardTypes';
 
 function formatLbs(value: number) {
   return `${Math.round(Number(value || 0)).toLocaleString()} lb`;
@@ -51,7 +57,7 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
         <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">Last 7 days</p>
         <p className="mt-1 text-xl font-black text-[#f6f1e3]">{firstName(you.name)} · you</p>
         <p className="mt-1 text-base text-[#f6f1e3]/60">You are the only body who showed up.</p>
-        <p className="mt-3 text-lg font-black text-white">{formatLbs(you.volume)}</p>
+        <p className="mt-3 text-lg font-black text-white">{formatLbs(scoreboardVolume(you))}</p>
       </div>
     );
   }
@@ -65,18 +71,27 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
         You vs {rivalName}
       </p>
       <p className="mt-1 text-base text-[#f6f1e3]/60">
-        You are {placeWord(youPlace)} of {rows.length}. Rank is finished days first, then total lb
-        (sets + optional).
+        You are {placeWord(youPlace)} of {rows.length}. Rank is finished days first, then raw iron.
+        The lb you see is after Effort.
       </p>
       <YouHouseCols
         houseLabel={rivalName}
         rows={[
-          { label: 'Total lb', you: formatLbs(you.volume), house: formatLbs(rival.volume) },
+          {
+            label: 'Total lb',
+            you: formatLbs(scoreboardVolume(you)),
+            house: formatLbs(scoreboardVolume(rival)),
+          },
           { label: 'Days', you: String(you.workouts), house: String(rival.workouts) },
           {
             label: 'Best session',
-            you: formatLbs(you.bestSessionVolume),
-            house: formatLbs(rival.bestSessionVolume),
+            you: formatLbs(scoreboardBestDay(you)),
+            house: formatLbs(scoreboardBestDay(rival)),
+          },
+          {
+            label: 'Effort',
+            you: formatHardnessWithPct(you.perception),
+            house: formatHardnessWithPct(rival.perception),
           },
           {
             label: 'Avg time',

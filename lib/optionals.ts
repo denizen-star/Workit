@@ -107,6 +107,11 @@ export function optionalSlotLabel(slot: OptionalSlot) {
   return slot === 'warmup' ? 'Warmup' : 'Cooldown';
 }
 
+/** Unique thumb key so each hold can be voted once per session. */
+export function optionalThumbName(slot: OptionalSlot, track: OptionalTrack, title: string) {
+  return `Optional · ${optionalSlotLabel(slot)} · ${optionalTrackLabel(track)} · ${title}`;
+}
+
 /** Lower A/B from the program day name. Everything else (including Bonus Core) is upper. */
 export function optionalRegionFromDay(name: string): OptionalRegion {
   return /lower/i.test(name) ? 'lower' : 'upper';

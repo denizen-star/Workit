@@ -82,9 +82,8 @@ export default function ExerciseCompare({ standalone = false }: { standalone?: b
       {(standalone || open) && (
         <div className="mt-4">
           <p className="mb-3 text-base text-[#f6f1e3]/60">
-            Best day adds your heaviest set on each lift. Total weight is every completed set (lb ×
-            reps) plus optional. Then one lift you lead, one you trail, one closest — by weight, then
-            by reps.
+            Best day and total weight are after Effort. Place stays on raw iron. Then one lift you
+            lead, one you trail, one closest — by weight, then by reps.
           </p>
 
           <div className="mb-3 grid grid-cols-3 gap-2">

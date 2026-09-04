@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { playHorn } from "@/lib/playChime";
+import { cancelRestAlarm, playHorn } from "@/lib/playChime";
 
 interface GetToItModalProps {
   open: boolean;
@@ -24,6 +24,7 @@ export default function GetToItModal({ open, line, onClose }: GetToItModalProps)
 
     if (openedAtRef.current == null) {
       openedAtRef.current = Date.now();
+      cancelRestAlarm();
       playHorn();
       try {
         navigator.vibrate?.([200, 80, 200, 80, 420]);

@@ -44,18 +44,15 @@ function packResult(
   priorVolume: number | null
 ): PerformanceResult {
   if (priorWeight == null && priorVolume == null) return 'first';
+  if (priorVolume != null && currentVolume > priorVolume) return 'gain';
+  if (priorVolume != null && currentVolume < priorVolume) return 'loss';
+  if (priorVolume != null) return 'held';
   const direction = setDirection(
     { weight_lbs: currentWeight, actual_reps: currentReps },
     priorWeight == null ? null : { weight_lbs: priorWeight, actual_reps: priorReps ?? 0 }
   );
-  const weightDelta = priorWeight == null ? 'first' : loadDelta(currentWeight, priorWeight);
-  const repsDelta = priorReps == null ? 'first' : loadDelta(currentReps, priorReps);
   if (direction === 'up') return 'gain';
   if (direction === 'down') return 'loss';
-  if (weightDelta === 'down' && repsDelta === 'up') return 'mixed';
-  if (weightDelta === 'down') return 'loss';
-  if (priorVolume != null && currentVolume > priorVolume) return 'gain';
-  if (priorVolume != null && currentVolume < priorVolume) return 'loss';
   return 'held';
 }
 
@@ -79,16 +76,35 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
   const priorWeight = addNullable(left.priorWeight, right.priorWeight);
   const priorVolume = addNullable(left.priorVolume, right.priorVolume);
   const spark = addSparks(left.spark, right.spark);
+  const sparkRaw = addSparks(left.sparkRaw || left.spark, right.sparkRaw || right.spark);
+  const effortVolume = (left.effortVolume ?? left.currentVolume) + (right.effortVolume ?? right.currentVolume);
+  const priorEffortVolume = addNullable(
+    left.priorEffortVolume ?? left.priorVolume,
+    right.priorEffortVolume ?? right.priorVolume
+  );
   return {
     ...left,
     currentWeight,
     currentVolume,
     priorWeight,
     priorVolume,
+    effortVolume,
+    priorEffortVolume,
     weightChangePct: pctChange(currentWeight, priorWeight),
-    volumeChangePct: pctChange(currentVolume, priorVolume),
-    progressionPct: spark.length > 1 ? pctChange(currentVolume, spark[0]) : null,
+    volumeChangePct: pctChange(effortVolume, priorEffortVolume),
+    progressionPct: spark.length > 1 ? pctChange(effortVolume, spark[0]) : null,
+    rawVolumeChangePct: pctChange(currentVolume, priorVolume),
+    rawProgressionPct: sparkRaw.length > 1 ? pctChange(currentVolume, sparkRaw[0]) : null,
     spark,
+    sparkRaw,
+    rawResult: packResult(
+      currentWeight,
+      0,
+      priorWeight,
+      0,
+      currentVolume,
+      priorVolume
+    ),
   };
 }
 
@@ -110,8 +126,8 @@ function mergeWorkoutExercise(left: WorkoutExerciseTrend, right: WorkoutExercise
       currentReps,
       merged.priorWeight,
       priorReps,
-      merged.currentVolume,
-      merged.priorVolume
+      merged.effortVolume,
+      merged.priorEffortVolume
     ),
   };
 }
@@ -141,8 +157,8 @@ function mergeExercise(left: ExerciseTrend, right: ExerciseTrend): ExerciseTrend
       currentReps,
       merged.priorWeight,
       priorReps,
-      merged.currentVolume,
-      merged.priorVolume
+      merged.effortVolume,
+      merged.priorEffortVolume
     ),
   };
 }
@@ -172,8 +188,8 @@ function mergeWorkout(left: WorkoutTrend, right: WorkoutTrend): WorkoutTrend {
       0,
       merged.priorWeight,
       0,
-      merged.currentVolume,
-      merged.priorVolume
+      merged.effortVolume,
+      merged.priorEffortVolume
     ),
     exercises,
   };

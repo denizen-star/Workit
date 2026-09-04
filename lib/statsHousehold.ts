@@ -1,9 +1,9 @@
 import { query } from '@/lib/db';
 import { easternMondayKey } from '@/lib/analyticsTime';
 import { lockedWeekStreak } from '@/lib/bonusDay';
-import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlSetEffortVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
-import { sqlUserOptionalVolume } from '@/lib/optionals';
+import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 
 export type HouseholdHomeStats = {
   workoutsCompleted: number;
@@ -80,7 +80,7 @@ export async function householdHomeStats(
       `SELECT
          ws.user_id,
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
+         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
        WHERE ws.user_id IN (${sql})
@@ -134,13 +134,28 @@ export async function householdHomeStats(
     ),
     dailyDates.length > 0
       ? query(
-          `SELECT workout_date, COALESCE(SUM(total_weight_lifted), 0) as sum_weight
-           FROM daily_stats
-           WHERE user_id IN (${sql})
-             AND total_weight_lifted > 0
-             AND workout_date IN (${dailyDates.map(() => '?').join(', ')})
-           GROUP BY workout_date`,
-          [...params, ...dailyDates]
+          `SELECT day as workout_date, COALESCE(SUM(weight), 0) as sum_weight
+           FROM (
+             SELECT DATE(COALESCE(ws.completed_at, ws.created_at)) as day,
+                    COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as weight
+             FROM exercise_sets es
+             INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
+             WHERE ws.user_id IN (${sql})
+               AND ws.is_completed = 1
+               AND es.is_completed = 1
+               AND DATE(COALESCE(ws.completed_at, ws.created_at)) IN (${dailyDates.map(() => '?').join(', ')})
+             GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
+             UNION ALL
+             SELECT DATE(COALESCE(ws.completed_at, ws.created_at)) as day,
+                    COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as weight
+             FROM workout_sessions ws
+             WHERE ws.user_id IN (${sql})
+               AND ws.is_completed = 1
+               AND DATE(COALESCE(ws.completed_at, ws.created_at)) IN (${dailyDates.map(() => '?').join(', ')})
+             GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
+           ) effort_days
+           GROUP BY day`,
+          [...params, ...dailyDates, ...params, ...dailyDates]
         )
       : Promise.resolve({ rows: [] as { workout_date: unknown; sum_weight: number }[] }),
   ]);

@@ -24,6 +24,7 @@ import {
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
+import { usePortraitLock } from '@/lib/usePortraitLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/components/CompleteTakeover';
 import BonusPickModal from '@/components/BonusPickModal';
@@ -98,6 +99,7 @@ function WorkoutPageInner() {
   const [priorAllTimeLbs, setPriorAllTimeLbs] = useState(0);
 
   useWakeLock(!!currentSession);
+  usePortraitLock(!!currentSession);
 
   useEffect(() => {
     Promise.all([

@@ -19,7 +19,6 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
-import { thisWeekWeight } from '@/lib/statsHousehold';
 import { earliestKey } from '@/lib/chartTrend';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -29,7 +28,7 @@ import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
-import { aimingCopy, lockedWeekCount } from '@/lib/belts';
+import { lockedWeekCount } from '@/lib/belts';
 import {
   markWeekMissSeen,
   markWeekPodiumSeen,
@@ -44,6 +43,17 @@ function formatCount(value: number | null | undefined) {
 
 function formatWeight(value: number | null | undefined) {
   return Math.round(Number(value || 0)).toLocaleString();
+}
+
+function shortDayName(name: string) {
+  return name
+    .replace(/^Upper Body /, 'Upper ')
+    .replace(/^Lower Body /, 'Lower ');
+}
+
+function shortWeekDay(weekNumber?: number | null, dayName?: string | null) {
+  if (weekNumber == null || !dayName) return '';
+  return `W${weekNumber} - ${shortDayName(dayName)}`;
 }
 
 
@@ -74,6 +84,7 @@ export default function Home() {
   const [weekTakeover, setWeekTakeover] = useState(false);
   const [weekMissTakeover, setWeekMissTakeover] = useState(false);
   const [resumeLine, setResumeLine] = useState('');
+  const [holdLine, setHoldLine] = useState('');
 
   useEffect(() => {
     let cancelled = false;
@@ -163,6 +174,27 @@ export default function Home() {
     setResumeLine(pickResumeLine(userTone, userName));
   }, [sessions, userTone, userName]);
 
+  useEffect(() => {
+    const target = getTodayTarget(sessions);
+    const typeName = target.day?.name;
+    if (!typeName || target.type === 'hold' || target.type === 'done') {
+      setHoldLine('');
+      return;
+    }
+    let cancelled = false;
+    fetch('/api/hold-line?type=' + encodeURIComponent(typeName))
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (!cancelled) setHoldLine(typeof data?.line === 'string' ? data.line : '');
+      })
+      .catch(() => {
+        if (!cancelled) setHoldLine('');
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [sessions]);
+
   const today = getTodayTarget(sessions);
   const todayHref =
     today.type === 'resume' && today.session
@@ -184,13 +216,14 @@ export default function Home() {
 
   const completed = Number(stats?.overall?.completed_workouts || 0);
   const lockedWeeks = lockedWeekCount(sessions);
-  const beltCopy = aimingCopy(lockedWeeks);
-  const allTime = Number(stats?.overall?.total_weight_lifted || 0);
-  const weekLbs = thisWeekWeight(stats?.daily);
-  const weekLbsSame = Math.round(weekLbs) === Math.round(allTime) && allTime > 0;
+  const allTime = Number(
+    stats?.overall?.total_effort_lifted ?? stats?.overall?.total_weight_lifted ?? 0
+  );
   const canInvite = !isTestUserName(userName);
   const inviteLinkClass =
-    'mt-3 inline-flex min-h-11 items-center gap-2 text-base font-black text-[#e8c547]';
+    'inline-flex min-h-12 shrink-0 items-center gap-1.5 px-2 text-sm font-black text-[#e8c547] sm:min-h-14 sm:px-3 sm:text-base';
+  const heroBtn =
+    'inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl px-3 text-sm font-black sm:min-h-14 sm:px-5 sm:text-base';
 
   if (loading) {
     return (
@@ -247,20 +280,20 @@ export default function Home() {
               <p className="mt-3 text-lg text-[#f6f1e3]/75">
                 Week {(today.week?.weekNumber || 0) + 1} starts Monday.
               </p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex items-center gap-2">
                 <Link
                   href="/workout"
-                  className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                  className={`${heroBtn} border border-[#e8c547]/50 text-[#e8c547]`}
                 >
-                  Select Workout
+                  Select WO
                 </Link>
+                {canInvite && (
+                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                    <UserPlus className="h-4 w-4" />
+                    Invite
+                  </button>
+                )}
               </div>
-              {canInvite && (
-                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                  <UserPlus className="h-4 w-4" />
-                  Invite a friend
-                </button>
-              )}
             </>
           ) : today.type === 'done' ? (
             <>
@@ -269,20 +302,20 @@ export default function Home() {
                 All 6 weeks complete
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">Open the list if you want to run a session again.</p>
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex items-center gap-2">
                 <Link
                   href="/workout"
-                  className="inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
+                  className={`${heroBtn} bg-[#e8c547] text-[#1a1404]`}
                 >
-                  Browse workouts
+                  Browse WO
                 </Link>
+                {canInvite && (
+                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                    <UserPlus className="h-4 w-4" />
+                    Invite
+                  </button>
+                )}
               </div>
-              {canInvite && (
-                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                  <UserPlus className="h-4 w-4" />
-                  Invite a friend
-                </button>
-              )}
             </>
           ) : (
             <>
@@ -290,16 +323,20 @@ export default function Home() {
                 {today.type === 'resume' ? 'Pick back up' : 'Today'}
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-6xl">
-                Week {today.week?.weekNumber} · {today.day?.name}
+                {shortWeekDay(today.week?.weekNumber, today.day?.name)}
               </h2>
-              <p className="mt-3 text-lg text-[#f6f1e3]/75">{today.day?.focus}</p>
+              <p className="mt-3 truncate text-lg text-[#f6f1e3]/75">
+                {[today.day?.focus, todayEstimate ? `Est. ${todayEstimate}` : null]
+                  .filter(Boolean)
+                  .join(' · ')}
+              </p>
+              {holdLine ? (
+                <p className="mt-3 text-lg leading-relaxed text-[#f6f1e3]/90">{holdLine}</p>
+              ) : null}
               {today.type === 'resume' && resumeLine && (
                 <p className="mt-3 text-lg leading-relaxed text-[#f6f1e3]/90">{resumeLine}</p>
               )}
-              {todayEstimate && (
-                <p className="mt-3 text-base font-semibold text-[#e8c547]">Est. session {todayEstimate}</p>
-              )}
-              <div className="mt-6 flex flex-wrap gap-3">
+              <div className="mt-6 flex items-center gap-2">
                 <Link
                   href={todayHref}
                   onClick={() =>
@@ -308,16 +345,22 @@ export default function Home() {
                       cta_type: todayMode,
                     })
                   }
-                  className="inline-flex min-h-14 items-center rounded-2xl bg-[#e8c547] px-6 text-lg font-black text-[#1a1404]"
+                  className={`${heroBtn} bg-[#e8c547] text-[#1a1404]`}
                 >
-                  {today.type === 'resume' ? 'Resume Workout' : 'Start Workout'}
+                  {today.type === 'resume' ? 'Resume WO' : 'Start WO'}
                 </Link>
                 <Link
                   href="/workout"
-                  className="inline-flex min-h-14 items-center rounded-2xl border border-[#e8c547]/50 px-6 text-lg font-black text-[#e8c547]"
+                  className={`${heroBtn} border border-[#e8c547]/50 text-[#e8c547]`}
                 >
-                  Select Workout
+                  Select WO
                 </Link>
+                {canInvite && (
+                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
+                    <UserPlus className="h-4 w-4" />
+                    Invite
+                  </button>
+                )}
               </div>
               {restartHref && (
                 <Link
@@ -328,55 +371,38 @@ export default function Home() {
                   Restart
                 </Link>
               )}
-              {canInvite && (
-                <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                  <UserPlus className="h-4 w-4" />
-                  Invite a friend
-                </button>
-              )}
             </>
           )}
         </div>
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <p className="mb-3 text-lg leading-relaxed text-[#f6f1e3]/90">
-              {stats
-                ? `${beltCopy.line} ${formatWeight(allTime)} lb all-time.${
-                    weekLbsSame
-                      ? ` This week is the same number. Still week ${today.week?.weekNumber || 1}.`
-                      : weekLbs > 0
-                        ? ` This week ${formatWeight(weekLbs)} lb.`
-                        : ' This week 0 lb.'
-                  } ${completed} sessions done.`
-                : 'Loading your numbers...'}
-            </p>
             <BeltChest lockedWeeks={lockedWeeks} />
             <WeekLock week={today.week} sessions={sessions} />
             <WeekPerformance week={today.week} />
           </section>
 
+          <section>
           {stats?.daily && stats.daily.length > 0 && (
-            <section>
               <DailyWeightChart
                 dailyStats={stats.daily}
                 householdDaily={stats.household?.daily}
+                dailyHardness={stats.dailyHardness}
                 programStart={earliestCompletedDate(sessions)}
               />
-            </section>
           )}
 
           {!isTestUserName(userName) && (
-            <section>
+            <div className="mt-6">
               <YouVsLeader userId={userId} />
-            </section>
+            </div>
           )}
 
-          <section>
+            <div className="mt-6">
             <AthletePerformance variant="home" />
-          </section>
+            </div>
 
-          <section>
+            <div className="mt-6">
             <div className="glass-card overflow-hidden">
               <button
                 type="button"
@@ -397,9 +423,9 @@ export default function Home() {
               {houseOpen && (
                 <div className="border-t border-white/10 px-5 pb-5 pt-4">
                   <p className="text-base text-[#f6f1e3]/60">
-                    All-time numbers. House is the average of people who finished a workout in the
-                    last 7 days, including you. Not a pack total. Streak is locked weeks in a row
-                    (any 4 finished days). Rest days do not break it.
+                    All-time numbers after Effort. House is the average of people who finished a
+                    workout in the last 7 days, including you. Not a pack total. Streak is locked
+                    weeks in a row (any 4 finished days). Rest days do not break it.
                   </p>
                   <YouHouseCols
                     houseLabel="House avg"
@@ -432,6 +458,7 @@ export default function Home() {
                   />
                 </div>
               )}
+            </div>
             </div>
           </section>
         </div>

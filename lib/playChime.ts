@@ -34,6 +34,10 @@ let setLoad: Promise<AudioBuffer | null> | null = null;
 let activeHorn: AudioBufferSourceNode | null = null;
 let activeComplete: AudioBufferSourceNode | null = null;
 let activeSet: AudioBufferSourceNode | null = null;
+let keepAliveOsc: OscillatorNode | null = null;
+let keepAliveGain: GainNode | null = null;
+let scheduledHorn: AudioBufferSourceNode | null = null;
+let scheduledSet: AudioBufferSourceNode | null = null;
 
 function getAudioContext() {
   if (typeof window === "undefined") return null;
@@ -155,6 +159,77 @@ function playBuffer(
   });
 }
 
+function stopNode(node: AudioBufferSourceNode | OscillatorNode | null) {
+  if (!node) return;
+  try {
+    node.stop();
+  } catch {
+    // Already stopped.
+  }
+}
+
+function startKeepAlive() {
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  if (keepAliveOsc) return;
+  const osc = ctx.createOscillator();
+  const gain = ctx.createGain();
+  osc.frequency.value = 40;
+  gain.gain.value = 0.00008;
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+  osc.start();
+  keepAliveOsc = osc;
+  keepAliveGain = gain;
+}
+
+function stopKeepAlive() {
+  stopNode(keepAliveOsc);
+  keepAliveOsc = null;
+  try {
+    keepAliveGain?.disconnect();
+  } catch {
+    // Already disconnected.
+  }
+  keepAliveGain = null;
+}
+
+function scheduleBuffer(
+  load: () => Promise<AudioBuffer | null>,
+  getActive: () => AudioBufferSourceNode | null,
+  setActive: (node: AudioBufferSourceNode | null) => void,
+  volume: number,
+  delaySeconds: number
+) {
+  const ctx = getAudioContext();
+  if (!ctx || !soundAllowed()) return;
+  if (ctx.state === "suspended") {
+    void ctx.resume();
+  }
+  startKeepAlive();
+  void load().then((buffer) => {
+    if (!buffer || !soundAllowed()) return;
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+    stopNode(getActive());
+    setActive(null);
+    const source = audioCtx.createBufferSource();
+    const gain = audioCtx.createGain();
+    source.buffer = buffer;
+    source.loop = true;
+    gain.gain.value = volume;
+    source.connect(gain);
+    gain.connect(audioCtx.destination);
+    setActive(source);
+    source.onended = () => {
+      if (getActive() === source) setActive(null);
+    };
+    const when = audioCtx.currentTime + Math.max(0, delaySeconds);
+    source.start(when);
+    source.stop(when + buffer.duration * 2);
+  });
+}
+
 export function unlockAudio() {
   if (!soundAllowed()) return;
   const ctx = getAudioContext();
@@ -164,6 +239,38 @@ export function unlockAudio() {
   void loadHornBuffer();
   void loadCompleteBuffer();
   void loadSetBuffer();
+}
+
+/** Keep the audio session alive and fire the horn even if the screen locks. Best effort on iPhone. */
+export function armRestAlarm(seconds: number) {
+  cancelRestAlarm();
+  if (!soundAllowed()) return;
+  unlockAudio();
+  scheduleBuffer(loadHornBuffer, () => scheduledHorn, (node) => {
+    scheduledHorn = node;
+  }, 0.95, seconds);
+}
+
+export function cancelRestAlarm() {
+  stopNode(scheduledHorn);
+  scheduledHorn = null;
+  if (!scheduledSet) stopKeepAlive();
+}
+
+/** Fire a set chime after a delay while a keep-alive tone holds the session. */
+export function armSetAlarm(seconds: number) {
+  cancelSetAlarm();
+  if (!soundAllowed()) return;
+  unlockAudio();
+  scheduleBuffer(loadSetBuffer, () => scheduledSet, (node) => {
+    scheduledSet = node;
+  }, 0.62, seconds);
+}
+
+export function cancelSetAlarm() {
+  stopNode(scheduledSet);
+  scheduledSet = null;
+  if (!scheduledHorn) stopKeepAlive();
 }
 
 export function playHorn() {

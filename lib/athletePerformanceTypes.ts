@@ -41,8 +41,14 @@ export type PerformanceLine = {
   volumeChangePct: number | null;
   progressionPct: number | null;
   result: PerformanceResult;
+  rawResult: PerformanceResult;
   spark: number[];
+  sparkRaw: number[];
   perception: number | null;
+  effortVolume: number;
+  priorEffortVolume: number | null;
+  rawVolumeChangePct: number | null;
+  rawProgressionPct: number | null;
 };
 
 export type ExerciseTrend = PerformanceLine & {

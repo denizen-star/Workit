@@ -18,10 +18,12 @@ import {
 export default function DailyWeightChart({
   dailyStats,
   householdDaily,
+  dailyHardness,
   programStart,
 }: {
   dailyStats: { workout_date: string; total_weight_lifted: number | string }[];
   householdDaily?: { workout_date: string; avg_weight: number }[];
+  dailyHardness?: { workout_date: string; avg_hard: number }[];
   /** First finished session. Days before this stay off the chart. */
   programStart?: string | null;
 }) {
@@ -44,6 +46,15 @@ export default function DailyWeightChart({
     return map;
   }, [householdDaily]);
 
+  const hardByDate = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const row of dailyHardness || []) {
+      const score = Number(row.avg_hard);
+      if (Number.isFinite(score) && score > 0) addWeight(map, row.workout_date, score);
+    }
+    return map;
+  }, [dailyHardness]);
+
   const axis = useMemo(() => {
     const floor =
       programStart ||
@@ -57,8 +68,9 @@ export default function DailyWeightChart({
       compactTrendRows(axis, [
         { key: 'you', values: pointsOnAxis(axis, youByDate, mode) },
         { key: 'house', values: pointsOnAxis(axis, houseByDate, mode) },
+        { key: 'hard', values: pointsOnAxis(axis, hardByDate, 'daily') },
       ]),
-    [axis, mode, youByDate, houseByDate]
+    [axis, mode, youByDate, houseByDate, hardByDate]
   );
 
   if (data.length === 0) return null;
@@ -107,14 +119,16 @@ export default function DailyWeightChart({
         </div>
       </div>
       <p className="mb-4 text-base text-[#f6f1e3]/60">
-        <span className="font-semibold text-[#f6f1e3]">Cream</span> is your lb that day.{' '}
+        <span className="font-semibold text-[#f6f1e3]">Cream</span> is your Effort lb that day.{' '}
         <span className="font-semibold text-[#c08457]">Copper</span> is the pack average that
-        day. The pack is people who finished a workout in the last 7 days. A miss counts as 0, so
-        copper is not just the heavy days. It sits above you only when that average beat your day.
+        day. The wash behind the line is your Effort that day (1–5), not the house. Cumulative
+        still shows that day&apos;s Effort. Getting stronger is more cream while the wash holds
+        or drops.
       </p>
       <WeightTrendChart
         data={data}
         height={240}
+        hardnessKey="hard"
         lines={[
           { key: 'you', name: 'You', color: CHART_YOU, thick: true },
           ...(houseByDate.size > 0

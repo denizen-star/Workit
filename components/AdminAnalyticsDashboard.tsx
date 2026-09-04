@@ -315,8 +315,8 @@ export default function AdminAnalyticsDashboard() {
           {compareOpen && (
             <div className="mt-4">
               <p className="mb-4 text-sm text-[#f6f1e3]/60">
-                Best day is heaviest day per lift, added up. Total weight is every set, weight times
-                reps. Follows the range above.
+                Best day and total weight are after Effort. Place stays on raw iron. Follows the
+                range above.
               </p>
               {compareRows.length === 0 ? (
                 <p className="text-sm text-[#f6f1e3]/55">No finished workouts in this range.</p>

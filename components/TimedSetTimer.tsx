@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { playSetChime, unlockAudio } from "@/lib/playChime";
+import { armSetAlarm, cancelSetAlarm, playSetChime, unlockAudio } from "@/lib/playChime";
 
 type Phase = "ready" | "down" | "up";
 
@@ -32,6 +32,7 @@ export default function TimedSetTimer({
     if (!open) return;
 
     unlockAudio();
+    armSetAlarm(READY_SECONDS + targetSeconds);
     startedAtRef.current = Date.now();
     phaseRef.current = "ready";
     displayRef.current = READY_SECONDS;
@@ -79,6 +80,7 @@ export default function TimedSetTimer({
       if (phaseRef.current !== "up") {
         phaseRef.current = "up";
         setPhase("up");
+        cancelSetAlarm();
         playSetChime();
       }
 
@@ -90,7 +92,10 @@ export default function TimedSetTimer({
       }
     }, 50);
 
-    return () => window.clearInterval(interval);
+    return () => {
+      window.clearInterval(interval);
+      cancelSetAlarm();
+    };
   }, [open, targetSeconds]);
 
   if (!open) return null;

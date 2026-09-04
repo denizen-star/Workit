@@ -119,7 +119,14 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "wall lateral iso raises or backpack raises": { images: gym.hotel, videoId: "3VcKaXpzqRo" },
   "doorframe rear delt flyes / prone y-t-w raises": { images: gym.hotel, videoId: "5TBjG5xuPa4" },
   "doorframe iso curls or loaded backpack curls": { images: gym.hotel, videoId: "ykJmrZ5v0Oo" },
-  "floor leg raises or bodyweight wall rollouts": { images: gym.core, videoId: "hgVidvQzNQo" },
+  "floor leg raises or bodyweight wall rollouts": {
+    images: gym.core,
+    videoId: "JB2oyawG9KI",
+    videos: [
+      { id: "JB2oyawG9KI", label: "Floor Leg Raises" },
+      { id: "kISuoI7QCYk", label: "Wall Rollouts" },
+    ],
+  },
   "single-leg good mornings or heavy object deadlifts": { images: gym.hotel, videoId: "5rIqP63yWFg" },
   "bodyweight bulgarian split squats": { images: gym.hotel, videoId: "2C-uNgKwPLE" },
   "single-leg glute bridges": { images: gym.hotel, videoId: "X_IGw8U_e38" },

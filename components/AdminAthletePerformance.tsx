@@ -297,7 +297,9 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
               ))}
             </div>
           ) : null}
-          <PeriodPills period={period} onPick={setPeriod} />
+          <div className="mb-3">
+            <PeriodPills period={period} onPick={setPeriod} />
+          </div>
           {loading ? (
             <p className="text-sm text-[#f6f1e3]/55">Loading lifts...</p>
           ) : lifts.length === 0 ? (
