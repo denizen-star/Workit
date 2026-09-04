@@ -462,8 +462,8 @@ const CORE_UPPER_HARD: Cue[] = [
     title: "Child's pose",
     warmup: 'Hips to heels. Arms long. Stay.',
     cooldown: 'Forehead down. Long breaths until the hold ends.',
-    id: 'Cat_Stretch',
-    videoId: 'eqVMAPM00DM',
+    id: 'Childs_Pose',
+    videoId: 'zqwK6J3yHfA',
   },
 ];
 
@@ -567,8 +567,8 @@ const CORE_LOWER_MEDIUM: Cue[] = [
     title: "Child's pose",
     warmup: 'Hips to heels. Breathe into the back.',
     cooldown: 'Stay. You are cooling.',
-    id: 'Cat_Stretch',
-    videoId: 'eqVMAPM00DM',
+    id: 'Childs_Pose',
+    videoId: 'zqwK6J3yHfA',
   },
 ];
 

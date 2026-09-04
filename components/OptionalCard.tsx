@@ -475,6 +475,7 @@ export default function OptionalCard({
                         <div className="mt-6 mx-auto grid w-full max-w-md grid-cols-2 gap-2">
                           <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
                             <img
+                              key={step.start}
                               src={step.start}
                               alt={`${step.title} start position`}
                               className="aspect-[4/3] w-full object-cover"
@@ -485,6 +486,7 @@ export default function OptionalCard({
                           </figure>
                           <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
                             <img
+                              key={step.end}
                               src={step.end}
                               alt={`${step.title} end position`}
                               className="aspect-[4/3] w-full object-cover"
