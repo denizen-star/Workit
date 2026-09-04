@@ -33,6 +33,27 @@ export function performancePeriodWindow(period: PerformancePeriod, now = new Dat
   return { startMs: easternMidnightUtc(startYmd).getTime(), endMs: tomorrowMs };
 }
 
+export type SqlWindow = {
+  sql: string;
+  params: unknown[];
+};
+
+/** Bind an Eastern performance window onto a datetime column. */
+export function sqlPeriodWindow(column: string, window: PeriodWindow): SqlWindow {
+  if (window.startMs == null && window.endMs == null) return { sql: '', params: [] };
+  const parts: string[] = [];
+  const params: unknown[] = [];
+  if (window.startMs != null) {
+    parts.push(`${column} >= ?`);
+    params.push(new Date(window.startMs).toISOString().slice(0, 19).replace('T', ' '));
+  }
+  if (window.endMs != null) {
+    parts.push(`${column} < ?`);
+    params.push(new Date(window.endMs).toISOString().slice(0, 19).replace('T', ' '));
+  }
+  return { sql: ` AND ${parts.join(' AND ')}`, params };
+}
+
 export function inPeriodWindow(
   doneAt: string | Date | null | undefined,
   window: PeriodWindow

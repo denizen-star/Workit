@@ -18,6 +18,13 @@ import {
 } from '@/lib/athletePerformanceTypes';
 import { inPeriodWindow, performancePeriodWindow } from '@/lib/performancePeriod';
 import { performanceFlagsForSessions, type FlagSessionRow } from '@/lib/performanceFlags';
+import {
+  emptySnapshotRow,
+  householdScoreboardForPerformance,
+  performanceSnapshot,
+  snapshotFromRows,
+} from '@/lib/scoreboard';
+import { emptyWindowLine, type PerformanceSnapshot } from '@/lib/scoreboardTypes';
 
 export type {
   AthletePerformanceBoard,
@@ -468,6 +475,7 @@ export type HouseholdPerformanceRow = AthletePerformanceBoard & {
   userId: number;
   name: string;
   flags: PerformanceFlags;
+  snapshot?: PerformanceSnapshot;
 };
 
 async function loadFlagSessions(userId: number): Promise<FlagSessionRow[]> {
@@ -497,19 +505,54 @@ export async function householdAthletePerformance(
          ORDER BY u.name ASC`
       );
 
+  const boardRows = users.rows as { id: number; name: string }[];
+  let house: Awaited<ReturnType<typeof householdScoreboardForPerformance>> = [];
+  try {
+    house = await householdScoreboardForPerformance(resolved);
+  } catch (error) {
+    console.error('Error getting performance snapshots:', error);
+  }
+
   return Promise.all(
-    (users.rows as { id: number; name: string }[]).map(async (row) => {
+    boardRows.map(async (row) => {
       const userId = Number(row.id);
       const [board, sessions] = await Promise.all([
         athletePerformance(userId, resolved),
         loadFlagSessions(userId),
       ]);
+      let snapshot: PerformanceSnapshot | undefined;
+      try {
+        snapshot =
+          snapshotFromRows(userId, row.name, house) || {
+            row: await emptySnapshotRow(userId, row.name, resolved),
+            place: null,
+            line: emptyWindowLine(row.name),
+          };
+      } catch (error) {
+        console.error('Error getting performance snapshot:', error);
+      }
       return {
+        ...board,
         userId,
         name: row.name,
         flags: performanceFlagsForSessions(sessions, resolved),
-        ...board,
+        snapshot,
       };
     })
   );
+}
+
+export async function athletePerformanceWithSnapshot(
+  userId: number,
+  name: string,
+  rawPeriod: PerformancePeriod | string
+) {
+  const board = await athletePerformance(userId, rawPeriod);
+  try {
+    const snapshot = await performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod));
+    return { ...board, snapshot };
+  } catch (error) {
+    console.error('Error getting performance snapshot:', error);
+    return board;
+  }
 }

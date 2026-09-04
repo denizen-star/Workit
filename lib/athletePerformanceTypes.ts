@@ -92,6 +92,7 @@ export type AthletePerformanceBoard = {
   summary: PerformanceSummary;
   exercises: ExerciseTrend[];
   workouts: WorkoutTrend[];
+  snapshot?: import('@/lib/scoreboardTypes').PerformanceSnapshot;
 };
 
 export type PerformanceFlags = {

@@ -15,14 +15,37 @@ import { normalizeCoachTone } from '../lib/coachTone';
 
 async function householdRecipients() {
   const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
+  const includeNew = Boolean(CURRENT_RELEASE.includeNewAthletes);
   const activeDays = Math.max(0, Math.trunc(Number(CURRENT_RELEASE.activeInDays || 0)));
   const recent =
     onlyWorked && activeDays > 0
       ? ` AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${activeDays} DAY)`
       : '';
+  const newJoiners = includeNew
+    ? `SELECT u.id, u.name, u.email, u.coach_tone
+       FROM users u
+       WHERE u.email IS NOT NULL AND u.email != ''
+         AND u.pin_hash IS NOT NULL
+         AND ${SQL_EXCLUDE_TEST_USER}
+         AND NOT EXISTS (
+           SELECT 1 FROM workout_sessions ws
+           WHERE ws.user_id = u.id AND ws.is_completed = 1
+         )`
+    : '';
   const result = await query(
     onlyWorked
-      ? `SELECT DISTINCT u.id, u.name, u.email, u.coach_tone
+      ? includeNew
+        ? `SELECT DISTINCT id, name, email, coach_tone FROM (
+             SELECT DISTINCT u.id, u.name, u.email, u.coach_tone
+             FROM users u
+             INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
+             WHERE u.email IS NOT NULL AND u.email != ''
+               AND ${SQL_EXCLUDE_TEST_USER}
+             UNION
+             ${newJoiners}
+           ) recipients
+           ORDER BY id ASC`
+        : `SELECT DISTINCT u.id, u.name, u.email, u.coach_tone
          FROM users u
          INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
          WHERE u.email IS NOT NULL AND u.email != ''

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { AuthError, getCurrentUser, requireAdmin } from '@/lib/auth';
 import {
-  athletePerformance,
+  athletePerformanceWithSnapshot,
   householdAthletePerformance,
   normalizePerformancePeriod,
   type PerformancePeriod,
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ hidden: false, period, rows });
     }
 
-    const board = await athletePerformance(user.id, period);
+    const board = await athletePerformanceWithSnapshot(user.id, user.name, period);
     return NextResponse.json({ hidden: false, ...board });
   } catch (error) {
     if (error instanceof AuthError) {

@@ -4,7 +4,7 @@
 
 ## TLDR
 
-Re-order **Your performance** from summary to detail, put Bonus + Optional at the bottom as one additive strip, and give Kevin a multi-athlete dropdown that folds selected people into the same cards. Period pills become Eastern-calendar **T / T-1 / T-7 / T-15 / T-30 / All** everywhere those pills already exist. Home fold and Admin Athletes keep their current section order.
+Re-order **Your performance** from summary to detail, put Bonus + Optional at the bottom as one additive strip, and give Kevin a multi-athlete dropdown that folds selected people into the same cards. Period pills become Eastern-calendar **T / T-1 / T-7 / T-15 / T-30 / All** everywhere those pills already exist. Home fold and Admin Athletes keep their current section order. **House tile** now sits first on Home fold and `/performance` for the selected pill (same card as The house). Admin Athletes stays tile-free.
 
 ## Critical Decisions
 
@@ -39,6 +39,8 @@ Re-order **Your performance** from summary to detail, put Bonus + Optional at th
   - [x] 🟩 Bonus: `bonusCount` all-time per person, then add. Copy is **Bonus done** + summed days. No still-open / Week N.
   - [x] 🟩 Warmups / cooldowns: slots finished in the period window, summed. Optional weeks: each person’s 4+4 weeks that finish in the window, then add.
   - [x] 🟩 Non-Kevin: same strip rules on their own sessions.
+
+- [x] 🟩 **House tile first:** `snapshot` on `GET /api/athlete-performance` (Eastern window). `HouseholdAthleteCard` above the existing board on Home fold and `/performance`. Kevin filter = one tile each. Snapshot fail does not drop the rest.
 
 - [ ] 🟨 **Step 5: Verify**
   - [x] 🟩 `tsc --noEmit` clean. `/who` loads. Full click-through as Test / Kevin still needs a logged-in session in the browser.

@@ -51,6 +51,24 @@ export function firstName(name: string) {
   return String(name || '').trim().split(/\s+/)[0] || 'You';
 }
 
+export function placeLabel(place: number | null | undefined) {
+  if (place == null || place < 1) return '—';
+  if (place === 1) return '1st';
+  if (place === 2) return '2nd';
+  if (place === 3) return '3rd';
+  return `${place}th`;
+}
+
+export type PerformanceSnapshot = {
+  row: HouseholdScoreboardRow;
+  place: number | null;
+  line: string;
+};
+
+export function emptyWindowLine(name: string) {
+  return `${firstName(name)} has no finished work in this window. The board moved without you.`;
+}
+
 export function tomScoreboardLine(
   row: HouseholdScoreboardRow,
   index: number,

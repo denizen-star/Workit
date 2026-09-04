@@ -20,8 +20,9 @@ import {
 } from '@/lib/athletePerformanceTypes';
 import { formatHardnessAvg } from '@/lib/hardness';
 import HardnessCharts from '@/components/HardnessCharts';
+import HouseholdAthleteCard from '@/components/HouseholdAthleteCard';
 import { mergeAthletePerformanceBoards } from '@/lib/mergeAthletePerformance';
-import { firstName } from '@/lib/scoreboardTypes';
+import { firstName, type PerformanceSnapshot } from '@/lib/scoreboardTypes';
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = {
   t: 'T',
@@ -36,6 +37,7 @@ type HouseholdRow = AthletePerformanceBoard & {
   userId: number;
   name: string;
   flags?: PerformanceFlags;
+  snapshot?: PerformanceSnapshot;
 };
 
 function formatWhen(value: string | null) {
@@ -403,6 +405,15 @@ export default function AthletePerformance({
       .reduce((sum, row) => addPerformanceFlags(sum, row.flags || emptyPerformanceFlags()), emptyPerformanceFlags());
   }, [household, selected]);
 
+  const snapshots = useMemo(() => {
+    if (household) {
+      return household
+        .filter((row) => selected.includes(row.userId) && row.snapshot)
+        .map((row) => row.snapshot as PerformanceSnapshot);
+    }
+    return board?.snapshot ? [board.snapshot] : [];
+  }, [board, household, selected]);
+
   if (hidden) return null;
 
   const summary = merged?.summary;
@@ -437,6 +448,17 @@ export default function AthletePerformance({
           }}
           onCheckAll={() => setSelected(household.map((row) => row.userId))}
         />
+      ) : null}
+      {!loading && !noneSelected && snapshots.length > 0 ? (
+        <div className="mb-3 space-y-3">
+          {snapshots.map((snapshot) => (
+            <HouseholdAthleteCard
+              key={snapshot.row.id}
+              snapshot={snapshot}
+              you={snapshots.length === 1}
+            />
+          ))}
+        </div>
       ) : null}
       {loading ? (
         <p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>

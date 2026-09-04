@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 5.7.0 - 2026-09-04
+
+### Added
+- **Your tile** at the top of Your performance (Home fold and the tab). Same house card: rank, name, total lb, last workout, workouts / sets / heaviest / best day / avg time / medals / belt, plus the hunt line. Follows **T / T-1 / T-7 / T-15 / T-30 / All**. Empty window still shows you, zeros, and that the board moved
+- Stretch and Core Optionals: tap **Easy / Medium / Hard** after the track. Six holds. Upper day vs lower day picks the list. Easy is gym mobility. Medium and Hard are short pilates / yoga. Stills, video, and how-to on each hold. Last Done still +500
+
+### Changed
+- You vs last time, how hard, gainers, losers, and the rest of Your performance stay under the tile. Nothing taken off Home or the tab
+- Coach shouts pay or withhold **growth, lean, definition, power, stamina, mobility**. Finish, bonus, optional, leave, resume, missed week, How hard, and week medals use that prize. Not come home, not a night
+- They say your **first name**. Not Good man as a greeting
+- Open session: the growth already started without you. Missed last week: the power and the lean took the week off with you
+- Welcome, invite, nudge, recap, badge, and diploma mail follow the same prize. Welcome subject is Report in (Luna stays You are welcome)
+- Optional track labels: **Stretch** and **Core** (run/bike stay Easy run / Easy bike)
+
 ## 5.6.0 - 2026-08-31
 
 ### Changed
