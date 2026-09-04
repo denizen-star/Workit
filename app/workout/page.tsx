@@ -84,6 +84,7 @@ function WorkoutPageInner() {
   const autoOpened = useRef(false);
   const selectWeekInit = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
+  const [athleteName, setAthleteName] = useState('');
   const [soundOn, setSoundOn] = useState(true);
   const [restExtraMinutes, setRestExtraMinutes] = useState(0);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
@@ -104,6 +105,7 @@ function WorkoutPageInner() {
     ])
       .then(([data, catalog]) => {
         if (data?.user) {
+          setAthleteName(data.user.name || '');
           setCoachTone(normalizeCoachTone(data.user.coachTone));
           const enabled = normalizeSoundOn(data.user.soundOn);
           setSoundOn(enabled);
@@ -119,8 +121,8 @@ function WorkoutPageInner() {
 
   useEffect(() => {
     if (!confirmResume) return;
-    setResumeLine(pickResumeLine(coachTone));
-  }, [confirmResume, coachTone]);
+    setResumeLine(pickResumeLine(coachTone, athleteName));
+  }, [confirmResume, coachTone, athleteName]);
 
   useEffect(() => {
     if (!currentSession) {
@@ -342,7 +344,7 @@ function WorkoutPageInner() {
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
       setEarnedBelt(data.earnedBelt || null);
       setBonusFinish(true);
-      setCompleteLine(pickBonusCompleteLine(coachTone));
+      setCompleteLine(pickBonusCompleteLine(coachTone, athleteName));
       setReplenishLine(pickReplenishLine());
       setShowSuccess(true);
     } catch (error) {
@@ -447,10 +449,10 @@ function WorkoutPageInner() {
       setOptionalKickerLbs(kickerLbs);
       setCompleteLine(
         optionalLbs > 0
-          ? pickOptionalCompleteLine(coachTone)
+          ? pickOptionalCompleteLine(coachTone, athleteName)
           : finishedBonus
-            ? pickBonusCompleteLine(coachTone)
-            : pickCompleteLine(coachTone)
+            ? pickBonusCompleteLine(coachTone, athleteName)
+            : pickCompleteLine(coachTone, athleteName)
       );
       setReplenishLine(pickReplenishLine());
       setShowSuccess(true);
@@ -489,7 +491,7 @@ function WorkoutPageInner() {
                   type="button"
                   aria-label="Exit"
                   onClick={() => {
-                    setExitLine(pickExitLine(coachTone));
+                    setExitLine(pickExitLine(coachTone, athleteName));
                     setConfirmExit(true);
                   }}
                   className="flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-[#f6f1e3]/75 hover:text-white sm:flex-none sm:justify-start sm:gap-2 sm:text-base sm:font-normal"
@@ -585,6 +587,7 @@ function WorkoutPageInner() {
             exercises={workout.exercises}
             sessionMode={workoutMode}
             coachTone={coachTone}
+            athleteName={athleteName}
             restExtraMinutes={restExtraMinutes}
             onLiftsDone={() => {
               setLiftsDone(true);

@@ -72,6 +72,7 @@ interface ExerciseTrackerProps {
   exercises: Exercise[];
   sessionMode?: WorkoutMode | string | null;
   coachTone?: CoachTone | string | null;
+  athleteName?: string | null;
   restExtraMinutes?: number;
   onLiftsDone?: () => void;
   onTotals?: (totals: { lbs: number; reps: number }) => void;
@@ -164,6 +165,7 @@ export default function ExerciseTracker({
   exercises,
   sessionMode,
   coachTone,
+  athleteName,
   restExtraMinutes = 0,
   onLiftsDone,
   onTotals,
@@ -438,7 +440,7 @@ export default function ExerciseTracker({
         if (remaining > 0) {
           setRestSeconds(restClock);
           const completed = newSets.filter((item) => item.is_completed).length;
-          setRestLine(pickCoachLine(completed, newSets.length, tone));
+          setRestLine(pickCoachLine(completed, newSets.length, tone, athleteName));
           setRestToken((token) => token + 1);
         }
       }
@@ -478,7 +480,7 @@ export default function ExerciseTracker({
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
     } else if (direction) {
-      const copy = setProgressCopy(direction, tone);
+      const copy = setProgressCopy(direction, tone, athleteName);
       setSetFlash({ variant: direction, title: copy.title, body: copy.body });
     }
 
@@ -527,7 +529,7 @@ export default function ExerciseTracker({
             : item
         )
       );
-      const copy = hardnessCopy(nextScore, tone);
+      const copy = hardnessCopy(nextScore, tone, athleteName);
       setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
     } catch (error) {
       console.error('Error saving hardness:', error);

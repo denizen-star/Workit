@@ -34,7 +34,7 @@ export async function GET() {
       ? {
           weekMonday: placed.weekMonday,
           place: placed.place,
-          line: pickWeekPlaceLine(placed.place, user.coachTone),
+          line: pickWeekPlaceLine(placed.place, user.coachTone, user.name),
         }
       : null;
 

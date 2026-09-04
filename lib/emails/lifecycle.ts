@@ -257,7 +257,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     volumeLbs: Number(totalRow.volume || 0),
     setCount: Number(totalRow.set_count || 0),
     exerciseCount: Number(totalRow.exercise_count || 0),
-    completeLine: pickCompleteLine(tone),
+    completeLine: pickCompleteLine(tone, opts.name),
     replenishLine: pickReplenishLine(),
     weekComplete,
     programComplete,

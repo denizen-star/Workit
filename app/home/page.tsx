@@ -160,8 +160,8 @@ export default function Home() {
       setResumeLine('');
       return;
     }
-    setResumeLine(pickResumeLine(userTone));
-  }, [sessions, userTone]);
+    setResumeLine(pickResumeLine(userTone, userName));
+  }, [sessions, userTone, userName]);
 
   const today = getTodayTarget(sessions);
   const todayHref =

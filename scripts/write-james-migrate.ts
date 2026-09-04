@@ -15,6 +15,12 @@ function lineRows(voiceId: string) {
       rows.push(`(${sql(voiceId)}, ${sql(bucket)}, ${sort}, NULL, ${sql(body)}, 1)`);
     });
   }
+  pack.resume.forEach((body, sort) => {
+    rows.push(`(${sql(voiceId)}, 'resume', ${sort}, NULL, ${sql(body)}, 1)`);
+  });
+  pack.missedWeek.forEach((body, sort) => {
+    rows.push(`(${sql(voiceId)}, 'missed_week', ${sort}, NULL, ${sql(body)}, 1)`);
+  });
   pack.bonusComplete.forEach((body, sort) => {
     rows.push(`(${sql(voiceId)}, 'bonus_complete', ${sort + 1}, NULL, ${sql(body)}, 1)`);
   });

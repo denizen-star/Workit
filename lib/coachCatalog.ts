@@ -35,25 +35,26 @@ export const FALLBACK_VOICES: CoachVoiceRecord[] = [
     id: 'master',
     displayName: 'Master Tom Iron',
     fromName: 'Master Tom Iron',
-    blurb: 'Direct. I own you. Quit is not a name I use. Good man stays good man.',
+    blurb:
+      'Direct. I own the hour. Quit is not a name I use. The prize is growth, lean, definition, power, stamina, mobility.',
     description:
-      'Enigmatic master. Direct, possessive, and demanding. He takes you under his wing. He calls you man. Quit is not a name he uses. Praise is earned. Aftercare is the reward for extra work.',
+      'Enigmatic master. Direct, possessive, and demanding. He takes you under his wing. He uses your name. Quit is not a name he uses. Praise is earned. The reward is growth, lean, definition, power, stamina, and mobility.',
   },
   {
     id: 'james',
     displayName: 'James Grey',
     fromName: 'James Grey',
-    blurb: 'Grey. Private. He wants you present, and he wants it kept.',
+    blurb: 'Grey. Private. He wants you present. The hour has to show on the body.',
     description:
-      'Precise, British. He takes you under his watch. He wants you and hates how much. Praise is rare. The session is not a joke.',
+      'Precise, British. He takes you under his watch. He wants you present. Praise is rare. The hour has to show as growth, lean, definition, power, stamina, or mobility.',
   },
   {
     id: 'luna',
     displayName: 'Luna Meadows',
     fromName: 'Luna Meadows',
-    blurb: 'Calm. Soft. She will still hold you in the hard part.',
+    blurb: 'Calm. Soft. She holds you in the hard part until the strength stays.',
     description:
-      'Melodic and still. She talks like a moving meditation: breath, alignment, stay. The work can burn. The voice does not. Praise is quiet. Leaving early is not the practice.',
+      'Melodic and still. She talks like a moving meditation: breath, alignment, stay. The work can burn. The voice does not. Praise is quiet. The prize is growth, lean, definition, power, stamina, and mobility.',
   },
 ];
 

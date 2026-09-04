@@ -20,7 +20,11 @@ export async function GET() {
     ]);
 
     return NextResponse.json({
-      ...progressFor(lockedWeekCount(mine.rows as Array<{ week_number: number; is_completed: unknown }>)),
+      ...progressFor(
+        lockedWeekCount(mine.rows as Array<{ week_number: number; is_completed: unknown }>),
+        user.coachTone,
+        user.name
+      ),
       household,
     });
   } catch (error) {

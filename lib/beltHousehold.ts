@@ -22,15 +22,15 @@ export async function lockedWeeksByUser() {
 
 export async function householdBeltRows() {
   const [users, locked] = await Promise.all([
-    query('SELECT id, name FROM users WHERE pin_hash IS NOT NULL ORDER BY name ASC'),
+    query('SELECT id, name, coach_tone FROM users WHERE pin_hash IS NOT NULL ORDER BY name ASC'),
     lockedWeeksByUser(),
   ]);
-  return (users.rows as { id: number; name: string }[]).map((user) => {
+  return (users.rows as { id: number; name: string; coach_tone?: string | null }[]).map((user) => {
     const lockedWeeks = locked.get(Number(user.id)) || 0;
     return {
       id: Number(user.id),
       name: user.name,
-      ...progressFor(lockedWeeks),
+      ...progressFor(lockedWeeks, user.coach_tone, user.name),
     };
   });
 }

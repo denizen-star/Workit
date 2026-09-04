@@ -12,17 +12,18 @@ export const COACH_TONE_OPTIONS: Array<{
   {
     id: 'master',
     label: 'Master Tom Iron',
-    blurb: 'Direct. I own you. Quit is not a name I use. Good man stays good man.',
+    blurb:
+      'Direct. I own the hour. Quit is not a name I use. The prize is growth, lean, definition, power, stamina, mobility.',
   },
   {
     id: 'james',
     label: 'James Grey',
-    blurb: 'Grey. Private. He wants you present, and he wants it kept.',
+    blurb: 'Grey. Private. He wants you present. The hour has to show on the body.',
   },
   {
     id: 'luna',
     label: 'Luna Meadows',
-    blurb: 'Calm. Soft. She will still hold you in the hard part.',
+    blurb: 'Calm. Soft. She holds you in the hard part until the strength stays.',
   },
 ];
 
