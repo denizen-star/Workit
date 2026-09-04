@@ -68,10 +68,10 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     notes: 'Step back or forward, driving up through the front heel.',
   },
   'Leg Curl Machine or Swiss Ball Hamstring Curls': {
-    name: 'Lying Hamstring Floor Slides',
+    name: 'Hamstring Walkouts',
     notes:
-      'Lie on your back, place heels on socks or towels on a smooth floor, and drag your heels toward your glutes.',
-    videoId: 'AlTI3igOaLw',
+      'No sliders. Lie on your back, lift the hips into a bridge, and walk the heels out and back. Keep the hips up.',
+    videoId: 'NaisR71dDxI',
   },
   'Standing Calf Raises': {
     name: 'Single-Leg Bodyweight Calf Raises',
@@ -162,7 +162,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
   'Side Plank': {
     name: 'Side Plank',
     notes: 'No equipment. Stack feet, lift hips, keep a straight line from head to heels.',
-    videoId: 'K2VljzVc4I8',
+    videoId: 'rCxF2nG9vQ0',
   },
 };
 

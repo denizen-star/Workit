@@ -54,6 +54,7 @@ const GROUPS: string[][] = [
   [
     "Leg Curl Machine or Swiss Ball Hamstring Curls",
     "Lying Hamstring Floor Slides",
+    "Hamstring Walkouts",
   ],
   [
     "Standing Calf Raises",

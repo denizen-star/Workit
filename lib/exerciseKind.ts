@@ -13,6 +13,7 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
     n.includes("doorframe") ||
     n.includes("floor slide") ||
     n.includes("hamstring floor") ||
+    n.includes("walkout") ||
     n.includes("pike") ||
     n.includes("dip") ||
     n.includes("iso") ||

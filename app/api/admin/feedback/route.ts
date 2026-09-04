@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { AuthError, requireAdmin } from '@/lib/auth';
+import { isFeedbackResolution } from '@/lib/feedback';
 import { loadRatingStats } from '@/lib/ratings';
 import { sendNow } from '@/lib/emails/send';
 import { buildFeedbackDigestEmail, feedbackMailTo } from '@/lib/emails/feedback';
@@ -13,22 +14,34 @@ export async function GET() {
       result = await query(
         `SELECT
            f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
-           f.page_url, f.mailed_at, f.resolved_at, f.created_at, u.name as user_name
+           f.page_url, f.mailed_at, f.resolved_at, f.resolution, f.created_at, u.name as user_name
          FROM feedback f
          INNER JOIN users u ON u.id = f.user_id
          ORDER BY f.resolved_at IS NULL DESC, f.created_at DESC
          LIMIT 200`
       );
     } catch {
-      result = await query(
-        `SELECT
-           f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
-           f.page_url, f.mailed_at, f.created_at, u.name as user_name
-         FROM feedback f
-         INNER JOIN users u ON u.id = f.user_id
-         ORDER BY f.created_at DESC
-         LIMIT 200`
-      );
+      try {
+        result = await query(
+          `SELECT
+             f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
+             f.page_url, f.mailed_at, f.resolved_at, f.created_at, u.name as user_name
+           FROM feedback f
+           INNER JOIN users u ON u.id = f.user_id
+           ORDER BY f.resolved_at IS NULL DESC, f.created_at DESC
+           LIMIT 200`
+        );
+      } catch {
+        result = await query(
+          `SELECT
+             f.id, f.kind, f.topic, f.reason, f.message, f.exercise_name, f.session_id,
+             f.page_url, f.mailed_at, f.created_at, u.name as user_name
+           FROM feedback f
+           INNER JOIN users u ON u.id = f.user_id
+           ORDER BY f.created_at DESC
+           LIMIT 200`
+        );
+      }
     }
     return NextResponse.json({ items: result.rows });
   } catch (error) {
@@ -50,17 +63,31 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Note required' }, { status: 400 });
       }
       const resolved = body.resolved !== false;
+      const resolution = isFeedbackResolution(body.resolution) ? body.resolution : 'done';
       try {
-        await query(
-          resolved
-            ? 'UPDATE feedback SET resolved_at = COALESCE(resolved_at, NOW()) WHERE id = ?'
-            : 'UPDATE feedback SET resolved_at = NULL WHERE id = ?',
-          [id]
-        );
+        if (!resolved) {
+          try {
+            await query('UPDATE feedback SET resolved_at = NULL, resolution = NULL WHERE id = ?', [id]);
+          } catch {
+            await query('UPDATE feedback SET resolved_at = NULL WHERE id = ?', [id]);
+          }
+        } else {
+          try {
+            await query(
+              'UPDATE feedback SET resolved_at = COALESCE(resolved_at, NOW()), resolution = ? WHERE id = ?',
+              [resolution, id]
+            );
+          } catch {
+            await query(
+              'UPDATE feedback SET resolved_at = COALESCE(resolved_at, NOW()) WHERE id = ?',
+              [id]
+            );
+          }
+        }
       } catch {
         return NextResponse.json({ error: 'Could not mark this note' }, { status: 500 });
       }
-      return NextResponse.json({ success: true, id, resolved });
+      return NextResponse.json({ success: true, id, resolved, resolution: resolved ? resolution : null });
     }
 
     if (body.action !== 'digest') {

@@ -11,6 +11,21 @@ export type RatingOutcome = (typeof RATING_OUTCOMES)[number];
 
 export type FeedbackKind = 'note' | 'thumb';
 
+export const FEEDBACK_RESOLUTIONS = ['done', 'wont_do'] as const;
+export type FeedbackResolution = (typeof FEEDBACK_RESOLUTIONS)[number];
+
+export function isFeedbackResolution(value: unknown): value is FeedbackResolution {
+  return FEEDBACK_RESOLUTIONS.includes(value as FeedbackResolution);
+}
+
+export function isWontDo(item: { resolution?: string | null }) {
+  return item.resolution === 'wont_do';
+}
+
+export function isDone(item: { resolved_at?: string | null; resolution?: string | null }) {
+  return Boolean(item.resolved_at) && !isWontDo(item);
+}
+
 export const DAY_TYPE_ORDER = [
   'Upper Body A',
   'Lower Body A',

@@ -80,6 +80,8 @@ const HOW: Record<string, string> = {
     'Step forward or back. Front knee over mid-foot. Drive up through the front heel.',
   'Lying Hamstring Floor Slides':
     'Lie on the back, heels on socks or towels. Hips up. Drag the heels toward the glutes. Slide them back out.',
+  'Hamstring Walkouts':
+    'Lie on the back. Lift the hips into a bridge. Walk the heels out a few inches at a time, then walk them back in. Keep the hips up. No sliders.',
   'Single-Leg Bodyweight Calf Raises':
     'Stand on one foot on a step if you can. Drop the heel, then rise onto the toes. Pause at the top.',
   'Side Plank or Towel ISO Press':
