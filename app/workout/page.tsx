@@ -43,6 +43,7 @@ import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
 import { bonusActivityType } from '@/lib/bonusActivity';
+import { optionalRegionFromDay } from '@/lib/optionals';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -580,7 +581,13 @@ function WorkoutPageInner() {
         </header>
 
         <div className="container mx-auto space-y-6 px-4 py-8 pb-28">
-          <OptionalCard sessionId={currentSession} slot="warmup" onLbs={handleWarmupLbs} />
+          <OptionalCard
+            sessionId={currentSession}
+            slot="warmup"
+            region={optionalRegionFromDay(workout.name)}
+            dayName={workout.name}
+            onLbs={handleWarmupLbs}
+          />
           <ExerciseTracker
             sessionId={currentSession}
             weekNumber={selectedWeek}
@@ -601,6 +608,8 @@ function WorkoutPageInner() {
             <OptionalCard
               sessionId={currentSession}
               slot="cooldown"
+              region={optionalRegionFromDay(workout.name)}
+              dayName={workout.name}
               onLbs={handleCooldownLbs}
               cue={liftsDone ? 'Lifts are done. Easy cooldown, then Finish it.' : undefined}
             />

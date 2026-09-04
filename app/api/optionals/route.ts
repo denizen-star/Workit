@@ -7,10 +7,13 @@ import {
   OPTIONAL_SLOT_LBS,
   awardOptionalKicker,
   isGuidedOptionalTrack,
+  isOptionalLevel,
   isOptionalSlot,
   isOptionalTrack,
   optionalElapsedSeconds,
+  parseOptionalLevel,
   sessionOptionalLbs,
+  type OptionalLevel,
   type OptionalSlot,
 } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -18,10 +21,12 @@ import { checkAndAwardBadges } from '@/lib/badges';
 type SessionOptional = {
   id: number;
   warmup_track: string | null;
+  warmup_level: string | null;
   warmup_started_at: string | Date | null;
   warmup_completed_at: string | Date | null;
   warmup_lbs: number | null;
   cooldown_track: string | null;
+  cooldown_level: string | null;
   cooldown_started_at: string | Date | null;
   cooldown_completed_at: string | Date | null;
   cooldown_lbs: number | null;
@@ -33,6 +38,7 @@ function slotColumns(slot: OptionalSlot) {
   if (slot === 'warmup') {
     return {
       track: 'warmup_track',
+      level: 'warmup_level',
       started: 'warmup_started_at',
       completed: 'warmup_completed_at',
       lbs: 'warmup_lbs',
@@ -40,16 +46,23 @@ function slotColumns(slot: OptionalSlot) {
   }
   return {
     track: 'cooldown_track',
+    level: 'cooldown_level',
     started: 'cooldown_started_at',
     completed: 'cooldown_completed_at',
     lbs: 'cooldown_lbs',
   } as const;
 }
 
+function readLevel(track: string | null, raw: string | null) {
+  if (!isGuidedOptionalTrack(track)) return null;
+  return parseOptionalLevel(raw);
+}
+
 function readSlot(session: SessionOptional, slot: OptionalSlot) {
   if (slot === 'warmup') {
     return {
       track: session.warmup_track,
+      level: readLevel(session.warmup_track, session.warmup_level),
       startedAt: session.warmup_started_at,
       completedAt: session.warmup_completed_at,
       lbs: Number(session.warmup_lbs || 0),
@@ -57,6 +70,7 @@ function readSlot(session: SessionOptional, slot: OptionalSlot) {
   }
   return {
     track: session.cooldown_track,
+    level: readLevel(session.cooldown_track, session.cooldown_level),
     startedAt: session.cooldown_started_at,
     completedAt: session.cooldown_completed_at,
     lbs: Number(session.cooldown_lbs || 0),
@@ -81,8 +95,8 @@ export async function POST(request: NextRequest) {
     }
 
     const owned = await query(
-      `SELECT id, warmup_track, warmup_started_at, warmup_completed_at, warmup_lbs,
-              cooldown_track, cooldown_started_at, cooldown_completed_at, cooldown_lbs,
+      `SELECT id, warmup_track, warmup_level, warmup_started_at, warmup_completed_at, warmup_lbs,
+              cooldown_track, cooldown_level, cooldown_started_at, cooldown_completed_at, cooldown_lbs,
               optional_kicker_lbs, optional_kicker_at
        FROM workout_sessions
        WHERE id = ? AND user_id = ?`,
@@ -103,6 +117,7 @@ export async function POST(request: NextRequest) {
           alreadyComplete: true,
           slot,
           track: current.track,
+          level: current.level,
           startedAt: current.startedAt,
           completedAt: current.completedAt,
           lbs: current.lbs,
@@ -115,11 +130,21 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Pick a track' }, { status: 400 });
       }
 
+      const level: OptionalLevel | null = isGuidedOptionalTrack(track)
+        ? isOptionalLevel(body.level)
+          ? body.level
+          : null
+        : null;
+      if (isGuidedOptionalTrack(track) && !level) {
+        return NextResponse.json({ error: 'Pick Easy, Medium, or Hard' }, { status: 400 });
+      }
+
       if (current.startedAt) {
         return NextResponse.json({
           success: true,
           slot,
           track: current.track || track,
+          level: current.level,
           startedAt: current.startedAt,
           remainingSeconds: Math.max(0, OPTIONAL_SECONDS - optionalElapsedSeconds(current.startedAt)),
           lbs: 0,
@@ -128,14 +153,17 @@ export async function POST(request: NextRequest) {
       }
 
       await query(
-        `UPDATE workout_sessions SET ${columns.track} = ?, ${columns.started} = NOW() WHERE id = ? AND user_id = ?`,
-        [track, sessionId, user.id]
+        `UPDATE workout_sessions
+         SET ${columns.track} = ?, ${columns.level} = ?, ${columns.started} = NOW()
+         WHERE id = ? AND user_id = ?`,
+        [track, level, sessionId, user.id]
       );
       const startedAt = new Date().toISOString();
       return NextResponse.json({
         success: true,
         slot,
         track,
+        level,
         startedAt,
         remainingSeconds: OPTIONAL_SECONDS,
         lbs: 0,
@@ -150,6 +178,7 @@ export async function POST(request: NextRequest) {
           alreadyComplete: true,
           slot,
           track: current.track,
+          level: current.level,
           startedAt: current.startedAt,
           completedAt: current.completedAt,
           lbs: current.lbs,
@@ -203,6 +232,7 @@ export async function POST(request: NextRequest) {
         success: true,
         slot,
         track: current.track,
+        level: current.level,
         completedAt: row.completed_at,
         lbs: OPTIONAL_SLOT_LBS,
         kickerLbs,

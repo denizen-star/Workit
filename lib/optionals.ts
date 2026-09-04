@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { guidedOptionalCircuit } from '@/lib/optionalCircuits';
 import { type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export const OPTIONAL_SLOT_LBS = 500;
@@ -10,6 +11,8 @@ export const OPTIONAL_WEEK_SLOTS = 4;
 
 export type OptionalSlot = 'warmup' | 'cooldown';
 export type OptionalTrack = 'run' | 'bike' | 'stretch' | 'core';
+export type OptionalLevel = 'easy' | 'medium' | 'hard';
+export type OptionalRegion = 'upper' | 'lower';
 
 export type OptionalCircuitStep = {
   title: string;
@@ -22,36 +25,24 @@ export type OptionalCircuitStep = {
   videoId?: string;
 };
 
-const FED = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
-
-function stills(id: string) {
-  return {
-    start: `${FED}/${id}/0.jpg`,
-    end: `${FED}/${id}/1.jpg`,
-  };
-}
-
 const TRACKS: OptionalTrack[] = ['run', 'bike', 'stretch', 'core'];
+export const OPTIONAL_LEVELS: OptionalLevel[] = ['easy', 'medium', 'hard'];
 
 const TRACK_LABELS: Record<OptionalTrack, string> = {
   run: 'Easy run',
   bike: 'Easy bike',
-  stretch: 'Easy stretch',
-  core: 'Easy core',
+  stretch: 'Stretch',
+  core: 'Core',
 };
 
-function guided(
-  title: string,
-  body: string,
-  id: string,
-  videoId: string,
-  holdSeconds: number
-): OptionalCircuitStep {
-  return { title, body, holdSeconds, videoId, ...stills(id) };
-}
+const LEVEL_LABELS: Record<OptionalLevel, string> = {
+  easy: 'Easy',
+  medium: 'Medium',
+  hard: 'Hard',
+};
 
-/** Easy circuits. Run/bike cues rotate until 10 minutes. Stretch/core are five holds; Done on the last hold credits +500 without waiting out the clock. */
-const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]>> = {
+/** Run/bike cues rotate until 10 minutes. Stretch/core live in optionalCircuits.ts. */
+const CARDIO: Record<OptionalSlot, Record<'run' | 'bike', OptionalCircuitStep[]>> = {
   warmup: {
     run: [
       { title: 'Easy jog', body: 'Soft pace. You could talk the whole time.' },
@@ -62,80 +53,6 @@ const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]
       { title: 'Easy spin', body: 'Light gear. Legs turn without a fight.' },
       { title: 'Loose shoulders', body: 'Unclench the hands. Drop the neck.' },
       { title: 'Easy breath', body: 'Smooth in, smooth out. Stay unhurried.' },
-    ],
-    stretch: [
-      guided(
-        'Neck',
-        'Slow look left and right. Switch sides halfway. No forcing.',
-        'Side_Neck_Stretch',
-        'was4RtzpfJs',
-        45
-      ),
-      guided(
-        'Shoulders',
-        'Roll them back. Open the chest a little.',
-        'Shoulder_Circles',
-        'NS64IgKUyeY',
-        45
-      ),
-      guided(
-        'Chest',
-        'Hands on a wall or behind you. Open without a fight.',
-        'Chest_And_Front_Of_Shoulder_Stretch',
-        'NS64IgKUyeY',
-        45
-      ),
-      guided(
-        'Hips',
-        'Easy side lunge or a gentle fold. Switch sides halfway.',
-        'Groiners',
-        'YQmpO9VT2X4',
-        60
-      ),
-      guided(
-        'Calves',
-        'Heel down, knee soft. Switch sides halfway.',
-        'Standing_Gastrocnemius_Calf_Stretch',
-        'i1eJqJ3v3lQ',
-        45
-      ),
-    ],
-    core: [
-      guided(
-        'Dead bug',
-        'Back stays on the floor. Slow opposite arm and leg.',
-        'Dead_Bug',
-        '4XLEnwUr1d8',
-        60
-      ),
-      guided(
-        'Easy plank',
-        'Knees down is fine. Breathe. Hold a quiet shape.',
-        'Plank',
-        'ASdvN_XEl_c',
-        45
-      ),
-      guided(
-        'Heel taps',
-        'Knees bent, tap one heel then the other. Soft.',
-        'Alternate_Heel_Touchers',
-        '9bR-elyolBQ',
-        45
-      ),
-      guided(
-        'Glute bridge',
-        'Easy squeeze at the top. No rush.',
-        'Butt_Lift_Bridge',
-        'X_IGw8U_e38',
-        45
-      ),
-      guided(
-        'Superman',
-        'Chest lifts a little. Soft neck. Easy.',
-        'Superman',
-        'cc6UVRS7PW4',
-        45
-      ),
     ],
   },
   cooldown: {
@@ -149,80 +66,6 @@ const CIRCUITS: Record<OptionalSlot, Record<OptionalTrack, OptionalCircuitStep[]
       { title: 'Unclench', body: 'Hands, jaw, shoulders. All of it can go.' },
       { title: 'Slow the legs', body: 'Cadence drops. You are cooling, not chasing.' },
     ],
-    stretch: [
-      guided(
-        'Hamstrings',
-        'Easy fold or a long sit. Soft knees. No yanking.',
-        'Romanian_Deadlift',
-        'wr_8aak4Wbc',
-        60
-      ),
-      guided(
-        'Quads',
-        'Stand or lie on your side. Switch sides halfway.',
-        'Split_Squat_with_Dumbbells',
-        'BhQimqvU1tM',
-        45
-      ),
-      guided(
-        'Chest',
-        'Hands behind you or on a wall. Open without a fight.',
-        'Chest_And_Front_Of_Shoulder_Stretch',
-        'NS64IgKUyeY',
-        45
-      ),
-      guided(
-        'Hips',
-        'A gentle figure-four or a long lunge. Switch sides halfway.',
-        'Butt_Lift_Bridge',
-        '0_zPqA65Nok',
-        60
-      ),
-      guided(
-        'Calves',
-        'Heel down. Switch sides halfway. Let the legs empty.',
-        'Standing_Gastrocnemius_Calf_Stretch',
-        'i1eJqJ3v3lQ',
-        45
-      ),
-    ],
-    core: [
-      guided(
-        'Dead bug',
-        'Slower than the warmup. Floor is a friend.',
-        'Dead_Bug',
-        '4XLEnwUr1d8',
-        60
-      ),
-      guided(
-        'Easy crunch',
-        'Small range. Exhale as you lift. Stop while it is kind.',
-        'Crunches',
-        'RUNrHkbP4Pc',
-        45
-      ),
-      guided(
-        'Glute bridge',
-        'Easy squeeze. Then let the floor take you.',
-        'Butt_Lift_Bridge',
-        'X_IGw8U_e38',
-        45
-      ),
-      guided(
-        'Cat-cow',
-        'Round and arch with the breath. Nothing heroic.',
-        'Cat_Stretch',
-        'y39PrKY_4JM',
-        45
-      ),
-      guided(
-        'Breathe down',
-        "Child's pose or on your back, hands on ribs. Long easy breaths.",
-        'Cat_Stretch',
-        'eqVMAPM00DM',
-        60
-      ),
-    ],
   },
 };
 
@@ -234,6 +77,15 @@ export function isOptionalTrack(value: unknown): value is OptionalTrack {
   return TRACKS.includes(value as OptionalTrack);
 }
 
+export function isOptionalLevel(value: unknown): value is OptionalLevel {
+  return value === 'easy' || value === 'medium' || value === 'hard';
+}
+
+/** Old in-progress stretch/core rows with no saved level read as easy. */
+export function parseOptionalLevel(value: unknown): OptionalLevel {
+  return isOptionalLevel(value) ? value : 'easy';
+}
+
 export function optionalTracks(): OptionalTrack[] {
   return TRACKS;
 }
@@ -242,12 +94,33 @@ export function optionalTrackLabel(track: OptionalTrack) {
   return TRACK_LABELS[track];
 }
 
+export function optionalLevelLabel(level: OptionalLevel) {
+  return LEVEL_LABELS[level];
+}
+
+export function optionalTrackLevelLabel(track: OptionalTrack, level?: OptionalLevel | null) {
+  if (!isGuidedOptionalTrack(track) || !level) return optionalTrackLabel(track);
+  return `${optionalTrackLabel(track)} · ${optionalLevelLabel(level)}`;
+}
+
 export function optionalSlotLabel(slot: OptionalSlot) {
   return slot === 'warmup' ? 'Warmup' : 'Cooldown';
 }
 
-export function optionalCircuit(slot: OptionalSlot, track: OptionalTrack): OptionalCircuitStep[] {
-  return CIRCUITS[slot][track];
+/** Lower A/B from the program day name. Everything else (including Bonus Core) is upper. */
+export function optionalRegionFromDay(name: string): OptionalRegion {
+  return /lower/i.test(name) ? 'lower' : 'upper';
+}
+
+export function optionalCircuit(
+  slot: OptionalSlot,
+  track: OptionalTrack,
+  region: OptionalRegion = 'upper',
+  level: OptionalLevel = 'easy',
+  dayName = ''
+): OptionalCircuitStep[] {
+  if (track === 'run' || track === 'bike') return CARDIO[slot][track];
+  return guidedOptionalCircuit(slot, track, region, level, dayName);
 }
 
 export function isGuidedOptionalTrack(track: unknown) {

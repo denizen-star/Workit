@@ -7,6 +7,7 @@ import { formatClock } from '@/lib/formatDuration';
 import VideoModal from '@/components/VideoModal';
 import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
+  OPTIONAL_LEVELS,
   OPTIONAL_SECONDS,
   OPTIONAL_SLOT_LBS,
   isGuidedOptionalTrack,
@@ -15,18 +16,24 @@ import {
   optionalCircuitStep,
   optionalElapsedSeconds,
   optionalHoldSeconds,
+  optionalLevelLabel,
   optionalRemainingSeconds,
   optionalSlotLabel,
   optionalTimerReady,
   optionalTrackLabel,
+  optionalTrackLevelLabel,
   optionalTracks,
+  parseOptionalLevel,
   type OptionalCircuitStep,
+  type OptionalLevel,
+  type OptionalRegion,
   type OptionalSlot,
   type OptionalTrack,
 } from '@/lib/optionals';
 
 type SlotState = {
   track: OptionalTrack | null;
+  level: OptionalLevel | null;
   startedAt: string | null;
   completedAt: string | null;
   lbs: number;
@@ -34,6 +41,11 @@ type SlotState = {
 
 function asTrack(value: unknown): OptionalTrack | null {
   return isOptionalTrack(value) ? value : null;
+}
+
+function slotLevel(track: OptionalTrack | null, raw: unknown): OptionalLevel | null {
+  if (!isGuidedOptionalTrack(track)) return null;
+  return parseOptionalLevel(raw);
 }
 
 function progressKey(sessionId: number, slot: OptionalSlot) {
@@ -70,21 +82,27 @@ function writeProgress(
 export default function OptionalCard({
   sessionId,
   slot,
+  region,
+  dayName,
   onLbs,
   cue,
 }: {
   sessionId: number;
   slot: OptionalSlot;
+  region: OptionalRegion;
+  dayName?: string;
   onLbs?: (lbs: number) => void;
   cue?: string;
 }) {
   const [state, setState] = useState<SlotState>({
     track: null,
+    level: null,
     startedAt: null,
     completedAt: null,
     lbs: 0,
   });
   const [picking, setPicking] = useState(false);
+  const [levelFor, setLevelFor] = useState<OptionalTrack | null>(null);
   const [open, setOpen] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState('');
@@ -144,15 +162,19 @@ export default function OptionalCard({
         }
         const session = data.session;
         if (slot === 'warmup') {
+          const track = asTrack(session.warmup_track);
           setState({
-            track: asTrack(session.warmup_track),
+            track,
+            level: slotLevel(track, session.warmup_level),
             startedAt: session.warmup_started_at || null,
             completedAt: session.warmup_completed_at || null,
             lbs: Number(session.warmup_lbs || 0),
           });
         } else {
+          const track = asTrack(session.cooldown_track);
           setState({
-            track: asTrack(session.cooldown_track),
+            track,
+            level: slotLevel(track, session.cooldown_level),
             startedAt: session.cooldown_started_at || null,
             completedAt: session.cooldown_completed_at || null,
             lbs: Number(session.cooldown_lbs || 0),
@@ -179,7 +201,9 @@ export default function OptionalCard({
   const running = Boolean(state.startedAt && !state.completedAt);
   const done = Boolean(state.completedAt);
   const guided = isGuidedOptionalTrack(state.track);
-  const steps = state.track ? optionalCircuit(slot, state.track) : [];
+  const steps = state.track
+    ? optionalCircuit(slot, state.track, region, state.level || 'easy', dayName || '')
+    : [];
 
   useEffect(() => {
     if (!running) return;
@@ -222,20 +246,22 @@ export default function OptionalCard({
     holdStartedAt != null ? Math.max(0, Math.floor((now - holdStartedAt) / 1000)) : 0;
   const holdRemaining = Math.max(0, holdTarget - holdElapsed);
 
-  const startTrack = async (track: OptionalTrack) => {
+  const startTrack = async (track: OptionalTrack, level?: OptionalLevel) => {
     setError('');
     const response = await fetch('/api/optionals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, slot, action: 'start', track }),
+      body: JSON.stringify({ sessionId, slot, action: 'start', track, level }),
     });
     const data = await response.json();
     if (!response.ok) {
       setError(data?.error || 'Could not start');
       return;
     }
+    const nextTrack = asTrack(data.track) || track;
     setState({
-      track: asTrack(data.track) || track,
+      track: nextTrack,
+      level: slotLevel(nextTrack, data.level ?? level),
       startedAt: data.startedAt || new Date().toISOString(),
       completedAt: data.completedAt || null,
       lbs: Number(data.lbs || 0),
@@ -244,7 +270,17 @@ export default function OptionalCard({
     setCircuitDone(false);
     writeProgress(sessionId, slot, 0, false);
     setPicking(false);
+    setLevelFor(null);
     setOpen(true);
+  };
+
+  const pickTrack = (track: OptionalTrack) => {
+    if (isGuidedOptionalTrack(track)) {
+      setLevelFor(track);
+      setError('');
+      return;
+    }
+    void startTrack(track);
   };
 
   const completeStep = () => {
@@ -264,11 +300,12 @@ export default function OptionalCard({
   };
 
   const label = optionalSlotLabel(slot);
+  const trackTitle = state.track ? optionalTrackLevelLabel(state.track, state.level) : label;
   const runningCopy = guided
-    ? `${state.track ? optionalTrackLabel(state.track) : label} · ${
+    ? `${trackTitle} · ${
         circuitDone ? 'done' : `${Math.min(stepIndex + 1, steps.length)} of ${steps.length}`
       } · ${formatClock(remaining)} left`
-    : `${state.track ? optionalTrackLabel(state.track) : label} · ${formatClock(remaining)} left`;
+    : `${trackTitle} · ${formatClock(remaining)} left`;
 
   return (
     <div className="glass-card p-5">
@@ -282,7 +319,7 @@ export default function OptionalCard({
               Optional · {label}
             </p>
             <p className="mt-1 font-black text-white">
-              {state.track ? optionalTrackLabel(state.track) : label} · +
+              {trackTitle} · +
               {Math.round(state.lbs || OPTIONAL_SLOT_LBS).toLocaleString()} lb
             </p>
           </div>
@@ -305,25 +342,45 @@ export default function OptionalCard({
         <div>
           <button
             type="button"
-            onClick={() => setPicking((current) => !current)}
+            onClick={() => {
+              setPicking((current) => !current);
+              setLevelFor(null);
+            }}
             className="flex min-h-12 w-full items-center justify-between gap-3 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 font-black text-[#e8c547]"
           >
             <span>Optional · {label}</span>
             <span className="text-sm">+{OPTIONAL_SLOT_LBS} lb</span>
           </button>
           {cue ? <p className="mt-3 text-base font-semibold text-[#f6f1e3]/75">{cue}</p> : null}
-          {picking && (
+          {picking && !levelFor && (
             <div className="mt-3 grid grid-cols-2 gap-2">
               {optionalTracks().map((track) => (
                 <button
                   key={track}
                   type="button"
-                  onClick={() => startTrack(track)}
+                  onClick={() => pickTrack(track)}
                   className="min-h-12 rounded-2xl border border-white/15 bg-black/30 px-3 text-sm font-black text-white"
                 >
                   {optionalTrackLabel(track)}
                 </button>
               ))}
+            </div>
+          )}
+          {picking && levelFor && (
+            <div className="mt-3">
+              <p className="mb-2 text-sm font-black text-white">{optionalTrackLabel(levelFor)}</p>
+              <div className="grid grid-cols-3 gap-2">
+                {OPTIONAL_LEVELS.map((level) => (
+                  <button
+                    key={level}
+                    type="button"
+                    onClick={() => startTrack(levelFor, level)}
+                    className="min-h-12 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-3 text-sm font-black text-[#e8c547]"
+                  >
+                    {optionalLevelLabel(level)}
+                  </button>
+                ))}
+              </div>
             </div>
           )}
           {error ? <p className="mt-2 text-sm text-[#e8c547]">{error}</p> : null}
@@ -354,7 +411,9 @@ export default function OptionalCard({
               <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
                 Optional · {label}
               </p>
-              <p className="mt-3 text-lg font-black text-white">{optionalTrackLabel(state.track)}</p>
+              <p className="mt-3 text-lg font-black text-white">
+                {optionalTrackLevelLabel(state.track, state.level)}
+              </p>
               {guided ? (
                 <p className="mt-2 text-sm font-black text-[#f6f1e3]/70">
                   {circuitDone
@@ -368,7 +427,7 @@ export default function OptionalCard({
                   <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#6d8b6e] text-[#1a1404]">
                     <Check className="h-8 w-8" />
                   </span>
-                  <p className="mt-6 text-3xl font-black text-white">That is the five.</p>
+                  <p className="mt-6 text-3xl font-black text-white">That is the six.</p>
                   <p className="mt-4 text-lg font-medium text-[#f6f1e3]/85">
                     Crediting +{OPTIONAL_SLOT_LBS.toLocaleString()} lb.
                   </p>
@@ -490,7 +549,7 @@ export default function OptionalCard({
               open={Boolean(videoOpen && videoStep?.videoId)}
               title={
                 videoStep && state.track
-                  ? `${optionalTrackLabel(state.track)} · ${videoStep.title}`
+                  ? `${optionalTrackLevelLabel(state.track, state.level)} · ${videoStep.title}`
                   : ''
               }
               videoId={videoStep?.videoId || ''}
