@@ -176,7 +176,7 @@ export function formatPct(value: number | null | undefined): string {
 }
 
 /** 1.2k · 18k · 1.2M. Under 1000 stays a plain number. */
-export function formatCompact(value: number | null | undefined): string {
+export function formatCompact(value: unknown): string {
   const raw = Number(value || 0);
   if (!Number.isFinite(raw)) return '0';
   const sign = raw < 0 ? '-' : '';
