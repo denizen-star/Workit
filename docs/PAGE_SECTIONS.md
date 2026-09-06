@@ -35,7 +35,7 @@ Redirect. Session → `/home`. Else `/who`. Middleware usually handles this.
 - **Your performance** (folded): next workout, or last workout the day after a finish / when the week is locked. Card deep-links to `/performance?tab=analytics` with period, that day, grain=workout
 - **Session stories** (folded): Last session · Best lift · Did not improve · Week vs last time
 - **Your trophies** (folded): Yours / Aiming / Next. Opens `/belts`
-- **You vs** (folded, hidden for Test): last 7 days vs next in line
+- **You vs** (folded, hidden for Test): last 7 days vs next in line. Each KPI stacks You then them (value + %). Days / Effort wrap.
 
 Overlays: Invite · week podium (1st–3rd) · missed-week roast. Test never places or gets the miss roast.
 

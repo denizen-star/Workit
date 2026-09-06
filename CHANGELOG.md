@@ -5,6 +5,7 @@
 ### Changed
 - Displayed totals abbreviate across the app (`12k`, `1.6k`, `141k`). Logged set weight and reps stay exact.
 - Home last-week medal sits in the Today header row. It no longer pads the whole card or clip the four numbers
+- You vs on a phone stacks You / them under each KPI. No spark. Days and Effort wrap.
 
 ## 6.0.0 - 2026-09-06
 
