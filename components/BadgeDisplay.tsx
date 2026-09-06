@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Award, ChevronDown, ChevronUp } from 'lucide-react';
 import BadgeMark from '@/components/BadgeMark';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 
 interface Badge {
   id: number;
@@ -25,7 +26,7 @@ interface BadgeDisplayProps {
 function requirementLabel(badge: Badge) {
   switch (badge.requirement_type) {
     case 'weight_milestone':
-      return `Lift ${badge.requirement_value.toLocaleString()} lbs`;
+      return `Lift ${formatCompact(badge.requirement_value)} lbs`;
     case 'streak':
       return `${badge.requirement_value} week streak`;
     case 'total_workouts':
@@ -45,7 +46,7 @@ function requirementLabel(badge: Badge) {
     case 'lower_sessions':
       return `${badge.requirement_value} Lower sessions`;
     case 'session_volume':
-      return `${badge.requirement_value.toLocaleString()} lb session`;
+      return `${formatCompact(badge.requirement_value)} lb session`;
     case 'fast_session':
       return `Finish under ${badge.requirement_value} min`;
     case 'long_session':

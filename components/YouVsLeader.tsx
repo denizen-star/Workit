@@ -3,12 +3,12 @@
 import { useEffect, useState } from 'react';
 import { KPI_COLOR, KPI_LABEL, formatKpiPct, kpiTone, type KpiRowModel } from '@/lib/kpi';
 import { kpisFromScoreboard } from '@/lib/kpi';
-import { KpiSpike } from '@/components/KpiList';
 import {
   firstName,
   scoreboardBestDay,
   type HouseholdScoreboardRow,
 } from '@/lib/scoreboardTypes';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatHardnessWithPct } from '@/lib/hardness';
 
 function placeWord(place: number) {
@@ -26,14 +26,26 @@ function nextInLine(rows: HouseholdScoreboardRow[], userId: number) {
   return { you, rival, youPlace: index + 1 };
 }
 
-function CompareCell({ row }: { row: KpiRowModel }) {
+function CompareLine({
+  name,
+  row,
+  accent,
+}: {
+  name: string;
+  row: KpiRowModel;
+  accent: string;
+}) {
   const tone = kpiTone(row.pct);
   const color = tone === 'up' ? '#6d8b6e' : tone === 'down' ? '#a35d52' : '#f6f1e3';
   return (
-    <div className="vs-cell">
-      <b>{row.value}</b>
-      <KpiSpike pct={row.pct} id={row.id} />
-      <strong style={{ color }}>{formatKpiPct(row.pct)}</strong>
+    <div className="grid grid-cols-[3.25rem_minmax(0,1fr)_auto] items-center gap-2">
+      <span className="truncate text-xs font-black uppercase tracking-[0.12em]" style={{ color: accent }}>
+        {name}
+      </span>
+      <span className="text-sm font-black text-[#f6f1e3]">{row.value}</span>
+      <span className="text-sm font-black" style={{ color }}>
+        {formatKpiPct(row.pct)}
+      </span>
     </div>
   );
 }
@@ -80,7 +92,7 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
   const rivalKpis = kpisFromScoreboard(rival);
 
   return (
-    <div className="rounded-2xl border border-[#f6f1e3]/45 bg-white/[0.06] px-6 py-5">
+    <div className="rounded-2xl border border-[#f6f1e3]/45 bg-white/[0.06] px-4 py-5 sm:px-6">
       <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">Last 7 days</p>
       <p className="mt-1 text-xl font-black text-[#f6f1e3]">You vs {rivalName}</p>
       <p className="mt-1 text-base text-[#f6f1e3]/60">
@@ -91,35 +103,35 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
         <div className="stack">
           <div className="bar you" style={{ height: `${Math.max(16, Math.round((youVol / max) * 72))}px` }} />
           <b>You</b>
-          <p className="text-sm text-[#f6f1e3]/55">{Math.round(youVol).toLocaleString()}</p>
+          <p className="text-sm text-[#f6f1e3]/55">{formatCompact(youVol)}</p>
         </div>
         <div className="stack">
           <div className="bar rival" style={{ height: `${Math.max(16, Math.round((rivalVol / max) * 72))}px` }} />
           <b>{rivalName}</b>
-          <p className="text-sm text-[#f6f1e3]/55">{Math.round(rivalVol).toLocaleString()}</p>
+          <p className="text-sm text-[#f6f1e3]/55">{formatCompact(rivalVol)}</p>
         </div>
       </div>
-      <p className="mt-3 text-sm text-[#f6f1e3]/55">
-        Days You {you.workouts} · {rivalName} {rival.workouts}
-        {' · '}Best You {Math.round(scoreboardBestDay(you) || 0).toLocaleString()}
-        {' · '}Effort You {formatHardnessWithPct(you.perception)} · {rivalName}{' '}
-        {formatHardnessWithPct(rival.perception)}
-      </p>
-      <div className="vs-table">
-        <div className="vs-head">
-          <span />
-          <span className="text-[#f6f1e3]">You</span>
-          <span className="text-[#c08457]">{rivalName}</span>
-        </div>
+      <div className="mt-3 flex flex-wrap gap-x-3 gap-y-1 text-sm text-[#f6f1e3]/55">
+        <span>Days You {you.workouts}</span>
+        <span>
+          {rivalName} {rival.workouts}
+        </span>
+        <span>Best You {formatCompact(scoreboardBestDay(you) || 0)}</span>
+        <span>Effort You {formatHardnessWithPct(you.perception)}</span>
+        <span>
+          {rivalName} {formatHardnessWithPct(rival.perception)}
+        </span>
+      </div>
+      <div className="mt-4 space-y-3">
         {youKpis.map((row) => {
           const other = rivalKpis.find((item) => item.id === row.id);
           return (
-            <div key={row.id} className="vs-kpi">
-              <span className="kpi-name" style={{ color: KPI_COLOR[row.id] }}>
+            <div key={row.id} className="border-b border-white/10 pb-3 last:border-b-0 last:pb-0">
+              <p className="kpi-name mb-1.5" style={{ color: KPI_COLOR[row.id] }}>
                 {KPI_LABEL[row.id]}
-              </span>
-              <CompareCell row={row} />
-              {other ? <CompareCell row={other} /> : <div />}
+              </p>
+              <CompareLine name="You" row={row} accent="#f6f1e3" />
+              {other ? <CompareLine name={rivalName} row={other} accent="#c08457" /> : null}
             </div>
           );
         })}

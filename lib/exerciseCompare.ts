@@ -5,6 +5,7 @@ import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume } from '@/lib/optionals';
 import { effortFromVolume } from '@/lib/hardness';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export type CompareMetric = 'weight' | 'reps';
@@ -470,7 +471,7 @@ export async function athleteExerciseCompare(
 
 export function formatCompareValue(value: number | null | undefined, unit: 'lb' | 'reps') {
   if (value == null) return null;
-  const amount = Math.round(value).toLocaleString();
+  const amount = formatCompact(value);
   return unit === 'reps' ? `${amount} reps` : `${amount} lb`;
 }
 

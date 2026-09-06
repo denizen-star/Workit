@@ -175,10 +175,6 @@ export function formatPct(value: number | null | undefined): string {
   return `${sign}${rounded}%`;
 }
 
-export function formatLbs(value: number | null | undefined): string {
-  return Math.round(Number(value || 0)).toLocaleString();
-}
-
 /** 1.2k · 18k · 1.2M. Under 1000 stays a plain number. */
 export function formatCompact(value: number | null | undefined): string {
   const raw = Number(value || 0);
@@ -194,4 +190,8 @@ export function formatCompact(value: number | null | undefined): string {
     return `${sign}${(n / 1000).toFixed(digits).replace(/\.0$/, '')}k`;
   }
   return `${sign}${Math.round(n).toLocaleString()}`;
+}
+
+export function formatLbs(value: number | null | undefined): string {
+  return formatCompact(value);
 }

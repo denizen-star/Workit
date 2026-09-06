@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Check, Clock, Play, X } from 'lucide-react';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatClock } from '@/lib/formatDuration';
 import VideoModal from '@/components/VideoModal';
 import ExerciseThumbs, { type ExerciseThumb } from '@/components/ExerciseThumbs';
@@ -341,7 +342,7 @@ export default function OptionalCard({
             </p>
             <p className="mt-1 font-black text-white">
               {trackTitle} · +
-              {Math.round(state.lbs || OPTIONAL_SLOT_LBS).toLocaleString()} lb
+              {formatCompact(state.lbs || OPTIONAL_SLOT_LBS)} lb
             </p>
           </div>
         </div>
@@ -450,7 +451,7 @@ export default function OptionalCard({
                   </span>
                   <p className="mt-6 text-3xl font-black text-white">That is the six.</p>
                   <p className="mt-4 text-lg font-medium text-[#f6f1e3]/85">
-                    Crediting +{OPTIONAL_SLOT_LBS.toLocaleString()} lb.
+                    Crediting +{formatCompact(OPTIONAL_SLOT_LBS)} lb.
                   </p>
                 </>
               ) : (

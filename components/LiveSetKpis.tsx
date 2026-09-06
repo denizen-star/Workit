@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { KPI_COLOR } from '@/lib/kpi';
 
 /** Four tiles after a completed set on a live card. */
@@ -23,29 +24,29 @@ export default function LiveSetKpis({
       <div className="kpi">
         <label>Set Volume</label>
         <div className="big" style={{ color: KPI_COLOR.volume }}>
-          {Math.round(setVolume).toLocaleString()}
+          {formatCompact(setVolume)}
         </div>
         {setHint ? <div className="sub">{setHint}</div> : null}
       </div>
       <div className="kpi">
         <label>Set Effective</label>
         <div className="big" style={{ color: KPI_COLOR.effective }}>
-          {Math.round(setEffective).toLocaleString()}
+          {formatCompact(setEffective)}
         </div>
         <div className="sub">volume × Effort</div>
       </div>
       <div className="kpi">
         <label>Exercise Volume</label>
         <div className="big" style={{ color: KPI_COLOR.volume }}>
-          {Math.round(exerciseVolume).toLocaleString()}
+          {formatCompact(exerciseVolume)}
         </div>
       </div>
       <div className="kpi">
         <label>Session Volume</label>
         <div className="big" style={{ color: KPI_COLOR.volume }}>
-          {Math.round(sessionVolume).toLocaleString()}
+          {formatCompact(sessionVolume)}
         </div>
-        <div className="sub">Effective {Math.round(sessionEffective).toLocaleString()}</div>
+        <div className="sub">Effective {formatCompact(sessionEffective)}</div>
       </div>
     </div>
   );

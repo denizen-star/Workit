@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef } from "react";
+import { formatCompact } from "@/lib/athletePerformanceTypes";
 
 export type TakeoverBadge = {
   id: number;
@@ -102,8 +103,8 @@ export default function CompleteTakeover({
         ) : null}
         {optionalLbs > 0 ? (
           <p className="mt-4 text-sm font-semibold uppercase tracking-[0.25em] text-[#e8c547]">
-            +{Math.round(optionalLbs).toLocaleString()} lb optional
-            {kickerLbs > 0 ? ` · +${Math.round(kickerLbs).toLocaleString()} lb kicker` : ''}
+            +{formatCompact(optionalLbs)} lb optional
+            {kickerLbs > 0 ? ` · +${formatCompact(kickerLbs)} lb kicker` : ''}
           </p>
         ) : null}
         {body ? (

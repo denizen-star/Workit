@@ -3,7 +3,7 @@ import type {
   PerformanceLine,
   WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
-import { pctChange } from '@/lib/athletePerformanceTypes';
+import { formatCompact, pctChange } from '@/lib/athletePerformanceTypes';
 
 export function boardSummaryLine(board: AthletePerformanceBoard): WorkoutTrend | null {
   if (!board.workouts.length) return null;
@@ -55,8 +55,8 @@ export function latestWorkout(board: AthletePerformanceBoard): WorkoutTrend | nu
 export function liftStory(row: PerformanceLine) {
   const weight =
     row.priorWeight == null || row.priorWeight === row.currentWeight
-      ? `${Math.round(row.currentWeight)} lb ${row.priorWeight == null ? '' : 'held'}`.trim()
-      : `${Math.round(row.priorWeight)} → ${Math.round(row.currentWeight)} lb`;
+      ? `${formatCompact(row.currentWeight)} lb ${row.priorWeight == null ? '' : 'held'}`.trim()
+      : `${formatCompact(row.priorWeight)} → ${formatCompact(row.currentWeight)} lb`;
   const currentReps = 'currentReps' in row ? Number((row as { currentReps?: number }).currentReps || 0) : null;
   const priorReps =
     'priorReps' in row && typeof (row as { priorReps?: number | null }).priorReps === 'number'
@@ -66,12 +66,12 @@ export function liftStory(row: PerformanceLine) {
     currentReps == null
       ? null
       : priorReps == null || priorReps === currentReps
-        ? `reps ${Math.round(currentReps * 10) / 10}`
-        : `reps ${Math.round(priorReps * 10) / 10} → ${Math.round(currentReps * 10) / 10}`;
+        ? `reps ${formatCompact(currentReps)}`
+        : `reps ${formatCompact(priorReps)} → ${formatCompact(currentReps)}`;
   const volume =
     row.priorVolume == null
-      ? `Volume ${Math.round(row.currentVolume).toLocaleString()}`
-      : `Volume ${Math.round(row.priorVolume).toLocaleString()} → ${Math.round(row.currentVolume).toLocaleString()}`;
+      ? `Volume ${formatCompact(row.currentVolume)}`
+      : `Volume ${formatCompact(row.priorVolume)} → ${formatCompact(row.currentVolume)}`;
   return [weight, reps, volume].filter(Boolean).join(' · ');
 }
 

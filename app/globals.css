@@ -287,65 +287,6 @@ body {
   background: #f6f1e3;
 }
 
-.vs-table {
-  margin-top: 12px;
-}
-
-.vs-head,
-.vs-kpi {
-  display: grid;
-  grid-template-columns: 72px minmax(0, 1fr) minmax(0, 1fr);
-  gap: 8px;
-  align-items: center;
-}
-
-.vs-head {
-  margin-bottom: 6px;
-  font-size: 11px;
-  font-weight: 900;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-}
-
-.vs-kpi {
-  min-height: 44px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.vs-kpi:last-child {
-  border-bottom: 0;
-}
-
-.vs-cell {
-  display: flex;
-  min-width: 0;
-  align-items: center;
-  gap: 6px;
-}
-
-.vs-cell .kpi-spark {
-  width: 56px;
-  height: 14px;
-  flex-shrink: 0;
-}
-
-.vs-cell b {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-size: 14px;
-  font-weight: 900;
-  color: #f6f1e3;
-}
-
-.vs-cell strong {
-  margin-left: auto;
-  flex-shrink: 0;
-  font-size: 13px;
-  font-weight: 900;
-}
-
 .kpi-spike-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;

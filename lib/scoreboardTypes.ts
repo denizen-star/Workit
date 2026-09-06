@@ -1,3 +1,5 @@
+import { formatCompact } from '@/lib/athletePerformanceTypes';
+
 export const SCOREBOARD_PERIODS = ['7', '30', 'all'] as const;
 
 export type ScoreboardPeriod = (typeof SCOREBOARD_PERIODS)[number];
@@ -125,7 +127,7 @@ export function tomScoreboardLine(
     if (workoutGap <= 1 && volumeGap < 2000) {
       return `${name} is breathing on first. One honest session and this board flips.`;
     }
-    return `${name}, second is a participation trophy. ${volumeGap.toLocaleString()} lb off the lead. Hunt.`;
+    return `${name}, second is a participation trophy. ${formatCompact(volumeGap)} lb off the lead. Hunt.`;
   }
 
   if (index === rows.length - 1) {

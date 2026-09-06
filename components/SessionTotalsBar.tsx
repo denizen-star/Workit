@@ -1,8 +1,6 @@
 'use client';
 
-function formatLbs(value: number) {
-  return Math.round(Number(value || 0)).toLocaleString();
-}
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 
 /** Sticky live totals under the workout header. Today vs all-time. Volume and Effective. */
 export default function SessionTotalsBar({
@@ -27,25 +25,25 @@ export default function SessionTotalsBar({
             <span className="font-semibold" style={{ color: '#2f8f8a' }}>
               Volume
             </span>{' '}
-            <span className="font-black text-white">{formatLbs(sessionLbs)}</span>
+            <span className="font-black text-white">{formatCompact(sessionLbs)}</span>
           </span>
           <span>
             <span className="font-semibold" style={{ color: '#c45d7a' }}>
               Effective
             </span>{' '}
-            <span className="font-black text-white">{formatLbs(sessionEffort)}</span>
+            <span className="font-black text-white">{formatCompact(sessionEffort)}</span>
           </span>
           {sessionReps > 0 ? (
-            <span className="text-[#f6f1e3]/70">{sessionReps.toLocaleString()} reps</span>
+            <span className="text-[#f6f1e3]/70">{formatCompact(sessionReps)} reps</span>
           ) : null}
         </p>
         <p className="flex flex-wrap items-baseline justify-center gap-x-3 text-[#f6f1e3]/70">
           <span className="font-semibold text-[#f6f1e3]/55">All-time</span>
           <span>
-            Volume <span className="font-black text-white">{formatLbs(allTimeVolume)}</span>
+            Volume <span className="font-black text-white">{formatCompact(allTimeVolume)}</span>
           </span>
           <span>
-            Effective <span className="font-black text-white">{formatLbs(allTimeEffective)}</span>
+            Effective <span className="font-black text-white">{formatCompact(allTimeEffective)}</span>
           </span>
         </p>
       </div>

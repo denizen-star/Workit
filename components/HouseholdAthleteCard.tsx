@@ -1,6 +1,7 @@
 'use client';
 
 import { KpiList } from '@/components/KpiList';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatDuration } from '@/lib/formatDuration';
 import { kpisFromScoreboard } from '@/lib/kpi';
 import {
@@ -58,10 +59,10 @@ export default function HouseholdAthleteCard({
       <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>{card.name}</p>
       <p className="mt-1 text-sm text-[#f6f1e3]/55">
         {[
-          `${Math.round(volume).toLocaleString()} lb`,
+          `${formatCompact(volume)} lb`,
           lastSub(card),
           `${card.workouts} days`,
-          best ? `best ${Math.round(best).toLocaleString()}` : null,
+          best ? `best ${formatCompact(best)}` : null,
           formatDuration(card.avgSeconds),
           card.beltName,
         ]

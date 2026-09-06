@@ -12,6 +12,7 @@ import {
   YAxis,
 } from 'recharts';
 import type { TrendLine, TrendRow } from '@/lib/chartTrend';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 
 const tooltipStyle = {
   backgroundColor: 'rgba(12, 12, 16, 0.92)',
@@ -47,7 +48,7 @@ function TrendTooltip({
             {item.name}:{' '}
             {hard
               ? Number(item.value).toFixed(1)
-              : `${Math.round(Number(item.value)).toLocaleString()} lb`}
+              : `${formatCompact(item.value)} lb`}
           </p>
         );
       })}
@@ -83,7 +84,7 @@ export default function WeightTrendChart({
           yAxisId="lb"
           tick={{ fill: '#e8c547', fontSize: 13 }}
           width={52}
-          tickFormatter={(value) => Number(value).toLocaleString()}
+          tickFormatter={(value) => formatCompact(value)}
         />
         {showHard ? (
           <YAxis

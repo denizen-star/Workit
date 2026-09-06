@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { formatDuration } from '@/lib/formatDuration';
 import { workoutProgram } from '@/lib/workoutData';
@@ -135,9 +136,9 @@ export default function CompletedLog({
                     </div>
                     {weekSessions.length > 0 ? (
                       <p className="mt-1 text-lg font-black text-white">
-                        {Math.round(totals.lbs).toLocaleString()} lb
+                        {formatCompact(totals.lbs)} lb
                         <span className="text-[#f6f1e3]/55"> · </span>
-                        {totals.reps.toLocaleString()} reps
+                        {formatCompact(totals.reps)} reps
                         <span className="text-[#f6f1e3]/55"> · </span>
                         {totals.seconds != null ? formatDuration(totals.seconds) : '—'}
                       </p>

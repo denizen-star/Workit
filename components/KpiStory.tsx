@@ -1,7 +1,7 @@
 'use client';
 
 import { KpiList } from '@/components/KpiList';
-import { formatPct, type PerformanceLine, type WorkoutTrend } from '@/lib/athletePerformanceTypes';
+import { formatCompact, formatPct, type PerformanceLine, type WorkoutTrend } from '@/lib/athletePerformanceTypes';
 import { kpisFromLine } from '@/lib/kpi';
 import { lastSessionSub, lastSessionTitle, liftStory, volumePct } from '@/lib/kpiView';
 import { whyFromLine } from '@/lib/kpiWhy';
@@ -97,13 +97,13 @@ export function HBar({
   return (
     <div className="hbar-row">
       <span>{label}</span>
-      <div className="hbar" title={prior != null ? `Last time ${Math.round(prior).toLocaleString()}` : undefined}>
+      <div className="hbar" title={prior != null ? `Last time ${formatCompact(prior)}` : undefined}>
         <i style={{ width: `${width}%`, background: color }} />
         {priorWidth != null ? <em className="hbar-last" style={{ left: `${priorWidth}%` }} /> : null}
       </div>
       <b>
-        {Math.round(value).toLocaleString()}
-        {prior != null ? <span>last {Math.round(prior).toLocaleString()}</span> : null}
+        {formatCompact(value)}
+        {prior != null ? <span>last {formatCompact(prior)}</span> : null}
       </b>
     </div>
   );

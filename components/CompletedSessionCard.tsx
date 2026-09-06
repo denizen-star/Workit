@@ -3,6 +3,7 @@
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
 import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatDuration } from '@/lib/formatDuration';
 import { getExerciseKind, sessionSetTotals, setLogLabel } from '@/lib/exerciseKind';
 import { sessionOptionalLbs } from '@/lib/optionals';
@@ -123,9 +124,9 @@ export default function CompletedSessionCard({
           </div>
           {focus && <p className="text-sm text-[#f6f1e3]/65">{focus}</p>}
           <p className="mt-2 text-lg font-black text-white">
-            {Math.round(totalLbs).toLocaleString()} lb
+            {formatCompact(totalLbs)} lb
             <span className="text-[#f6f1e3]/55"> · </span>
-            {lifts.reps.toLocaleString()} reps
+            {formatCompact(lifts.reps)} reps
             <span className="text-[#f6f1e3]/55"> · </span>
             {duration != null ? formatDuration(duration) : '—'}
           </p>

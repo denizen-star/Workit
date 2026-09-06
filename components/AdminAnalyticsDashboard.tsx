@@ -20,6 +20,7 @@ import AdminAthletePerformance from '@/components/AdminAthletePerformance';
 import type { AdminAnalyticsPayload } from '@/lib/adminAnalytics';
 import type { AnalyticsRangeId, DeviceFilter } from '@/lib/analyticsTime';
 import type { ExerciseCompareRow, WeightRank } from '@/lib/exerciseCompare';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
 
 const tooltipStyle = {
   backgroundColor: 'rgba(12, 12, 16, 0.92)',
@@ -72,7 +73,7 @@ function TrafficTooltip({
       <p className="mb-1 font-semibold text-[#e8c547]">{label}</p>
       {items.map((item) => (
         <p key={String(item.dataKey)} style={{ color: item.color || '#f6f1e3' }}>
-          {item.name}: {Math.round(Number(item.value)).toLocaleString()}
+          {item.name}: {formatCompact(item.value)}
         </p>
       ))}
     </div>
@@ -97,7 +98,7 @@ function TrafficTrendChart({
       <LineChart data={data}>
         <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
         <XAxis dataKey="label" tick={{ fill: '#e8c547', fontSize: 11 }} />
-        <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} allowDecimals={false} />
+        <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} allowDecimals={false} tickFormatter={(value) => formatCompact(value)} />
         <Tooltip content={<TrafficTooltip />} filterNull />
         <Legend />
         {visible.map((line) => (
@@ -395,7 +396,7 @@ export default function AdminAnalyticsDashboard() {
                 <BarChart data={data.avgByWeekday}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                   <XAxis dataKey="label" tick={{ fill: '#e8c547' }} />
-                  <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} tickFormatter={(value) => formatCompact(value)} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="sessions" fill="#e8c547" />
                   <Bar dataKey="pageViews" fill="#8a7a4a" />
@@ -408,7 +409,7 @@ export default function AdminAnalyticsDashboard() {
                 <BarChart data={data.avgByHour}>
                   <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.08)" />
                   <XAxis dataKey="hour" tick={{ fill: '#e8c547', fontSize: 10 }} />
-                  <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} />
+                  <YAxis tick={{ fill: '#f6f1e3', fontSize: 11 }} tickFormatter={(value) => formatCompact(value)} />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Bar dataKey="sessions" fill="#e8c547" />
                 </BarChart>

@@ -5,7 +5,7 @@ import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { KpiList } from '@/components/KpiList';
 import { formatHardnessWithPct } from '@/lib/hardness';
 import { kpisFromScoreboard } from '@/lib/kpi';
-import { formatPct } from '@/lib/athletePerformanceTypes';
+import { formatCompact, formatPct } from '@/lib/athletePerformanceTypes';
 import {
   SCOREBOARD_PERIODS,
   scoreboardRangeLabel,
@@ -128,7 +128,7 @@ export default function HouseholdScoreboard({
                   />
                 </div>
                 <b className={you ? 'text-[#f6f1e3]' : 'text-[#c08457]'}>
-                  {Math.round(row.volume).toLocaleString()}
+                  {formatCompact(row.volume)}
                 </b>
               </div>
             );
@@ -207,10 +207,10 @@ export default function HouseholdScoreboard({
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">{place}</p>
                 <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>{row.name}</p>
                 <p className="mt-1 text-[28px] font-black leading-tight text-white">
-                  {Math.round(volume).toLocaleString()} Volume
+                  {formatCompact(volume)} Volume
                 </p>
                 <p className="mt-1 text-sm text-[#f6f1e3]/55">
-                  {[last, effective != null ? `Effective ${Math.round(effective).toLocaleString()}` : null]
+                  {[last, effective != null ? `Effective ${formatCompact(effective)}` : null]
                     .filter(Boolean)
                     .join(' · ')}
                 </p>
@@ -230,7 +230,7 @@ export default function HouseholdScoreboard({
                   </div>
                   <div>
                     <span>Heaviest</span>
-                    <b>{row.heaviest ? `${Math.round(row.heaviest)} lb` : '—'}</b>
+                    <b>{row.heaviest ? `${formatCompact(row.heaviest)} lb` : '—'}</b>
                   </div>
                 </div>
                 <p className="mt-3 text-sm text-[#f6f1e3]/70">

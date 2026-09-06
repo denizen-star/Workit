@@ -8,6 +8,7 @@ import {
 } from '@/components/AthletePerformance';
 import ScanCard from '@/components/ScanCard';
 import {
+  formatCompact,
   formatLbs,
   formatPct,
   pctChange,
@@ -169,7 +170,7 @@ function LiftFold({ lift }: { lift: LiftBoard }) {
               headline={formatLbs(athlete.line.currentWeight)}
               metrics={[
                 { label: 'Wt', value: formatLbs(athlete.line.currentWeight) },
-                { label: 'Reps', value: String(Math.round(athlete.line.currentReps)) },
+                { label: 'Reps', value: formatCompact(athlete.line.currentReps) },
                 { label: 'Total', value: formatLbs(athlete.line.currentVolume) },
                 { label: '% chg', value: formatPct(athlete.line.volumeChangePct) },
                 { label: 'Prog', value: formatPct(athlete.line.progressionPct) },
