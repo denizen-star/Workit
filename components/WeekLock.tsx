@@ -2,6 +2,8 @@
 
 import { Check } from 'lucide-react';
 import { useState } from 'react';
+import { HelpTip } from '@/components/HelpSheet';
+import { HOME_WEEK_LOCK_HELP } from '@/lib/helpCopy';
 import { requiredDays, weekProgress } from '@/lib/bonusDay';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 import type { WeekPlan, WorkoutDay } from '@/lib/workoutData';
@@ -52,7 +54,7 @@ export default function WeekLock({
 
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between text-base">
+      <div className="mb-3 flex items-center gap-1 text-base">
         <button
           type="button"
           onClick={() => setHelp(HELP.header)}
@@ -60,7 +62,17 @@ export default function WeekLock({
         >
           {progress.requiredDone} of {progress.requiredTotal} days
         </button>
-        <button type="button" onClick={() => setHelp(HELP.header)} className="text-[#f6f1e3]/60">
+        <HelpTip
+          label={HOME_WEEK_LOCK_HELP.title}
+          title={HOME_WEEK_LOCK_HELP.title}
+          lead={HOME_WEEK_LOCK_HELP.lead}
+          bullets={HOME_WEEK_LOCK_HELP.bullets}
+        />
+        <button
+          type="button"
+          onClick={() => setHelp(HELP.header)}
+          className="ml-auto text-[#f6f1e3]/60"
+        >
           Lock the week
         </button>
       </div>

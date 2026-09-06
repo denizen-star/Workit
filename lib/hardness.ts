@@ -36,12 +36,20 @@ export function formatHardnessWithPct(value: number | null | undefined): string 
   return `${score.toFixed(1)} · ${hardnessPercent(score)}%`;
 }
 
-/** Skipped How hard counts as Fair. 1=20% · 2=40% · 3=60% · 4=80% · 5=100%. */
+/** Skipped How hard counts as Fair. Display stays 1=20% … 5=100%. */
 export const DEFAULT_HARDNESS: HardnessScore = 3;
 
-export function hardnessEffortFactor(value: unknown): number {
+/**
+ * Perceived Effort offset: (score − Fair) × 20%.
+ * Easy 0.6 · Light 0.8 · Fair 1.0 · Hard 1.2 · Max 1.4 as the full factor.
+ */
+export function perceivedPerformancePct(value: unknown): number {
   const score = parseHardness(value) ?? DEFAULT_HARDNESS;
-  return score * 0.2;
+  return (score - DEFAULT_HARDNESS) * 0.2;
+}
+
+export function hardnessEffortFactor(value: unknown): number {
+  return 1 + perceivedPerformancePct(value);
 }
 
 export function effortFromVolume(volume: number, hardness: unknown): number {

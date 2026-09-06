@@ -32,6 +32,19 @@ export type HouseholdScoreboardRow = {
   perception?: number | null;
   effortVolume?: number;
   bestSessionEffort?: number;
+  weightSum?: number;
+  repsSum?: number;
+  /** Set Volume only. Rank still uses `volume` (optional +500 stays in rank). */
+  rawVolume?: number;
+  effortSets?: number;
+  priorWeightSum?: number | null;
+  priorRepSum?: number | null;
+  priorVolume?: number | null;
+  priorRawVolume?: number | null;
+  priorEffortVolume?: number | null;
+  priorEffortSets?: number | null;
+  trackingUp?: number;
+  trackingDown?: number;
 };
 
 export type ScoreboardDailyPoint = {

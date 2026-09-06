@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { attachHouseTracking } from '@/lib/houseTracking';
 import { householdBonusHonor, householdScoreboard, householdWeightSeries } from '@/lib/scoreboard';
 import { householdOptionalHonor } from '@/lib/optionals';
 import {
@@ -17,12 +18,13 @@ export async function GET(request: NextRequest) {
 
     const requested = request.nextUrl.searchParams.get('period') || '7';
     const period: ScoreboardPeriod = isScoreboardPeriod(requested) ? requested : '7';
-    const [rows, bonusHonor, optionalHonor, dailySeries] = await Promise.all([
+    const [rawRows, bonusHonor, optionalHonor, dailySeries] = await Promise.all([
       householdScoreboard(period),
       householdBonusHonor(period),
       householdOptionalHonor(period),
       householdWeightSeries(period),
     ]);
+    const rows = await attachHouseTracking(rawRows, period);
 
     return NextResponse.json({
       period,

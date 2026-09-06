@@ -1,8 +1,8 @@
 'use client';
 
-import ScanCard from '@/components/ScanCard';
+import { KpiList } from '@/components/KpiList';
 import { formatDuration } from '@/lib/formatDuration';
-import { formatHardnessWithPct } from '@/lib/hardness';
+import { kpisFromScoreboard } from '@/lib/kpi';
 import {
   placeLabel,
   scoreboardBestDay,
@@ -49,27 +49,27 @@ export default function HouseholdAthleteCard({
     (row && rows && index != null ? tomScoreboardLine(row, index, rows) : undefined);
 
   return (
-    <ScanCard
-      you={you}
-      roomy
-      kicker={placeLabel(place)}
-      title={card.name}
-      headline={`${Math.round(volume).toLocaleString()} lb`}
-      sub={lastSub(card)}
-      metrics={[
-        { label: 'Workouts', value: String(card.workouts) },
-        { label: 'Sets', value: String(card.sets) },
-        { label: 'Heaviest', value: card.heaviest ? `${Math.round(card.heaviest)} lb` : '—' },
-        {
-          label: 'Best day',
-          value: best ? `${Math.round(best).toLocaleString()}` : '—',
-        },
-        { label: 'Avg time', value: formatDuration(card.avgSeconds) },
-        { label: 'Medals', value: String(card.badges) },
-        { label: 'Belt', value: card.beltName || '—' },
-        { label: 'Effort', value: formatHardnessWithPct(card.perception) },
-      ]}
-      foot={foot}
-    />
+    <div
+      className={`rounded-2xl border px-6 py-5 ${
+        you ? 'border-[#f6f1e3]/45 bg-white/[0.06]' : 'border-white/10 bg-black/25'
+      }`}
+    >
+      <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">{placeLabel(place)}</p>
+      <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>{card.name}</p>
+      <p className="mt-1 text-sm text-[#f6f1e3]/55">
+        {[
+          `${Math.round(volume).toLocaleString()} lb`,
+          lastSub(card),
+          `${card.workouts} days`,
+          best ? `best ${Math.round(best).toLocaleString()}` : null,
+          formatDuration(card.avgSeconds),
+          card.beltName,
+        ]
+          .filter(Boolean)
+          .join(' · ')}
+      </p>
+      <KpiList rows={kpisFromScoreboard(card)} />
+      {foot ? <p className="mt-3 text-sm text-[#f6f1e3]/70">{foot}</p> : null}
+    </div>
   );
 }

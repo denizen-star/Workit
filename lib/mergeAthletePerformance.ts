@@ -9,6 +9,8 @@ import {
   type PerformanceResult,
   type PerformanceSummary,
   type WorkoutExerciseTrend,
+  type SetTrend,
+  type WindowKpis,
   type WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
 
@@ -77,6 +79,8 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
   const priorVolume = addNullable(left.priorVolume, right.priorVolume);
   const spark = addSparks(left.spark, right.spark);
   const sparkRaw = addSparks(left.sparkRaw || left.spark, right.sparkRaw || right.spark);
+  const sparkWeight = addSparks(left.sparkWeight || [], right.sparkWeight || []);
+  const sparkReps = addSparks(left.sparkReps || [], right.sparkReps || []);
   const effortVolume = (left.effortVolume ?? left.currentVolume) + (right.effortVolume ?? right.currentVolume);
   const priorEffortVolume = addNullable(
     left.priorEffortVolume ?? left.priorVolume,
@@ -97,6 +101,8 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
     rawProgressionPct: sparkRaw.length > 1 ? pctChange(currentVolume, sparkRaw[0]) : null,
     spark,
     sparkRaw,
+    sparkWeight: sparkWeight.length ? sparkWeight : undefined,
+    sparkReps: sparkReps.length ? sparkReps : undefined,
     rawResult: packResult(
       currentWeight,
       0,
@@ -163,8 +169,33 @@ function mergeExercise(left: ExerciseTrend, right: ExerciseTrend): ExerciseTrend
   };
 }
 
+function mergeSet(left: SetTrend, right: SetTrend): SetTrend {
+  const merged = mergeLineBase(left, right);
+  const currentReps = left.currentReps + right.currentReps;
+  const priorReps = addNullable(left.priorReps, right.priorReps);
+  return {
+    ...merged,
+    key: left.key,
+    exerciseName: left.exerciseName,
+    workoutType: left.workoutType,
+    setNumber: left.setNumber,
+    currentReps,
+    priorReps,
+    result: packResult(
+      merged.currentWeight,
+      currentReps,
+      merged.priorWeight,
+      priorReps,
+      merged.effortVolume,
+      merged.priorEffortVolume
+    ),
+  };
+}
+
 function mergeWorkout(left: WorkoutTrend, right: WorkoutTrend): WorkoutTrend {
   const merged = mergeLineBase(left, right);
+  const currentReps = left.currentReps + right.currentReps;
+  const priorReps = addNullable(left.priorReps, right.priorReps);
   const hard = mergePerception(
     { perception: left.perception, count: left.perception != null ? 1 : 0 },
     { perception: right.perception, count: right.perception != null ? 1 : 0 }
@@ -177,10 +208,18 @@ function mergeWorkout(left: WorkoutTrend, right: WorkoutTrend): WorkoutTrend {
   const exercises = [...byName.values()].sort((a, b) => a.name.localeCompare(b.name));
   return {
     ...merged,
+    currentReps,
+    priorReps,
     perception: hard.perception,
     currentDate: laterDate(left.currentDate, right.currentDate),
     priorDate: laterDate(left.priorDate, right.priorDate),
     weekNumber: laterDate(left.currentDate, right.currentDate) === right.currentDate ? right.weekNumber : left.weekNumber,
+    durationSeconds:
+      laterDate(left.currentDate, right.currentDate) === right.currentDate
+        ? right.durationSeconds
+        : left.durationSeconds,
+    sessionStars:
+      laterDate(left.currentDate, right.currentDate) === right.currentDate ? right.sessionStars : left.sessionStars,
     gains: left.gains + right.gains,
     losses: left.losses + right.losses,
     result: packResult(
@@ -239,6 +278,27 @@ const EMPTY_SUMMARY: PerformanceSummary = {
   perceptionCount: 0,
 };
 
+function mergeWindow(left?: WindowKpis, right?: WindowKpis): WindowKpis | undefined {
+  if (!left) return right;
+  if (!right) return left;
+  return {
+    setCount: left.setCount + right.setCount,
+    weightSum: left.weightSum + right.weightSum,
+    repSum: left.repSum + right.repSum,
+    volume: left.volume + right.volume,
+    effective: left.effective + right.effective,
+    priorSetCount: addNullable(left.priorSetCount, right.priorSetCount),
+    priorWeightSum: addNullable(left.priorWeightSum, right.priorWeightSum),
+    priorRepSum: addNullable(left.priorRepSum, right.priorRepSum),
+    priorVolume: addNullable(left.priorVolume, right.priorVolume),
+    priorEffective: addNullable(left.priorEffective, right.priorEffective),
+    sparkWeight: addSparks(left.sparkWeight, right.sparkWeight),
+    sparkReps: addSparks(left.sparkReps, right.sparkReps),
+    sparkVolume: addSparks(left.sparkVolume, right.sparkVolume),
+    sparkEffective: addSparks(left.sparkEffective, right.sparkEffective),
+  };
+}
+
 /** Fold selected athlete boards into one card set. Empty list stays empty. */
 export function mergeAthletePerformanceBoards(
   boards: AthletePerformanceBoard[],
@@ -249,9 +309,16 @@ export function mergeAthletePerformanceBoards(
 
   const exercises = new Map<string, ExerciseTrend>();
   const workouts = new Map<string, WorkoutTrend>();
+  const setRows = new Map<string, SetTrend>();
+  const muscles = new Map<string, number>();
   let summary = { ...EMPTY_SUMMARY };
+  let window: WindowKpis | undefined;
 
   for (const board of boards) {
+    window = mergeWindow(window, board.window);
+    for (const row of board.hardMuscles || []) {
+      muscles.set(row.name, (muscles.get(row.name) || 0) + row.count);
+    }
     summary = addSummary(summary, board.summary);
     for (const row of board.exercises) {
       const existing = exercises.get(row.key);
@@ -260,6 +327,10 @@ export function mergeAthletePerformanceBoards(
     for (const row of board.workouts) {
       const existing = workouts.get(row.workoutType);
       workouts.set(row.workoutType, existing ? mergeWorkout(existing, row) : row);
+    }
+    for (const row of board.sets || []) {
+      const existing = setRows.get(row.key);
+      setRows.set(row.key, existing ? mergeSet(existing, row) : row);
     }
   }
 
@@ -274,5 +345,10 @@ export function mergeAthletePerformanceBoards(
     summary,
     exercises: exerciseList,
     workouts: [...workouts.values()].sort(workoutSort),
+    sets: [...setRows.values()].sort((a, b) => a.name.localeCompare(b.name)),
+    window,
+    hardMuscles: [...muscles.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
   };
 }

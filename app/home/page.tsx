@@ -1,18 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import Link from 'next/link';
-import { Dumbbell, ChevronDown, ChevronUp, UserPlus } from 'lucide-react';
-import AthletePerformance from '@/components/AthletePerformance';
+import { Dumbbell, UserPlus } from 'lucide-react';
+import HomeKpiLead, { HomeTodayKpis } from '@/components/HomeKpiLead';
+import PerformanceDesk from '@/components/PerformanceDesk';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
-import YouHouseCols from '@/components/YouHouseCols';
 import WeekLock from '@/components/WeekLock';
 import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
-import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { getTodayTarget, homePerformanceFocus, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
@@ -21,8 +21,16 @@ import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
 import { earliestKey } from '@/lib/chartTrend';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
+import { HelpTip } from '@/components/HelpSheet';
+import {
+  HOME_PERFORMANCE_HELP,
+  HOME_TODAY_HELP,
+  HOME_TROPHIES_HELP,
+  HOME_YOU_VS_HELP,
+} from '@/lib/helpCopy';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import BeltChest from '@/components/BeltChest';
+import { HomeFold } from '@/components/ScanCard';
 import WeekMedal from '@/components/WeekMedal';
 import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
@@ -36,14 +44,6 @@ import {
   shouldShowWeekPodiumTakeover,
 } from '@/lib/weekPodiumSeen';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
-
-function formatCount(value: number | null | undefined) {
-  return String(Math.round(Number(value || 0)));
-}
-
-function formatWeight(value: number | null | undefined) {
-  return Math.round(Number(value || 0)).toLocaleString();
-}
 
 function shortDayName(name: string) {
   return name
@@ -67,7 +67,6 @@ function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
 
 export default function Home() {
   const [stats, setStats] = useState<any>(null);
-  const [badges, setBadges] = useState<any>(null);
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
   const [userName, setUserName] = useState('');
@@ -77,7 +76,6 @@ export default function Home() {
   const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [houseOpen, setHouseOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [weekYou, setWeekYou] = useState<(WeekPodiumYou & { line: string }) | null>(null);
   const [weekMiss, setWeekMiss] = useState<WeekMissYou | null>(null);
@@ -129,14 +127,12 @@ export default function Home() {
 
     const loadStats = async () => {
       try {
-        const [statsRes, badgesRes, podiumRes] = await Promise.all([
+        const [statsRes, podiumRes] = await Promise.all([
           fetch('/api/stats?home=1'),
-          fetch('/api/badges'),
           fetch('/api/week-podium'),
         ]);
         if (cancelled) return;
         if (statsRes.ok) setStats(await statsRes.json());
-        if (badgesRes.ok) setBadges(await badgesRes.json());
         if (podiumRes.ok) {
           const podium = await podiumRes.json();
           const you = podium?.you as (WeekPodiumYou & { line: string }) | null;
@@ -196,6 +192,7 @@ export default function Home() {
   }, [sessions]);
 
   const today = getTodayTarget(sessions);
+  const homeFocus = homePerformanceFocus(today, sessions);
   const todayHref =
     today.type === 'resume' && today.session
       ? `/workout?session=${today.session.id}`
@@ -214,11 +211,7 @@ export default function Home() {
       ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
       : null;
 
-  const completed = Number(stats?.overall?.completed_workouts || 0);
   const lockedWeeks = lockedWeekCount(sessions);
-  const allTime = Number(
-    stats?.overall?.total_effort_lifted ?? stats?.overall?.total_weight_lifted ?? 0
-  );
   const canInvite = !isTestUserName(userName);
   const inviteLinkClass =
     'inline-flex min-h-12 shrink-0 items-center gap-1.5 px-2 text-sm font-black text-[#e8c547] sm:min-h-14 sm:px-3 sm:text-base';
@@ -271,8 +264,14 @@ export default function Home() {
           ) : null}
           {today.type === 'hold' ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
+              <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
                 Rest
+                <HelpTip
+                  label={HOME_TODAY_HELP.title}
+                  title={HOME_TODAY_HELP.title}
+                  lead={HOME_TODAY_HELP.lead}
+                  bullets={HOME_TODAY_HELP.bullets}
+                />
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
                 Week {today.week?.weekNumber} locked
@@ -297,7 +296,15 @@ export default function Home() {
             </>
           ) : today.type === 'done' ? (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">Program</p>
+              <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
+                Program
+                <HelpTip
+                  label={HOME_TODAY_HELP.title}
+                  title={HOME_TODAY_HELP.title}
+                  lead={HOME_TODAY_HELP.lead}
+                  bullets={HOME_TODAY_HELP.bullets}
+                />
+              </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
                 All 6 weeks complete
               </h2>
@@ -319,8 +326,14 @@ export default function Home() {
             </>
           ) : (
             <>
-              <p className="text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
+              <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
                 {today.type === 'resume' ? 'Pick back up' : 'Today'}
+                <HelpTip
+                  label={HOME_TODAY_HELP.title}
+                  title={HOME_TODAY_HELP.title}
+                  lead={HOME_TODAY_HELP.lead}
+                  bullets={HOME_TODAY_HELP.bullets}
+                />
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-6xl">
                 {shortWeekDay(today.week?.weekNumber, today.day?.name)}
@@ -373,94 +386,54 @@ export default function Home() {
               )}
             </>
           )}
+          <HomeTodayKpis locked={today.type === 'hold'} />
         </div>
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <BeltChest lockedWeeks={lockedWeeks} />
             <WeekLock week={today.week} sessions={sessions} />
             <WeekPerformance week={today.week} />
+            {stats?.daily && stats.daily.length > 0 ? (
+              <div className="mt-6">
+                <DailyWeightChart
+                  dailyStats={stats.daily}
+                  householdDaily={stats.household?.daily}
+                  dailyHardness={stats.dailyHardness}
+                  programStart={earliestCompletedDate(sessions)}
+                />
+              </div>
+            ) : null}
           </section>
 
           <section>
-          {stats?.daily && stats.daily.length > 0 && (
-              <DailyWeightChart
-                dailyStats={stats.daily}
-                householdDaily={stats.household?.daily}
-                dailyHardness={stats.dailyHardness}
-                programStart={earliestCompletedDate(sessions)}
-              />
-          )}
-
-          {!isTestUserName(userName) && (
-            <div className="mt-6">
-              <YouVsLeader userId={userId} />
-            </div>
-          )}
-
-            <div className="mt-6">
-            <AthletePerformance variant="home" />
-            </div>
-
-            <div className="mt-6">
-            <div className="glass-card overflow-hidden">
-              <button
-                type="button"
-                onClick={() => setHouseOpen((current) => !current)}
-                className="flex min-h-14 w-full items-center gap-3 px-5 py-4 text-left"
-                aria-expanded={houseOpen}
-              >
-                <h2 className="text-base font-black uppercase tracking-[0.16em] text-[#c08457]">You / house</h2>
-                <span className="ml-auto truncate text-sm text-[#f6f1e3]/55">
-                  {completed} · {formatWeight(allTime)} lb
-                </span>
-                {houseOpen ? (
-                  <ChevronUp className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
-                ) : (
-                  <ChevronDown className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
-                )}
-              </button>
-              {houseOpen && (
-                <div className="border-t border-white/10 px-5 pb-5 pt-4">
-                  <p className="text-base text-[#f6f1e3]/60">
-                    All-time numbers after Effort. House is the average of people who finished a
-                    workout in the last 7 days, including you. Not a pack total. Streak is locked
-                    weeks in a row (any 4 finished days). Rest days do not break it.
-                  </p>
-                  <YouHouseCols
-                    houseLabel="House avg"
-                    rows={[
-                      {
-                        label: 'Workouts',
-                        you: formatCount(completed),
-                        house: formatCount(stats?.household?.workoutsCompleted),
-                      },
-                      {
-                        label: 'Streak',
-                        you: `${formatCount(stats?.currentStreak)} ${
-                          Number(stats?.currentStreak || 0) === 1 ? 'week' : 'weeks'
-                        }`,
-                        house: `${formatCount(stats?.household?.currentStreak)} ${
-                          Number(stats?.household?.currentStreak || 0) === 1 ? 'week' : 'weeks'
-                        }`,
-                      },
-                      {
-                        label: 'All-time lb',
-                        you: `${formatWeight(allTime)} lb`,
-                        house: `${formatWeight(stats?.household?.totalWeightLifted)} lb`,
-                      },
-                      {
-                        label: 'Medals',
-                        you: `${formatCount(badges?.earnedBadges?.length)}/${formatCount(badges?.allBadges?.length)}`,
-                        house: formatCount(stats?.household?.badgesEarned),
-                      },
-                    ]}
-                  />
-                </div>
-              )}
-            </div>
-            </div>
+            <HomeFold title="Your performance" help={HOME_PERFORMANCE_HELP}>
+              <Suspense fallback={<p className="text-sm text-[#f6f1e3]/55">Loading your lifts...</p>}>
+                <PerformanceDesk
+                  variant="home"
+                  focusWorkout={homeFocus.workoutType}
+                  focusKind={homeFocus.kind}
+                />
+              </Suspense>
+            </HomeFold>
           </section>
+
+          <section>
+            <HomeKpiLead weekNumber={today.week?.weekNumber} />
+          </section>
+
+          <section>
+            <HomeFold title="Your trophies" trailing="See belts" help={HOME_TROPHIES_HELP}>
+              <BeltChest lockedWeeks={lockedWeeks} hideHeading />
+            </HomeFold>
+          </section>
+
+          {!isTestUserName(userName) ? (
+            <section>
+              <HomeFold title="You vs" help={HOME_YOU_VS_HELP}>
+                <YouVsLeader userId={userId} />
+              </HomeFold>
+            </section>
+          ) : null}
         </div>
       </div>
       <InviteFriendModal open={inviteOpen} onClose={() => setInviteOpen(false)} />

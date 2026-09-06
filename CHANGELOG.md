@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 6.0.0 - 2026-09-06
+
+### Added
+- Home Today: four window numbers — Weight, Reps, Volume, Effective (Volume × Perceived Effort)
+- Live set tiles use the same four numbers vs last time that lift ran
+- Finish recap: this workout vs last same day, then Continue
+- Awards after the coach line: **YOU EARNED IT!** in your belt color. Full diploma card if you unlocked one. Next diploma named. New badges in a row of three
+
+### Changed
+- Effective is **Volume × Perceived Effort**. Fair = 1.0. Skip How hard = Fair. Place, week medals, and the live Today bar stay raw iron
+- % is vs last time those lifts ran, not vs the last calendar window
+- Finish used to be a shout, then medals, then Home. Now: stars → recap → coach line → awards → Home
+- Leave early no longer scores the session. Stars only on Complete it
+- Session stories and You vs: short Effective line. Helpers say Perceived Effort
+
 ## 5.8.0 - 2026-09-04
 
 ### Added

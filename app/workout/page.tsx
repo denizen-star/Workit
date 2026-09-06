@@ -27,6 +27,8 @@ import { useWakeLock } from '@/lib/useWakeLock';
 import { usePortraitLock } from '@/lib/usePortraitLock';
 import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/components/CompleteTakeover';
+import AwardsTakeover from '@/components/AwardsTakeover';
+import WorkoutRecapTakeover from '@/components/WorkoutRecapTakeover';
 import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
@@ -45,6 +47,8 @@ import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
 import { bonusActivityType } from '@/lib/bonusActivity';
 import { optionalRegionFromDay } from '@/lib/optionals';
+import { kpisFromLine, type KpiRowModel } from '@/lib/kpi';
+import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -70,6 +74,10 @@ function WorkoutPageInner() {
   const [confirmComplete, setConfirmComplete] = useState(false);
   const [completeStars, setCompleteStars] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showRecap, setShowRecap] = useState(false);
+  const [showAwards, setShowAwards] = useState(false);
+  const [recapTitle, setRecapTitle] = useState('Workout');
+  const [recapKpis, setRecapKpis] = useState<KpiRowModel[]>([]);
   const [completeLine, setCompleteLine] = useState('');
   const [replenishLine, setReplenishLine] = useState('');
   const [bonusFinish, setBonusFinish] = useState(false);
@@ -93,10 +101,12 @@ function WorkoutPageInner() {
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
   const [sessionLbs, setSessionLbs] = useState(0);
+  const [sessionEffort, setSessionEffort] = useState(0);
   const [sessionReps, setSessionReps] = useState(0);
   const [warmupLbs, setWarmupLbs] = useState(0);
   const [cooldownLbs, setCooldownLbs] = useState(0);
   const [priorAllTimeLbs, setPriorAllTimeLbs] = useState(0);
+  const [priorAllTimeEffort, setPriorAllTimeEffort] = useState(0);
 
   useWakeLock(!!currentSession);
   usePortraitLock(!!currentSession);
@@ -130,10 +140,12 @@ function WorkoutPageInner() {
   useEffect(() => {
     if (!currentSession) {
       setSessionLbs(0);
+      setSessionEffort(0);
       setSessionReps(0);
       setWarmupLbs(0);
       setCooldownLbs(0);
       setPriorAllTimeLbs(0);
+      setPriorAllTimeEffort(0);
       setLiftsDone(false);
       return;
     }
@@ -143,18 +155,23 @@ function WorkoutPageInner() {
       .then((data) => {
         if (!cancelled) {
           setPriorAllTimeLbs(Number(data?.overall?.total_weight_lifted || 0));
+          setPriorAllTimeEffort(Number(data?.overall?.total_effort_lifted || 0));
         }
       })
       .catch(() => {
-        if (!cancelled) setPriorAllTimeLbs(0);
+        if (!cancelled) {
+          setPriorAllTimeLbs(0);
+          setPriorAllTimeEffort(0);
+        }
       });
     return () => {
       cancelled = true;
     };
   }, [currentSession]);
 
-  const handleLiftTotals = useCallback((totals: { lbs: number; reps: number }) => {
+  const handleLiftTotals = useCallback((totals: { lbs: number; reps: number; effort: number }) => {
     setSessionLbs(totals.lbs);
+    setSessionEffort(totals.effort);
     setSessionReps(totals.reps);
   }, []);
   const handleWarmupLbs = useCallback((lbs: number) => setWarmupLbs(lbs), []);
@@ -321,6 +338,58 @@ function WorkoutPageInner() {
     }
   };
 
+  const loadWorkoutRecap = async (workoutType: string | null) => {
+    const short = (workoutType || 'Workout').replace(' Body ', ' ');
+    setRecapTitle(short);
+    try {
+      const data = await fetch('/api/athlete-performance?period=t-15').then((res) =>
+        res.ok ? res.json() : null
+      );
+      const rows = (Array.isArray(data?.workouts) ? data.workouts : []) as WorkoutTrend[];
+      const match = workoutType
+        ? rows.find(
+            (row) =>
+              row.workoutType === workoutType ||
+              row.workoutType.replace(' Body ', ' ') === workoutType.replace(' Body ', ' ')
+          )
+        : rows[0];
+      setRecapKpis(match ? kpisFromLine(match) : []);
+    } catch {
+      setRecapKpis([]);
+    }
+  };
+
+  const leaveWorkout = () => {
+    setShowRecap(false);
+    setShowSuccess(false);
+    setShowAwards(false);
+    setRecapKpis([]);
+    setBonusFinish(false);
+    setBonusFinishCount(0);
+    setOptionalFinishLbs(0);
+    setOptionalKickerLbs(0);
+    setAwardedBadges([]);
+    setEarnedBelt(null);
+    setCurrentSession(null);
+    setSelectedDay(null);
+    setStartedAt(null);
+    router.push('/home');
+  };
+
+  const openCoachLine = () => {
+    setShowRecap(false);
+    setShowSuccess(true);
+  };
+
+  const openAwardsOrHome = () => {
+    setShowSuccess(false);
+    if (earnedBelt || awardedBadges.length > 0) {
+      setShowAwards(true);
+      return;
+    }
+    leaveWorkout();
+  };
+
   const finishBonusActivity = async (label: string) => {
     if (!bonusPick) return;
     try {
@@ -349,7 +418,8 @@ function WorkoutPageInner() {
       setBonusFinish(true);
       setCompleteLine(pickBonusCompleteLine(coachTone, athleteName));
       setReplenishLine(pickReplenishLine());
-      setShowSuccess(true);
+      await loadWorkoutRecap(bonusActivityType(label));
+      setShowRecap(true);
     } catch (error) {
       console.error('Error saving bonus activity:', error);
       setErrorMessage('Could not save that bonus. Try again.');
@@ -458,7 +528,8 @@ function WorkoutPageInner() {
             : pickCompleteLine(coachTone, athleteName)
       );
       setReplenishLine(pickReplenishLine());
-      setShowSuccess(true);
+      await loadWorkoutRecap(getCurrentWorkout()?.name || null);
+      setShowRecap(true);
     } catch (error) {
       console.error('Error completing workout:', error);
       setErrorMessage('Could not save the completed workout. Try again.');
@@ -577,8 +648,10 @@ function WorkoutPageInner() {
           </div>
           <SessionTotalsBar
             sessionLbs={sessionLbs + warmupLbs + cooldownLbs}
+            sessionEffort={sessionEffort + warmupLbs + cooldownLbs}
             sessionReps={sessionReps}
-            allTimeLbs={priorAllTimeLbs + sessionLbs + warmupLbs + cooldownLbs}
+            allTimeVolume={priorAllTimeLbs + sessionLbs + warmupLbs + cooldownLbs}
+            allTimeEffective={priorAllTimeEffort + sessionEffort + warmupLbs + cooldownLbs}
           />
         </header>
 
@@ -634,13 +707,7 @@ function WorkoutPageInner() {
           open={confirmExit}
           line={exitLine}
           onStay={() => setConfirmExit(false)}
-          onQuit={async (stars) => {
-            const rated = await saveSessionRating(stars, 'quit');
-            if (!rated) {
-              setErrorMessage('Could not save your score. Try again.');
-              setShowError(true);
-              return;
-            }
+          onQuit={() => {
             setConfirmExit(false);
             setCurrentSession(null);
             setSelectedDay(null);
@@ -648,29 +715,28 @@ function WorkoutPageInner() {
           }}
         />
 
+        <WorkoutRecapTakeover
+          open={showRecap}
+          title={recapTitle}
+          kpis={recapKpis}
+          onClose={openCoachLine}
+        />
         <CompleteTakeover
           open={showSuccess}
           line={completeLine}
           replenish={replenishLine}
-          badges={awardedBadges}
-          earnedBelt={earnedBelt}
           bonus={bonusFinish}
           bonusCount={bonusFinishCount}
           optionalLbs={optionalFinishLbs}
           kickerLbs={optionalKickerLbs}
-          onClose={() => {
-            setShowSuccess(false);
-            setBonusFinish(false);
-            setBonusFinishCount(0);
-            setOptionalFinishLbs(0);
-            setOptionalKickerLbs(0);
-            setAwardedBadges([]);
-            setEarnedBelt(null);
-            setCurrentSession(null);
-            setSelectedDay(null);
-            setStartedAt(null);
-            router.push('/home');
-          }}
+          onClose={openAwardsOrHome}
+        />
+        <AwardsTakeover
+          open={showAwards}
+          belt={earnedBelt}
+          badges={awardedBadges}
+          accent={displayBelt(lockedWeekCount(sessions))}
+          onClose={leaveWorkout}
         />
 
         <Modal
@@ -946,29 +1012,28 @@ function WorkoutPageInner() {
         onClose={() => setBonusPick(null)}
       />
 
+      <WorkoutRecapTakeover
+        open={showRecap}
+        title={recapTitle}
+        kpis={recapKpis}
+        onClose={openCoachLine}
+      />
       <CompleteTakeover
         open={showSuccess}
         line={completeLine}
         replenish={replenishLine}
-        badges={awardedBadges}
-        earnedBelt={earnedBelt}
         bonus={bonusFinish}
         bonusCount={bonusFinishCount}
         optionalLbs={optionalFinishLbs}
         kickerLbs={optionalKickerLbs}
-        onClose={() => {
-          setShowSuccess(false);
-          setBonusFinish(false);
-          setBonusFinishCount(0);
-          setOptionalFinishLbs(0);
-          setOptionalKickerLbs(0);
-          setAwardedBadges([]);
-          setEarnedBelt(null);
-          setCurrentSession(null);
-          setSelectedDay(null);
-          setStartedAt(null);
-          router.push('/home');
-        }}
+        onClose={openAwardsOrHome}
+      />
+      <AwardsTakeover
+        open={showAwards}
+        belt={earnedBelt}
+        badges={awardedBadges}
+        accent={displayBelt(lockedWeekCount(sessions))}
+        onClose={leaveWorkout}
       />
 
       <Modal

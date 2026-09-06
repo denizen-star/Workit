@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
+import { HelpTip } from '@/components/HelpSheet';
+import { HOME_WEEK_PERF_HELP } from '@/lib/helpCopy';
 import type { AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { weekPerformanceCounts, weekPerformanceKpis, type WeekKpi } from '@/lib/weekPerformance';
 import type { WeekPlan } from '@/lib/workoutData';
@@ -107,13 +109,19 @@ export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
 
   return (
     <div className="mt-8">
-      <div className="mb-3 flex items-center justify-between text-base">
+      <div className="mb-3 flex items-center gap-1 text-base">
         <button type="button" onClick={() => setHelp(HELP.header)} className="font-semibold text-white">
           {compared === 0
             ? 'No lift vs last time yet'
             : `${compared} lift${compared === 1 ? '' : 's'} vs last time`}
         </button>
-        <button type="button" onClick={() => setHelp(HELP.header)} className="text-[#f6f1e3]/60">
+        <HelpTip
+          label={HOME_WEEK_PERF_HELP.title}
+          title={HOME_WEEK_PERF_HELP.title}
+          lead={HOME_WEEK_PERF_HELP.lead}
+          bullets={HOME_WEEK_PERF_HELP.bullets}
+        />
+        <button type="button" onClick={() => setHelp(HELP.header)} className="ml-auto text-[#f6f1e3]/60">
           More load. Fewer drops.
         </button>
       </div>

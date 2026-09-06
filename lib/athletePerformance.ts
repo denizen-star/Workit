@@ -1,7 +1,7 @@
 import { query } from '@/lib/db';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
-import { setVolume } from '@/lib/exerciseKind';
+import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { DAY_TYPE_ORDER } from '@/lib/feedback';
 import { effortFromVolume, parseHardness } from '@/lib/hardness';
 import { bestLoggedSet, loadDelta, setDirection, tailHoldStreak } from '@/lib/setHistory';
@@ -10,14 +10,19 @@ import {
   pctChange,
   type AthletePerformanceBoard,
   type ExerciseTrend,
+  type HardMuscleRow,
   type PerformanceFlags,
   type PerformancePeriod,
   type PerformanceResult,
   type PerformanceSummary,
   type WorkoutExerciseTrend,
+  type SetTrend,
+  type WindowKpis,
   type WorkoutTrend,
 } from '@/lib/athletePerformanceTypes';
-import { inPeriodWindow, performancePeriodWindow } from '@/lib/performancePeriod';
+import { muscleGuess } from '@/lib/muscleGuess';
+import { inPeriodWindow, performancePeriodWindow, priorPeriodWindow } from '@/lib/performancePeriod';
+import { workoutDateKey } from '@/lib/statsHousehold';
 import { performanceFlagsForSessions, type FlagSessionRow } from '@/lib/performanceFlags';
 import {
   emptySnapshotRow,
@@ -54,9 +59,12 @@ type SetRow = {
   day_number: number;
   workout_type: string;
   done_at: string | Date | null;
+  duration_seconds?: number | string | null;
+  session_stars?: number | string | null;
 };
 
 type LoggedSet = {
+  set_number: number;
   weight_lbs: number | null;
   actual_reps: number | null;
   hardness: number | null;
@@ -138,6 +146,107 @@ function inWindow(doneAt: string | null, period: PerformancePeriod): boolean {
   return inPeriodWindow(doneAt, performancePeriodWindow(period));
 }
 
+function isMechanicalSet(name: string, targetReps: string | null | undefined) {
+  const kind = getExerciseKind(name, targetReps || '');
+  return kind !== 'timed' && kind !== 'distance';
+}
+
+/** Sum every completed mechanical set in an Eastern window. Sparks are last 8 days. */
+function tallyWindow(
+  sessions: Array<{
+    doneAt: string | null;
+    lifts: Map<string, { name: string; sets: LoggedSet[] }>;
+  }>,
+  window: { startMs: number | null; endMs: number | null }
+) {
+  let setCount = 0;
+  let weightSum = 0;
+  let repSum = 0;
+  let volume = 0;
+  let effective = 0;
+  const byDay = new Map<string, { weight: number; reps: number; volume: number; effective: number }>();
+  const muscles = new Map<string, number>();
+
+  for (const session of sessions) {
+    if (!inPeriodWindow(session.doneAt, window)) continue;
+    const day = session.doneAt ? workoutDateKey(session.doneAt) : '';
+    for (const lift of session.lifts.values()) {
+      for (const set of lift.sets) {
+        if (!isMechanicalSet(lift.name, set.target_reps)) continue;
+        const weight = set.weight_lbs ?? 0;
+        const reps = set.actual_reps ?? 0;
+        const vol = setVolume(lift.name, set.target_reps, set.weight_lbs, set.actual_reps);
+        setCount += 1;
+        weightSum += weight;
+        repSum += reps;
+        volume += vol;
+        effective += effortFromVolume(vol, set.hardness);
+        if (day) {
+          const point = byDay.get(day) || { weight: 0, reps: 0, volume: 0, effective: 0 };
+          point.weight += weight;
+          point.reps += reps;
+          point.volume += vol;
+          point.effective += effortFromVolume(vol, set.hardness);
+          byDay.set(day, point);
+        }
+        const hardness = parseHardness(set.hardness);
+        if (hardness != null && hardness >= 4) {
+          const name = muscleGuess(lift.name);
+          muscles.set(name, (muscles.get(name) || 0) + 1);
+        }
+      }
+    }
+  }
+
+  const days = [...byDay.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-8);
+  return {
+    setCount,
+    weightSum,
+    repSum,
+    volume,
+    effective,
+    sparkWeight: days.map(([, point]) => point.weight),
+    sparkReps: days.map(([, point]) => point.reps),
+    sparkVolume: days.map(([, point]) => point.volume),
+    sparkEffective: days.map(([, point]) => point.effective),
+    muscles: [...muscles.entries()]
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name)),
+  };
+}
+
+function windowKpisForPeriod(
+  sessions: Array<{
+    doneAt: string | null;
+    lifts: Map<string, { name: string; sets: LoggedSet[] }>;
+  }>,
+  period: PerformancePeriod
+): { window: WindowKpis; hardMuscles: HardMuscleRow[] } {
+  const currentWindow = performancePeriodWindow(period);
+  const current = tallyWindow(sessions, currentWindow);
+  const priorWin = priorPeriodWindow(currentWindow);
+  const prior = priorWin ? tallyWindow(sessions, priorWin) : null;
+  return {
+    window: {
+      setCount: current.setCount,
+      weightSum: current.weightSum,
+      repSum: current.repSum,
+      volume: current.volume,
+      effective: current.effective,
+      priorSetCount: prior ? prior.setCount : null,
+      priorWeightSum: prior ? prior.weightSum : null,
+      priorRepSum: prior ? prior.repSum : null,
+      priorVolume: prior ? prior.volume : null,
+      priorEffective: prior ? prior.effective : null,
+      sparkWeight: current.sparkWeight,
+      sparkReps: current.sparkReps,
+      sparkVolume: current.sparkVolume,
+      sparkEffective: current.sparkEffective,
+    },
+    hardMuscles: current.muscles,
+  };
+}
+
 function classify(current: { weight: number; reps: number }, prior: { weight: number; reps: number } | null) {
   if (!prior) {
     return {
@@ -212,7 +321,9 @@ export async function athletePerformance(
   rawPeriod: PerformancePeriod | string
 ): Promise<AthletePerformanceBoard> {
   const sessionCols = `ws.id as session_id, ws.week_number, ws.day_number, ws.workout_type,
-            COALESCE(ws.completed_at, ws.created_at) as done_at`;
+            COALESCE(ws.completed_at, ws.created_at) as done_at,
+            TIMESTAMPDIFF(SECOND, ws.started_at, COALESCE(ws.ended_at, ws.completed_at)) as duration_seconds,
+            (SELECT MAX(sr.stars) FROM session_ratings sr WHERE sr.session_id = ws.id) as session_stars`;
   const fromWhere = `FROM exercise_sets es
      JOIN workout_sessions ws ON ws.id = es.workout_session_id
      WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.is_completed = 1
@@ -244,6 +355,8 @@ export async function athletePerformance(
     weekNumber: number;
     dayNumber: number;
     doneAt: string | null;
+    durationSeconds: number | null;
+    sessionStars: number | null;
     lifts: Map<string, { name: string; sets: LoggedSet[] }>;
   };
 
@@ -258,6 +371,8 @@ export async function athletePerformance(
         weekNumber: Number(row.week_number || 0),
         dayNumber: Number(row.day_number || 0),
         doneAt: isoDate(row.done_at),
+        durationSeconds: row.duration_seconds == null ? null : toNumber(row.duration_seconds) || null,
+        sessionStars: row.session_stars == null ? null : toNumber(row.session_stars) || null,
         lifts: new Map(),
       };
       sessions.set(sessionId, session);
@@ -269,6 +384,7 @@ export async function athletePerformance(
       session.lifts.set(key, lift);
     }
     lift.sets.push({
+      set_number: Number(row.set_number || lift.sets.length + 1),
       weight_lbs: row.weight_lbs == null ? null : toNumber(row.weight_lbs),
       actual_reps: row.actual_reps == null ? null : toNumber(row.actual_reps),
       hardness: parseHardness(row.hardness),
@@ -364,6 +480,14 @@ export async function athletePerformance(
       rawProgressionPct: raw.progressionPct,
       spark: volume.spark,
       sparkRaw: raw.spark,
+      sparkWeight: sparkSeries(
+        volumes.map((item) => ({ volume: item.weight })),
+        currentIndex
+      ),
+      sparkReps: sparkSeries(
+        volumes.map((item) => ({ volume: item.reps })),
+        currentIndex
+      ),
       weightDelta: classified.weightDelta,
       repsDelta: classified.repsDelta,
       result: effortResult(current.effort, prior ? prior.effort : null),
@@ -468,6 +592,14 @@ export async function athletePerformance(
         rawProgressionPct: raw.progressionPct,
         spark: volume.spark,
         sparkRaw: raw.spark,
+        sparkWeight: sparkSeries(
+          liftHistory.map((item) => ({ volume: item.weight })),
+          liftIndex
+        ),
+        sparkReps: sparkSeries(
+          liftHistory.map((item) => ({ volume: item.reps })),
+          liftIndex
+        ),
         result: effortResult(liftCurrent.effort, liftPrior ? liftPrior.effort : null),
         rawResult: effortResult(liftCurrent.volume, liftPrior ? liftPrior.volume : null),
         perception: avg(
@@ -488,11 +620,19 @@ export async function athletePerformance(
     const raw = volumeMetrics(sessionRaws, currentIndex, currentVol, priorVol);
     const currentWeight = sessionBestWeight(current);
     const priorWeight = prior ? sessionBestWeight(prior) : null;
+    const currentReps = workoutExercises.reduce((sum, item) => sum + item.currentReps, 0);
+    const priorReps = prior
+      ? workoutExercises.every((item) => item.priorReps == null)
+        ? null
+        : workoutExercises.reduce((sum, item) => sum + Number(item.priorReps || 0), 0)
+      : null;
 
     workouts.push({
       name: workoutType,
       workoutType,
       currentWeight,
+      currentReps,
+      priorReps,
       currentVolume: currentVol,
       priorWeight,
       priorVolume: priorVol,
@@ -505,6 +645,19 @@ export async function athletePerformance(
       rawProgressionPct: raw.progressionPct,
       spark: volume.spark,
       sparkRaw: raw.spark,
+      sparkWeight: sparkSeries(
+        history.map((session) => ({ volume: sessionBestWeight(session) })),
+        currentIndex
+      ),
+      sparkReps: sparkSeries(
+        history.map((session) => ({
+          volume: [...session.lifts.values()].reduce((sum, lift) => {
+            const best = bestLoggedSet(lift.sets);
+            return sum + (best?.actual_reps ?? 0);
+          }, 0),
+        })),
+        currentIndex
+      ),
       result: volumeResult(currentEffort, priorEffort),
       rawResult: volumeResult(currentVol, priorVol),
       perception: avg(
@@ -514,6 +667,8 @@ export async function athletePerformance(
       currentDate: current.doneAt,
       priorDate: prior?.doneAt ?? null,
       weekNumber: current.weekNumber || null,
+      durationSeconds: current.durationSeconds,
+      sessionStars: current.sessionStars,
       gains: workoutExercises.filter((item) => item.result === 'gain').length,
       losses: workoutExercises.filter((item) => item.result === 'loss').length,
       exercises: workoutExercises,
@@ -521,6 +676,63 @@ export async function athletePerformance(
   }
 
   workouts.sort(workoutSort);
+
+  const sets: SetTrend[] = [];
+  for (const [key, row] of byExercise) {
+    const windowHistory = row.history.filter((item) => inWindow(item.doneAt, period));
+    if (!windowHistory.length) continue;
+    const currentLift = windowHistory[windowHistory.length - 1];
+    const currentIndex = row.history.findIndex((item) => item.sessionId === currentLift.sessionId);
+    const priorLift = currentIndex > 0 ? row.history[currentIndex - 1] : null;
+    const currentSession = sessions.get(currentLift.sessionId);
+    const priorSession = priorLift ? sessions.get(priorLift.sessionId) : undefined;
+    const currentSets = currentSession?.lifts.get(key)?.sets || [];
+    const priorSets = priorSession?.lifts.get(key)?.sets || [];
+    currentSets.forEach((set, index) => {
+      const priorSet =
+        priorSets.find((item) => item.set_number === set.set_number) || priorSets[index] || null;
+      const name = currentSession?.lifts.get(key)?.name || row.name;
+      const weight = set.weight_lbs ?? 0;
+      const reps = set.actual_reps ?? 0;
+      const volume = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps);
+      const effort = effortFromVolume(volume, set.hardness);
+      const priorWeight = priorSet ? priorSet.weight_lbs ?? 0 : null;
+      const priorReps = priorSet ? priorSet.actual_reps ?? 0 : null;
+      const priorVolume = priorSet
+        ? setVolume(name, priorSet.target_reps, priorSet.weight_lbs, priorSet.actual_reps)
+        : null;
+      const priorEffort = priorSet
+        ? effortFromVolume(priorVolume || 0, priorSet.hardness)
+        : null;
+      sets.push({
+        name: `${name} · set ${set.set_number}`,
+        key: `${key}-${set.set_number}`,
+        exerciseName: name,
+        workoutType: currentLift.workoutType,
+        setNumber: set.set_number,
+        currentWeight: weight,
+        currentReps: reps,
+        currentVolume: volume,
+        priorWeight,
+        priorReps,
+        priorVolume,
+        effortVolume: effort,
+        priorEffortVolume: priorEffort,
+        weightChangePct: pctChange(weight, priorWeight),
+        volumeChangePct: pctChange(effort, priorEffort),
+        progressionPct: null,
+        rawVolumeChangePct: pctChange(volume, priorVolume),
+        rawProgressionPct: null,
+        spark: priorEffort != null ? [priorEffort, effort] : [effort],
+        sparkRaw: priorVolume != null ? [priorVolume, volume] : [volume],
+        sparkWeight: priorWeight != null ? [priorWeight, weight] : [weight],
+        sparkReps: priorReps != null ? [priorReps, reps] : [reps],
+        result: volumeResult(effort, priorEffort),
+        rawResult: volumeResult(volume, priorVolume),
+        perception: set.hardness,
+      });
+    });
+  }
 
   const summary: PerformanceSummary = {
     gains: exercises.filter((item) => item.result === 'gain').length,
@@ -536,7 +748,8 @@ export async function athletePerformance(
     perceptionCount,
   };
 
-  return { period, summary, exercises, workouts };
+  const { window, hardMuscles } = windowKpisForPeriod(orderedSessions, period);
+  return { period, summary, exercises, workouts, sets, window, hardMuscles };
 }
 
 export type HouseholdPerformanceRow = AthletePerformanceBoard & {

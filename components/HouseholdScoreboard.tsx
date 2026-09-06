@@ -2,20 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
-import ScanCard from '@/components/ScanCard';
-import HouseholdWeightChart from '@/components/HouseholdWeightChart';
-import { formatDuration } from '@/lib/formatDuration';
+import { KpiList } from '@/components/KpiList';
 import { formatHardnessWithPct } from '@/lib/hardness';
+import { kpisFromScoreboard } from '@/lib/kpi';
+import { formatPct } from '@/lib/athletePerformanceTypes';
 import {
   SCOREBOARD_PERIODS,
-  scoreboardBestDay,
   scoreboardRangeLabel,
-  scoreboardVolume,
   tomScoreboardLine,
   type BonusHonorRow,
   type HouseholdScoreboardRow,
   type OptionalHonorRow,
-  type ScoreboardDailyPoint,
   type ScoreboardPeriod,
 } from '@/lib/scoreboardTypes';
 
@@ -24,6 +21,22 @@ const PERIOD_LABELS: Record<ScoreboardPeriod, string> = {
   '30': '30 days',
   all: 'All time',
 };
+
+function trackingLine(row: HouseholdScoreboardRow, volumePct: number | null, effortPct: number | null) {
+  const hasPrior = row.priorRawVolume != null || row.priorVolume != null;
+  const noMoves = !row.trackingUp && !row.trackingDown;
+  if (!hasPrior && noMoves) {
+    return 'Tracking · no second session on these lifts yet.';
+  }
+  const bits = [
+    'Tracking · Volume',
+    row.trackingUp != null ? `${row.trackingUp} up` : null,
+    row.trackingDown != null ? `/ ${row.trackingDown} down` : null,
+    volumePct != null ? `· avg Volume ${formatPct(volumePct)}` : null,
+    effortPct != null ? `· avg Effective ${formatPct(effortPct)}` : null,
+  ].filter(Boolean);
+  return bits.join(' ');
+}
 
 function lastLabel(value: string | null) {
   if (!value) return null;
@@ -44,7 +57,6 @@ export default function HouseholdScoreboard({
   const [rows, setRows] = useState<HouseholdScoreboardRow[]>([]);
   const [bonusHonor, setBonusHonor] = useState<BonusHonorRow[]>([]);
   const [optionalHonor, setOptionalHonor] = useState<OptionalHonorRow[]>([]);
-  const [dailySeries, setDailySeries] = useState<ScoreboardDailyPoint[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -57,14 +69,12 @@ export default function HouseholdScoreboard({
         setRows(Array.isArray(data?.rows) ? data.rows : []);
         setBonusHonor(Array.isArray(data?.bonusHonor) ? data.bonusHonor : []);
         setOptionalHonor(Array.isArray(data?.optionalHonor) ? data.optionalHonor : []);
-        setDailySeries(Array.isArray(data?.dailySeries) ? data.dailySeries : []);
       })
       .catch(() => {
         if (!cancelled) {
           setRows([]);
           setBonusHonor([]);
           setOptionalHonor([]);
-          setDailySeries([]);
         }
       })
       .finally(() => {
@@ -97,13 +107,38 @@ export default function HouseholdScoreboard({
         })}
       </div>
 
-      {!loading && dailySeries.length > 0 && (
-        <HouseholdWeightChart points={dailySeries} highlightUserId={highlightUserId} />
-      )}
+      {!loading && rows.length > 0 ? (
+        <div className="mb-4 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
+          <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#c08457]">
+            Pack Volume
+          </p>
+          {rows.map((row) => {
+            const max = Math.max(...rows.map((item) => item.volume), 1);
+            const you = highlightUserId != null && Number(row.id) === highlightUserId;
+            const width = Math.max(4, Math.round((row.volume / max) * 100));
+            return (
+              <div key={row.id} className="pack-bar">
+                <span className={you ? 'text-[#f6f1e3]' : 'text-[#c08457]'}>{row.name.split(/\s+/)[0]}</span>
+                <div className="pack-bar-track">
+                  <i
+                    style={{
+                      width: `${width}%`,
+                      background: you ? '#f6f1e3' : '#c08457',
+                    }}
+                  />
+                </div>
+                <b className={you ? 'text-[#f6f1e3]' : 'text-[#c08457]'}>
+                  {Math.round(row.volume).toLocaleString()}
+                </b>
+              </div>
+            );
+          })}
+        </div>
+      ) : null}
 
       <p className="mb-3 text-base text-[#f6f1e3]/60">
-        Household only. Finished workouts count. Rank is workouts, then raw iron. The lb is after
-        Effort. Come take someone&apos;s place.
+        Household only. Finished workouts count. Rank is workouts, then Volume Load. The card lb is
+        Effective Load. Come take someone&apos;s place.
       </p>
 
       {loading ? (
@@ -153,35 +188,55 @@ export default function HouseholdScoreboard({
           {rows.map((row, index) => {
             const place =
               index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`;
+            const volume = row.rawVolume != null ? row.rawVolume : row.volume;
+            const effective = row.effortSets != null ? row.effortSets : row.effortVolume;
             const last = row.lastWorkout
               ? `Last: ${row.lastWorkout}${lastLabel(row.lastAt) ? ` · ${lastLabel(row.lastAt)}` : ''}`
               : undefined;
+            const you = highlightUserId != null && Number(row.id) === highlightUserId;
+            const kpis = kpisFromScoreboard(row);
+            const volKpi = kpis.find((item) => item.id === 'volume');
+            const effKpi = kpis.find((item) => item.id === 'effective');
             return (
-              <ScanCard
+              <div
                 key={row.id}
-                you={highlightUserId != null && Number(row.id) === highlightUserId}
-                roomy
-                kicker={place}
-                title={row.name}
-                headline={`${Math.round(scoreboardVolume(row)).toLocaleString()} lb`}
-                sub={last}
-                metrics={[
-                  { label: 'Workouts', value: String(row.workouts) },
-                  { label: 'Sets', value: String(row.sets) },
-                  { label: 'Heaviest', value: row.heaviest ? `${Math.round(row.heaviest)} lb` : '—' },
-                  {
-                    label: 'Best day',
-                    value: scoreboardBestDay(row)
-                      ? `${Math.round(scoreboardBestDay(row)).toLocaleString()}`
-                      : '—',
-                  },
-                  { label: 'Avg time', value: formatDuration(row.avgSeconds) },
-                  { label: 'Medals', value: String(row.badges) },
-                  { label: 'Belt', value: row.beltName || '—' },
-                  { label: 'Effort', value: formatHardnessWithPct(row.perception) },
-                ]}
-                foot={tomScoreboardLine(row, index, rows)}
-              />
+                className={`rounded-2xl border px-6 py-5 ${
+                  you ? 'border-[#f6f1e3]/45 bg-white/[0.06]' : 'border-white/10 bg-black/25'
+                }`}
+              >
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">{place}</p>
+                <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>{row.name}</p>
+                <p className="mt-1 text-[28px] font-black leading-tight text-white">
+                  {Math.round(volume).toLocaleString()} Volume
+                </p>
+                <p className="mt-1 text-sm text-[#f6f1e3]/55">
+                  {[last, effective != null ? `Effective ${Math.round(effective).toLocaleString()}` : null]
+                    .filter(Boolean)
+                    .join(' · ')}
+                </p>
+                <KpiList rows={kpis} />
+                <div className="kpi-metrics">
+                  <div>
+                    <span>Workouts</span>
+                    <b>{row.workouts}</b>
+                  </div>
+                  <div>
+                    <span>Effort</span>
+                    <b>{formatHardnessWithPct(row.perception)}</b>
+                  </div>
+                  <div>
+                    <span>Belt</span>
+                    <b>{row.beltName || '—'}</b>
+                  </div>
+                  <div>
+                    <span>Heaviest</span>
+                    <b>{row.heaviest ? `${Math.round(row.heaviest)} lb` : '—'}</b>
+                  </div>
+                </div>
+                <p className="mt-3 text-sm text-[#f6f1e3]/70">
+                  {trackingLine(row, volKpi?.pct ?? null, effKpi?.pct ?? null)}. {tomScoreboardLine(row, index, rows)}
+                </p>
+              </div>
             );
           })}
         </div>

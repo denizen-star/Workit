@@ -59,17 +59,25 @@ function Slot({
 }
 
 /** Three trophies on Home: yours, aiming, next. Links to /belts. */
-export default function BeltChest({ lockedWeeks }: { lockedWeeks: number }) {
+export default function BeltChest({
+  lockedWeeks,
+  hideHeading = false,
+}: {
+  lockedWeeks: number;
+  hideHeading?: boolean;
+}) {
   const { earned, aiming, after } = beltChest(lockedWeeks);
 
   return (
-    <Link href="/belts" className="mb-4 block">
-      <div className="mb-2 flex items-end justify-between gap-3">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/50">
-          Your trophies
-        </p>
-        <span className="text-sm font-semibold text-[#f6f1e3]/65">See belts</span>
-      </div>
+    <Link href="/belts" className={hideHeading ? 'block' : 'mb-4 block'}>
+      {hideHeading ? null : (
+        <div className="mb-2 flex items-end justify-between gap-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/50">
+            Your trophies
+          </p>
+          <span className="text-sm font-semibold text-[#f6f1e3]/65">See belts</span>
+        </div>
+      )}
       <div className="grid grid-cols-3 gap-2">
         <Slot
           label="Yours"

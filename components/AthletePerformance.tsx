@@ -5,13 +5,14 @@ import Link from 'next/link';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import ScanCard from '@/components/ScanCard';
 import FlagStrip from '@/components/FlagStrip';
+import { FourKpiSpike, KpiList, VolumeSpikeList } from '@/components/KpiList';
+import { kpisFromBoard, kpisFromLine } from '@/lib/kpi';
 import {
   PERFORMANCE_PERIODS,
   addPerformanceFlags,
   emptyPerformanceFlags,
   formatLbs,
   formatPct,
-  pctChange,
   type AthletePerformanceBoard,
   type PerformanceFlags,
   type PerformanceLine,
@@ -48,12 +49,6 @@ function formatWhen(value: string | null) {
   return date.toLocaleDateString();
 }
 
-function toneFor(result: PerformanceLine['result']): 'up' | 'down' | 'plain' {
-  if (result === 'gain') return 'up';
-  if (result === 'loss') return 'down';
-  return 'plain';
-}
-
 function lineView(line: PerformanceLine) {
   return {
     spark: line.spark,
@@ -62,11 +57,6 @@ function lineView(line: PerformanceLine) {
     progressionPct: line.progressionPct,
     volume: line.effortVolume,
   };
-}
-
-function toneFromPct(value: number | null | undefined): 'up' | 'down' | 'plain' {
-  if (value == null || !Number.isFinite(value) || value === 0) return 'plain';
-  return value > 0 ? 'up' : 'down';
 }
 
 function verdictLabel(result: PerformanceLine['result']) {
@@ -92,7 +82,6 @@ function LineRow({
 }) {
   const view = lineView(line);
   const reps = hasReps(line) ? line.currentReps : null;
-  const repsChange = hasReps(line) ? pctChange(line.currentReps, line.priorReps) : null;
   const now = [
     `${formatLbs(line.currentWeight)} lb`,
     reps != null ? `${Math.round(reps)} reps` : null,
@@ -103,23 +92,19 @@ function LineRow({
   const vs = formatPct(view.volumeChangePct);
   const headline =
     view.result === 'first' ? 'First' : view.volumeChangePct == null ? verdictLabel(view.result) : `${verdictLabel(view.result)} · ${vs}`;
+  const tone =
+    view.result === 'gain' ? 'text-[#6d8b6e]' : view.result === 'loss' ? 'text-[#a35d52]' : 'text-[#f6f1e3]/80';
   return (
-    <ScanCard
-      spark={view.spark}
-      sparkTone={toneFor(view.result)}
-      title={label || line.name}
-      headline={headline}
-      sub={[now, detail].filter(Boolean).join(' · ') || undefined}
-      metricLayout="row"
-      metrics={[
-        { label: 'Weight', value: formatPct(line.weightChangePct), tone: toneFromPct(line.weightChangePct) },
-        ...(reps != null
-          ? [{ label: 'Reps', value: formatPct(repsChange), tone: toneFromPct(repsChange) }]
-          : []),
-        { label: 'Total', value: vs, tone: toneFromPct(view.volumeChangePct) },
-        { label: 'Effort', value: formatHardnessWithPct(line.perception) },
-      ]}
-    />
+    <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-black text-white">{label || line.name}</p>
+          <p className="mt-0.5 truncate text-xs text-[#f6f1e3]/55">{[now, detail].filter(Boolean).join(' · ')}</p>
+        </div>
+        <p className={`shrink-0 text-sm font-black ${tone}`}>{headline}</p>
+      </div>
+      <KpiList rows={kpisFromLine(line)} />
+    </div>
   );
 }
 
@@ -254,24 +239,56 @@ export function AthletePerformanceBoardView({
   page,
   athleteName,
   layout = 'classic',
+  grain = 'exercise',
 }: {
   board: AthletePerformanceBoard;
   page: boolean;
   athleteName?: string;
   /** `detail` is `/performance` only. Admin keeps `classic`. */
   layout?: 'classic' | 'detail';
+  grain?: 'exercise' | 'workout';
 }) {
   const summary = board.summary;
-  const gainers = [...board.exercises]
+  const lines = grain === 'workout' ? board.workouts : board.exercises;
+  const gainers = [...lines]
     .filter((row) => lineView(row).result === 'gain')
     .sort((a, b) => (lineView(b).volumeChangePct || 0) - (lineView(a).volumeChangePct || 0));
-  const losers = [...board.exercises]
+  const losers = [...lines]
     .filter((row) => lineView(row).result === 'loss')
     .sort((a, b) => (lineView(a).volumeChangePct || 0) - (lineView(b).volumeChangePct || 0));
-  const held = board.exercises.filter((row) => {
+  const held = lines.filter((row) => {
     const result = lineView(row).result;
     return result === 'held' || result === 'first' || result === 'mixed';
   });
+  const windowKpis = kpisFromBoard(board);
+  const spikeItems = lines.map((row) => ({
+    key: 'key' in row ? row.key : row.workoutType,
+    name: row.name,
+    pct: row.rawVolumeChangePct ?? row.volumeChangePct,
+    kpis: kpisFromLine(row),
+  }));
+  const [spikeKey, setSpikeKey] = useState<string | null>(null);
+
+  const cutBlock =
+    windowKpis && windowKpis.length > 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5">
+        <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">This cut vs last time</p>
+        <KpiList rows={windowKpis} />
+      </div>
+    ) : null;
+  const kpiSpikeBlock =
+    page && windowKpis && windowKpis.some((row) => row.pct != null) ? (
+      <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5">
+        <FourKpiSpike rows={windowKpis} />
+      </div>
+    ) : null;
+  const volumeSpikeBlock =
+    page && spikeItems.length > 0 ? (
+      <div className="rounded-2xl border border-white/10 bg-black/25 px-3 py-2.5">
+        <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Spike · Volume %</p>
+        <VolumeSpikeList items={spikeItems} selected={spikeKey} onSelect={setSpikeKey} />
+      </div>
+    ) : null;
 
   const gainerBlock =
     page && gainers.length > 0 ? (
@@ -280,7 +297,7 @@ export function AthletePerformanceBoardView({
           Moving up · {gainers.length}
         </p>
         {gainers.map((row) => (
-          <LineRow key={row.key} line={row} />
+          <LineRow key={'key' in row ? row.key : row.workoutType} line={row} />
         ))}
       </div>
     ) : null;
@@ -291,7 +308,7 @@ export function AthletePerformanceBoardView({
           Moving down · {losers.length}
         </p>
         {losers.map((row) => (
-          <LineRow key={row.key} line={row} />
+          <LineRow key={'key' in row ? row.key : row.workoutType} line={row} />
         ))}
       </div>
     ) : null;
@@ -299,18 +316,18 @@ export function AthletePerformanceBoardView({
     page && held.length > 0 ? (
       <Fold title="Held / first" hint={`${held.length} lifts`}>
         {held.map((row) => (
-          <LineRow key={row.key} line={row} />
+          <LineRow key={'key' in row ? row.key : row.workoutType} line={row} />
         ))}
       </Fold>
     ) : null;
-  const everyLift = page ? (
+  const everyLift = page && grain === 'exercise' && lines.length > 0 ? (
     <Fold title="Every lift" hint={`${board.exercises.length} lifts`}>
-      {board.exercises.map((row) => (
-        <LineRow key={row.key} line={row} />
+      {lines.map((row) => (
+        <LineRow key={'key' in row ? row.key : row.workoutType} line={row} />
       ))}
     </Fold>
   ) : null;
-  const byWorkout = page ? (
+  const byWorkout = page && grain === 'exercise' && board.workouts.length > 0 ? (
     <Fold title="By workout" hint={`${board.workouts.length} days`}>
       {board.workouts.map((workout) => (
         <WorkoutBlock key={workout.workoutType} workout={workout} />
@@ -326,6 +343,9 @@ export function AthletePerformanceBoardView({
   if (page && layout === 'detail') {
     return (
       <div className="space-y-3">
+        {cutBlock}
+        {kpiSpikeBlock}
+        {volumeSpikeBlock}
         {gainerBlock}
         {loserBlock}
         {heldBlock}
@@ -338,6 +358,7 @@ export function AthletePerformanceBoardView({
 
   return (
     <div className="space-y-3">
+      {cutBlock}
       <SummaryCard summary={summary} athleteName={athleteName} board={board} />
       {gainerBlock}
       {loserBlock}
@@ -418,6 +439,9 @@ export default function AthletePerformance({
   const page = variant === 'page';
   const [open, setOpen] = useState(page);
   const [period, setPeriod] = useState<PerformancePeriod>('t');
+  const [workout, setWorkout] = useState('all');
+  const [grain, setGrain] = useState<'exercise' | 'workout'>('exercise');
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
   const [household, setHousehold] = useState<HouseholdRow[] | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
@@ -489,6 +513,18 @@ export default function AthletePerformance({
     return mergeAthletePerformanceBoards(rows, period);
   }, [board, household, period, selected]);
 
+  const filtered = useMemo(() => {
+    if (!merged) return null;
+    if (workout === 'all') return merged;
+    const selectedWorkouts = merged.workouts.filter((row) => row.workoutType === workout);
+    const names = new Set(selectedWorkouts.flatMap((row) => row.exercises.map((item) => item.name)));
+    return {
+      ...merged,
+      workouts: selectedWorkouts,
+      exercises: merged.exercises.filter((row) => names.has(row.name)),
+    };
+  }, [merged, workout]);
+
   const flags = useMemo(() => {
     if (!household) return null;
     return household
@@ -507,26 +543,115 @@ export default function AthletePerformance({
 
   if (hidden) return null;
 
-  const trailing = merged
-    ? `${merged.exercises.filter((row) => lineView(row).result === 'gain').length} up · ${
-        merged.exercises.filter((row) => lineView(row).result === 'loss').length
+  const viewBoard = filtered;
+  const trailing = viewBoard
+    ? `${viewBoard.exercises.filter((row) => lineView(row).result === 'gain').length} up · ${
+        viewBoard.exercises.filter((row) => lineView(row).result === 'loss').length
       } down`
     : undefined;
   const empty =
-    !loading && !!merged && merged.exercises.length === 0 && merged.workouts.length === 0;
+    !loading && !!viewBoard && viewBoard.exercises.length === 0 && viewBoard.workouts.length === 0;
   const noneSelected = page && isAdmin && selected.length === 0;
+  const workoutOptions = merged?.workouts.map((row) => row.workoutType) || [];
+
+  const filters = (
+    <div className="mb-3 rounded-2xl border border-white/10 bg-black/20">
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((current) => !current)}
+        className="flex min-h-11 w-full items-center gap-2 px-3 py-2.5 text-left"
+        aria-expanded={filtersOpen}
+      >
+        <h3 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Cut</h3>
+        <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">
+          {PERIOD_LABELS[period]}
+          {workout !== 'all' ? ` · ${workout}` : ''}
+          {` · ${grain === 'workout' ? 'Workout' : 'Exercise'}`}
+        </span>
+        {filtersOpen ? (
+          <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+        ) : (
+          <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+        )}
+      </button>
+      {filtersOpen && (
+        <div className="space-y-3 border-t border-white/10 px-3 py-3">
+          <div>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/45">Period</p>
+            <PeriodPills
+              period={period}
+              onPick={(value) => {
+                setPeriod(value);
+                setWorkout('all');
+                setLoading(true);
+              }}
+            />
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/45">Workout</p>
+            <div className="flex min-w-0 gap-1 overflow-x-auto">
+              {['all', ...workoutOptions].map((option) => {
+                const selectedWorkout = option === workout;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setWorkout(option)}
+                    className={`min-h-10 shrink-0 rounded-2xl border px-3 text-sm font-semibold ${
+                      selectedWorkout
+                        ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                        : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
+                    }`}
+                  >
+                    {option === 'all' ? 'All' : option.replace(' Body ', ' ')}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+          <div>
+            <p className="mb-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/45">Grain</p>
+            <div className="grid grid-cols-2 gap-1">
+              {(['exercise', 'workout'] as const).map((option) => {
+                const selectedGrain = option === grain;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => setGrain(option)}
+                    className={`min-h-10 rounded-2xl border text-sm font-semibold ${
+                      selectedGrain
+                        ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                        : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
+                    }`}
+                  >
+                    {option === 'exercise' ? 'Exercise' : 'Workout'}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
 
   const body = (
     <div>
-      <div className="mb-3">
-        <PeriodPills
-          period={period}
-          onPick={(value) => {
-            setPeriod(value);
-            setLoading(true);
-          }}
-        />
-      </div>
+      {page ? (
+        filters
+      ) : (
+        <div className="mb-3">
+          <PeriodPills
+            period={period}
+            onPick={(value) => {
+              setPeriod(value);
+              setWorkout('all');
+              setLoading(true);
+            }}
+          />
+        </div>
+      )}
       {page && isAdmin === true && household ? (
         <AthleteFilter
           rows={household}
@@ -547,13 +672,13 @@ export default function AthletePerformance({
         <p className="text-sm text-[#f6f1e3]/55">
           No finished workouts in this window. Log a session and this fills in.
         </p>
-      ) : merged && page ? (
+      ) : viewBoard && page ? (
         <div className="space-y-8">
           <section>
             <SectionLabel hint="The read on this window vs last time you did those lifts.">
               Summary
             </SectionLabel>
-            <SummaryCard summary={merged.summary} board={merged} />
+            <SummaryCard summary={viewBoard.summary} board={viewBoard} />
           </section>
           {snapshots.length > 0 || flags ? (
             <section>
@@ -579,13 +704,13 @@ export default function AthletePerformance({
             <SectionLabel hint="Each lift vs the last time you did it. Green is up. Red is down.">
               Progression
             </SectionLabel>
-            <AthletePerformanceBoardView board={merged} page layout="detail" />
+            <AthletePerformanceBoardView board={viewBoard} page layout="detail" grain={grain} />
           </section>
         </div>
-      ) : merged ? (
-        <AthletePerformanceBoardView board={merged} page={false} layout="classic" />
+      ) : viewBoard ? (
+        <AthletePerformanceBoardView board={viewBoard} page={false} layout="classic" />
       ) : null}
-      {!page && merged ? (
+      {!page && viewBoard ? (
         <Link
           href="/performance"
           className="mt-4 inline-flex min-h-11 items-center text-base font-semibold text-[#e8c547]"
@@ -595,6 +720,8 @@ export default function AthletePerformance({
       ) : null}
     </div>
   );
+
+  const homeKpis = !page && !open && viewBoard ? kpisFromBoard(viewBoard) : null;
 
   if (page) return body;
 
@@ -616,6 +743,11 @@ export default function AthletePerformance({
           <ChevronDown className="h-5 w-5 shrink-0 text-[#f6f1e3]/65" />
         )}
       </button>
+      {homeKpis ? (
+        <div className="border-t border-white/10 px-5 pb-4">
+          <KpiList rows={homeKpis} />
+        </div>
+      ) : null}
       {open && <div className="border-t border-white/10 px-5 pb-5 pt-4">{body}</div>}
     </div>
   );

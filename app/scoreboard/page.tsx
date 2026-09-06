@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import ExerciseCompare from '@/components/ExerciseCompare';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import WeekMedalCountTable from '@/components/WeekMedalCountTable';
 import YouPageShell from '@/components/YouPageShell';
+import YouVsLeader from '@/components/YouVsLeader';
 import { isTestUserName } from '@/lib/householdUsers';
 import type { WeekMedalCountRow } from '@/lib/weekPodium';
 
@@ -47,8 +47,12 @@ export default function ScoreboardPage() {
   return (
     <YouPageShell title="The house">
       {isAdmin && <WeekMedalCountTable rows={medalCounts} />}
+      {!isTestUserName(userName) && (
+        <div className="mb-6">
+          <YouVsLeader userId={userId} />
+        </div>
+      )}
       <HouseholdScoreboard standalone highlightUserId={userId} />
-      {!isTestUserName(userName) && <ExerciseCompare standalone />}
     </YouPageShell>
   );
 }

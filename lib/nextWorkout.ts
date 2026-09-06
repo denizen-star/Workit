@@ -1,4 +1,4 @@
-import { isEasternWeekend } from "@/lib/analyticsTime";
+import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
 import { isBonusDay, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 
@@ -69,6 +69,44 @@ export function findLatestCompletedSession(
         return bTime - aTime;
       })[0] ?? null
   );
+}
+
+export function findLatestCompletedAny(sessions: WorkoutSessionRow[]): WorkoutSessionRow | null {
+  return (
+    sessions
+      .filter(isSessionComplete)
+      .sort((a, b) => {
+        const aTime = new Date(a.completed_at || a.ended_at || a.started_at || a.created_at || 0).getTime();
+        const bTime = new Date(b.completed_at || b.ended_at || b.started_at || b.created_at || 0).getTime();
+        return bTime - aTime;
+      })[0] ?? null
+  );
+}
+
+function sessionEasternDay(session: WorkoutSessionRow) {
+  const raw = session.completed_at || session.ended_at || session.started_at || session.created_at;
+  if (!raw) return null;
+  const date = new Date(raw);
+  return Number.isNaN(date.getTime()) ? null : easternYmd(date);
+}
+
+/** Home Your performance: last session the day after a finish or when the week is locked; else the next day. */
+export function homePerformanceFocus(
+  today: ReturnType<typeof getTodayTarget>,
+  sessions: WorkoutSessionRow[]
+): { kind: 'next' | 'latest'; workoutType: string | null } {
+  const latest = findLatestCompletedAny(sessions);
+  const latestType = latest?.workout_type || null;
+  const yesterday = addEasternCalendarDays(easternYmd(new Date()), -1);
+  const trainedYesterday = latest != null && sessionEasternDay(latest) === yesterday;
+
+  if (today.type === 'hold' || today.type === 'done' || trainedYesterday) {
+    return { kind: 'latest', workoutType: latestType };
+  }
+  if (today.day?.name) {
+    return { kind: 'next', workoutType: today.day.name };
+  }
+  return { kind: 'latest', workoutType: latestType };
 }
 
 export function findNextProgramDay(

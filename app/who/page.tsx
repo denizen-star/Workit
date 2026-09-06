@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { ArrowLeft, ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import PinPad from '@/components/PinPad';
 import BeltChip from '@/components/BeltChip';
-import HelpSheet, { HelpTrigger } from '@/components/HelpSheet';
+import { HelpTip } from '@/components/HelpSheet';
 import { trackAction } from '@/lib/analytics';
 import {
   DEAD_CLAIM_LINE,
@@ -99,8 +99,6 @@ function WhoRow({ user, onPick }: { user: HouseholdUser; onPick: (user: Househol
 }
 
 type Step = 'pick' | 'login' | 'create-pin' | 'confirm-pin';
-type HelpKind = 'what' | 'home' | null;
-
 export default function WhoPage() {
   const router = useRouter();
   const [users, setUsers] = useState<HouseholdUser[]>([]);
@@ -114,8 +112,6 @@ export default function WhoPage() {
   const [submitting, setSubmitting] = useState(false);
   const [claimToken, setClaimToken] = useState('');
   const [resetToken, setResetToken] = useState('');
-  const [help, setHelp] = useState<HelpKind>(null);
-
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const claim = params.get('claim') || '';
@@ -394,7 +390,13 @@ export default function WhoPage() {
             <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
             {step !== 'pick' ? (
               <div className="ml-auto">
-                <HelpTrigger label={WHAT_IS_WORKIT_TITLE} onClick={() => setHelp('what')} />
+                <HelpTip
+                  label={WHAT_IS_WORKIT_TITLE}
+                  title={WHAT_IS_WORKIT_TITLE}
+                  lead={WHAT_IS_WORKIT_LEAD}
+                  bullets={WHAT_IS_WORKIT_BULLETS}
+                  align="end"
+                />
               </div>
             ) : null}
           </div>
@@ -406,7 +408,12 @@ export default function WhoPage() {
           <>
             <div className="flex items-start justify-center gap-1">
               <h2 className="text-center text-3xl font-black text-white">Who&apos;s working out?</h2>
-              <HelpTrigger label={WHAT_IS_WORKIT_TITLE} onClick={() => setHelp('what')} />
+              <HelpTip
+                label={WHAT_IS_WORKIT_TITLE}
+                title={WHAT_IS_WORKIT_TITLE}
+                lead={WHAT_IS_WORKIT_LEAD}
+                bullets={WHAT_IS_WORKIT_BULLETS}
+              />
             </div>
             <p className="mt-2 text-center text-[#f6f1e3]/65">
               Tap your profile to continue
@@ -472,7 +479,11 @@ export default function WhoPage() {
                 ))}
                 <p className="pt-1 font-semibold text-[#e8c547]">
                   {HOME_SCREEN_LINE}
-                  <HelpTrigger label={HOME_SCREEN_TITLE} onClick={() => setHelp('home')} />
+                  <HelpTip
+                    label={HOME_SCREEN_TITLE}
+                    title={HOME_SCREEN_TITLE}
+                    bullets={HOME_SCREEN_BEATS}
+                  />
                 </p>
               </div>
             ) : null}
@@ -513,19 +524,6 @@ export default function WhoPage() {
         )}
       </div>
 
-      <HelpSheet
-        open={help === 'what'}
-        title={WHAT_IS_WORKIT_TITLE}
-        lead={WHAT_IS_WORKIT_LEAD}
-        bullets={WHAT_IS_WORKIT_BULLETS}
-        onClose={() => setHelp(null)}
-      />
-      <HelpSheet
-        open={help === 'home'}
-        title={HOME_SCREEN_TITLE}
-        bullets={HOME_SCREEN_BEATS}
-        onClose={() => setHelp(null)}
-      />
     </div>
   );
 }

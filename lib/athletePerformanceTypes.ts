@@ -44,6 +44,8 @@ export type PerformanceLine = {
   rawResult: PerformanceResult;
   spark: number[];
   sparkRaw: number[];
+  sparkWeight?: number[];
+  sparkReps?: number[];
   perception: number | null;
   effortVolume: number;
   priorEffortVolume: number | null;
@@ -69,11 +71,24 @@ export type WorkoutExerciseTrend = PerformanceLine & {
   priorReps: number | null;
 };
 
+export type SetTrend = PerformanceLine & {
+  key: string;
+  exerciseName: string;
+  workoutType: string;
+  setNumber: number;
+  currentReps: number;
+  priorReps: number | null;
+};
+
 export type WorkoutTrend = PerformanceLine & {
   workoutType: string;
+  currentReps: number;
+  priorReps: number | null;
   currentDate: string | null;
   priorDate: string | null;
   weekNumber: number | null;
+  durationSeconds: number | null;
+  sessionStars: number | null;
   gains: number;
   losses: number;
   exercises: WorkoutExerciseTrend[];
@@ -93,11 +108,37 @@ export type PerformanceSummary = {
   perceptionCount: number;
 };
 
+/** All completed mechanical sets in the Eastern window vs the same-length prior window. */
+export type WindowKpis = {
+  setCount: number;
+  weightSum: number;
+  repSum: number;
+  volume: number;
+  effective: number;
+  priorSetCount: number | null;
+  priorWeightSum: number | null;
+  priorRepSum: number | null;
+  priorVolume: number | null;
+  priorEffective: number | null;
+  sparkWeight: number[];
+  sparkReps: number[];
+  sparkVolume: number[];
+  sparkEffective: number[];
+};
+
+export type HardMuscleRow = {
+  name: string;
+  count: number;
+};
+
 export type AthletePerformanceBoard = {
   period: PerformancePeriod;
   summary: PerformanceSummary;
   exercises: ExerciseTrend[];
   workouts: WorkoutTrend[];
+  sets?: SetTrend[];
+  window?: WindowKpis;
+  hardMuscles?: HardMuscleRow[];
   snapshot?: import('@/lib/scoreboardTypes').PerformanceSnapshot;
 };
 

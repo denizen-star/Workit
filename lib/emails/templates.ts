@@ -283,17 +283,21 @@ function releaseVoice(tone?: CoachTone | null) {
   const id = normalizeCoachTone(tone);
   if (id === 'james') {
     return {
-      intro: 'You will read this. I want you to understand it.',
-      mid: 'This is what changed. Keep it.',
-      close: 'Hard-refresh. Open Home. Then get under the bar. The power is in the work, not the note.',
+      intro:
+        'You will read this. I want you to understand it. Before, finish was a shout, then a pile of medals, then Home. Easy to miss a beat. Leave early still got a score. That is done.',
+      mid: 'Now the beats are set. Recap. Then I talk. Then you see what you earned. Then Home. The numbers have names. Effective is the work times how hard it sat. Fair is even. Place is still the iron. Do not tap past a screen. I noticed.',
+      close:
+        'Hard-refresh. Open Home. When you owe a session, finish it. Walk every beat. I want that. The power is in the work, not the note.',
       eyebrow: 'a note · ',
     };
   }
   if (id === 'luna') {
     return {
-      intro: 'Read this when you can. I want it to be clear.',
-      mid: 'This is what changed. Take it in.',
-      close: 'Hard-refresh. Open Home. Then begin when you are ready. The growth is in the work, not the note.',
+      intro:
+        'Read this when you can. I want it to be clear. The end of a day used to rush. A shout. Medals. Home. Easy to miss. Leave early still scored. That is over.',
+      mid: 'Now the close is quiet and in order. Recap. Then a line. Then what you earned. Then Home. The numbers have names. Effective is the work times how hard it felt. Place is still the iron. Stay with each screen.',
+      close:
+        'Hard-refresh. Open Home. When you owe a session, finish it. Walk the new close. The growth is in the work, not the note.',
       eyebrow: 'a note · ',
     };
   }

@@ -12,9 +12,10 @@ import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
-import { parseHardness, type HardnessScore } from '@/lib/hardness';
+import { effortFromVolume, parseHardness, type HardnessScore } from '@/lib/hardness';
+import LiveSetKpis from '@/components/LiveSetKpis';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
-import HelpSheet, { HowTrigger } from './HelpSheet';
+import { HowTrigger } from './HelpSheet';
 import { howForExercise } from '@/lib/exerciseHow';
 import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
 import VideoModal from './VideoModal';
@@ -30,6 +31,7 @@ import {
   primaryFieldLabel,
   sessionSetTotals,
   setLogLabel,
+  setVolume,
   suggestedNextWeight,
   weightFieldLabel,
   type ExerciseKind,
@@ -75,7 +77,7 @@ interface ExerciseTrackerProps {
   athleteName?: string | null;
   restExtraMinutes?: number;
   onLiftsDone?: () => void;
-  onTotals?: (totals: { lbs: number; reps: number }) => void;
+  onTotals?: (totals: { lbs: number; reps: number; effort: number }) => void;
 }
 
 const EXTRA_SET_CAP = 5;
@@ -195,8 +197,6 @@ export default function ExerciseTracker({
     body: string;
   } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
-  const [howNotes, setHowNotes] = useState<string | null>(null);
-
   useEffect(() => {
     setRestSeconds(restClock);
   }, [restClock]);
@@ -628,6 +628,7 @@ export default function ExerciseTracker({
   const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
   const totalSetCount = exerciseSets.length;
   const allSetsComplete = totalSetCount > 0 && completedSetCount === totalSetCount;
+  const liveSession = sessionSetTotals(exerciseSets);
 
   return (
     <div className="space-y-6">
@@ -654,18 +655,8 @@ export default function ExerciseTracker({
             <div className="mb-3 flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <div className="flex items-start gap-1">
-                  {how ? (
-                    <button
-                      type="button"
-                      onClick={() => setHowNotes(how)}
-                      className="text-left text-2xl font-black tracking-tight text-white"
-                    >
-                      {exercise.name}
-                    </button>
-                  ) : (
-                    <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
-                  )}
-                  {how ? <HowTrigger onClick={() => setHowNotes(how)} /> : null}
+                  <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
+                  {how ? <HowTrigger notes={how} /> : null}
                 </div>
                 <p className="mt-1 text-sm text-[#f6f1e3]/70">
                   Target: {exercise.sets} sets × {exercise.reps}
@@ -948,6 +939,39 @@ export default function ExerciseTracker({
                 );
               })}
 
+              {(() => {
+                const lastDone = [...sets].reverse().find((item) => item.is_completed);
+                if (!lastDone) return null;
+                const lastVol = setVolume(
+                  lastDone.exercise_name,
+                  lastDone.target_reps,
+                  lastDone.weight_lbs,
+                  lastDone.actual_reps
+                );
+                const exerciseVol = sets.reduce(
+                  (sum, item) =>
+                    item.is_completed
+                      ? sum +
+                        setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps)
+                      : sum,
+                  0
+                );
+                return (
+                  <LiveSetKpis
+                    setVolume={lastVol}
+                    setEffective={effortFromVolume(lastVol, lastDone.hardness)}
+                    exerciseVolume={exerciseVol}
+                    sessionVolume={liveSession.lbs}
+                    sessionEffective={liveSession.effort}
+                    setHint={
+                      lastDone.weight_lbs != null && lastDone.actual_reps != null
+                        ? `${lastDone.weight_lbs} × ${lastDone.actual_reps}`
+                        : undefined
+                    }
+                  />
+                );
+              })()}
+
               {sets.length < exercise.sets + EXTRA_SET_CAP && (
                 <button
                   type="button"
@@ -1028,12 +1052,6 @@ export default function ExerciseTracker({
         onClose={() => setSetFlash(null)}
       />
 
-      <HelpSheet
-        open={!!howNotes}
-        title="How"
-        body={howNotes ? <p className="text-base leading-relaxed text-[#f6f1e3]/80">{howNotes}</p> : null}
-        onClose={() => setHowNotes(null)}
-      />
     </div>
   );
 }

@@ -54,6 +54,14 @@ export function sqlPeriodWindow(column: string, window: PeriodWindow): SqlWindow
   return { sql: ` AND ${parts.join(' AND ')}`, params };
 }
 
+/** Same length as `window`, immediately before it. All / missing start = no prior. */
+export function priorPeriodWindow(window: PeriodWindow): PeriodWindow | null {
+  if (window.startMs == null || window.endMs == null) return null;
+  const span = window.endMs - window.startMs;
+  if (span <= 0) return null;
+  return { startMs: window.startMs - span, endMs: window.startMs };
+}
+
 export function inPeriodWindow(
   doneAt: string | Date | null | undefined,
   window: PeriodWindow

@@ -7,6 +7,7 @@ import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import {
   performancePeriodWindow,
+  priorPeriodWindow,
   sqlPeriodWindow,
   type SqlWindow,
 } from '@/lib/performancePeriod';
@@ -31,6 +32,16 @@ function periodFilter(period: ScoreboardPeriod, column: string): SqlWindow {
   };
 }
 
+/** Same length as the current house window, immediately before it. All = none. */
+function priorPeriodFilter(period: ScoreboardPeriod, column: string): SqlWindow | null {
+  if (period === 'all') return null;
+  const days = period === '30' ? 30 : 7;
+  return {
+    sql: ` AND ${column} >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days * 2} DAY) AND ${column} < DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`,
+    params: [],
+  };
+}
+
 type LastRow = { week_number: number; workout_type: string; completed_at: string };
 
 function toScoreboardRow(
@@ -44,6 +55,14 @@ function toScoreboardRow(
     avg_seconds: number | null;
     perception?: number | null;
     effort_volume?: number;
+    weight_sum?: number;
+    reps_sum?: number;
+    raw_volume?: number;
+    effort_sets?: number;
+    prior_weight_sum?: number | null;
+    prior_reps_sum?: number | null;
+    prior_raw_volume?: number | null;
+    prior_effort_sets?: number | null;
   },
   lastByUser: Map<number, LastRow>,
   bestByUser: Map<number, number>,
@@ -70,6 +89,14 @@ function toScoreboardRow(
     perception: row.perception == null ? null : Number(row.perception),
     effortVolume: Number(row.effort_volume || 0),
     bestSessionEffort: effortBestByUser.get(Number(row.id)) || 0,
+    weightSum: Number(row.weight_sum || 0),
+    repsSum: Number(row.reps_sum || 0),
+    rawVolume: Number(row.raw_volume || 0),
+    effortSets: Number(row.effort_sets || 0),
+    priorWeightSum: row.prior_weight_sum == null ? null : Number(row.prior_weight_sum),
+    priorRepSum: row.prior_reps_sum == null ? null : Number(row.prior_reps_sum),
+    priorRawVolume: row.prior_raw_volume == null ? null : Number(row.prior_raw_volume),
+    priorEffortSets: row.prior_effort_sets == null ? null : Number(row.prior_effort_sets),
   };
 }
 
@@ -95,7 +122,8 @@ async function lastWorkoutByUser() {
 async function householdScoreboardFiltered(
   sessionWindow: SqlWindow,
   optionalWindow: SqlWindow,
-  badgeWindow: SqlWindow
+  badgeWindow: SqlWindow,
+  priorSessionWindow: SqlWindow | null = null
 ): Promise<HouseholdScoreboardRow[]> {
   const result = await query(
     `SELECT
@@ -106,8 +134,12 @@ async function householdScoreboardFiltered(
          'u.id',
          `AND optws.is_completed = 1${optionalWindow.sql}`
        )} as volume,
+       COALESCE(SUM(${sqlSetVolume('es')}), 0) as raw_volume,
+       COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as effort_sets,
        COUNT(CASE WHEN es.is_completed = 1 THEN es.id END) as sets,
        COALESCE(MAX(es.weight_lbs), 0) as heaviest,
+       COALESCE(SUM(es.weight_lbs), 0) as weight_sum,
+       COALESCE(SUM(es.actual_reps), 0) as reps_sum,
        AVG(CASE WHEN es.hardness IS NOT NULL THEN es.hardness END) as perception,
        COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume(
          'u.id',
@@ -135,9 +167,49 @@ async function householdScoreboardFiltered(
     avg_seconds: number | null;
     perception: number | null;
     effort_volume: number;
+    weight_sum: number;
+    reps_sum: number;
+    raw_volume: number;
+    effort_sets: number;
   }[];
 
   if (rows.length === 0) return [];
+
+  const priorByUser = new Map<
+    number,
+    { prior_weight_sum: number; prior_reps_sum: number; prior_raw_volume: number; prior_effort_sets: number }
+  >();
+  if (priorSessionWindow) {
+    const prior = await query(
+      `SELECT
+         u.id,
+         COALESCE(SUM(es.weight_lbs), 0) as prior_weight_sum,
+         COALESCE(SUM(es.actual_reps), 0) as prior_reps_sum,
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as prior_raw_volume,
+         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as prior_effort_sets
+       FROM users u
+       INNER JOIN workout_sessions ws
+         ON ws.user_id = u.id AND ws.is_completed = 1 ${priorSessionWindow.sql}
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       GROUP BY u.id`,
+      [...priorSessionWindow.params]
+    );
+    for (const row of prior.rows as {
+      id: number;
+      prior_weight_sum: number;
+      prior_reps_sum: number;
+      prior_raw_volume: number;
+      prior_effort_sets: number;
+    }[]) {
+      priorByUser.set(Number(row.id), {
+        prior_weight_sum: Number(row.prior_weight_sum || 0),
+        prior_reps_sum: Number(row.prior_reps_sum || 0),
+        prior_raw_volume: Number(row.prior_raw_volume || 0),
+        prior_effort_sets: Number(row.prior_effort_sets || 0),
+      });
+    }
+  }
+
   const [lockedByUser, lastByUser, best, effortBest, badges] = await Promise.all([
     lockedWeeksByUser(),
     lastWorkoutByUser(),
@@ -195,7 +267,14 @@ async function householdScoreboardFiltered(
 
   return rows
     .map((row) =>
-      toScoreboardRow(row, lastByUser, bestByUser, effortBestByUser, badgesByUser, lockedByUser)
+      toScoreboardRow(
+        { ...row, ...priorByUser.get(Number(row.id)) },
+        lastByUser,
+        bestByUser,
+        effortBestByUser,
+        badgesByUser,
+        lockedByUser
+      )
     )
     .sort(
       (a, b) =>
@@ -212,7 +291,8 @@ export async function householdScoreboard(period: ScoreboardPeriod): Promise<Hou
   return householdScoreboardFiltered(
     periodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
     periodFilter(period, 'COALESCE(optws.completed_at, optws.started_at, optws.created_at)'),
-    periodFilter(period, 'ub.earned_at')
+    periodFilter(period, 'ub.earned_at'),
+    priorPeriodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)')
   );
 }
 
@@ -220,10 +300,12 @@ export async function householdScoreboardForPerformance(
   period: PerformancePeriod
 ): Promise<HouseholdScoreboardRow[]> {
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
+  const prior = priorPeriodWindow(window);
   return householdScoreboardFiltered(
     sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', window),
     sqlPeriodWindow('COALESCE(optws.completed_at, optws.started_at, optws.created_at)', window),
-    sqlPeriodWindow('ub.earned_at', window)
+    sqlPeriodWindow('ub.earned_at', window),
+    prior ? sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', prior) : null
   );
 }
 
@@ -261,6 +343,10 @@ export async function emptySnapshotRow(
     perception: null,
     effortVolume: 0,
     bestSessionEffort: 0,
+    weightSum: 0,
+    repsSum: 0,
+    rawVolume: 0,
+    effortSets: 0,
   };
 }
 

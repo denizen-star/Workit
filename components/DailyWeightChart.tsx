@@ -2,6 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import WeightTrendChart from '@/components/WeightTrendChart';
+import { HelpTip } from '@/components/HelpSheet';
+import { HOME_DAILY_WEIGHT_HELP } from '@/lib/helpCopy';
 import {
   addWeight,
   CHART_HOUSE,
@@ -78,9 +80,17 @@ export default function DailyWeightChart({
   return (
     <div className="glass-card p-5">
       <div className="mb-4 flex flex-wrap items-center gap-2">
-        <h3 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
-          Daily weight lifted
-        </h3>
+        <div className="flex items-center">
+          <h3 className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
+            Daily weight lifted
+          </h3>
+          <HelpTip
+            label="How to read Daily weight"
+            title={HOME_DAILY_WEIGHT_HELP.title}
+            lead={HOME_DAILY_WEIGHT_HELP.lead}
+            bullets={HOME_DAILY_WEIGHT_HELP.bullets}
+          />
+        </div>
         <div className="ml-auto flex flex-wrap gap-2">
           {(['daily', 'cumulative'] as const).map((option) => {
             const selected = option === mode;
@@ -118,13 +128,6 @@ export default function DailyWeightChart({
           })}
         </div>
       </div>
-      <p className="mb-4 text-base text-[#f6f1e3]/60">
-        <span className="font-semibold text-[#f6f1e3]">Cream</span> is your Effort lb that day.{' '}
-        <span className="font-semibold text-[#c08457]">Copper</span> is the pack average that
-        day. The wash behind the line is your Effort that day (1–5), not the house. Cumulative
-        still shows that day&apos;s Effort. Getting stronger is more cream while the wash holds
-        or drops.
-      </p>
       <WeightTrendChart
         data={data}
         height={240}

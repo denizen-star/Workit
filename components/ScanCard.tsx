@@ -1,6 +1,8 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
+import { ChevronDown, ChevronUp } from 'lucide-react';
+import { HelpTip } from '@/components/HelpSheet';
 import SpikeChart from '@/components/SpikeChart';
 
 export type ScanMetric = {
@@ -180,6 +182,49 @@ export function ScanFold({
         )}
       </button>
       {open ? <div className="border-t border-white/10 px-4 pb-4 pt-3">{children}</div> : null}
+    </div>
+  );
+}
+
+/** Home Quiet fold. Starts closed. */
+export function HomeFold({
+  title,
+  trailing,
+  help,
+  children,
+}: {
+  title: string;
+  trailing?: string;
+  help?: { title: string; lead: string; bullets?: readonly string[] };
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div>
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => setOpen((current) => !current)}
+          className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
+          aria-expanded={open}
+        >
+          <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">{title}</h2>
+          {trailing ? (
+            <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">{trailing}</span>
+          ) : (
+            <span className="ml-auto" />
+          )}
+          {open ? (
+            <ChevronUp className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+          ) : (
+            <ChevronDown className="h-4 w-4 shrink-0 text-[#f6f1e3]/65" />
+          )}
+        </button>
+        {help ? (
+          <HelpTip label={help.title} title={help.title} lead={help.lead} bullets={help.bullets} align="end" />
+        ) : null}
+      </div>
+      {open ? <div className="mt-3">{children}</div> : null}
     </div>
   );
 }

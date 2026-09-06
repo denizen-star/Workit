@@ -1,3 +1,5 @@
+import { effortFromVolume } from '@/lib/hardness';
+
 export type ExerciseKind = "weighted" | "bodyweight" | "timed" | "distance";
 
 export function getExerciseKind(name: string, reps: string): ExerciseKind {
@@ -113,19 +115,23 @@ export function sessionSetTotals(
     weight_lbs: number | null;
     actual_reps: number | null;
     is_completed: boolean;
+    hardness?: number | null;
   }>
 ) {
   let lbs = 0;
   let reps = 0;
+  let effort = 0;
   for (const set of sets) {
     if (!set.is_completed) continue;
-    lbs += setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps);
+    const volume = setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps);
+    lbs += volume;
+    effort += effortFromVolume(volume, set.hardness);
     const kind = getExerciseKind(set.exercise_name, set.target_reps || "");
     if (kind !== "timed" && kind !== "distance") {
       reps += Number(set.actual_reps || 0);
     }
   }
-  return { lbs, reps };
+  return { lbs, reps, effort };
 }
 
 /** Same timed/distance rules as getExerciseKind, for SUM() in SQL. */
@@ -145,8 +151,8 @@ export function sqlSetVolume(alias?: string): string {
   END`;
 }
 
-/** Raw set volume × How hard. Skip How hard = Fair (60%). */
+/** Volume × Perceived Effort. Fair = 1.0. Skip How hard = Fair. */
 export function sqlSetEffortVolume(alias?: string): string {
   const col = (column: string) => (alias ? `${alias}.${column}` : column);
-  return `(${sqlSetVolume(alias)}) * (COALESCE(${col("hardness")}, 3) * 0.2)`;
+  return `(${sqlSetVolume(alias)}) * (1 + (COALESCE(${col("hardness")}, 3) - 3) * 0.2)`;
 }
