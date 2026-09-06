@@ -10,3 +10,18 @@
 
 [functions]
   directory = "netlify/functions"
+
+# workit.kervinapps.com is a different hostname — Netlify UI has no
+# "redirect to primary" for it (only apex ↔ www). Keep that domain
+# assigned to this site or these rules never run.
+[[redirects]]
+  from = "https://workit.kervinapps.com/*"
+  to = "https://workitapp.fit/:splat"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "http://workit.kervinapps.com/*"
+  to = "https://workitapp.fit/:splat"
+  status = 301
+  force = true

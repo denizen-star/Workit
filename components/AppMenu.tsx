@@ -40,6 +40,11 @@ export default function AppMenu({
   const [open, setOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  const [houses, setHouses] = useState<{ id: number; slug: string; name: string }[]>([]);
+  const [houseId, setHouseId] = useState<number | null>(null);
+  const [callName, setCallName] = useState(userName);
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const [photoUserId, setPhotoUserId] = useState<number | null>(null);
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -47,7 +52,16 @@ export default function AppMenu({
 
   useEffect(() => {
     setMounted(true);
-  }, []);
+    fetch('/api/me')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        setHouses(data?.houses || []);
+        setHouseId(data?.user?.householdId ?? null);
+        setCallName(data?.user?.callName || userName);
+        setHasPhoto(Boolean(data?.user?.hasPhoto));
+        setPhotoUserId(data?.user?.id != null ? Number(data.user.id) : null);
+      });
+  }, [userName]);
 
   useEffect(() => {
     if (!open || !buttonRef.current) return;
@@ -118,7 +132,7 @@ export default function AppMenu({
     setOpen(false);
     trackAction('logout', { category: 'home' });
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/who');
+    router.push('/login');
     router.refresh();
   };
 
@@ -133,10 +147,53 @@ export default function AppMenu({
             className="z-[201] overflow-hidden rounded-2xl border border-white/10 bg-[#12121a] shadow-2xl"
           >
             <div className="shrink-0 border-b border-white/10 px-4 py-3">
-              <p className="truncate text-sm font-black text-white">{userName}</p>
+              <div className="flex items-center gap-3">
+                {hasPhoto && photoUserId ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={`/api/users/${photoUserId}/photo`}
+                    alt=""
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : null}
+                <div className="min-w-0">
+              <p className="truncate text-sm font-black text-white">{callName}</p>
               {userEmail && (
                 <p className="truncate text-xs text-[#f6f1e3]/50">{userEmail}</p>
               )}
+                </div>
+              </div>
+              {houses.length > 1 ? (
+                <div className="mt-3 flex gap-2">
+                  {houses.map((house) => (
+                    <button
+                      key={house.id}
+                      type="button"
+                      onClick={async () => {
+                        await fetch('/api/me', {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ householdId: house.id }),
+                        });
+                        setHouseId(house.id);
+                        setOpen(false);
+                        window.location.assign('/home');
+                      }}
+                      className={`rounded-full px-3 py-1 text-xs font-black ${
+                        houseId === house.id
+                          ? 'bg-[#e8c547] text-[#1a1404]'
+                          : 'border border-white/15 text-[#f6f1e3]/70'
+                      }`}
+                    >
+                      {house.name}
+                    </button>
+                  ))}
+                </div>
+              ) : houses[0] ? (
+                <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c08457]">
+                  {houses[0].name}
+                </p>
+              ) : null}
             </div>
             <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain">
               {isAdmin && (
@@ -181,6 +238,7 @@ export default function AppMenu({
                   { href: '/history', label: 'Completed log', Icon: ClipboardList },
                   { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
+                  { href: '/how', label: 'How to use', Icon: Info },
                   { href: '/about', label: 'About program', Icon: Info },
                 ].map(({ href, label, Icon }) => {
                     const active = pathname === href || pathname.startsWith(href + '/');

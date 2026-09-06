@@ -3,6 +3,7 @@ import { displayBelt } from '@/lib/belts';
 import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetEffortVolume, sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import {
@@ -123,8 +124,10 @@ async function householdScoreboardFiltered(
   sessionWindow: SqlWindow,
   optionalWindow: SqlWindow,
   badgeWindow: SqlWindow,
-  priorSessionWindow: SqlWindow | null = null
+  priorSessionWindow: SqlWindow | null = null,
+  householdId?: number | null
 ): Promise<HouseholdScoreboardRow[]> {
+  const house = sqlInHousehold('u.id', householdId);
   const result = await query(
     `SELECT
        u.id,
@@ -151,10 +154,11 @@ async function householdScoreboardFiltered(
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+     WHERE 1=1 ${house.sql}
      GROUP BY u.id, u.name
      HAVING COUNT(DISTINCT ws.id) > 0
      ORDER BY workouts DESC, volume DESC, u.name ASC`,
-    [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params]
+    [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params, ...house.params]
   );
 
   const rows = result.rows as {
@@ -191,8 +195,9 @@ async function householdScoreboardFiltered(
        INNER JOIN workout_sessions ws
          ON ws.user_id = u.id AND ws.is_completed = 1 ${priorSessionWindow.sql}
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       WHERE 1=1 ${house.sql}
        GROUP BY u.id`,
-      [...priorSessionWindow.params]
+      [...priorSessionWindow.params, ...house.params]
     );
     for (const row of prior.rows as {
       id: number;
@@ -287,17 +292,22 @@ async function householdScoreboardFiltered(
     );
 }
 
-export async function householdScoreboard(period: ScoreboardPeriod): Promise<HouseholdScoreboardRow[]> {
+export async function householdScoreboard(
+  period: ScoreboardPeriod,
+  householdId?: number | null
+): Promise<HouseholdScoreboardRow[]> {
   return householdScoreboardFiltered(
     periodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
     periodFilter(period, 'COALESCE(optws.completed_at, optws.started_at, optws.created_at)'),
     periodFilter(period, 'ub.earned_at'),
-    priorPeriodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)')
+    priorPeriodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
+    householdId
   );
 }
 
 export async function householdScoreboardForPerformance(
-  period: PerformancePeriod
+  period: PerformancePeriod,
+  householdId?: number | null
 ): Promise<HouseholdScoreboardRow[]> {
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
   const prior = priorPeriodWindow(window);
@@ -305,7 +315,8 @@ export async function householdScoreboardForPerformance(
     sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', window),
     sqlPeriodWindow('COALESCE(optws.completed_at, optws.started_at, optws.created_at)', window),
     sqlPeriodWindow('ub.earned_at', window),
-    prior ? sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', prior) : null
+    prior ? sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', prior) : null,
+    householdId
   );
 }
 
@@ -367,9 +378,10 @@ export function snapshotFromRows(
 export async function performanceSnapshot(
   userId: number,
   name: string,
-  period: PerformancePeriod
+  period: PerformancePeriod,
+  householdId?: number | null
 ): Promise<PerformanceSnapshot> {
-  const rows = await householdScoreboardForPerformance(period);
+  const rows = await householdScoreboardForPerformance(period, householdId);
   return (
     snapshotFromRows(userId, name, rows) || {
       row: await emptySnapshotRow(userId, name, period),
@@ -379,11 +391,15 @@ export async function performanceSnapshot(
   );
 }
 
-export async function householdBonusHonor(period: ScoreboardPeriod): Promise<BonusHonorRow[]> {
+export async function householdBonusHonor(
+  period: ScoreboardPeriod,
+  householdId?: number | null
+): Promise<BonusHonorRow[]> {
   const sessionWindow = periodFilter(
     period,
     'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'
   );
+  const house = sqlInHousehold('u.id', householdId);
   const result = await query(
     `SELECT
        u.id,
@@ -392,11 +408,11 @@ export async function householdBonusHonor(period: ScoreboardPeriod): Promise<Bon
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 AND ${bonusTypeSql('ws')} ${sessionWindow.sql}
-     WHERE ${SQL_EXCLUDE_TEST_USER}
+     WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
      GROUP BY u.id, u.name
      HAVING COUNT(DISTINCT ws.week_number) > 0
      ORDER BY bonus_weeks DESC, u.name ASC`,
-    [...sessionWindow.params]
+    [...sessionWindow.params, ...house.params]
   );
 
   return (result.rows as { id: number; name: string; bonus_weeks: number }[]).map((row) => ({
@@ -407,9 +423,13 @@ export async function householdBonusHonor(period: ScoreboardPeriod): Promise<Bon
 }
 
 /** Per-athlete daily volume for the scoreboard chart. Test stays in the lines; avg drops Test in the chart. */
-export async function householdWeightSeries(period: ScoreboardPeriod): Promise<ScoreboardDailyPoint[]> {
+export async function householdWeightSeries(
+  period: ScoreboardPeriod,
+  householdId?: number | null
+): Promise<ScoreboardDailyPoint[]> {
   const day = 'DATE(COALESCE(ws.completed_at, ws.created_at))';
   const dateWindow = periodFilter(period, day);
+  const house = sqlInHousehold('u.id', householdId);
   const [sets, optionals] = await Promise.all([
     query(
       `SELECT ws.user_id, u.name, ${day} as workout_date,
@@ -419,9 +439,9 @@ export async function householdWeightSeries(period: ScoreboardPeriod): Promise<S
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
          AND es.is_completed = 1
-         ${dateWindow.sql}
+         ${dateWindow.sql} ${house.sql}
        GROUP BY ws.user_id, u.name, ${day}`,
-      [...dateWindow.params]
+      [...dateWindow.params, ...house.params]
     ),
     query(
       `SELECT ws.user_id, u.name, ${day} as workout_date,
@@ -429,9 +449,9 @@ export async function householdWeightSeries(period: ScoreboardPeriod): Promise<S
        FROM workout_sessions ws
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
-         ${dateWindow.sql}
+         ${dateWindow.sql} ${house.sql}
        GROUP BY ws.user_id, u.name, ${day}`,
-      [...dateWindow.params]
+      [...dateWindow.params, ...house.params]
     ),
   ]);
 

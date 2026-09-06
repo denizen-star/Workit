@@ -16,14 +16,14 @@ export async function GET() {
         'SELECT week_number, is_completed FROM workout_sessions WHERE user_id = ?',
         [user.id]
       ),
-      householdBeltRows(),
+      householdBeltRows(user.householdId),
     ]);
 
     return NextResponse.json({
       ...progressFor(
         lockedWeekCount(mine.rows as Array<{ week_number: number; is_completed: unknown }>),
         user.coachTone,
-        user.name
+        user.callName
       ),
       household,
     });

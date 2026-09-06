@@ -4,23 +4,42 @@ Top-to-bottom on each route. Overlays sit on top and are listed last. Folded = c
 
 ## `/` (`app/page.tsx`)
 
-Redirect. Session → `/home`. Else `/who`. Middleware usually handles this.
+Redirect. Session → `/home`. Else `/login`. Middleware usually handles this.
 
-## `/who` — Who are you
+## `/login`
 
-- Header: logo + What is Work-It? (`?`)
-- Claim / reset PIN flow when `?claim=` or `?reset=` (create PIN → confirm)
-- Profile picker
-  - Working the Gym (open)
-  - Getting back on it! (folded)
-- PIN pad after a pick
-- Forgot PIN (only if that profile has email)
-- Help sheets: What is Work-It?, Add to Home Screen
-- Dead claim/reset stays on the picker with Tom resend copy
+- Email + 4-digit PIN
+- Session already on this phone → `/home`
+- Unverified new join: “email has not been verified”
+- Forgot PIN (mails `/login?reset=`)
+- Join the movement → `/join?h=gowanus`
+- `?verify=` completes Gowanus verify and opens Home
+
+## `/who`
+
+Redirect to `/login`. Old `?claim=` → `/join?claim=`. Old `?reset=` → `/login?reset=`
+
+## `/join`
+
+- No query or `h=og` without claim → `/login`
+- `h=gowanus`: intro → form (first, last, alias, email, optional phone/weight/photo) + waiver checkbox/sheet → PIN
+- `h=` + `claim=`: same steps for that house; no verify mail; session on finish
+- New Gowanus: account after PIN; Home after verify mail
+- Draft on the phone until PIN
+
+## `/waiver`
+
+Public waiver text.
+
+## `/how`
+
+How to use Work-It. Linked from Home banner (until 5 finished workouts) and the menu.
 
 ## `/home` — Home Quiet
 
-- Header: logo + menu
+- Header: logo (or photo) + menu. Menu: house switch if in more than one (The OG / Gowanus)
+- First visit without waiver: Update your profile (prefilled) + required waiver
+- How to use banner until 5 finished workouts
 - Today card (`gold-hero`)
   - Rest / Today / Pick back up / Program-done title
   - Focus · Est. (live day)

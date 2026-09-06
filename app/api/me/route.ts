@@ -14,7 +14,19 @@ import {
 import { asCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
-import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
+import {
+  composeFullName,
+  isAliasTakenInHouse,
+  isDuplicateEmailError,
+  isNameTaken,
+  NAME_TAKEN_MESSAGE,
+  normalizeEmail,
+  normalizeName,
+  normalizeOptionalText,
+} from '@/lib/profile';
+import { listHouseholdsForUser, setLastHousehold, userInHousehold } from '@/lib/household';
+import { parsePhotoDataUrl } from '@/lib/photo';
+import { WAIVER_TEXT } from '@/lib/waiver';
 
 export async function GET() {
   const user = await getCurrentUser();
@@ -23,7 +35,19 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  return NextResponse.json({ user });
+  const [houses, done] = await Promise.all([
+    listHouseholdsForUser(user.id).catch(() => []),
+    query(
+      'SELECT COUNT(*) as total FROM workout_sessions WHERE user_id = ? AND is_completed = 1',
+      [user.id]
+    ).catch(() => ({ rows: [{ total: 0 }] })),
+  ]);
+
+  return NextResponse.json({
+    user,
+    houses,
+    completedWorkouts: Number((done.rows[0] as { total: number } | undefined)?.total || 0),
+  });
 }
 
 export async function PATCH(request: NextRequest) {
@@ -34,7 +58,23 @@ export async function PATCH(request: NextRequest) {
     }
 
     const body = await request.json();
-    const soundOnly = typeof body.soundOn === 'boolean' && body.name == null;
+    if (body.householdId != null) {
+      const householdId = Number(body.householdId);
+      if (!(await userInHousehold(user.id, householdId))) {
+        return NextResponse.json({ error: 'Not in that house' }, { status: 403 });
+      }
+      await setLastHousehold(user.id, householdId);
+      return NextResponse.json({ success: true });
+    }
+
+    if (body.acceptWaiver === true) {
+      await query(
+        'UPDATE users SET waiver_text = ?, waiver_accepted_at = UTC_TIMESTAMP() WHERE id = ?',
+        [WAIVER_TEXT, user.id]
+      );
+    }
+
+    const soundOnly = typeof body.soundOn === 'boolean' && body.name == null && body.firstName == null;
     if (soundOnly) {
       const soundOn = normalizeSoundOn(body.soundOn);
       await updateSoundOn(user.id, soundOn);
@@ -47,7 +87,17 @@ export async function PATCH(request: NextRequest) {
       });
     }
 
-    const name = normalizeName(body.name);
+    const firstName = normalizeOptionalText(body.firstName, 120);
+    const lastName = normalizeOptionalText(body.lastName, 120);
+    const displayName = normalizeOptionalText(body.displayName, 120);
+    const phone = normalizeOptionalText(body.phone, 32);
+    const weight =
+      body.bodyWeightLb == null || body.bodyWeightLb === ''
+        ? null
+        : Number(body.bodyWeightLb);
+    const photo = parsePhotoDataUrl(body.photo);
+    const name =
+      composeFullName(firstName, lastName, body.name) || normalizeName(body.name) || user.name;
     const email = normalizeEmail(body.email);
     const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
     const coachTone = asCoachTone(body.coachTone) ?? user.coachTone;
@@ -61,8 +111,20 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
     }
 
-    if (await isNameTaken(name, user.id)) {
+    if (user.householdId && displayName && (await isAliasTakenInHouse(user.householdId, displayName, user.id))) {
+      return NextResponse.json({ error: 'That alias is already on this house' }, { status: 409 });
+    }
+
+    if (name && (await isNameTaken(name, user.id))) {
       return NextResponse.json({ error: NAME_TAKEN_MESSAGE }, { status: 409 });
+    }
+
+    if (photo === undefined) {
+      return NextResponse.json({ error: 'Use a smaller JPEG or PNG for the photo' }, { status: 400 });
+    }
+
+    if (weight != null && (!Number.isFinite(weight) || weight <= 0 || weight > 999)) {
+      return NextResponse.json({ error: 'Weight must be a number in lb' }, { status: 400 });
     }
 
     if (email === undefined) {
@@ -73,14 +135,21 @@ export async function PATCH(request: NextRequest) {
       if (!isValidPin(pin)) {
         return NextResponse.json({ error: 'PIN must be exactly 4 digits' }, { status: 400 });
       }
-      await query('UPDATE users SET name = ?, email = ?, pin_hash = ? WHERE id = ?', [
-        name,
-        email,
-        hashPin(pin),
-        user.id,
-      ]);
+      await query(
+        `UPDATE users SET name = ?, email = ?, pin_hash = ?, first_name = ?, last_name = ?, display_name = ?,
+          phone = ?, body_weight_lb = ? ${photo ? ', photo = ?' : ''} WHERE id = ?`,
+        photo
+          ? [name, email, hashPin(pin), firstName, lastName, displayName, phone, weight, photo, user.id]
+          : [name, email, hashPin(pin), firstName, lastName, displayName, phone, weight, user.id]
+      );
     } else {
-      await query('UPDATE users SET name = ?, email = ? WHERE id = ?', [name, email, user.id]);
+      await query(
+        `UPDATE users SET name = ?, email = ?, first_name = ?, last_name = ?, display_name = ?,
+          phone = ?, body_weight_lb = ? ${photo ? ', photo = ?' : ''} WHERE id = ?`,
+        photo
+          ? [name, email, firstName, lastName, displayName, phone, weight, photo, user.id]
+          : [name, email, firstName, lastName, displayName, phone, weight, user.id]
+      );
     }
 
     await updateCoachTone(user.id, coachTone);

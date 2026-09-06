@@ -12,9 +12,35 @@ CREATE TABLE users (
     invited_by INT NULL,
     invite_token VARCHAR(64) NULL UNIQUE,
     invited_at TIMESTAMP NULL,
+    first_name VARCHAR(120) NULL,
+    last_name VARCHAR(120) NULL,
+    display_name VARCHAR(120) NULL,
+    phone VARCHAR(32) NULL,
+    body_weight_lb DECIMAL(6, 1) NULL,
+    photo MEDIUMBLOB NULL,
+    waiver_text MEDIUMTEXT NULL,
+    waiver_accepted_at TIMESTAMP NULL,
+    email_verified_at TIMESTAMP NULL,
+    last_household_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     INDEX idx_users_invited_by (invited_by)
+);
+
+CREATE TABLE households (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    slug VARCHAR(32) NOT NULL UNIQUE,
+    name VARCHAR(120) NOT NULL,
+    public_join TINYINT(1) NOT NULL DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE household_members (
+    household_id INT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (household_id, user_id),
+    INDEX idx_household_members_user (user_id)
 );
 
 

@@ -1,5 +1,6 @@
 export const MAIL_TEMPLATES = [
   'welcome',
+  'verify',
   'invite',
   'pin_reset',
   'nudge',

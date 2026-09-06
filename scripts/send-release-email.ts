@@ -83,7 +83,16 @@ async function main() {
     return;
   }
 
-  const recipients = await householdRecipients();
+  let recipients = await householdRecipients();
+  const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) => name.trim().toLowerCase());
+  const kevinOnly = only.length === 1 && only[0] === 'kevin';
+  if (recipients.length === 0 && kevinOnly) {
+    const to = (process.env.WORKIT_SCOREBOARD_TO || 'leacock.kervin@gmail.com').split(',')[0].trim();
+    if (to) {
+      recipients = [{ id: 1, name: 'Kevin Leacock', email: to, coach_tone: 'master' }];
+      console.log('[send-release-email] Kevin has no users.email — using WORKIT_SCOREBOARD_TO');
+    }
+  }
   if (recipients.length === 0) {
     console.error('[send-release-email] no users with email');
     process.exitCode = 1;

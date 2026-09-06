@@ -5,6 +5,8 @@ import { normalizeCoachTone, TONE_COOKIE, type CoachTone } from '@/lib/coachTone
 import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
+import { athleteCallName } from '@/lib/profile';
+import { getHouseholdById, householdIdForUser } from '@/lib/household';
 
 export type SessionUser = {
   id: number;
@@ -15,9 +17,21 @@ export type SessionUser = {
   coachTone: CoachTone;
   soundOn: boolean;
   restExtraMinutes: number;
+  firstName: string | null;
+  lastName: string | null;
+  displayName: string | null;
+  callName: string;
+  phone: string | null;
+  bodyWeightLb: number | null;
+  hasPhoto: boolean;
+  waiverAccepted: boolean;
+  emailVerified: boolean;
+  householdId: number | null;
+  householdSlug: string | null;
+  householdName: string | null;
 };
 
-let userSelectMode: 'rest' | 'full' | 'tone' | 'base' | null = null;
+let userSelectMode: 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
 
 type UserRow = {
   id: number;
@@ -27,9 +41,20 @@ type UserRow = {
   coach_tone?: string | null;
   sound_on?: number | boolean | string | null;
   rest_extra_minutes?: number | string | null;
+  first_name?: string | null;
+  last_name?: string | null;
+  display_name?: string | null;
+  phone?: string | null;
+  body_weight_lb?: number | string | null;
+  has_photo?: number | boolean | null;
+  waiver_accepted_at?: string | Date | null;
+  email_verified_at?: string | Date | null;
+  last_household_id?: number | null;
 };
 
 const USER_SELECTS = {
+  house:
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -37,14 +62,16 @@ const USER_SELECTS = {
 } as const;
 
 async function selectUserRow(userId: number): Promise<UserRow | undefined> {
-  const order: Array<'rest' | 'full' | 'tone' | 'base'> =
+  const order: Array<'house' | 'rest' | 'full' | 'tone' | 'base'> =
     userSelectMode === 'base'
       ? ['base']
       : userSelectMode === 'tone'
         ? ['tone', 'base']
         : userSelectMode === 'full'
           ? ['full', 'tone', 'base']
-          : ['rest', 'full', 'tone', 'base'];
+          : userSelectMode === 'rest'
+            ? ['rest', 'full', 'tone', 'base']
+            : ['house', 'rest', 'full', 'tone', 'base'];
 
   for (const mode of order) {
     try {
@@ -61,7 +88,8 @@ async function selectUserRow(userId: number): Promise<UserRow | undefined> {
 
 function toSessionUser(
   row: UserRow,
-  prefs?: { tone?: string | null; sound?: string | null }
+  prefs?: { tone?: string | null; sound?: string | null },
+  house?: { id: number | null; slug: string | null; name: string | null }
 ): SessionUser {
   return {
     id: row.id,
@@ -72,6 +100,22 @@ function toSessionUser(
     coachTone: normalizeCoachTone(row.coach_tone ?? prefs?.tone),
     soundOn: row.sound_on != null ? normalizeSoundOn(row.sound_on) : normalizeSoundOn(prefs?.sound),
     restExtraMinutes: normalizeRestExtraMinutes(row.rest_extra_minutes),
+    firstName: row.first_name ?? null,
+    lastName: row.last_name ?? null,
+    displayName: row.display_name ?? null,
+    callName: athleteCallName({
+      display_name: row.display_name,
+      first_name: row.first_name,
+      name: row.name,
+    }),
+    phone: row.phone ?? null,
+    bodyWeightLb: row.body_weight_lb == null ? null : Number(row.body_weight_lb),
+    hasPhoto: Boolean(row.has_photo),
+    waiverAccepted: Boolean(row.waiver_accepted_at),
+    emailVerified: row.email_verified_at !== undefined ? Boolean(row.email_verified_at) : true,
+    householdId: house?.id ?? null,
+    householdSlug: house?.slug ?? null,
+    householdName: house?.name ?? null,
   };
 }
 
@@ -160,10 +204,26 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
   const row = await selectUserRow(userId);
   if (!row) return null;
   const cookieStore = await cookies();
-  return toSessionUser(row, {
-    tone: cookieStore.get(TONE_COOKIE)?.value,
-    sound: cookieStore.get(SOUND_COOKIE)?.value,
-  });
+  let house: { id: number | null; slug: string | null; name: string | null } = {
+    id: null,
+    slug: null,
+    name: null,
+  };
+  try {
+    const householdId = await householdIdForUser(userId, row.last_household_id ?? null);
+    const resolved = householdId ? await getHouseholdById(householdId) : null;
+    if (resolved) house = { id: resolved.id, slug: resolved.slug, name: resolved.name };
+  } catch {
+    house = { id: null, slug: null, name: null };
+  }
+  return toSessionUser(
+    row,
+    {
+      tone: cookieStore.get(TONE_COOKIE)?.value,
+      sound: cookieStore.get(SOUND_COOKIE)?.value,
+    },
+    house
+  );
 }
 
 export function toneCookieOptions(tone: CoachTone) {

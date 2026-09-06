@@ -1,5 +1,6 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { guidedOptionalCircuit } from '@/lib/optionalCircuits';
 import { type ScoreboardPeriod } from '@/lib/scoreboardTypes';
@@ -263,9 +264,10 @@ function periodStartSql(period: ScoreboardPeriod, column: string) {
   return ` AND ${column} >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${days} DAY)`;
 }
 
-export async function householdOptionalHonor(period: ScoreboardPeriod) {
+export async function householdOptionalHonor(period: ScoreboardPeriod, householdId?: number | null) {
   const warmupWindow = periodStartSql(period, 'ws.warmup_completed_at');
   const cooldownWindow = periodStartSql(period, 'ws.cooldown_completed_at');
+  const house = sqlInHousehold('u.id', householdId);
   const result = await query(
     `SELECT
        u.id,
@@ -281,9 +283,10 @@ export async function householdOptionalHonor(period: ScoreboardPeriod) {
           AND SUM(CASE WHEN ws.cooldown_completed_at IS NOT NULL ${cooldownWindow} THEN 1 ELSE 0 END) >= ${OPTIONAL_WEEK_SLOTS}
      ) weeks
      INNER JOIN users u ON u.id = weeks.user_id
-     WHERE ${SQL_EXCLUDE_TEST_USER}
+     WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
      GROUP BY u.id, u.name
-     ORDER BY optional_weeks DESC, u.name ASC`
+     ORDER BY optional_weeks DESC, u.name ASC`,
+    house.params
   );
 
   return (result.rows as { id: number; name: string; optional_weeks: number }[]).map((row) => ({

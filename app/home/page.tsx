@@ -34,6 +34,7 @@ import { HomeFold } from '@/components/ScanCard';
 import WeekMedal from '@/components/WeekMedal';
 import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
+import UpdateProfileGate from '@/components/UpdateProfileGate';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
 import { lockedWeekCount } from '@/lib/belts';
@@ -83,6 +84,9 @@ export default function Home() {
   const [weekMissTakeover, setWeekMissTakeover] = useState(false);
   const [resumeLine, setResumeLine] = useState('');
   const [holdLine, setHoldLine] = useState('');
+  const [needsWaiver, setNeedsWaiver] = useState(false);
+  const [showHowBanner, setShowHowBanner] = useState(false);
+  const [hasPhoto, setHasPhoto] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -100,7 +104,7 @@ export default function Home() {
         if (meRes.ok) {
           const meData = await meRes.json();
           setUserId(meData.user?.id != null ? Number(meData.user.id) : null);
-          setUserName(meData.user?.name || '');
+          setUserName(meData.user?.callName || meData.user?.name || '');
           setUserEmail(meData.user?.email || '');
           setUserTone(normalizeCoachTone(meData.user?.coachTone));
           const soundOn = normalizeSoundOn(meData.user?.soundOn);
@@ -108,6 +112,9 @@ export default function Home() {
           setSoundEnabled(soundOn);
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setIsAdmin(!!meData.user?.isAdmin);
+          setNeedsWaiver(meData.user?.waiverAccepted === false);
+          setShowHowBanner(Number(meData.completedWorkouts || 0) < 5);
+          setHasPhoto(Boolean(meData.user?.hasPhoto));
         }
 
         if (sessionsRes.ok) {
@@ -232,7 +239,16 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Dumbbell className="h-8 w-8 text-[#e8c547]" />
+              {hasPhoto && userId ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={`/api/users/${userId}/photo`}
+                  alt=""
+                  className="h-10 w-10 rounded-full object-cover"
+                />
+              ) : (
+                <Dumbbell className="h-8 w-8 text-[#e8c547]" />
+              )}
               <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
             </div>
             <AppMenu
@@ -255,7 +271,16 @@ export default function Home() {
         </div>
       </header>
 
+      {needsWaiver ? <UpdateProfileGate onDone={() => setNeedsWaiver(false)} /> : null}
       <div className="container mx-auto px-4 py-8">
+        {showHowBanner ? (
+          <Link
+            href="/how"
+            className="mb-6 block rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 text-sm font-black text-[#e8c547]"
+          >
+            How to use Work-It
+          </Link>
+        ) : null}
         <div className="gold-hero p-6 sm:p-8">
           <div className="flex items-start justify-between gap-4">
             <div className="min-w-0 flex-1">

@@ -65,6 +65,7 @@ export async function POST(request: NextRequest) {
       inviterEmail,
       inviterId: guest.invited_by || user.id,
       rawToken,
+      houseSlug: user.householdSlug || 'og',
     });
 
     return NextResponse.json({ success: true });

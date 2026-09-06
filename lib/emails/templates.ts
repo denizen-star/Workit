@@ -1,8 +1,11 @@
-import { firstName } from '@/lib/profile';
+import { athleteCallName, firstName } from '@/lib/profile';
 import { formatDuration } from '@/lib/formatDuration';
 import {
   appUrl,
   whoUrl,
+  loginUrl,
+  waiverUrl,
+  verifyUrl,
   resetUrl,
   bullets,
   cta,
@@ -318,8 +321,9 @@ function address(name: string) {
 }
 
 export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
-  const name = firstName(input.name);
-  const url = whoUrl();
+  const name = athleteCallName({ name: input.name });
+  const url = loginUrl();
+  const waiver = waiverUrl();
   const tone = normalizeCoachTone(input.tone);
   const grey = tone === 'james';
   const luna = tone === 'luna';
@@ -366,6 +370,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
             ]
       ),
       cta(url, luna ? 'COME TRAIN' : 'REPORT IN'),
+      p('Waiver, Release, and Terms of Use: ' + waiver),
       iosHomeScreenStepsHtml(),
     ].join(''),
   });
@@ -379,6 +384,8 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     '',
     url,
     '',
+    'Waiver: ' + waiver,
+    '',
     iosHomeScreenStepsText(),
     emailTextSignOff(signer),
   ].join('\n');
@@ -387,6 +394,34 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     subject: luna ? 'You are welcome. Work-It.' : 'Report in. Work-It.',
     html,
     text,
+  };
+}
+
+export function buildVerifyEmail(input: {
+  name: string;
+  token: string;
+  tone?: CoachTone | null;
+}): BuiltEmail {
+  const name = athleteCallName({ name: input.name });
+  const url = verifyUrl(input.token);
+  const waiver = waiverUrl();
+  const html = wrapEmailHtml({
+    eyebrow: 'verify',
+    title: 'Open this once',
+    subtitle: 'Then you are on the floor',
+    signer: voiceDisplayName('luna'),
+    childrenHtml: [
+      address(name),
+      p('Your PIN is set. Open this mail to verify the address. Home waits until you do.'),
+      cta(url, 'VERIFY EMAIL'),
+      p('Waiver, Release, and Terms of Use: ' + waiver),
+    ].join(''),
+  });
+  return {
+    from: fromFor('luna'),
+    subject: 'Verify your email. Work-It.',
+    html,
+    text: [name + '.', '', 'Verify: ' + url, '', 'Waiver: ' + waiver].join('\n'),
   };
 }
 
@@ -1005,6 +1040,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
   };
 
   if (template === 'welcome') return buildWelcomeEmail({ name: 'Kevin' });
+  if (template === 'verify') return buildVerifyEmail({ name: 'Kevin', token: 'preview' });
   if (template === 'invite') {
     return buildInviteEmail({
       name: 'Maya Chen',

@@ -13,9 +13,11 @@ import {
   buildInviteEmail,
   buildInviteNotifyEmail,
   buildPinResetEmail,
+  buildVerifyEmail,
   buildWelcomeEmail,
   buildWorkoutCompleteEmail,
 } from '@/lib/emails/templates';
+import { createEmailVerifyToken } from '@/lib/emailVerify';
 import { BELTS } from '@/lib/belts';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimUrl, resetUrl } from '@/lib/emailLayout';
@@ -36,6 +38,7 @@ export async function sendInviteEmail(opts: {
   inviterEmail: string | null;
   inviterId?: number | null;
   rawToken: string;
+  houseSlug?: string;
   dedupe: boolean;
 }) {
   const tone = opts.inviterId ? await getUserTone(opts.inviterId) : undefined;
@@ -43,7 +46,7 @@ export async function sendInviteEmail(opts: {
     name: opts.name,
     inviterName: opts.inviterName,
     inviterEmail: opts.inviterEmail,
-    claimUrl: claimUrl(opts.rawToken),
+    claimUrl: claimUrl(opts.rawToken, opts.houseSlug || 'og'),
     tone,
   });
   if (!opts.dedupe) {
@@ -87,6 +90,7 @@ export function queueInviteEmail(opts: {
   inviterEmail: string | null;
   inviterId?: number | null;
   rawToken: string;
+  houseSlug?: string;
 }) {
   after(async () => {
     await sendInviteEmail({ ...opts, dedupe: true });
@@ -126,8 +130,37 @@ export async function resendInviteEmail(opts: {
   inviterEmail: string | null;
   inviterId?: number | null;
   rawToken: string;
+  houseSlug?: string;
 }) {
   return sendInviteEmail({ ...opts, dedupe: false });
+}
+
+export function queueJoinWelcome(opts: {
+  id: number;
+  name: string;
+  email: string;
+  verify: boolean;
+  callName: string;
+}) {
+  after(async () => {
+    if (opts.verify) {
+      const token = await createEmailVerifyToken(opts.id);
+      const email = buildVerifyEmail({ name: opts.callName || opts.name, token, tone: 'luna' });
+      await sendNow(opts.email, email, {
+        userId: opts.id,
+        athleteName: opts.name,
+        template: 'verify',
+      });
+    } else {
+      await sendWelcomeEmail({ id: opts.id, name: opts.callName || opts.name, email: opts.email });
+    }
+    await sendInviteNotifyEmail({
+      inviterName: 'Work-It',
+      inviterEmail: null,
+      inviteeName: opts.name,
+      inviteeEmail: opts.email,
+    });
+  });
 }
 
 export function queueWelcomeEmail(user: { id: number; name: string; email: string | null }) {

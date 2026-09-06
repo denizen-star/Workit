@@ -5,7 +5,7 @@ const MUTED = '#b9b1a0';
 const BG = '#07070a';
 const CARD = '#12121a';
 
-const LIVE_APP_URL = 'https://workit.kervinapps.com';
+const LIVE_APP_URL = 'https://workitapp.fit';
 
 export function appUrl() {
   // Do not read NEXT_PUBLIC_APP_URL. Next.js inlines those at build time, so a
@@ -16,15 +16,33 @@ export function appUrl() {
 }
 
 export function whoUrl() {
-  return appUrl() + '/who';
+  return loginUrl();
 }
 
-export function claimUrl(rawToken: string) {
-  return whoUrl() + '?claim=' + encodeURIComponent(rawToken);
+export function loginUrl() {
+  return appUrl() + '/login';
+}
+
+export function joinUrl(slug: string, claim?: string | null) {
+  const url = appUrl() + '/join?h=' + encodeURIComponent(slug);
+  if (!claim) return url;
+  return url + '&claim=' + encodeURIComponent(claim);
+}
+
+export function waiverUrl() {
+  return appUrl() + '/waiver';
+}
+
+export function verifyUrl(rawToken: string) {
+  return appUrl() + '/login?verify=' + encodeURIComponent(rawToken);
+}
+
+export function claimUrl(rawToken: string, houseSlug = 'og') {
+  return joinUrl(houseSlug, rawToken);
 }
 
 export function resetUrl(rawToken: string) {
-  return whoUrl() + '?reset=' + encodeURIComponent(rawToken);
+  return loginUrl() + '?reset=' + encodeURIComponent(rawToken);
 }
 
 export function esc(s: string) {

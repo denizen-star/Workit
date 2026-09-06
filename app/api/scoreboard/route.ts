@@ -18,11 +18,12 @@ export async function GET(request: NextRequest) {
 
     const requested = request.nextUrl.searchParams.get('period') || '7';
     const period: ScoreboardPeriod = isScoreboardPeriod(requested) ? requested : '7';
+    const houseId = user.householdId;
     const [rawRows, bonusHonor, optionalHonor, dailySeries] = await Promise.all([
-      householdScoreboard(period),
-      householdBonusHonor(period),
-      householdOptionalHonor(period),
-      householdWeightSeries(period),
+      householdScoreboard(period, houseId),
+      householdBonusHonor(period, houseId),
+      householdOptionalHonor(period, houseId),
+      householdWeightSeries(period, houseId),
     ]);
     const rows = await attachHouseTracking(rawRows, period);
 

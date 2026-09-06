@@ -28,7 +28,7 @@ export default function YouPageShell({
     fetch('/api/me')
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
-        setUserName(data?.user?.name || '');
+        setUserName(data?.user?.callName || data?.user?.name || '');
         setUserEmail(data?.user?.email || '');
         setUserTone(normalizeCoachTone(data?.user?.coachTone));
         setUserSoundOn(normalizeSoundOn(data?.user?.soundOn));

@@ -9,6 +9,8 @@ import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
+import PhotoCropField from '@/components/PhotoCropField';
+import { composeFullName, splitFullName } from '@/lib/profile';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -39,6 +41,12 @@ export default function EditProfileModal({
 }: EditProfileModalProps) {
   const [name, setName] = useState(currentName);
   const [email, setEmail] = useState(currentEmail);
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
+  const [displayName, setDisplayName] = useState('');
+  const [phone, setPhone] = useState('');
+  const [bodyWeightLb, setBodyWeightLb] = useState('');
+  const [photo, setPhoto] = useState<string | null>(null);
   const [tone, setTone] = useState<CoachTone>(normalizeCoachTone(currentTone));
   const [soundOn, setSoundOn] = useState(normalizeSoundOn(currentSoundOn));
   const [restExtraMinutes, setRestExtraMinutes] = useState(
@@ -60,6 +68,20 @@ export default function EditProfileModal({
     if (open) {
       setName(currentName);
       setEmail(currentEmail);
+      fetch('/api/me')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          const user = data?.user;
+          if (!user) return;
+          const split = splitFullName(user.name);
+          setFirstName(user.firstName || split.first);
+          setLastName(user.lastName || split.last);
+          setDisplayName(user.displayName || '');
+          setPhone(user.phone || '');
+          setBodyWeightLb(user.bodyWeightLb != null ? String(user.bodyWeightLb) : '');
+          setEmail(user.email || currentEmail);
+          setName(composeFullName(user.firstName || split.first, user.lastName || split.last, user.name));
+        });
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
       setRestExtraMinutes(normalizeRestExtraMinutes(currentRestExtraMinutes));
@@ -79,8 +101,8 @@ export default function EditProfileModal({
   }, [open, currentName, currentEmail, currentTone, currentSoundOn, currentRestExtraMinutes]);
 
   const save = async (finalPin: string | null) => {
-    if (!name.trim()) {
-      setError('Enter a full name');
+    if (!firstName.trim()) {
+      setError('Enter a first name');
       return;
     }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -92,16 +114,16 @@ export default function EditProfileModal({
     setError('');
 
     try {
-      const payload: {
-        name: string;
-        email: string;
-        pin?: string;
-        coachTone: CoachTone;
-        soundOn: boolean;
-        restExtraMinutes: number;
-      } = {
-        name: name.trim(),
+      const fullName = composeFullName(firstName, lastName);
+      const payload: Record<string, unknown> = {
+        name: fullName,
         email: email.trim(),
+        firstName,
+        lastName,
+        displayName,
+        phone,
+        bodyWeightLb,
+        photo,
         coachTone: tone,
         soundOn,
         restExtraMinutes,
@@ -139,8 +161,8 @@ export default function EditProfileModal({
   };
 
   const goToPin = () => {
-    if (!name.trim()) {
-      setError('Enter a full name');
+    if (!firstName.trim()) {
+      setError('Enter a first name');
       return;
     }
     if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
@@ -169,13 +191,6 @@ export default function EditProfileModal({
                 Update your name, email, or PIN. Same four digits is allowed.
               </p>
 
-              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Full name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="glass-input mb-4 w-full"
-              />
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
               <input
                 type="email"
@@ -183,6 +198,47 @@ export default function EditProfileModal({
                 onChange={(e) => setEmail(e.target.value)}
                 className="glass-input mb-4 w-full"
               />
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">First name</label>
+              <input
+                type="text"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Last name</label>
+              <input
+                type="text"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <p className="mb-4 text-sm text-[#f6f1e3]/55">
+                Full name · {composeFullName(firstName, lastName) || '—'}
+              </p>
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Alias</label>
+              <input
+                type="text"
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Phone</label>
+              <input
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Weight (lb)</label>
+              <input
+                type="number"
+                value={bodyWeightLb}
+                onChange={(e) => setBodyWeightLb(e.target.value)}
+                className="glass-input mb-4 w-full"
+              />
+              <div className="mb-4">
+                <PhotoCropField optional onChange={setPhoto} />
+              </div>
               <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
               <div className="mb-4 grid gap-2">
                 {getCoachToneOptions().map((option) => {

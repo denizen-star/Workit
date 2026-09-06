@@ -101,7 +101,8 @@ export async function GET(request: NextRequest) {
         );
 
     const household = await householdHomeStats(
-      dailyStats.rows.map((row) => row.workout_date)
+      dailyStats.rows.map((row) => row.workout_date),
+      user.householdId
     );
 
     let daily = dailyStats.rows as { workout_date: string; total_weight_lifted: number | string }[];

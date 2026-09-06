@@ -2,7 +2,20 @@
 
 ## Unreleased
 
+## 7.0.0 - 2026-09-06
+
+### Added
+- **Log in** at `/login`: email + 4-digit PIN. Live host **workitapp.fit**
+- **Join the movement** at `/join?h=gowanus`: intro, profile, waiver, PIN. New people verify mail before Home. Coach Luna
+- Two houses: **The OG** and **Gowanus**. Invite stays in the house that sent it. Menu switch if you are in both
+- Waiver on join and first Home for people who have not accepted. Exact text + time stored. Link in welcome mail (`/waiver`)
+- How to use (`/how`). Home banner until 5 finished workouts
+- Profile: first name, last name, alias, phone, weight lb, circle photo. Full name is first + last
+
 ### Changed
+- No name picker. `/` and `/who` go to `/login` (or Home if already in)
+- Coach and mail use **alias**, else first name
+- Existing athletes: first Home after this is Update your profile (prefilled) + required waiver
 - Displayed totals abbreviate across the app (`12k`, `1.6k`, `141k`). Logged set weight and reps stay exact.
 - Home last-week medal sits in the Today header row. It no longer pads the whole card or clip the four numbers
 - You vs on a phone stacks You / them under each KPI. No spark. Days and Effort wrap.

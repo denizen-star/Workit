@@ -6,7 +6,7 @@ New-athlete explanation of the program. Not the short Who-sheet copy (`lib/helpC
 
 ---
 
-Work-It is a strength log for your house. You pick your name, set a 4-digit PIN, and write down what you lifted. That is the whole job: show up, do the day’s work, record it.
+Work-It is a strength log for your house. You sign in with **email + a 4-digit PIN** and write down what you lifted. That is the whole job: show up, do the day’s work, record it. New people join at `/join?h=gowanus`. Returning people use `/login`.
 
 Do not invent the session on the fly. We already thought it through and planned it for you. The year is written: **48 weeks**, about **four training days** each week. Finish any four sessions and that week **locks**. Gaps count — you do not have to be perfect, you have to finish four.
 

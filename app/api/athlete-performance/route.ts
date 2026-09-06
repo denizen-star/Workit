@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ hidden: false, period, rows });
     }
 
-    const board = await athletePerformanceWithSnapshot(user.id, user.name, period);
+    const board = await athletePerformanceWithSnapshot(user.id, user.callName, period);
     return NextResponse.json({ hidden: false, ...board });
   } catch (error) {
     if (error instanceof AuthError) {

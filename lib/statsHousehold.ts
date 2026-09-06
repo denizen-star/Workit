@@ -2,6 +2,7 @@ import { query } from '@/lib/db';
 import { easternMondayKey } from '@/lib/analyticsTime';
 import { lockedWeekStreak } from '@/lib/bonusDay';
 import { sqlSetEffortVolume } from '@/lib/exerciseKind';
+import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 
@@ -56,15 +57,19 @@ function placeholders(ids: number[]) {
 }
 
 export async function householdHomeStats(
-  athleteDailyDates: unknown[]
+  athleteDailyDates: unknown[],
+  householdId?: number | null
 ): Promise<HouseholdHomeStats | null> {
+  const house = sqlInHousehold('u.id', householdId);
   const active = await query(
     `SELECT DISTINCT ws.user_id as id
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id
      WHERE ws.is_completed = 1
        AND ${SQL_EXCLUDE_TEST_USER}
-       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`
+       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)
+       ${house.sql}`,
+    house.params
   );
 
   const ids = (active.rows as { id: number }[])

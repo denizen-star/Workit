@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { AuthError, requireCurrentUser } from '@/lib/auth';
+import { addHouseholdMember } from '@/lib/household';
 import { isTestUserName } from '@/lib/householdUsers';
 import {
   countInvitesBy,
@@ -57,6 +58,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
+    if (!user.householdId) {
+      return NextResponse.json({ error: 'Pick a house first' }, { status: 400 });
+    }
+
     if (await isNameTaken(name)) {
       return NextResponse.json({ error: NAME_TAKEN_MESSAGE }, { status: 409 });
     }
@@ -77,6 +82,8 @@ export async function POST(request: NextRequest) {
     );
 
     const id = Number(result.insertId);
+    await addHouseholdMember(user.householdId, id);
+    await query('UPDATE users SET last_household_id = ? WHERE id = ?', [user.householdId, id]);
     queueInviteEmail({
       id,
       name,
@@ -85,6 +92,7 @@ export async function POST(request: NextRequest) {
       inviterEmail: user.email,
       inviterId: user.id,
       rawToken: raw,
+      houseSlug: user.householdSlug || 'og',
     });
 
     return NextResponse.json({
