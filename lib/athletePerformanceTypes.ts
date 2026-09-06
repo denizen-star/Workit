@@ -178,3 +178,20 @@ export function formatPct(value: number | null | undefined): string {
 export function formatLbs(value: number | null | undefined): string {
   return Math.round(Number(value || 0)).toLocaleString();
 }
+
+/** 1.2k · 18k · 1.2M. Under 1000 stays a plain number. */
+export function formatCompact(value: number | null | undefined): string {
+  const raw = Number(value || 0);
+  if (!Number.isFinite(raw)) return '0';
+  const sign = raw < 0 ? '-' : '';
+  const n = Math.abs(raw);
+  if (n >= 1_000_000) {
+    const digits = n >= 10_000_000 ? 0 : 1;
+    return `${sign}${(n / 1_000_000).toFixed(digits).replace(/\.0$/, '')}M`;
+  }
+  if (n >= 1000) {
+    const digits = n >= 10_000 ? 0 : 1;
+    return `${sign}${(n / 1000).toFixed(digits).replace(/\.0$/, '')}k`;
+  }
+  return `${sign}${Math.round(n).toLocaleString()}`;
+}

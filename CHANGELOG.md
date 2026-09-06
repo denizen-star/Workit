@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Changed
+- KPI values abbreviate (`12k`, `1.6k`, `141k`)
+- Home last-week medal sits in the Today header row. It no longer pads the whole card or clip the four numbers
+
 ## 6.0.0 - 2026-09-06
 
 ### Added

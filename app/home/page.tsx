@@ -256,12 +256,9 @@ export default function Home() {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        <div className={`gold-hero relative p-6 sm:p-8${weekYou ? ' pr-24 sm:pr-28' : ''}`}>
-          {weekYou ? (
-            <div className="absolute right-6 top-6 sm:right-8 sm:top-8">
-              <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
-            </div>
-          ) : null}
+        <div className="gold-hero p-6 sm:p-8">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0 flex-1">
           {today.type === 'hold' ? (
             <>
               <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
@@ -386,6 +383,13 @@ export default function Home() {
               )}
             </>
           )}
+            </div>
+            {weekYou ? (
+              <div className="shrink-0">
+                <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
+              </div>
+            ) : null}
+          </div>
           <HomeTodayKpis locked={today.type === 'hold'} />
         </div>
 

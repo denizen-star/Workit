@@ -27,8 +27,8 @@ Redirect. Session → `/home`. Else `/who`. Middleware usually handles this.
   - Hold line or resume line
   - Start WO / Resume WO · Select WO · Invite (Invite hidden for Test)
   - Restart (open session)
-  - Last-week medal if you placed
-  - Four window KPIs (last 15 days vs last time those lifts ran)
+  - Last-week medal in the header row if you placed (not over the whole card)
+  - Four window KPIs (last 15 days vs last time those lifts ran). Values abbreviate (`12k`)
 - Week lock (four required days)
 - Week performance (More load / More reps / Less drop / Less cut)
 - Daily weight lifted (`?` helper)

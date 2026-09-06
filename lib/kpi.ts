@@ -1,5 +1,5 @@
 import {
-  formatLbs,
+  formatCompact,
   formatPct,
   pctChange,
   type AthletePerformanceBoard,
@@ -68,18 +68,10 @@ function lineReps(line: PerformanceLine) {
   return { current: null as number | null, prior: null as number | null };
 }
 
-function pairValue(current: number, prior: number | null, kind: 'lb' | 'reps' | 'num') {
-  const now =
-    kind === 'reps'
-      ? String(Math.round(current * 10) / 10)
-      : kind === 'lb'
-        ? formatLbs(current)
-        : formatLbs(current);
+function pairValue(current: number, prior: number | null, _kind: 'lb' | 'reps' | 'num') {
+  const now = formatCompact(current);
   if (prior == null) return now;
-  const then =
-    kind === 'reps'
-      ? String(Math.round(prior * 10) / 10)
-      : formatLbs(prior);
+  const then = formatCompact(prior);
   if (then === now) return now;
   return `${then} → ${now}`;
 }
@@ -158,28 +150,28 @@ export function kpisFromLines(
   return [
     {
       id: 'weight',
-      value: formatLbs(weight),
+      value: formatCompact(weight),
       hint: `sum · avg ${Math.round(weight / count)}`,
       pct: pcts.weight,
       spark: rows[0]?.sparkWeight,
     },
     {
       id: 'reps',
-      value: String(Math.round(reps)),
+      value: formatCompact(reps),
       hint: `sum · avg ${Math.round((reps / count) * 10) / 10}`,
       pct: pcts.reps,
       spark: rows[0]?.sparkReps,
     },
     {
       id: 'volume',
-      value: formatLbs(volume),
+      value: formatCompact(volume),
       hint: 'reps × weight · lb',
       pct: pcts.volume,
       spark: rows[0]?.sparkRaw,
     },
     {
       id: 'effective',
-      value: formatLbs(effective),
+      value: formatCompact(effective),
         hint: `Perceived Effort ${formatHardnessWithPct(perception)}`,
       pct: pcts.effective,
       spark: rows[0]?.spark,
@@ -196,28 +188,28 @@ export function kpisFromBoard(board: AthletePerformanceBoard): KpiRowModel[] | n
     return [
       {
         id: 'weight',
-        value: formatLbs(window.weightSum),
+        value: formatCompact(window.weightSum),
         hint: `sum · avg/set ${Math.round(window.weightSum / sets)} lb`,
         pct: pcts.weight ?? pctChange(window.weightSum, window.priorWeightSum),
         spark: window.sparkWeight,
       },
       {
         id: 'reps',
-        value: String(Math.round(window.repSum)),
+        value: formatCompact(window.repSum),
         hint: `sum · avg/set ${Math.round((window.repSum / sets) * 10) / 10}`,
         pct: pcts.reps ?? pctChange(window.repSum, window.priorRepSum),
         spark: window.sparkReps,
       },
       {
         id: 'volume',
-        value: formatLbs(window.volume),
+        value: formatCompact(window.volume),
         hint: 'reps × weight · lb',
         pct: pcts.volume ?? pctChange(window.volume, window.priorVolume),
         spark: window.sparkVolume,
       },
       {
         id: 'effective',
-        value: formatLbs(window.effective),
+        value: formatCompact(window.effective),
         hint: `Perceived Effort ${formatHardnessWithPct(board.summary.perception)}`,
         pct: pcts.effective ?? pctChange(window.effective, window.priorEffective),
         spark: window.sparkEffective,
@@ -249,28 +241,28 @@ export function kpisFromBoard(board: AthletePerformanceBoard): KpiRowModel[] | n
   return [
     {
       id: 'weight',
-      value: formatLbs(weight),
+      value: formatCompact(weight),
       hint: `avg ${Math.round(weight / count)}`,
       pct: meanPct(rows.map((row) => row.weightChangePct)),
       spark: rows[0]?.sparkWeight,
     },
     {
       id: 'reps',
-      value: String(Math.round(reps)),
+      value: formatCompact(reps),
       hint: `avg ${Math.round((reps / count) * 10) / 10}`,
       pct: meanPct(rows.map((row) => pctChange(row.currentReps, row.priorReps))),
       spark: rows[0]?.sparkReps,
     },
     {
       id: 'volume',
-      value: formatLbs(volume),
+      value: formatCompact(volume),
       hint: 'reps × weight',
       pct: meanPct(rows.map((row) => row.rawVolumeChangePct ?? pctChange(row.currentVolume, row.priorVolume))),
       spark: board.workouts[0]?.sparkRaw || rows[0]?.sparkRaw,
     },
     {
       id: 'effective',
-      value: formatLbs(effective),
+      value: formatCompact(effective),
       hint: formatHardnessWithPct(board.summary.perception),
       pct: meanPct(rows.map((row) => row.volumeChangePct)),
       spark: board.workouts[0]?.spark || rows[0]?.spark,
@@ -289,7 +281,7 @@ export function kpisFromScoreboard(row: HouseholdScoreboardRow): KpiRowModel[] {
       ? [
           {
             id: 'weight' as const,
-            value: formatLbs(weight),
+            value: formatCompact(weight),
             hint: sets ? `avg ${Math.round(weight / sets)}` : undefined,
             pct: pctChange(weight, row.priorWeightSum),
           },
@@ -299,7 +291,7 @@ export function kpisFromScoreboard(row: HouseholdScoreboardRow): KpiRowModel[] {
       ? [
           {
             id: 'reps' as const,
-            value: String(Math.round(reps)),
+            value: formatCompact(reps),
             hint: sets ? `avg ${Math.round((reps / sets) * 10) / 10}` : `${row.sets} sets`,
             pct: pctChange(reps, row.priorRepSum),
           },
@@ -307,13 +299,13 @@ export function kpisFromScoreboard(row: HouseholdScoreboardRow): KpiRowModel[] {
       : []),
     {
       id: 'volume',
-      value: formatLbs(volume),
+      value: formatCompact(volume),
       hint: 'reps × weight',
       pct: pctChange(volume, row.priorRawVolume ?? row.priorVolume),
     },
     {
       id: 'effective',
-      value: formatLbs(effective),
+      value: formatCompact(effective),
       hint: formatHardnessWithPct(row.perception),
       pct: pctChange(effective, row.priorEffortSets ?? row.priorEffortVolume),
     },
