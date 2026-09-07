@@ -3,7 +3,9 @@ import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { guidedOptionalCircuit } from '@/lib/optionalCircuits';
-import { type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { performancePeriodWindow, sqlPeriodWindow } from '@/lib/performancePeriod';
+import { type PerformancePeriod } from '@/lib/athletePerformanceTypes';
+import { type CardioHonorRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export const OPTIONAL_SLOT_LBS = 500;
 export const OPTIONAL_SECONDS = 10 * 60;
@@ -293,6 +295,61 @@ export async function householdOptionalHonor(period: ScoreboardPeriod, household
     id: Number(row.id),
     name: row.name,
     optionalWeeks: Number(row.optional_weeks || 0),
+  }));
+}
+
+const CARDIO_TRACKS_SQL = `('run', 'bike')`;
+
+function cardioSecondsCaseSql(trackColumn: string, startColumn: string, completedColumn: string, window: string) {
+  return `CASE WHEN ${trackColumn} IN ${CARDIO_TRACKS_SQL} AND ${completedColumn} IS NOT NULL ${window}
+    THEN TIMESTAMPDIFF(SECOND, ${startColumn}, ${completedColumn}) ELSE 0 END`;
+}
+
+/** Total run + bike time (seconds) for one athlete's Optionals, within a performance window. */
+export async function athleteCardioSeconds(userId: number, period: PerformancePeriod): Promise<number> {
+  const window = performancePeriodWindow(period);
+  const warmupWindow = sqlPeriodWindow('warmup_completed_at', window);
+  const cooldownWindow = sqlPeriodWindow('cooldown_completed_at', window);
+  const result = await query(
+    `SELECT
+       COALESCE(SUM(${cardioSecondsCaseSql('warmup_track', 'warmup_started_at', 'warmup_completed_at', warmupWindow.sql)}), 0)
+       + COALESCE(SUM(${cardioSecondsCaseSql('cooldown_track', 'cooldown_started_at', 'cooldown_completed_at', cooldownWindow.sql)}), 0)
+       AS cardio_seconds
+     FROM workout_sessions
+     WHERE user_id = ?`,
+    [...warmupWindow.params, ...cooldownWindow.params, userId]
+  );
+  return Number((result.rows[0] as { cardio_seconds?: number } | undefined)?.cardio_seconds || 0);
+}
+
+/** Household leaderboard of run + bike time (seconds) from Optionals, for the Scoreboard. */
+export async function householdCardioHonor(
+  period: ScoreboardPeriod,
+  householdId?: number | null
+): Promise<CardioHonorRow[]> {
+  const warmupWindow = periodStartSql(period, 'ws.warmup_completed_at');
+  const cooldownWindow = periodStartSql(period, 'ws.cooldown_completed_at');
+  const house = sqlInHousehold('u.id', householdId);
+  const result = await query(
+    `SELECT
+       u.id,
+       u.name,
+       COALESCE(SUM(${cardioSecondsCaseSql('ws.warmup_track', 'ws.warmup_started_at', 'ws.warmup_completed_at', warmupWindow)}), 0)
+       + COALESCE(SUM(${cardioSecondsCaseSql('ws.cooldown_track', 'ws.cooldown_started_at', 'ws.cooldown_completed_at', cooldownWindow)}), 0)
+       AS cardio_seconds
+     FROM workout_sessions ws
+     INNER JOIN users u ON u.id = ws.user_id
+     WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
+     GROUP BY u.id, u.name
+     HAVING cardio_seconds > 0
+     ORDER BY cardio_seconds DESC, u.name ASC`,
+    house.params
+  );
+
+  return (result.rows as { id: number; name: string; cardio_seconds: number }[]).map((row) => ({
+    id: Number(row.id),
+    name: row.name,
+    cardioSeconds: Number(row.cardio_seconds || 0),
   }));
 }
 

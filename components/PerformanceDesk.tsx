@@ -7,6 +7,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react';
 import { FourKpiSpike, KpiList, VolumeSpikeList } from '@/components/KpiList';
 import { HBar, KpiCard, LastSessionCard, LiftCard } from '@/components/KpiStory';
 import { PeriodPills } from '@/components/AthletePerformance';
+import { formatDuration } from '@/lib/formatDuration';
 import {
   formatLbs,
   normalizePerformancePeriod,
@@ -558,6 +559,7 @@ export default function PerformanceDesk({
   const [household, setHousehold] = useState<HouseholdRow[] | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [cardioSeconds, setCardioSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -588,6 +590,7 @@ export default function PerformanceDesk({
           if (cancelled) return;
           const rows = ((Array.isArray(data?.rows) ? data.rows : []) as HouseholdRow[]).filter(boardHasActivity);
           setHousehold(rows);
+          setCardioSeconds(0);
           setSelected((current) => {
             const keep = current.filter((id) => rows.some((row) => row.userId === id));
             if (keep.length > 0) return keep;
@@ -606,6 +609,7 @@ export default function PerformanceDesk({
       if (cancelled) return;
       setHousehold(null);
       setBoard(data?.hidden ? null : (data as AthletePerformanceBoard));
+      setCardioSeconds(data?.hidden ? 0 : Number(data?.cardioSeconds || 0));
     };
     load()
       .catch(() => {
@@ -638,6 +642,14 @@ export default function PerformanceDesk({
   const body = (
     <div>
       {progressOnly ? null : <TabSwitch tab={tab} tabs={tabs} onPick={setTab} />}
+      {page && !isAdmin && cardioSeconds > 0 ? (
+        <div className="mb-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">
+            Running &amp; cycling · {PERIOD_LABELS[period]}
+          </p>
+          <p className="mt-1 text-base font-black text-white">{formatDuration(cardioSeconds)}</p>
+        </div>
+      ) : null}
       {page && isAdmin && household ? (
         <div className="mb-3 flex flex-wrap gap-1">
           {household.map((row) => {

@@ -15,6 +15,7 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
   const imageRef = useRef<HTMLImageElement | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
   const dragRef = useRef<{ x: number; y: number } | null>(null);
+  const zoomRef = useRef(1);
   const [preview, setPreview] = useState<string | null>(initialSrc || null);
   const [zoom, setZoom] = useState(1);
   const [ready, setReady] = useState(false);
@@ -53,6 +54,7 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
     });
     imageRef.current = image;
     panRef.current = { x: 0, y: 0 };
+    zoomRef.current = 1;
     setZoom(1);
     setReady(true);
     if (emit) applyCrop(1, 0, 0, true);
@@ -63,6 +65,7 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
     imageRef.current = null;
     panRef.current = { x: 0, y: 0 };
     dragRef.current = null;
+    zoomRef.current = 1;
     setZoom(1);
     setReady(false);
     setPreview(initialSrc || null);
@@ -71,7 +74,6 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
     loadFromSrc(initialSrc, false).catch(() => {
       setPreview(initialSrc);
     });
-    // Reset when the saved photo URL changes. onChange is stable enough for this field.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialSrc]);
 
@@ -90,11 +92,11 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
     const dy = event.clientY - dragRef.current.y;
     dragRef.current = { x: event.clientX, y: event.clientY };
     const next = {
-      x: Math.max(-1, Math.min(1, panRef.current.x - dx / 80)),
-      y: Math.max(-1, Math.min(1, panRef.current.y - dy / 80)),
+      x: Math.max(-1, Math.min(1, panRef.current.x - dx / 48)),
+      y: Math.max(-1, Math.min(1, panRef.current.y - dy / 48)),
     };
     panRef.current = next;
-    applyCrop(zoom, next.x, next.y);
+    applyCrop(zoomRef.current, next.x, next.y);
   };
 
   const onPointerUp = () => {
@@ -109,15 +111,11 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
         <HelpTip
           label="Photo help"
           title="Photo"
-          lead="Drag the circle to move the face. Use the slider to zoom. Center puts it back in the middle."
-          bullets={[
-            'Tap Choose or Change to pick a picture',
-            'Drag inside the circle to slide the photo',
-            'Center resets the crop. It is always on.',
-          ]}
+          lead="Drag the circle to move the picture. Slide zoom if you need it tighter."
+          bullets={['Tap Change to pick a picture', 'Drag the circle to move it']}
         />
       </p>
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-4">
         <div
           role="button"
           tabIndex={0}
@@ -128,7 +126,7 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
           onKeyDown={(event) => {
             if (event.key === 'Enter' || event.key === ' ') inputRef.current?.click();
           }}
-          className="flex h-20 w-20 shrink-0 cursor-grab touch-none items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/40 active:cursor-grabbing"
+          className="flex h-28 w-28 shrink-0 cursor-grab touch-none items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/40 active:cursor-grabbing"
         >
           {preview ? (
             // eslint-disable-next-line @next/next/no-img-element
@@ -137,44 +135,29 @@ export default function PhotoCropField({ label = 'Photo', optional, initialSrc, 
             <span className="text-[10px] text-[#f6f1e3]/40">Add</span>
           )}
         </div>
-        <div className="min-w-0 flex-1">
-          <input
-            type="range"
-            min={1}
-            max={2.4}
-            step={0.05}
-            value={zoom}
-            disabled={!ready}
-            onChange={(event) => {
-              const next = Number(event.target.value);
-              setZoom(next);
-              applyCrop(next, panRef.current.x, panRef.current.y);
-            }}
-            className="w-full"
-          />
-          <div className="mt-2 flex gap-2">
-            <button
-              type="button"
-              onClick={() => inputRef.current?.click()}
-              className="min-h-9 rounded-xl bg-[#e8c547] px-3 text-xs font-black text-[#1a1404]"
-            >
-              {preview ? 'Change' : 'Choose'}
-            </button>
-            {ready ? (
-              <button
-                type="button"
-                onClick={() => {
-                  panRef.current = { x: 0, y: 0 };
-                  applyCrop(zoom, 0, 0);
-                }}
-                className="min-h-9 rounded-xl border border-[#e8c547]/60 px-3 text-xs font-black text-[#e8c547]"
-              >
-                Center
-              </button>
-            ) : null}
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => inputRef.current?.click()}
+          className="min-h-11 rounded-2xl bg-[#e8c547] px-4 text-sm font-black text-[#1a1404]"
+        >
+          {preview ? 'Change' : 'Choose'}
+        </button>
       </div>
+      <input
+        type="range"
+        min={1}
+        max={2.4}
+        step={0.02}
+        value={zoom}
+        disabled={!ready}
+        onChange={(event) => {
+          const next = Number(event.target.value);
+          zoomRef.current = next;
+          setZoom(next);
+          applyCrop(next, panRef.current.x, panRef.current.y);
+        }}
+        className="mt-4 h-11 w-full accent-[#e8c547] disabled:opacity-40"
+      />
       <input
         ref={inputRef}
         type="file"

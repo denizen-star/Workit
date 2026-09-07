@@ -243,9 +243,9 @@ export default function OptionalCard({
   }, [running, state.startedAt]);
 
   useEffect(() => {
-    if (!running || !state.startedAt || !optionalTimerReady(state.startedAt, now)) return;
+    if (!running || !guided || !state.startedAt || !optionalTimerReady(state.startedAt, now)) return;
     finishSlot(false);
-  }, [running, state.startedAt, now, sessionId, slot]);
+  }, [running, guided, state.startedAt, now, sessionId, slot]);
 
   useEffect(() => {
     if (!running || !guided || !circuitDone) return;
@@ -259,6 +259,7 @@ export default function OptionalCard({
 
   const elapsed = optionalElapsedSeconds(state.startedAt, now);
   const remaining = optionalRemainingSeconds(state.startedAt, now);
+  const cardioReady = !guided && optionalTimerReady(state.startedAt, now);
   const timedStep =
     state.track && running && !guided ? optionalCircuitStep(slot, state.track, elapsed) : null;
   const guidedStep = guided && !circuitDone ? steps[Math.min(stepIndex, Math.max(0, steps.length - 1))] : null;
@@ -327,7 +328,9 @@ export default function OptionalCard({
     ? `${trackTitle} · ${
         circuitDone ? 'done' : `${Math.min(stepIndex + 1, steps.length)} of ${steps.length}`
       } · ${formatClock(remaining)} left`
-    : `${trackTitle} · ${formatClock(remaining)} left`;
+    : cardioReady
+      ? `${trackTitle} · ${formatClock(elapsed)} · done when you are`
+      : `${trackTitle} · ${formatClock(remaining)} left`;
 
   return (
     <div className="glass-card p-5">
@@ -461,8 +464,13 @@ export default function OptionalCard({
                       guided ? 'text-6xl' : 'text-7xl'
                     }`}
                   >
-                    {formatClock(guided ? holdRemaining : remaining)}
+                    {formatClock(guided ? holdRemaining : cardioReady ? elapsed : remaining)}
                   </p>
+                  {!guided && cardioReady ? (
+                    <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
+                      Counting up · done when you are
+                    </p>
+                  ) : null}
                   {guided && holdTarget > 0 ? (
                     <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
                       {holdRemaining === 0 ? 'That is the hold' : `Hold ${holdTarget} seconds`}
@@ -548,7 +556,9 @@ export default function OptionalCard({
                 <p className="mt-8 text-sm text-[#f6f1e3]/55">
                   {guided
                     ? 'Phone can lock. Stay easy. Done when you have it.'
-                    : 'Phone can lock. Stay easy until the clock hits zero.'}
+                    : cardioReady
+                      ? 'Phone can lock. Keep going as long as you like, then hit Done.'
+                      : 'Phone can lock. Stay easy until the clock hits zero.'}
                 </p>
               )}
               {!guided ? (
@@ -563,6 +573,18 @@ export default function OptionalCard({
                 <button
                   type="button"
                   onClick={completeStep}
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
+                >
+                  <Check className="h-6 w-6" />
+                  Done
+                </button>
+              </div>
+            ) : null}
+            {!guided && cardioReady ? (
+              <div className="shrink-0 border-t border-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  type="button"
+                  onClick={() => finishSlot(false)}
                   className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
                 >
                   <Check className="h-6 w-6" />

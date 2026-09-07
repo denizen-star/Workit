@@ -6,6 +6,7 @@ import {
   normalizePerformancePeriod,
   type PerformancePeriod,
 } from '@/lib/athletePerformance';
+import { athleteCardioSeconds } from '@/lib/optionals';
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,8 +26,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ hidden: false, period, rows });
     }
 
-    const board = await athletePerformanceWithSnapshot(user.id, user.callName, period);
-    return NextResponse.json({ hidden: false, ...board });
+    const [board, cardioSeconds] = await Promise.all([
+      athletePerformanceWithSnapshot(user.id, user.callName, period),
+      athleteCardioSeconds(user.id, period),
+    ]);
+    return NextResponse.json({ hidden: false, ...board, cardioSeconds });
   } catch (error) {
     if (error instanceof AuthError) {
       return NextResponse.json({ error: error.message }, { status: error.status });

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 7.1.0 - 2026-09-07
+
+### Added
+- Optional Run and Bike now show total time cycling and running: on Your performance (by period) and The house (Running & cycling honor roll)
+
+### Changed
+- Optional Run and Bike no longer auto-stop at 10 minutes. Clock counts up past 10 and you tap Done when you are done
+- Profile photo: bigger circle, zoom slider full width below it, Change button next to the photo. Drag to recenter (Center button removed)
+- Login remembers your email on this phone and lets the browser fill the PIN
+- Header photo stays next to the menu; the cropper opens on your saved picture; a `?` explains you can drag it
+- Profile form: email is required and validated. Phone formats as you type ((347) 555-1234). Photo sits above email on Edit profile and Join
+
+### Fixed
+- Profile photo: dragging while zoomed in used to snap back to the old zoom level. Drag now always uses your current zoom
+- New profile photos no longer get hidden behind the old cached one
+
 ## 7.0.0 - 2026-09-06
 
 ### Added

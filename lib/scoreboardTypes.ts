@@ -16,6 +16,12 @@ export type OptionalHonorRow = {
   optionalWeeks: number;
 };
 
+export type CardioHonorRow = {
+  id: number;
+  name: string;
+  cardioSeconds: number;
+};
+
 export type HouseholdScoreboardRow = {
   id: number;
   name: string;

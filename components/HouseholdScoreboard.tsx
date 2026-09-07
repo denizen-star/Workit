@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { KpiList } from '@/components/KpiList';
 import { formatHardnessWithPct } from '@/lib/hardness';
+import { formatDuration } from '@/lib/formatDuration';
 import { kpisFromScoreboard } from '@/lib/kpi';
 import { formatCompact, formatPct } from '@/lib/athletePerformanceTypes';
 import {
@@ -11,6 +12,7 @@ import {
   scoreboardRangeLabel,
   tomScoreboardLine,
   type BonusHonorRow,
+  type CardioHonorRow,
   type HouseholdScoreboardRow,
   type OptionalHonorRow,
   type ScoreboardPeriod,
@@ -57,6 +59,7 @@ export default function HouseholdScoreboard({
   const [rows, setRows] = useState<HouseholdScoreboardRow[]>([]);
   const [bonusHonor, setBonusHonor] = useState<BonusHonorRow[]>([]);
   const [optionalHonor, setOptionalHonor] = useState<OptionalHonorRow[]>([]);
+  const [cardioHonor, setCardioHonor] = useState<CardioHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -69,12 +72,14 @@ export default function HouseholdScoreboard({
         setRows(Array.isArray(data?.rows) ? data.rows : []);
         setBonusHonor(Array.isArray(data?.bonusHonor) ? data.bonusHonor : []);
         setOptionalHonor(Array.isArray(data?.optionalHonor) ? data.optionalHonor : []);
+        setCardioHonor(Array.isArray(data?.cardioHonor) ? data.cardioHonor : []);
       })
       .catch(() => {
         if (!cancelled) {
           setRows([]);
           setBonusHonor([]);
           setOptionalHonor([]);
+          setCardioHonor([]);
         }
       })
       .finally(() => {
@@ -179,6 +184,26 @@ export default function HouseholdScoreboard({
                     <p className="text-lg font-black text-white">{row.name}</p>
                     <p className="text-base font-semibold text-[#e8c547]">
                       {row.optionalWeeks} optional {row.optionalWeeks === 1 ? 'week' : 'weeks'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          {cardioHonor.length > 0 && (
+            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
+              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
+                Running &amp; cycling
+              </p>
+              <p className="mt-1 text-base text-[#f6f1e3]/70">
+                Easy minutes on the run and the bike, added up.
+              </p>
+              <div className="mt-3 space-y-2">
+                {cardioHonor.map((row) => (
+                  <div key={row.id} className="flex items-center justify-between gap-3">
+                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-base font-semibold text-[#e8c547]">
+                      {formatDuration(row.cardioSeconds)}
                     </p>
                   </div>
                 ))}

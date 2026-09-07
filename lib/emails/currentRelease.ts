@@ -36,53 +36,37 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.0.0',
-  title: 'The door changed. The work did not.',
-  subject: 'The door changed. The work did not.',
+  version: '7.1.0',
+  title: 'The clock does not cut you off anymore.',
+  subject: 'The clock does not cut you off anymore.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: false,
   includeNewAthletes: false,
   intro:
-    'The name list is gone, man. You report in with the mail and four digits. That is the door now. Quit is not a way around it.',
-  mid: 'A new house can walk in through Join. They accept the waiver. They prove the inbox. Then they train. You already had a name here. First Home asks you to confirm it and accept the same terms. First plus last is the full name. I call the alias if you have one.',
-  close: 'Hard-refresh. Open login. If you already train, that is your door. Get under the bar.',
+    'The Optional clock used to cut you off at ten minutes, man. Run, bike, done, whether you wanted more or not. Not anymore. Ten minutes is the floor, not the ceiling.',
+  mid: 'Keep the run or the bike going as long as you have it in you. The clock counts up past ten. You tap Done when you are done, not before. And every minute you put in now shows — Your performance keeps your total time running and cycling, and the house sees it too. Nothing to hide when you show up. The profile photo is easier to set as well: a bigger circle, drag it to where you want it, done.',
+  close: 'Hard-refresh. Open a session. Run it as long as you have it, then tap Done. Quit is not on that clock.',
   lead: '',
   groups: [
     {
-      heading: 'The door',
+      heading: 'Optional cardio',
       wins: [
-        'Log in — email and a four-digit PIN. No tapping a name.',
-        'Join — intro, your details, the waiver, then PIN.',
-        'New people — open the mail once. Home waits until they do.',
-        'Forgot PIN — still mail. Same four digits is allowed.',
+        'Run and Bike no longer stop at ten minutes. Keep going.',
+        'Tap Done whenever you are finished.',
+        'Total time running and cycling now shows on Your performance.',
+        'The house also shows a running and cycling honor roll.',
       ],
     },
     {
-      heading: 'The house',
+      heading: 'Profile photo',
       wins: [
-        'Two packs — The OG and Gowanus. Same year. Same four days to lock a week.',
-        'Invite stays in the house that sent it.',
-        'If you are in both, switch in the menu. The board follows.',
-      ],
-    },
-    {
-      heading: 'You',
-      wins: [
-        'First and last name. Full name updates from those two.',
-        'Alias if you want one. I use that, or your first name.',
-        'Photo, phone, weight in lb — optional.',
-        'Waiver — check it. The text you accepted is kept.',
-        'How to use — on Home until you finish five days.',
+        'Bigger circle to work with.',
+        'Drag it to recenter — no separate button needed.',
+        'Zoom slider sits below, full width.',
       ],
     },
   ],
-  kevin: {
-    intro:
-      'This letter is yours only, man. The house does not get it. Same facts as below. The door is login. Join is for the new house.',
-    mid: 'You already had a name here. First Home asks you to confirm it and accept the terms. First plus last is the full name.',
-    close: 'Hard-refresh. Open login. Then the bar.',
-  },
   wins: [],
   also: [],
 };
