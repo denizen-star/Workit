@@ -8,10 +8,44 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
+import { normalizeNoiseLevel, normalizeShowPrs, NOISE_LEVELS, type NoiseLevel } from '@/lib/noisePref';
 import { trackAction } from '@/lib/analytics';
 import PhotoCropField from '@/components/PhotoCropField';
 import { photoSrc } from '@/lib/photo';
 import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, splitFullName } from '@/lib/profile';
+import { HomeFold } from '@/components/ScanCard';
+
+const NOISE_LEVEL_LABEL: Record<NoiseLevel, string> = {
+  set: 'Every set',
+  exercise: 'Once per exercise',
+  off: 'Off',
+};
+
+/** Three-way Set / Exercise / Off picker shared by both Noise Control dials. */
+function NoiseLevelPicker({
+  value,
+  onChange,
+}: {
+  value: NoiseLevel;
+  onChange: (next: NoiseLevel) => void;
+}) {
+  return (
+    <div className="grid grid-cols-3 gap-2">
+      {NOISE_LEVELS.map((level) => (
+        <button
+          key={level}
+          type="button"
+          onClick={() => onChange(level)}
+          className={`rounded-2xl border px-2 py-3 text-center ${
+            value === level ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+          }`}
+        >
+          <span className="block text-xs font-black text-white">{NOISE_LEVEL_LABEL[level]}</span>
+        </button>
+      ))}
+    </div>
+  );
+}
 
 interface EditProfileModalProps {
   open: boolean;
@@ -20,6 +54,9 @@ interface EditProfileModalProps {
   currentTone?: CoachTone | string | null;
   currentSoundOn?: boolean | null;
   currentRestExtraMinutes?: number | null;
+  currentNoiseTakeover?: NoiseLevel | string | null;
+  currentNoiseEffort?: NoiseLevel | string | null;
+  currentShowPrs?: boolean | null;
   onClose: () => void;
   onSaved: (profile: {
     name: string;
@@ -27,6 +64,9 @@ interface EditProfileModalProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    noiseTakeover: NoiseLevel;
+    noiseEffort: NoiseLevel;
+    showPrs: boolean;
     hasPhoto?: boolean;
   }) => void;
 }
@@ -38,6 +78,9 @@ export default function EditProfileModal({
   currentTone = 'master',
   currentSoundOn = true,
   currentRestExtraMinutes = 0,
+  currentNoiseTakeover = 'set',
+  currentNoiseEffort = 'set',
+  currentShowPrs = true,
   onClose,
   onSaved,
 }: EditProfileModalProps) {
@@ -55,6 +98,9 @@ export default function EditProfileModal({
   const [restExtraMinutes, setRestExtraMinutes] = useState(
     normalizeRestExtraMinutes(currentRestExtraMinutes)
   );
+  const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseTakeover));
+  const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseEffort));
+  const [showPrs, setShowPrs] = useState(normalizeShowPrs(currentShowPrs));
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [changePin, setChangePin] = useState(false);
@@ -89,10 +135,16 @@ export default function EditProfileModal({
           if (user.hasPhoto && user.id != null) {
             setSavedPhotoSrc(photoSrc(Number(user.id), Date.now()));
           }
+          setNoiseTakeover(normalizeNoiseLevel(user.noiseTakeover));
+          setNoiseEffort(normalizeNoiseLevel(user.noiseEffort));
+          setShowPrs(normalizeShowPrs(user.showPrs));
         });
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
       setRestExtraMinutes(normalizeRestExtraMinutes(currentRestExtraMinutes));
+      setNoiseTakeover(normalizeNoiseLevel(currentNoiseTakeover));
+      setNoiseEffort(normalizeNoiseLevel(currentNoiseEffort));
+      setShowPrs(normalizeShowPrs(currentShowPrs));
       setError('');
       setSubmitting(false);
       setChangePin(false);
@@ -106,7 +158,17 @@ export default function EditProfileModal({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [open, currentName, currentEmail, currentTone, currentSoundOn, currentRestExtraMinutes]);
+  }, [
+    open,
+    currentName,
+    currentEmail,
+    currentTone,
+    currentSoundOn,
+    currentRestExtraMinutes,
+    currentNoiseTakeover,
+    currentNoiseEffort,
+    currentShowPrs,
+  ]);
 
   const save = async (finalPin: string | null) => {
     if (!firstName.trim()) {
@@ -138,6 +200,9 @@ export default function EditProfileModal({
         coachTone: tone,
         soundOn,
         restExtraMinutes,
+        noiseTakeover,
+        noiseEffort,
+        showPrs,
       };
       if (photo) payload.photo = photo;
       if (finalPin) payload.pin = finalPin;
@@ -163,6 +228,9 @@ export default function EditProfileModal({
         coachTone: normalizeCoachTone(data.user.coachTone),
         soundOn: nextSoundOn,
         restExtraMinutes: normalizeRestExtraMinutes(data.user.restExtraMinutes),
+        noiseTakeover: normalizeNoiseLevel(data.user.noiseTakeover),
+        noiseEffort: normalizeNoiseLevel(data.user.noiseEffort),
+        showPrs: normalizeShowPrs(data.user.showPrs),
         hasPhoto: Boolean(data.user.hasPhoto),
       });
       onClose();
@@ -267,50 +335,114 @@ export default function EditProfileModal({
                 onChange={(e) => setBodyWeightLb(e.target.value)}
                 className="glass-input mb-4 w-full"
               />
-              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
-              <div className="mb-4 grid gap-2">
-                {getCoachToneOptions().map((option) => {
-                const selected = tone === option.id;
-                return (
-                  <button
-                    key={option.id}
-                    type="button"
-                    onClick={() => setTone(option.id)}
-                    className={`rounded-2xl border px-4 py-3 text-left ${
-                      selected
-                        ? 'border-[#e8c547] bg-[#e8c547]/15'
-                        : 'border-white/10 bg-black/25'
-                    }`}
-                  >
-                    <span className="block text-sm font-black text-white">{option.label}</span>
-                    <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
-                    <span className="mt-2 block text-xs leading-relaxed text-[#f6f1e3]/45">{option.description}</span>
-                  </button>
-                );
-              })}
+              <div className="mb-4">
+                <HomeFold
+                  title="Coach voice"
+                  trailing={getCoachToneOptions().find((option) => option.id === tone)?.label}
+                >
+                  <div className="grid gap-2">
+                    {getCoachToneOptions().map((option) => {
+                      const selected = tone === option.id;
+                      return (
+                        <button
+                          key={option.id}
+                          type="button"
+                          onClick={() => setTone(option.id)}
+                          className={`rounded-2xl border px-4 py-3 text-left ${
+                            selected
+                              ? 'border-[#e8c547] bg-[#e8c547]/15'
+                              : 'border-white/10 bg-black/25'
+                          }`}
+                        >
+                          <span className="block text-sm font-black text-white">{option.label}</span>
+                          <span className="mt-1 block text-xs text-[#f6f1e3]/60">{option.blurb}</span>
+                          <span className="mt-2 block text-xs leading-relaxed text-[#f6f1e3]/45">
+                            {option.description}
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </HomeFold>
               </div>
-              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Workout sound</p>
-              <div className="mb-4 grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => setSoundOn(true)}
-                  className={`rounded-2xl border px-4 py-3 text-left ${
-                    soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
-                  }`}
-                >
-                  <span className="block text-sm font-black text-white">On</span>
-                  <span className="mt-1 block text-xs text-[#f6f1e3]/60">Chimes and horn</span>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSoundOn(false)}
-                  className={`rounded-2xl border px-4 py-3 text-left ${
-                    !soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
-                  }`}
-                >
-                  <span className="block text-sm font-black text-white">Off</span>
-                  <span className="mt-1 block text-xs text-[#f6f1e3]/60">Silent sets</span>
-                </button>
+
+              <div className="mb-4">
+                <HomeFold title="Noise Control" trailing="How much the app talks to you">
+                  <div className="space-y-4">
+                    <div>
+                      <p className="mb-1 text-sm font-semibold text-[#f6f1e3]/65">
+                        Set/rep result screens
+                      </p>
+                      <p className="mb-2 text-xs text-[#f6f1e3]/55">
+                        The full-screen call after a set: better, worse, or how hard it was.
+                      </p>
+                      <NoiseLevelPicker value={noiseTakeover} onChange={setNoiseTakeover} />
+                    </div>
+                    <div>
+                      <p className="mb-1 text-sm font-semibold text-[#f6f1e3]/65">
+                        Perceived-load result screens
+                      </p>
+                      <p className="mb-2 text-xs text-[#f6f1e3]/55">
+                        The call after voting How hard. Voting itself still happens every set.
+                      </p>
+                      <NoiseLevelPicker value={noiseEffort} onChange={setNoiseEffort} />
+                    </div>
+                    <div>
+                      <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">New PR screen</p>
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowPrs(true)}
+                          className={`rounded-2xl border px-4 py-3 text-left ${
+                            showPrs ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                          }`}
+                        >
+                          <span className="block text-sm font-black text-white">On</span>
+                          <span className="mt-1 block text-xs text-[#f6f1e3]/60">Show NEW PR</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setShowPrs(false)}
+                          className={`rounded-2xl border px-4 py-3 text-left ${
+                            !showPrs ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                          }`}
+                        >
+                          <span className="block text-sm font-black text-white">Off</span>
+                          <span className="mt-1 block text-xs text-[#f6f1e3]/60">
+                            Still in your recap email
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </HomeFold>
+              </div>
+
+              <div className="mb-4">
+                <HomeFold title="Workout sound" trailing={soundOn ? 'On' : 'Off'}>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSoundOn(true)}
+                      className={`rounded-2xl border px-4 py-3 text-left ${
+                        soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                      }`}
+                    >
+                      <span className="block text-sm font-black text-white">On</span>
+                      <span className="mt-1 block text-xs text-[#f6f1e3]/60">Chimes and horn</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSoundOn(false)}
+                      className={`rounded-2xl border px-4 py-3 text-left ${
+                        !soundOn ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                      }`}
+                    >
+                      <span className="block text-sm font-black text-white">Off</span>
+                      <span className="mt-1 block text-xs text-[#f6f1e3]/60">Silent sets</span>
+                    </button>
+                  </div>
+                </HomeFold>
               </div>
               <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Extra rest per break</p>
               <p className="mb-2 text-xs text-[#f6f1e3]/55">

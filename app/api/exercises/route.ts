@@ -202,7 +202,7 @@ export async function GET(request: NextRequest) {
       const previousWeek = weekNumber > 1 ? weekNumber - 1 : 0;
 
       const result = await query(
-        `SELECT es.exercise_name, es.set_number, es.weight_lbs, es.actual_reps,
+        `SELECT es.exercise_name, es.set_number, es.weight_lbs, es.actual_reps, es.hardness,
                 ws.week_number, ws.id as session_id,
                 COALESCE(ws.completed_at, ws.created_at) as done_at
          FROM exercise_sets es
@@ -213,7 +213,10 @@ export async function GET(request: NextRequest) {
       );
 
       const lastSessionByExercise: Record<string, number> = {};
-      const lastSets: Record<string, Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }>> = {};
+      const lastSets: Record<
+        string,
+        Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null; hardness: number | null }>
+      > = {};
       const personalRecords: Record<string, { weight: number; reps: number }> = {};
       const lastWeekMax: Record<string, number> = {};
 
@@ -245,6 +248,7 @@ export async function GET(request: NextRequest) {
           set_number: Number(row.set_number),
           weight_lbs: row.weight_lbs == null ? null : Number(row.weight_lbs),
           actual_reps: row.actual_reps == null ? null : Number(row.actual_reps),
+          hardness: parseHardness(row.hardness),
         });
       }
 

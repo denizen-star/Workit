@@ -7,6 +7,7 @@ import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, Lo
 import EditProfileModal from '@/components/EditProfileModal';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import { type NoiseLevel } from '@/lib/noisePref';
 import { isTestUserName } from '@/lib/householdUsers';
 import { trackAction } from '@/lib/analytics';
 
@@ -16,6 +17,9 @@ interface AppMenuProps {
   userTone?: CoachTone | string | null;
   userSoundOn?: boolean | null;
   userRestExtraMinutes?: number | null;
+  userNoiseTakeover?: NoiseLevel | string | null;
+  userNoiseEffort?: NoiseLevel | string | null;
+  userShowPrs?: boolean | null;
   isAdmin?: boolean;
   onProfileSaved?: (profile: {
     name: string;
@@ -23,6 +27,9 @@ interface AppMenuProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    noiseTakeover: NoiseLevel;
+    noiseEffort: NoiseLevel;
+    showPrs: boolean;
     hasPhoto?: boolean;
   }) => void;
 }
@@ -33,6 +40,9 @@ export default function AppMenu({
   userTone = 'master',
   userSoundOn = true,
   userRestExtraMinutes = 0,
+  userNoiseTakeover = 'set',
+  userNoiseEffort = 'set',
+  userShowPrs = true,
   isAdmin = false,
   onProfileSaved,
 }: AppMenuProps) {
@@ -339,6 +349,9 @@ export default function AppMenu({
         currentTone={normalizeCoachTone(userTone)}
         currentSoundOn={userSoundOn}
         currentRestExtraMinutes={userRestExtraMinutes}
+        currentNoiseTakeover={userNoiseTakeover}
+        currentNoiseEffort={userNoiseEffort}
+        currentShowPrs={userShowPrs}
         onClose={() => setShowEdit(false)}
         onSaved={(profile) => {
           if (profile.hasPhoto) {

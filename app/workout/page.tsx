@@ -42,6 +42,7 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
+import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
@@ -97,6 +98,9 @@ function WorkoutPageInner() {
   const [athleteName, setAthleteName] = useState('');
   const [soundOn, setSoundOn] = useState(true);
   const [restExtraMinutes, setRestExtraMinutes] = useState(0);
+  const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>('set');
+  const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>('set');
+  const [showPrs, setShowPrs] = useState(true);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
@@ -107,9 +111,25 @@ function WorkoutPageInner() {
   const [cooldownLbs, setCooldownLbs] = useState(0);
   const [priorAllTimeLbs, setPriorAllTimeLbs] = useState(0);
   const [priorAllTimeEffort, setPriorAllTimeEffort] = useState(0);
+  const [headerCollapsed, setHeaderCollapsed] = useState(false);
 
   useWakeLock(!!currentSession);
   usePortraitLock(!!currentSession);
+
+  // Fold the week/focus header and Today/All-time bar into the sticky Exit/Restart
+  // row on scroll down, freeing space for exercise cards; restore near the top.
+  useEffect(() => {
+    if (!currentSession) return;
+    const onScroll = () => {
+      setHeaderCollapsed((current) => {
+        if (window.scrollY > 48) return true;
+        if (window.scrollY < 12) return false;
+        return current;
+      });
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, [currentSession]);
 
   useEffect(() => {
     Promise.all([
@@ -124,6 +144,9 @@ function WorkoutPageInner() {
           setSoundOn(enabled);
           setSoundEnabled(enabled);
           setRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
+          setNoiseTakeover(normalizeNoiseLevel(data.user.noiseTakeover));
+          setNoiseEffort(normalizeNoiseLevel(data.user.noiseEffort));
+          setShowPrs(normalizeShowPrs(data.user.showPrs));
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
@@ -612,7 +635,13 @@ function WorkoutPageInner() {
                   </button>
                 </div>
               </div>
-              <div className="w-full text-center sm:flex-1">
+              {/* Week/focus fold away on scroll to free room for exercise cards; the
+                  clock lives outside this block on desktop too, so it stays visible collapsed or not. */}
+              <div
+                className={`w-full overflow-hidden text-center transition-all duration-200 sm:flex-1 ${
+                  headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'
+                }`}
+              >
                 <h1 className="text-lg font-black leading-tight text-[#f5d76e] sm:text-xl">
                   Week {selectedWeek} · {workout.name}
                 </h1>
@@ -620,12 +649,12 @@ function WorkoutPageInner() {
                   {workout.focus}
                   {workoutMode === 'travel' ? ' · Travel' : ''}
                 </p>
-                <p className="mt-1 hidden items-center justify-center gap-1 text-sm font-black tabular-nums text-[#e8c547] sm:inline-flex">
+              </div>
+              <div className="hidden items-center gap-3 sm:flex">
+                <p className="inline-flex items-center gap-1 text-sm font-black tabular-nums text-[#e8c547]">
                   <Clock className="h-3.5 w-3.5" />
                   {formatClock(elapsedSeconds)}
                 </p>
-              </div>
-              <div className="hidden items-center gap-2 sm:flex">
                 <button
                   type="button"
                   aria-label={soundOn ? 'Turn sound off' : 'Turn sound on'}
@@ -646,13 +675,19 @@ function WorkoutPageInner() {
               </div>
             </div>
           </div>
-          <SessionTotalsBar
-            sessionLbs={sessionLbs + warmupLbs + cooldownLbs}
-            sessionEffort={sessionEffort + warmupLbs + cooldownLbs}
-            sessionReps={sessionReps}
-            allTimeVolume={priorAllTimeLbs + sessionLbs + warmupLbs + cooldownLbs}
-            allTimeEffective={priorAllTimeEffort + sessionEffort + warmupLbs + cooldownLbs}
-          />
+          <div
+            className={`overflow-hidden transition-all duration-200 ${
+              headerCollapsed ? 'max-h-0 opacity-0' : 'max-h-20 opacity-100'
+            }`}
+          >
+            <SessionTotalsBar
+              sessionLbs={sessionLbs + warmupLbs + cooldownLbs}
+              sessionEffort={sessionEffort + warmupLbs + cooldownLbs}
+              sessionReps={sessionReps}
+              allTimeVolume={priorAllTimeLbs + sessionLbs + warmupLbs + cooldownLbs}
+              allTimeEffective={priorAllTimeEffort + sessionEffort + warmupLbs + cooldownLbs}
+            />
+          </div>
         </header>
 
         <div className="container mx-auto space-y-6 px-4 py-8 pb-28">
@@ -671,6 +706,9 @@ function WorkoutPageInner() {
             coachTone={coachTone}
             athleteName={athleteName}
             restExtraMinutes={restExtraMinutes}
+            noiseTakeover={noiseTakeover}
+            noiseEffort={noiseEffort}
+            showPrs={showPrs}
             onLiftsDone={() => {
               setLiftsDone(true);
               window.requestAnimationFrame(() => {

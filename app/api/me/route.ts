@@ -10,10 +10,12 @@ import {
   updateCoachTone,
   updateSoundOn,
   updateRestExtraMinutes,
+  updateNoisePrefs,
 } from '@/lib/auth';
 import { asCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
+import { normalizeNoiseLevel, normalizeShowPrs } from '@/lib/noisePref';
 import {
   composeFullName,
   formatUsPhone,
@@ -107,6 +109,11 @@ export async function PATCH(request: NextRequest) {
       body.restExtraMinutes === undefined
         ? user.restExtraMinutes
         : normalizeRestExtraMinutes(body.restExtraMinutes);
+    const noiseTakeover =
+      body.noiseTakeover === undefined ? user.noiseTakeover : normalizeNoiseLevel(body.noiseTakeover);
+    const noiseEffort =
+      body.noiseEffort === undefined ? user.noiseEffort : normalizeNoiseLevel(body.noiseEffort);
+    const showPrs = body.showPrs === undefined ? user.showPrs : normalizeShowPrs(body.showPrs);
 
     if (!name) {
       return NextResponse.json({ error: 'Full name is required' }, { status: 400 });
@@ -159,6 +166,7 @@ export async function PATCH(request: NextRequest) {
     await updateCoachTone(user.id, coachTone);
     await updateSoundOn(user.id, soundOn);
     await updateRestExtraMinutes(user.id, restExtraMinutes);
+    await updateNoisePrefs(user.id, { noiseTakeover, noiseEffort, showPrs });
     const cookieStore = await cookies();
     const toneCookie = toneCookieOptions(coachTone);
     cookieStore.set(toneCookie.name, toneCookie.value, toneCookie);
@@ -176,6 +184,9 @@ export async function PATCH(request: NextRequest) {
         coachTone,
         soundOn,
         restExtraMinutes,
+        noiseTakeover,
+        noiseEffort,
+        showPrs,
       },
     });
   } catch (error) {

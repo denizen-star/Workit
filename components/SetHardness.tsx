@@ -6,17 +6,20 @@ import { HARDNESS_LABELS, HARDNESS_SCORES, type HardnessScore } from '@/lib/hard
 export default function SetHardness({
   value,
   busy,
+  highlight,
   onPick,
 }: {
   value: HardnessScore | null;
   busy?: boolean;
+  /** Gold outline for the first time this prompt appears, as a "vote here next" cue. */
+  highlight?: boolean;
   onPick: (score: HardnessScore) => void;
 }) {
   const [pending, setPending] = useState<HardnessScore | null>(null);
   const locked = value != null;
 
   return (
-    <div className="mt-3">
+    <div className={`mt-3 ${highlight ? 'rounded-xl border border-[#e8c547]/50 p-2' : ''}`}>
       <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
         {locked ? `How hard · ${HARDNESS_LABELS[value]}` : 'How hard?'}
       </p>

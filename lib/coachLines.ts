@@ -70,8 +70,8 @@ const MASTER: LinePack = {
   final: [
     'Those last two buy power. Deliver them.',
     'Empty the tank. That empty is stamina you get to keep.',
-    'Finish it. The last third is where definition gets cut in.',
-    'Last third. This is the part that shows as lean.',
+    'Finish it. These final sets are where definition gets cut in.',
+    'Final sets. This is the part that shows as lean.',
     'Finish ugly if you have to. Finish. Ugly last sets still leave growth.',
     'One more honest set. Cheat it and you cheat the mobility you just built.',
     'The last plate is still mine until you put it down right. Put it down right and the power stays yours.',
@@ -226,10 +226,10 @@ const JAMES: LinePack = {
     'I want the next set done properly. Give it to me. I will expect more lean for it.',
   ],
   final: [
-    'Last third. This is the part that shows as definition. So will you.',
+    'Final sets. This is the part that shows as definition. So will you.',
     'Those last two buy power. Deliver them and the lockout remembers.',
     'I want you empty. Empty now is stamina you bring back.',
-    'Finish it. Make the last third count. That is the growth that shows up next week.',
+    'Finish it. Make these final sets count. That is the growth that shows up next week.',
     'Do not save anything for later. Later is more lean, and you buy it now.',
     'Pain is not the point. Staying through it is. That is the stamina.',
     'Lock out like you intend to come back with more power.',

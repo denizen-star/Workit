@@ -2,6 +2,23 @@
 
 ## Unreleased
 
+## 7.2.0 - 2026-09-07
+
+### Added
+- **Noise Control** in Edit profile: pick how often the app talks to you. Set/rep result screens and Perceived-load result screens each go Every set / Once per exercise / Off. New PR screen has its own on/off. PRs still land in your recap email either way
+- Edit profile: Coach voice, Noise Control, and Workout sound are now fold-open sections
+- "Last time" chip on each exercise now shows the Effort score from that set too
+
+### Changed
+- Timed exercises (plank, holds): tapping Stop on the clock completes the set right away — no extra tap needed
+- Live workout: the current set gets a gold border, and How hard gets one the first time it shows up, so it is obvious what to do next
+- Live workout: scrolling down folds the week/focus header and Today/All-time bar into the sticky bar up top, so exercise cards get more room. Scroll back up to bring it back
+- Rest timer pulses gold and buzzes each second in the last 5 seconds
+- Home: the last-week medal no longer squeezes your workout title — text uses the full card width
+
+### Fixed
+- Rest-timer coach lines no longer say "last third" — plain "final sets" instead
+
 ## 7.1.0 - 2026-09-07
 
 ### Added

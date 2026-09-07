@@ -30,6 +30,8 @@ export default function SetRestTimer({
   const [showGetToIt, setShowGetToIt] = useState(false);
   const endAtRef = useRef(0);
   const finishedRef = useRef(false);
+  const prevRemainingRef = useRef(restFor);
+  const urgent = running && remaining > 0 && remaining <= 5;
 
   const closeGetToIt = () => setShowGetToIt(false);
 
@@ -42,6 +44,7 @@ export default function SetRestTimer({
     armRestAlarm(restFor);
     setShowGetToIt(false);
     setRemaining(restFor);
+    prevRemainingRef.current = restFor;
     setRunning(true);
     return () => {
       cancelRestAlarm();
@@ -62,6 +65,17 @@ export default function SetRestTimer({
     const tick = () => {
       const left = Math.max(0, Math.ceil((endAtRef.current - Date.now()) / 1000));
       setRemaining(left);
+      // Buzz once per second in the final stretch so the rest clock is felt, not just seen.
+      if (left !== prevRemainingRef.current) {
+        prevRemainingRef.current = left;
+        if (left > 0 && left <= 5) {
+          try {
+            navigator.vibrate?.(60);
+          } catch {
+            // Vibration is not available on every phone.
+          }
+        }
+      }
       if (left > 0 || finishedRef.current) return;
       finishedRef.current = true;
       setRunning(false);
@@ -79,14 +93,28 @@ export default function SetRestTimer({
     <>
       {running && (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="pointer-events-auto mx-auto flex max-w-xl items-center gap-3 rounded-[1.5rem] border border-[#e8c547]/25 bg-[#101014]/92 px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl sm:gap-4 sm:px-5 sm:py-4">
+          <div
+            className={`pointer-events-auto mx-auto flex max-w-xl items-center gap-3 rounded-[1.5rem] border px-4 py-3 shadow-[0_18px_50px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-colors sm:gap-4 sm:px-5 sm:py-4 ${
+              urgent
+                ? 'animate-pulse border-[#e8c547] bg-[#1a1404]/95'
+                : 'border-[#e8c547]/25 bg-[#101014]/92'
+            }`}
+          >
             <div className="flex shrink-0 items-center gap-2 sm:gap-3">
-              <Timer className="h-6 w-6 text-white sm:h-7 sm:w-7" />
+              <Timer className={`h-6 w-6 sm:h-7 sm:w-7 ${urgent ? 'text-[#e8c547]' : 'text-white'}`} />
               <div>
-                <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-white sm:text-xs">
+                <p
+                  className={`text-[10px] font-semibold uppercase tracking-[0.28em] sm:text-xs ${
+                    urgent ? 'text-[#e8c547]' : 'text-white'
+                  }`}
+                >
                   Rest
                 </p>
-                <p className="text-2xl font-black tabular-nums text-white sm:text-3xl">
+                <p
+                  className={`text-2xl font-black tabular-nums sm:text-3xl ${
+                    urgent ? 'text-[#e8c547]' : 'text-white'
+                  }`}
+                >
                   {formatClock(remaining)}
                 </p>
               </div>

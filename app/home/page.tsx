@@ -271,8 +271,14 @@ export default function Home() {
           </Link>
         ) : null}
         <div className="gold-hero p-6 sm:p-8">
-          <div className="flex items-start justify-between gap-4">
-            <div className="min-w-0 flex-1">
+          <div className="min-w-0">
+          {weekYou ? (
+            // Float, not a flex sibling: the medal only narrows the lines beside it,
+            // so wrapped titles and the KPI row below still get the card's full width.
+            <div className="float-right ml-4 mb-2 shrink-0">
+              <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
+            </div>
+          ) : null}
           {today.type === 'hold' ? (
             <>
               <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
@@ -397,12 +403,7 @@ export default function Home() {
               )}
             </>
           )}
-            </div>
-            {weekYou ? (
-              <div className="shrink-0">
-                <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
-              </div>
-            ) : null}
+          <div className="clear-both" />
           </div>
           <HomeTodayKpis locked={today.type === 'hold'} />
         </div>

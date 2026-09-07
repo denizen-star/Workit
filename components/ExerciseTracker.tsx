@@ -12,7 +12,8 @@ import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
-import { effortFromVolume, parseHardness, type HardnessScore } from '@/lib/hardness';
+import { DEFAULT_HARDNESS, effortFromVolume, parseHardness, type HardnessScore } from '@/lib/hardness';
+import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import { HowTrigger } from './HelpSheet';
@@ -63,7 +64,10 @@ interface ExerciseSet {
 }
 
 interface HistoryPayload {
-  lastSets: Record<string, Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }>>;
+  lastSets: Record<
+    string,
+    Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null; hardness?: number | null }>
+  >;
   lastWeekMax: Record<string, number>;
   personalRecords: Record<string, { weight: number; reps: number }>;
 }
@@ -76,6 +80,12 @@ interface ExerciseTrackerProps {
   coachTone?: CoachTone | string | null;
   athleteName?: string | null;
   restExtraMinutes?: number;
+  /** How often the post-set result flash shows: every set, once per exercise, or never. */
+  noiseTakeover?: NoiseLevel;
+  /** How often the perceived-load result flash shows. Voting itself always stays per set. */
+  noiseEffort?: NoiseLevel;
+  /** Whether the full-screen "NEW PR" flash fires in-app (PRs always land in the recap email). */
+  showPrs?: boolean;
   onLiftsDone?: () => void;
   onTotals?: (totals: { lbs: number; reps: number; effort: number }) => void;
 }
@@ -145,7 +155,7 @@ function priorSetFor(
 function lastSetsFor(
   exerciseName: string,
   history: HistoryPayload
-): Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null }> {
+): HistoryPayload['lastSets'][string] {
   const key = exerciseHistoryKey(exerciseName);
   return history.lastSets[key] || history.lastSets[exerciseName] || [];
 }
@@ -161,6 +171,45 @@ function setSummaryLabel(
   return setLogLabel(kind, set.weight_lbs, set.actual_reps);
 }
 
+/** True once every set of the exercise (the just-changed one included) is completed. */
+function exerciseIsDone(sets: ExerciseSet[], justCompletedSetNumber: number): boolean {
+  return sets.every((item) => item.set_number === justCompletedSetNumber || item.is_completed);
+}
+
+/**
+ * Best-effort volume trend for a whole exercise vs. the last time it ran, for the
+ * "Exercise" Noise Control level's single end-of-exercise flash.
+ */
+function exerciseTrendVsLastTime(
+  sets: ExerciseSet[],
+  exerciseName: string,
+  history: HistoryPayload
+): 'up' | 'down' | null {
+  const volumeNow = sets
+    .filter((item) => item.is_completed)
+    .reduce((sum, item) => sum + setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps), 0);
+  const lastSets = lastSetsFor(exerciseName, history);
+  if (!lastSets.length) return null;
+  const volumeLast = lastSets.reduce(
+    (sum, item) => sum + setVolume(exerciseName, '', item.weight_lbs, item.actual_reps),
+    0
+  );
+  if (volumeLast <= 0) return null;
+  if (volumeNow > volumeLast) return 'up';
+  if (volumeNow < volumeLast) return 'down';
+  return null;
+}
+
+/** Average of whatever hardness scores are already recorded for the exercise. */
+function exerciseAverageHardness(sets: ExerciseSet[]): HardnessScore | null {
+  const scores = sets
+    .map((item) => parseHardness(item.hardness))
+    .filter((value): value is HardnessScore => value != null);
+  if (!scores.length) return null;
+  const avg = Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
+  return Math.min(5, Math.max(1, avg)) as HardnessScore;
+}
+
 export default function ExerciseTracker({
   sessionId,
   weekNumber,
@@ -169,6 +218,9 @@ export default function ExerciseTracker({
   coachTone,
   athleteName,
   restExtraMinutes = 0,
+  noiseTakeover = 'set',
+  noiseEffort = 'set',
+  showPrs = true,
   onLiftsDone,
   onTotals,
 }: ExerciseTrackerProps) {
@@ -188,7 +240,9 @@ export default function ExerciseTracker({
   const [restSeconds, setRestSeconds] = useState(restClock);
   const [restLine, setRestLine] = useState('Finish it. Make me proud.');
   const [weightUnits, setWeightUnits] = useState<Record<string, WeightUnit>>({});
-  const [timedTimer, setTimedTimer] = useState<{ index: number; target: number } | null>(null);
+  const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; exercise: Exercise } | null>(
+    null
+  );
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
   const [setFlash, setSetFlash] = useState<{
@@ -455,16 +509,20 @@ export default function ExerciseTracker({
 
   const kindFor = (exercise: Exercise): ExerciseKind => getExerciseKind(exercise.name, exercise.reps);
 
-  const completeSet = (index: number, exercise: Exercise) => {
+  // `overrideReps` lets the timed-set timer's Stop button complete a set in one
+  // action (held seconds stand in for actual_reps) instead of requiring a
+  // separate manual Complete Set tap after the clock closes.
+  const completeSet = (index: number, exercise: Exercise, overrideReps?: number) => {
     const set = exerciseSets[index];
+    const actualReps = overrideReps ?? set.actual_reps;
     const kind = kindFor(exercise);
-    if (!canCompleteSet(kind, set.actual_reps, set.weight_lbs)) return;
+    if (!canCompleteSet(kind, actualReps, set.weight_lbs)) return;
 
     unlockAudio();
     playSetChime();
 
     const weight = set.weight_lbs ?? 0;
-    const reps = set.actual_reps ?? 0;
+    const reps = actualReps ?? 0;
     const record =
       history.personalRecords[exerciseHistoryKey(exercise.name)] ||
       history.personalRecords[exercise.name] ||
@@ -473,15 +531,27 @@ export default function ExerciseTracker({
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
     const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
-    const direction = setDirection(set, prior);
-    if (isWeightPr || isTimedPr) {
+    const direction = setDirection({ ...set, actual_reps: actualReps }, prior);
+
+    if ((isWeightPr || isTimedPr) && showPrs) {
       setPrFlash({
         exerciseName: exercise.name,
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
     } else if (direction) {
-      const copy = setProgressCopy(direction, tone, athleteName);
-      setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+      // Set: show the flash now. Exercise: hold it until this exercise's last set
+      // lands, then summarize the whole exercise instead of just this one set. Off: never.
+      if (noiseTakeover === 'set') {
+        const copy = setProgressCopy(direction, tone, athleteName);
+        setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+      } else if (noiseTakeover === 'exercise') {
+        const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
+        if (exerciseIsDone(exerciseSetsList, set.set_number)) {
+          const summaryDirection = exerciseTrendVsLastTime(exerciseSetsList, exercise.name, history) ?? direction;
+          const copy = setProgressCopy(summaryDirection, tone, athleteName);
+          setSetFlash({ variant: summaryDirection, title: copy.title, body: copy.body });
+        }
+      }
     }
 
     if (isWeightPr || isTimedPr) {
@@ -499,7 +569,7 @@ export default function ExerciseTracker({
 
     updateSet(
       index,
-      { is_completed: true, weight_lbs: set.weight_lbs ?? 0, actual_reps: set.actual_reps },
+      { is_completed: true, weight_lbs: set.weight_lbs ?? 0, actual_reps: actualReps },
       { copyForward: true, startRest: true }
     );
   };
@@ -522,15 +592,29 @@ export default function ExerciseTracker({
       const locked = parseHardness(data?.hardness);
       if (!response.ok && response.status !== 409) return;
       const nextScore = locked ?? score;
-      setExerciseSets((current) =>
-        current.map((item) =>
-          item.exercise_name === set.exercise_name && item.set_number === set.set_number
-            ? { ...item, hardness: nextScore, id: data?.setId || item.id }
-            : item
-        )
+      const updatedSets = exerciseSets.map((item) =>
+        item.exercise_name === set.exercise_name && item.set_number === set.set_number
+          ? { ...item, hardness: nextScore, id: data?.setId || item.id }
+          : item
       );
-      const copy = hardnessCopy(nextScore, tone, athleteName);
-      setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+      setExerciseSets(updatedSets);
+
+      // Set: show the call now. Exercise: hold it until every set of this exercise
+      // has a vote, then show one call using the exercise's average score. Off: never.
+      if (noiseEffort === 'set') {
+        const copy = hardnessCopy(nextScore, tone, athleteName);
+        setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+      } else if (noiseEffort === 'exercise') {
+        const exerciseSetsList = setsForMovement(updatedSets, set.exercise_name);
+        const allVoted = exerciseSetsList.every(
+          (item) => !item.is_completed || parseHardness(item.hardness) != null
+        );
+        if (allVoted) {
+          const avg = exerciseAverageHardness(exerciseSetsList) ?? nextScore;
+          const copy = hardnessCopy(avg, tone, athleteName);
+          setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+        }
+      }
     } catch (error) {
       console.error('Error saving hardness:', error);
     }
@@ -649,6 +733,8 @@ export default function ExerciseTracker({
         const beatLastWeek = lastWeek != null && currentMax > lastWeek;
         const lastTime = lastBestFor(exercise.name, history);
         const how = howForExercise(exercise.name) || howForExercise(gym.name);
+        // Next set the athlete should work on, for the gold "you're here" border.
+        const activeSetNumber = sets.find((item) => !item.is_completed)?.set_number;
 
         return (
           <div key={gym.name} className="glass-card p-5">
@@ -674,6 +760,12 @@ export default function ExerciseTracker({
                     onChange={(next) => changeWeightUnit(gym.name, next)}
                   />
                 </div>
+                <ExerciseThumbs
+                  sessionId={sessionId}
+                  exerciseName={exercise.name}
+                  saved={thumbs[exercise.name] || thumbs[gym.name]}
+                  onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
+                />
               </div>
               <button
                 type="button"
@@ -744,13 +836,6 @@ export default function ExerciseTracker({
               )}
             </div>
 
-            <ExerciseThumbs
-              sessionId={sessionId}
-              exerciseName={exercise.name}
-              saved={thumbs[exercise.name] || thumbs[gym.name]}
-              onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
-            />
-
             <div className="mb-4 flex flex-wrap gap-2">
               {lastTime && (
                 <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#f6f1e3]/80">
@@ -759,6 +844,7 @@ export default function ExerciseTracker({
                     : kind === 'distance'
                       ? `Last time: ${lastTime.actual_reps ?? 0}m${lastTime.weight_lbs ? ` @ ${lastTime.weight_lbs} lb` : ''}`
                       : `Last time: ${lastTime.weight_lbs ?? 0} lb × ${lastTime.actual_reps ?? 0}`}
+                  {` · Effort ${parseHardness(lastTime.hardness) ?? DEFAULT_HARDNESS}`}
                 </span>
               )}
               {lastWeek != null && lastWeek > 0 && !beatLastWeek && (
@@ -779,6 +865,7 @@ export default function ExerciseTracker({
                   (item) => item.exercise_name === set.exercise_name && item.set_number === set.set_number
                 );
                 const isEditing = editingSet === `${set.exercise_name}-${set.set_number}`;
+                const isActive = !set.is_completed && set.set_number === activeSetNumber;
                 const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs);
                 const isExtra = set.set_number > exercise.sets;
                 const folded = set.is_completed && !isEditing;
@@ -794,7 +881,7 @@ export default function ExerciseTracker({
                     className={`rounded-2xl border p-4 transition-all ${
                       folded
                         ? 'border-white/10 bg-white/[0.04]'
-                        : isEditing
+                        : isEditing || isActive
                           ? 'border-[#e8c547]/40 bg-black/25'
                           : 'border-white/10 bg-black/25'
                     }`}
@@ -803,17 +890,17 @@ export default function ExerciseTracker({
                       <div>
                         <div className="flex items-center gap-3">
                           <div className="min-w-0 flex-1">
-                            <div className="text-sm font-black uppercase tracking-[0.2em] text-white/45">
+                            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/45">
                               Set {set.set_number}
                             </div>
-                            <p className="mt-1 truncate text-sm font-semibold text-white/40">
+                            <p className="mt-1 truncate text-xs font-semibold text-white/40">
                               {setSummaryLabel(kind, set)}
                             </p>
                           </div>
                           <button
                             type="button"
                             onClick={() => setEditingSet(`${set.exercise_name}-${set.set_number}`)}
-                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-sm font-black transition-colors ${completeButtonClass}`}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black transition-colors ${completeButtonClass}`}
                           >
                             <Check className="h-4 w-4" />
                             Completed
@@ -822,20 +909,21 @@ export default function ExerciseTracker({
                         </div>
                         <SetHardness
                           value={parseHardness(set.hardness)}
+                          highlight={parseHardness(set.hardness) == null}
                           onPick={(score) => saveHardness(set, score)}
                         />
                       </div>
                     ) : (
                       <>
                         <div className="mb-3 flex items-center justify-between gap-3">
-                          <div className="text-sm font-black uppercase tracking-[0.2em] text-white">
+                          <div className="text-xs font-black uppercase tracking-[0.2em] text-white">
                             Set {set.set_number}
                           </div>
                           {isExtra && !set.is_completed && (
                             <button
                               type="button"
                               onClick={() => removeSet(exercise, set)}
-                              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-sm font-semibold text-white/45 hover:text-white"
+                              className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-white/45 hover:text-white"
                             >
                               <Trash2 className="h-4 w-4" />
                               Remove
@@ -845,7 +933,7 @@ export default function ExerciseTracker({
 
                         <div className="mb-4 grid grid-cols-2 gap-3">
                           <div>
-                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
                               {unit === 'kg'
                                 ? kind === 'bodyweight'
                                   ? 'Weight kg (0 = BW)'
@@ -876,7 +964,7 @@ export default function ExerciseTracker({
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-xs font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
                               {primaryFieldLabel(kind)}
                             </label>
                             <input
@@ -900,9 +988,10 @@ export default function ExerciseTracker({
                               setTimedTimer({
                                 index: globalIndex,
                                 target: parseTimedTarget(exercise.reps),
+                                exercise,
                               })
                             }
-                            className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-lg font-black text-white"
+                            className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-base font-black text-white"
                           >
                             <Play className="h-5 w-5" />
                             Start timer
@@ -919,7 +1008,7 @@ export default function ExerciseTracker({
                             }
                           }}
                           disabled={!set.is_completed && !ready}
-                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-lg font-black transition-colors ${completeButtonClass}`}
+                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass}`}
                         >
                           {set.is_completed ? (
                             <>
@@ -1022,7 +1111,8 @@ export default function ExerciseTracker({
         onCancel={() => setTimedTimer(null)}
         onStop={(heldSeconds) => {
           if (timedTimer) {
-            updateSet(timedTimer.index, { actual_reps: heldSeconds });
+            // Stop both records the hold and completes the set in one action.
+            completeSet(timedTimer.index, timedTimer.exercise, heldSeconds);
           }
           setTimedTimer(null);
         }}

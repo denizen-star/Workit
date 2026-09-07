@@ -4,6 +4,7 @@ import { query } from '@/lib/db';
 import { normalizeCoachTone, TONE_COOKIE, type CoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
+import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
 import { athleteCallName } from '@/lib/profile';
 import { getHouseholdById, householdIdForUser } from '@/lib/household';
@@ -17,6 +18,9 @@ export type SessionUser = {
   coachTone: CoachTone;
   soundOn: boolean;
   restExtraMinutes: number;
+  noiseTakeover: NoiseLevel;
+  noiseEffort: NoiseLevel;
+  showPrs: boolean;
   firstName: string | null;
   lastName: string | null;
   displayName: string | null;
@@ -41,6 +45,9 @@ type UserRow = {
   coach_tone?: string | null;
   sound_on?: number | boolean | string | null;
   rest_extra_minutes?: number | string | null;
+  noise_takeover?: string | null;
+  noise_effort?: string | null;
+  show_prs?: number | boolean | string | null;
   first_name?: string | null;
   last_name?: string | null;
   display_name?: string | null;
@@ -54,7 +61,7 @@ type UserRow = {
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -100,6 +107,9 @@ function toSessionUser(
     coachTone: normalizeCoachTone(row.coach_tone ?? prefs?.tone),
     soundOn: row.sound_on != null ? normalizeSoundOn(row.sound_on) : normalizeSoundOn(prefs?.sound),
     restExtraMinutes: normalizeRestExtraMinutes(row.rest_extra_minutes),
+    noiseTakeover: normalizeNoiseLevel(row.noise_takeover),
+    noiseEffort: normalizeNoiseLevel(row.noise_effort),
+    showPrs: row.show_prs != null ? normalizeShowPrs(row.show_prs) : true,
     firstName: row.first_name ?? null,
     lastName: row.last_name ?? null,
     displayName: row.display_name ?? null,
@@ -146,6 +156,24 @@ export async function updateRestExtraMinutes(userId: number, minutes: number): P
       userId,
     ]);
     userSelectMode = 'rest';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateNoisePrefs(
+  userId: number,
+  prefs: { noiseTakeover: NoiseLevel; noiseEffort: NoiseLevel; showPrs: boolean }
+): Promise<boolean> {
+  try {
+    await query('UPDATE users SET noise_takeover = ?, noise_effort = ?, show_prs = ? WHERE id = ?', [
+      prefs.noiseTakeover,
+      prefs.noiseEffort,
+      prefs.showPrs ? 1 : 0,
+      userId,
+    ]);
+    userSelectMode = 'house';
     return true;
   } catch {
     return false;
