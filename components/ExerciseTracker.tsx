@@ -538,16 +538,18 @@ export default function ExerciseTracker({
         exerciseName: exercise.name,
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
-    } else if (direction) {
-      // Set: show the flash now. Exercise: hold it until this exercise's last set
-      // lands, then summarize the whole exercise instead of just this one set. Off: never.
-      if (noiseTakeover === 'set') {
+    } else if (noiseTakeover === 'set') {
+      if (direction) {
         const copy = setProgressCopy(direction, tone, athleteName);
         setSetFlash({ variant: direction, title: copy.title, body: copy.body });
-      } else if (noiseTakeover === 'exercise') {
-        const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
-        if (exerciseIsDone(exerciseSetsList, set.set_number)) {
-          const summaryDirection = exerciseTrendVsLastTime(exerciseSetsList, exercise.name, history) ?? direction;
+      }
+    } else if (noiseTakeover === 'exercise') {
+      // Check exercise completion on its own — do not gate it behind this one
+      // set's own direction, which is often null (silent sets are common).
+      const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
+      if (exerciseIsDone(exerciseSetsList, set.set_number)) {
+        const summaryDirection = exerciseTrendVsLastTime(exerciseSetsList, exercise.name, history) ?? direction;
+        if (summaryDirection) {
           const copy = setProgressCopy(summaryDirection, tone, athleteName);
           setSetFlash({ variant: summaryDirection, title: copy.title, body: copy.body });
         }

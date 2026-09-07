@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.2.1 - 2026-09-07
+
+### Fixed
+- Noise Control "Once per exercise": the set-result summary now shows even when the exercise's last set has no direction of its own (a silent/same-weight set) — it was silently skipping the whole exercise in that case
+
 ## 7.2.0 - 2026-09-07
 
 ### Added
