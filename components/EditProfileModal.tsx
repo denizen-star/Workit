@@ -16,12 +16,11 @@ import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, spl
 import { HomeFold } from '@/components/ScanCard';
 
 const NOISE_LEVEL_LABEL: Record<NoiseLevel, string> = {
-  set: 'Every set',
-  exercise: 'Once per exercise',
+  set: 'On',
   off: 'Off',
 };
 
-/** Three-way Set / Exercise / Off picker shared by both Noise Control dials. */
+/** On/off picker shared by both Noise Control dials. */
 function NoiseLevelPicker({
   value,
   onChange,
@@ -30,7 +29,7 @@ function NoiseLevelPicker({
   onChange: (next: NoiseLevel) => void;
 }) {
   return (
-    <div className="grid grid-cols-3 gap-2">
+    <div className="grid grid-cols-2 gap-2">
       {NOISE_LEVELS.map((level) => (
         <button
           key={level}

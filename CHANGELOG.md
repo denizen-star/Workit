@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.2.3 - 2026-09-07
+
+### Changed
+- Noise Control simplified to plain On/Off for the set-result and effort-result screens. "Once per exercise" is gone — it depended on tracking exactly when an exercise finished across extra sets and mode switches, and kept firing at the wrong time or with the wrong message. On/off is reliable; anyone previously on "Once per exercise" now reads as On
+
 ## 7.2.2 - 2026-09-07
 
 ### Fixed
