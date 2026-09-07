@@ -10,7 +10,7 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import PhotoCropField from '@/components/PhotoCropField';
-import { composeFullName, splitFullName } from '@/lib/profile';
+import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, splitFullName } from '@/lib/profile';
 
 interface EditProfileModalProps {
   open: boolean;
@@ -77,7 +77,7 @@ export default function EditProfileModal({
           setFirstName(user.firstName || split.first);
           setLastName(user.lastName || split.last);
           setDisplayName(user.displayName || '');
-          setPhone(user.phone || '');
+          setPhone(formatUsPhone(user.phone || ''));
           setBodyWeightLb(user.bodyWeightLb != null ? String(user.bodyWeightLb) : '');
           setEmail(user.email || currentEmail);
           setName(composeFullName(user.firstName || split.first, user.lastName || split.last, user.name));
@@ -105,7 +105,11 @@ export default function EditProfileModal({
       setError('Enter a first name');
       return;
     }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+    if (!isValidEmailFormat(email)) {
       setError('Enter a valid email');
       return;
     }
@@ -165,7 +169,11 @@ export default function EditProfileModal({
       setError('Enter a first name');
       return;
     }
-    if (email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+    if (!isValidEmailFormat(email)) {
       setError('Enter a valid email');
       return;
     }
@@ -191,13 +199,6 @@ export default function EditProfileModal({
                 Update your name, email, or PIN. Same four digits is allowed.
               </p>
 
-              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="glass-input mb-4 w-full"
-              />
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">First name</label>
               <input
                 type="text"
@@ -222,11 +223,32 @@ export default function EditProfileModal({
                 onChange={(e) => setDisplayName(e.target.value)}
                 className="glass-input mb-4 w-full"
               />
+              <div className="mb-4">
+                <PhotoCropField optional onChange={setPhoto} />
+              </div>
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
+              <input
+                type="email"
+                required
+                autoComplete="email"
+                inputMode="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="glass-input mb-1 w-full"
+              />
+              {emailFieldHint(email) ? (
+                <p className="mb-4 text-sm font-semibold text-[#a35d52]">{emailFieldHint(email)}</p>
+              ) : (
+                <div className="mb-4" />
+              )}
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Phone</label>
               <input
                 type="tel"
+                inputMode="tel"
+                autoComplete="tel"
+                placeholder="(347) 555-1234"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatUsPhone(e.target.value))}
                 className="glass-input mb-4 w-full"
               />
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Weight (lb)</label>
@@ -236,9 +258,6 @@ export default function EditProfileModal({
                 onChange={(e) => setBodyWeightLb(e.target.value)}
                 className="glass-input mb-4 w-full"
               />
-              <div className="mb-4">
-                <PhotoCropField optional onChange={setPhoto} />
-              </div>
               <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">Coach voice</p>
               <div className="mb-4 grid gap-2">
                 {getCoachToneOptions().map((option) => {

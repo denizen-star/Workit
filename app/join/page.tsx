@@ -6,6 +6,7 @@ import PhotoCropField from '@/components/PhotoCropField';
 import PinPad from '@/components/PinPad';
 import WaiverSheet from '@/components/WaiverSheet';
 import { JOIN_INTRO_BULLETS, JOIN_INTRO_LEAD, JOIN_INTRO_TITLE } from '@/lib/joinCopy';
+import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
 
 const DRAFT_KEY = 'workit_join_draft';
@@ -141,10 +142,23 @@ export default function JoinPage() {
             <Field label="First name" value={firstName} onChange={setFirstName} />
             <Field label="Last name" value={lastName} onChange={setLastName} />
             <Field label="Alias" value={displayName} onChange={setDisplayName} hint="optional" />
-            <Field label="Email" value={email} onChange={setEmail} type="email" />
-            <Field label="Phone" value={phone} onChange={setPhone} hint="optional" />
-            <Field label="Weight (lb)" value={bodyWeightLb} onChange={setBodyWeightLb} hint="optional" />
             <PhotoCropField optional onChange={setPhoto} />
+            <Field
+              label="Email"
+              value={email}
+              onChange={setEmail}
+              type="email"
+              hint={emailFieldHint(email) || undefined}
+              hintTone={emailFieldHint(email) ? 'error' : undefined}
+            />
+            <Field
+              label="Phone"
+              value={phone}
+              onChange={(value) => setPhone(formatUsPhone(value))}
+              type="tel"
+              hint="optional"
+            />
+            <Field label="Weight (lb)" value={bodyWeightLb} onChange={setBodyWeightLb} hint="optional" />
             <label className="flex items-start gap-3 text-sm text-[#f6f1e3]/80">
               <input
                 type="checkbox"
@@ -164,7 +178,18 @@ export default function JoinPage() {
           <button
             type="button"
             disabled={!accepted}
-            onClick={() => setStep('pin')}
+            onClick={() => {
+              if (!email.trim()) {
+                setError('Email is required');
+                return;
+              }
+              if (!isValidEmailFormat(email)) {
+                setError('Enter a valid email');
+                return;
+              }
+              setError('');
+              setStep('pin');
+            }}
             className="mt-8 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404] disabled:opacity-40"
           >
             Next
@@ -226,25 +251,33 @@ function Field({
   onChange,
   type = 'text',
   hint,
+  hintTone,
 }: {
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
   hint?: string;
+  hintTone?: 'error';
 }) {
   return (
     <label className="block">
       <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
         {label}
-        {hint ? ` · ${hint}` : ''}
+        {hint && hintTone !== 'error' ? ` · ${hint}` : ''}
       </span>
       <input
         type={type}
+        required={type === 'email'}
+        autoComplete={type === 'email' ? 'email' : type === 'tel' ? 'tel' : undefined}
+        inputMode={type === 'email' ? 'email' : type === 'tel' ? 'tel' : undefined}
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="mt-2 w-full rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white"
       />
+      {hint && hintTone === 'error' ? (
+        <span className="mt-1 block text-sm font-semibold text-[#a35d52]">{hint}</span>
+      ) : null}
     </label>
   );
 }

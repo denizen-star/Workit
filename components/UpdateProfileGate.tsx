@@ -3,7 +3,13 @@
 import { useEffect, useState } from 'react';
 import PhotoCropField from '@/components/PhotoCropField';
 import WaiverSheet from '@/components/WaiverSheet';
-import { composeFullName, splitFullName } from '@/lib/profile';
+import {
+  composeFullName,
+  emailFieldHint,
+  formatUsPhone,
+  isValidEmailFormat,
+  splitFullName,
+} from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
 
 export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
@@ -32,7 +38,7 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
         setLastName(user.lastName || split.last);
         setDisplayName(user.displayName || '');
         setEmail(user.email || '');
-        setPhone(user.phone || '');
+        setPhone(formatUsPhone(user.phone || ''));
         setBodyWeightLb(user.bodyWeightLb != null ? String(user.bodyWeightLb) : '');
         setHasPhoto(Boolean(user.hasPhoto));
         setUserId(user.id != null ? Number(user.id) : null);
@@ -42,6 +48,14 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
   const save = async () => {
     if (!accepted) {
       setError('Accept the waiver to continue');
+      return;
+    }
+    if (!email.trim()) {
+      setError('Email is required');
+      return;
+    }
+    if (!isValidEmailFormat(email)) {
+      setError('Enter a valid email');
       return;
     }
     setBusy(true);
@@ -70,6 +84,7 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
   };
 
   const fullName = composeFullName(firstName, lastName);
+  const emailHint = emailFieldHint(email);
 
   return (
     <div className="fixed inset-0 z-[90] overflow-y-auto bg-[#07070a] px-5 py-10">
@@ -82,14 +97,34 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
           <input className="glass-input w-full" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
           <p className="text-sm text-[#f6f1e3]/55">Full name · {fullName || '—'}</p>
           <input className="glass-input w-full" placeholder="Alias" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          <input className="glass-input w-full" placeholder="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input className="glass-input w-full" placeholder="Phone" value={phone} onChange={(e) => setPhone(e.target.value)} />
-          <input className="glass-input w-full" placeholder="Weight lb" value={bodyWeightLb} onChange={(e) => setBodyWeightLb(e.target.value)} />
           {hasPhoto && userId ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={`/api/users/${userId}/photo`} alt="" className="h-16 w-16 rounded-full object-cover" />
           ) : null}
           <PhotoCropField optional onChange={setPhoto} />
+          <div>
+            <input
+              className="glass-input w-full"
+              placeholder="Email"
+              type="email"
+              required
+              autoComplete="email"
+              inputMode="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+            />
+            {emailHint ? <p className="mt-1 text-sm font-semibold text-[#a35d52]">{emailHint}</p> : null}
+          </div>
+          <input
+            className="glass-input w-full"
+            placeholder="(347) 555-1234"
+            type="tel"
+            inputMode="tel"
+            autoComplete="tel"
+            value={phone}
+            onChange={(e) => setPhone(formatUsPhone(e.target.value))}
+          />
+          <input className="glass-input w-full" placeholder="Weight lb" value={bodyWeightLb} onChange={(e) => setBodyWeightLb(e.target.value)} />
           <label className="flex items-start gap-3 text-sm text-[#f6f1e3]/80">
             <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
             <span>

@@ -86,7 +86,6 @@ export default function Home() {
   const [holdLine, setHoldLine] = useState('');
   const [needsWaiver, setNeedsWaiver] = useState(false);
   const [showHowBanner, setShowHowBanner] = useState(false);
-  const [hasPhoto, setHasPhoto] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -114,7 +113,6 @@ export default function Home() {
           setIsAdmin(!!meData.user?.isAdmin);
           setNeedsWaiver(meData.user?.waiverAccepted === false);
           setShowHowBanner(Number(meData.completedWorkouts || 0) < 5);
-          setHasPhoto(Boolean(meData.user?.hasPhoto));
         }
 
         if (sessionsRes.ok) {
@@ -239,16 +237,7 @@ export default function Home() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {hasPhoto && userId ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={`/api/users/${userId}/photo`}
-                  alt=""
-                  className="h-10 w-10 rounded-full object-cover"
-                />
-              ) : (
-                <Dumbbell className="h-8 w-8 text-[#e8c547]" />
-              )}
+              <Dumbbell className="h-8 w-8 text-[#e8c547]" />
               <h1 className="text-2xl font-black tracking-tight text-white">Work-It</h1>
             </div>
             <AppMenu

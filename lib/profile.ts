@@ -9,13 +9,38 @@ export function normalizeName(name: unknown): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmailFormat(email: string): boolean {
+  return EMAIL_RE.test(email.trim());
+}
+
+/** Live copy under the email field. Empty until they type. */
+export function emailFieldHint(email: string): string {
+  const trimmed = email.trim();
+  if (!trimmed) return '';
+  if (!isValidEmailFormat(trimmed)) return 'Enter a valid email';
+  return '';
+}
+
 export function normalizeEmail(email: unknown): string | null | undefined {
   if (email == null || email === '') return null;
   if (typeof email !== 'string') return undefined;
   const trimmed = email.trim().toLowerCase();
   if (!trimmed) return null;
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) return undefined;
+  if (!EMAIL_RE.test(trimmed)) return undefined;
   return trimmed;
+}
+
+/** US display: (347) 555-1234. Digits only while typing. */
+export function formatUsPhone(raw: string): string {
+  let digits = String(raw || '').replace(/\D/g, '');
+  if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1);
+  digits = digits.slice(0, 10);
+  if (!digits) return '';
+  if (digits.length < 4) return `(${digits}`;
+  if (digits.length < 7) return `(${digits.slice(0, 3)}) ${digits.slice(3)}`;
+  return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
 }
 
 export function isDuplicateEmailError(error: unknown): boolean {

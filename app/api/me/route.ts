@@ -16,6 +16,7 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import {
   composeFullName,
+  formatUsPhone,
   isAliasTakenInHouse,
   isDuplicateEmailError,
   isNameTaken,
@@ -90,7 +91,7 @@ export async function PATCH(request: NextRequest) {
     const firstName = normalizeOptionalText(body.firstName, 120);
     const lastName = normalizeOptionalText(body.lastName, 120);
     const displayName = normalizeOptionalText(body.displayName, 120);
-    const phone = normalizeOptionalText(body.phone, 32);
+    const phone = formatUsPhone(normalizeOptionalText(body.phone, 32) || '') || null;
     const weight =
       body.bodyWeightLb == null || body.bodyWeightLb === ''
         ? null
@@ -129,6 +130,9 @@ export async function PATCH(request: NextRequest) {
 
     if (email === undefined) {
       return NextResponse.json({ error: 'Enter a valid email address' }, { status: 400 });
+    }
+    if (!email) {
+      return NextResponse.json({ error: 'Email is required' }, { status: 400 });
     }
 
     if (pin != null) {

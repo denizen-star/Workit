@@ -6,6 +6,7 @@ import { addHouseholdMember, getHouseholdBySlug, HOUSE_GOWANUS, HOUSE_OG } from 
 import { findWaitingUserByToken } from '@/lib/invite';
 import {
   composeFullName,
+  formatUsPhone,
   isAliasTakenInHouse,
   isDuplicateEmailError,
   normalizeEmail,
@@ -51,7 +52,7 @@ export async function POST(request: NextRequest) {
     const lastName = normalizeOptionalText(body.lastName, 120);
     const displayName = normalizeOptionalText(body.displayName, 120);
     const email = normalizeEmail(body.email);
-    const phone = normalizeOptionalText(body.phone, 32);
+    const phone = formatUsPhone(normalizeOptionalText(body.phone, 32) || '') || null;
     const weight =
       body.bodyWeightLb == null || body.bodyWeightLb === ''
         ? null
