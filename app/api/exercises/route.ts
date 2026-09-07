@@ -240,6 +240,28 @@ export async function GET(request: NextRequest) {
         }
       }
 
+      // Fold in this session's own already-completed sets too — otherwise resuming
+      // a session forgets the PR you just set on an earlier set today, and repeating
+      // that weight fires "NEW PR" again.
+      if (currentSessionId) {
+        const ownRows = await query(
+          `SELECT exercise_name, weight_lbs, actual_reps
+           FROM exercise_sets
+           WHERE workout_session_id = ? AND is_completed = 1`,
+          [currentSessionId]
+        );
+        for (const row of ownRows.rows as any[]) {
+          const name = exerciseHistoryKey(row.exercise_name);
+          const weight = row.weight_lbs == null ? 0 : Number(row.weight_lbs);
+          const reps = row.actual_reps == null ? 0 : Number(row.actual_reps);
+          if (!personalRecords[name]) {
+            personalRecords[name] = { weight: 0, reps: 0 };
+          }
+          personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
+          personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
+        }
+      }
+
       for (const row of result.rows as any[]) {
         const name = exerciseHistoryKey(row.exercise_name);
         if (row.session_id !== lastSessionByExercise[name]) continue;

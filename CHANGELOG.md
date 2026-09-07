@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 7.2.2 - 2026-09-07
+
+### Fixed
+- Repeated "NEW PR" on resume: your all-time record now includes sets you already completed earlier in the same (resumed) session, not just prior sessions — logging the same weight again on set 2/3 no longer re-fires the PR flash
+- Noise Control "Once per exercise" for perceived load: the effort summary now fires the moment the exercise is done, not only after you vote on the last set — skipping the last vote (allowed) used to mean it never showed. Skipped votes count as Fair, same as everywhere else
+- When both Noise Control dials are set to "Once per exercise," the result summary and the effort summary now combine into one message instead of the second silently replacing the first
+
 ## 7.2.1 - 2026-09-07
 
 ### Fixed

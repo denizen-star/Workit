@@ -200,12 +200,15 @@ function exerciseTrendVsLastTime(
   return null;
 }
 
-/** Average of whatever hardness scores are already recorded for the exercise. */
+/**
+ * Average hardness across the exercise's completed sets. Skipped votes count as
+ * Fair, same as everywhere else in the app — so this is always computable the
+ * moment the exercise is done, even if the athlete never voted on any of it.
+ */
 function exerciseAverageHardness(sets: ExerciseSet[]): HardnessScore | null {
-  const scores = sets
-    .map((item) => parseHardness(item.hardness))
-    .filter((value): value is HardnessScore => value != null);
-  if (!scores.length) return null;
+  const completed = sets.filter((item) => item.is_completed);
+  if (!completed.length) return null;
+  const scores = completed.map((item) => parseHardness(item.hardness) ?? DEFAULT_HARDNESS);
   const avg = Math.round(scores.reduce((sum, value) => sum + value, 0) / scores.length);
   return Math.min(5, Math.max(1, avg)) as HardnessScore;
 }
@@ -538,22 +541,48 @@ export default function ExerciseTracker({
         exerciseName: exercise.name,
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       });
-    } else if (noiseTakeover === 'set') {
-      if (direction) {
-        const copy = setProgressCopy(direction, tone, athleteName);
-        setSetFlash({ variant: direction, title: copy.title, body: copy.body });
-      }
-    } else if (noiseTakeover === 'exercise') {
-      // Check exercise completion on its own — do not gate it behind this one
-      // set's own direction, which is often null (silent sets are common).
-      const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
-      if (exerciseIsDone(exerciseSetsList, set.set_number)) {
-        const summaryDirection = exerciseTrendVsLastTime(exerciseSetsList, exercise.name, history) ?? direction;
-        if (summaryDirection) {
-          const copy = setProgressCopy(summaryDirection, tone, athleteName);
-          setSetFlash({ variant: summaryDirection, title: copy.title, body: copy.body });
+    } else {
+      // Takeover and perceived-load are independent dials that can both want to
+      // show something on the same exercise-done moment — build one flash instead
+      // of letting the second check silently clobber the first.
+      let flash: { variant: 'up' | 'down' | 'call'; title: string; body: string } | null = null;
+
+      if (noiseTakeover === 'set') {
+        if (direction) {
+          const copy = setProgressCopy(direction, tone, athleteName);
+          flash = { variant: direction, title: copy.title, body: copy.body };
+        }
+      } else if (noiseTakeover === 'exercise') {
+        // Check exercise completion on its own — do not gate it behind this one
+        // set's own direction, which is often null (silent sets are common).
+        const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
+        if (exerciseIsDone(exerciseSetsList, set.set_number)) {
+          const summaryDirection = exerciseTrendVsLastTime(exerciseSetsList, exercise.name, history) ?? direction;
+          if (summaryDirection) {
+            const copy = setProgressCopy(summaryDirection, tone, athleteName);
+            flash = { variant: summaryDirection, title: copy.title, body: copy.body };
+          }
         }
       }
+
+      // Triggered here (not from a hardness vote) so a skipped last vote can't
+      // prevent it: How hard is skippable, and Skip counts as Fair anyway.
+      if (noiseEffort === 'exercise') {
+        const exerciseSetsList = setsForMovement(exerciseSets, exercise.name);
+        if (exerciseIsDone(exerciseSetsList, set.set_number)) {
+          const avg = exerciseAverageHardness(exerciseSetsList);
+          if (avg != null) {
+            if (flash) {
+              flash = { ...flash, body: `${flash.body} Effort ${avg}.` };
+            } else {
+              const copy = hardnessCopy(avg, tone, athleteName);
+              flash = { variant: 'call', title: copy.title, body: copy.body };
+            }
+          }
+        }
+      }
+
+      if (flash) setSetFlash(flash);
     }
 
     if (isWeightPr || isTimedPr) {
@@ -601,21 +630,12 @@ export default function ExerciseTracker({
       );
       setExerciseSets(updatedSets);
 
-      // Set: show the call now. Exercise: hold it until every set of this exercise
-      // has a vote, then show one call using the exercise's average score. Off: never.
+      // Set: show the call right away. Exercise/Off: no call here — the
+      // once-per-exercise summary fires from completeSet instead, since it does
+      // not depend on this (or any) vote actually happening.
       if (noiseEffort === 'set') {
         const copy = hardnessCopy(nextScore, tone, athleteName);
         setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
-      } else if (noiseEffort === 'exercise') {
-        const exerciseSetsList = setsForMovement(updatedSets, set.exercise_name);
-        const allVoted = exerciseSetsList.every(
-          (item) => !item.is_completed || parseHardness(item.hardness) != null
-        );
-        if (allVoted) {
-          const avg = exerciseAverageHardness(exerciseSetsList) ?? nextScore;
-          const copy = hardnessCopy(avg, tone, athleteName);
-          setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
-        }
       }
     } catch (error) {
       console.error('Error saving hardness:', error);
