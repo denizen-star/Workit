@@ -10,6 +10,7 @@ import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import PhotoCropField from '@/components/PhotoCropField';
+import { photoSrc } from '@/lib/photo';
 import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, splitFullName } from '@/lib/profile';
 
 interface EditProfileModalProps {
@@ -26,6 +27,7 @@ interface EditProfileModalProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    hasPhoto?: boolean;
   }) => void;
 }
 
@@ -47,6 +49,7 @@ export default function EditProfileModal({
   const [phone, setPhone] = useState('');
   const [bodyWeightLb, setBodyWeightLb] = useState('');
   const [photo, setPhoto] = useState<string | null>(null);
+  const [savedPhotoSrc, setSavedPhotoSrc] = useState<string | null>(null);
   const [tone, setTone] = useState<CoachTone>(normalizeCoachTone(currentTone));
   const [soundOn, setSoundOn] = useState(normalizeSoundOn(currentSoundOn));
   const [restExtraMinutes, setRestExtraMinutes] = useState(
@@ -68,6 +71,8 @@ export default function EditProfileModal({
     if (open) {
       setName(currentName);
       setEmail(currentEmail);
+      setPhoto(null);
+      setSavedPhotoSrc(null);
       fetch('/api/me')
         .then((res) => (res.ok ? res.json() : null))
         .then((data) => {
@@ -81,6 +86,9 @@ export default function EditProfileModal({
           setBodyWeightLb(user.bodyWeightLb != null ? String(user.bodyWeightLb) : '');
           setEmail(user.email || currentEmail);
           setName(composeFullName(user.firstName || split.first, user.lastName || split.last, user.name));
+          if (user.hasPhoto && user.id != null) {
+            setSavedPhotoSrc(photoSrc(Number(user.id), Date.now()));
+          }
         });
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
@@ -127,11 +135,11 @@ export default function EditProfileModal({
         displayName,
         phone,
         bodyWeightLb,
-        photo,
         coachTone: tone,
         soundOn,
         restExtraMinutes,
       };
+      if (photo) payload.photo = photo;
       if (finalPin) payload.pin = finalPin;
 
       const response = await fetch('/api/me', {
@@ -155,6 +163,7 @@ export default function EditProfileModal({
         coachTone: normalizeCoachTone(data.user.coachTone),
         soundOn: nextSoundOn,
         restExtraMinutes: normalizeRestExtraMinutes(data.user.restExtraMinutes),
+        hasPhoto: Boolean(data.user.hasPhoto),
       });
       onClose();
     } catch {
@@ -224,7 +233,7 @@ export default function EditProfileModal({
                 className="glass-input mb-4 w-full"
               />
               <div className="mb-4">
-                <PhotoCropField optional onChange={setPhoto} />
+                <PhotoCropField optional initialSrc={savedPhotoSrc} onChange={setPhoto} />
               </div>
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Email</label>
               <input

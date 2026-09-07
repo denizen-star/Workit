@@ -96,7 +96,7 @@ export async function PATCH(request: NextRequest) {
       body.bodyWeightLb == null || body.bodyWeightLb === ''
         ? null
         : Number(body.bodyWeightLb);
-    const photo = parsePhotoDataUrl(body.photo);
+    const photo = body.photo === undefined ? null : parsePhotoDataUrl(body.photo);
     const name =
       composeFullName(firstName, lastName, body.name) || normalizeName(body.name) || user.name;
     const email = normalizeEmail(body.email);
@@ -172,6 +172,7 @@ export async function PATCH(request: NextRequest) {
         name,
         email,
         hasPin: pin != null || user.hasPin,
+        hasPhoto: Boolean(photo) || user.hasPhoto,
         coachTone,
         soundOn,
         restExtraMinutes,

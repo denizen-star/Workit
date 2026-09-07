@@ -23,7 +23,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(buf), {
     headers: {
       'Content-Type': 'image/jpeg',
-      'Cache-Control': 'private, max-age=300',
+      'Cache-Control': 'private, no-store',
     },
   });
 }

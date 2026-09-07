@@ -1,23 +1,25 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { HelpTip } from '@/components/HelpSheet';
 
 type Props = {
   label?: string;
   optional?: boolean;
+  initialSrc?: string | null;
   onChange: (dataUrl: string | null) => void;
 };
 
-export default function PhotoCropField({ label = 'Photo', optional, onChange }: Props) {
+export default function PhotoCropField({ label = 'Photo', optional, initialSrc, onChange }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const imageRef = useRef<HTMLImageElement | null>(null);
   const panRef = useRef({ x: 0, y: 0 });
   const dragRef = useRef<{ x: number; y: number } | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
+  const [preview, setPreview] = useState<string | null>(initialSrc || null);
   const [zoom, setZoom] = useState(1);
-  const [hasFile, setHasFile] = useState(false);
+  const [ready, setReady] = useState(false);
 
-  const applyCrop = (scale: number, panX: number, panY: number) => {
+  const applyCrop = (scale: number, panX: number, panY: number, emit = true) => {
     const image = imageRef.current;
     if (!image) return;
     const size = 256;
@@ -37,29 +39,44 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
     ctx.closePath();
     ctx.clip();
     ctx.drawImage(image, sx, sy, draw, draw, 0, 0, size, size);
-    const data = canvas.toDataURL('image/jpeg', 0.82);
+    const data = canvas.toDataURL('image/jpeg', 0.78);
     setPreview(data);
-    onChange(data);
+    if (emit) onChange(data);
   };
 
-  const loadFile = async (file: File) => {
-    const url = URL.createObjectURL(file);
+  const loadFromSrc = async (src: string, emit: boolean) => {
     const image = new Image();
     await new Promise<void>((resolve, reject) => {
       image.onload = () => resolve();
       image.onerror = () => reject(new Error('bad image'));
-      image.src = url;
+      image.src = src;
     });
-    URL.revokeObjectURL(url);
     imageRef.current = image;
-    setHasFile(true);
     panRef.current = { x: 0, y: 0 };
     setZoom(1);
-    applyCrop(1, 0, 0);
+    setReady(true);
+    if (emit) applyCrop(1, 0, 0, true);
+    else setPreview(src);
   };
 
+  useEffect(() => {
+    imageRef.current = null;
+    panRef.current = { x: 0, y: 0 };
+    dragRef.current = null;
+    setZoom(1);
+    setReady(false);
+    setPreview(initialSrc || null);
+    onChange(null);
+    if (!initialSrc) return;
+    loadFromSrc(initialSrc, false).catch(() => {
+      setPreview(initialSrc);
+    });
+    // Reset when the saved photo URL changes. onChange is stable enough for this field.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialSrc]);
+
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!hasFile) {
+    if (!ready) {
       inputRef.current?.click();
       return;
     }
@@ -68,7 +85,7 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
   };
 
   const onPointerMove = (event: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragRef.current || !hasFile) return;
+    if (!dragRef.current || !ready) return;
     const dx = event.clientX - dragRef.current.x;
     const dy = event.clientY - dragRef.current.y;
     dragRef.current = { x: event.clientX, y: event.clientY };
@@ -86,9 +103,19 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
 
   return (
     <div>
-      <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
+      <p className="mb-2 flex items-center gap-1 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
         {label}
         {optional ? ' · optional' : ''}
+        <HelpTip
+          label="Photo help"
+          title="Photo"
+          lead="Drag the circle to move the face. Use the slider to zoom. Center puts it back in the middle."
+          bullets={[
+            'Tap Choose or Change to pick a picture',
+            'Drag inside the circle to slide the photo',
+            'Center resets the crop. It is always on.',
+          ]}
+        />
       </p>
       <div className="flex items-center gap-3">
         <div
@@ -117,7 +144,7 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
             max={2.4}
             step={0.05}
             value={zoom}
-            disabled={!hasFile}
+            disabled={!ready}
             onChange={(event) => {
               const next = Number(event.target.value);
               setZoom(next);
@@ -125,25 +152,22 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
             }}
             className="w-full"
           />
-          <p className="mt-1 text-xs text-[#f6f1e3]/45">
-            {hasFile ? 'Drag the photo to center it. Zoom in or out.' : 'Zoom in or out into the circle'}
-          </p>
           <div className="mt-2 flex gap-2">
             <button
               type="button"
               onClick={() => inputRef.current?.click()}
-              className="text-xs font-black text-[#e8c547]"
+              className="min-h-9 rounded-xl bg-[#e8c547] px-3 text-xs font-black text-[#1a1404]"
             >
-              {hasFile ? 'Change' : 'Choose'}
+              {preview ? 'Change' : 'Choose'}
             </button>
-            {hasFile ? (
+            {ready ? (
               <button
                 type="button"
                 onClick={() => {
                   panRef.current = { x: 0, y: 0 };
                   applyCrop(zoom, 0, 0);
                 }}
-                className="text-xs font-black text-[#f6f1e3]/70"
+                className="min-h-9 rounded-xl border border-[#e8c547]/60 px-3 text-xs font-black text-[#e8c547]"
               >
                 Center
               </button>
@@ -158,14 +182,14 @@ export default function PhotoCropField({ label = 'Photo', optional, onChange }: 
         className="hidden"
         onChange={async (event) => {
           const file = event.target.files?.[0];
-          if (!file) {
-            imageRef.current = null;
-            setHasFile(false);
-            setPreview(null);
-            onChange(null);
-            return;
+          event.target.value = '';
+          if (!file) return;
+          const url = URL.createObjectURL(file);
+          try {
+            await loadFromSrc(url, true);
+          } finally {
+            URL.revokeObjectURL(url);
           }
-          await loadFile(file);
         }}
       />
     </div>

@@ -23,6 +23,7 @@ interface AppMenuProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    hasPhoto?: boolean;
   }) => void;
 }
 
@@ -45,6 +46,7 @@ export default function AppMenu({
   const [callName, setCallName] = useState(userName);
   const [hasPhoto, setHasPhoto] = useState(false);
   const [photoUserId, setPhotoUserId] = useState<number | null>(null);
+  const [photoBust, setPhotoBust] = useState(0);
   const [mounted, setMounted] = useState(false);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
@@ -60,6 +62,7 @@ export default function AppMenu({
         setCallName(data?.user?.callName || userName);
         setHasPhoto(Boolean(data?.user?.hasPhoto));
         setPhotoUserId(data?.user?.id != null ? Number(data.user.id) : null);
+        if (data?.user?.hasPhoto) setPhotoBust(Date.now());
       });
   }, [userName]);
 
@@ -151,7 +154,7 @@ export default function AppMenu({
                 {hasPhoto && photoUserId ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={`/api/users/${photoUserId}/photo`}
+                    src={`/api/users/${photoUserId}/photo?t=${photoBust}`}
                     alt=""
                     className="h-10 w-10 rounded-full object-cover"
                   />
@@ -306,16 +309,26 @@ export default function AppMenu({
 
   return (
     <>
-      <button
-        ref={buttonRef}
-        type="button"
-        aria-label="Open menu"
-        aria-expanded={open}
-        onClick={() => setOpen((value) => !value)}
-        className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
-      >
-        {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-      </button>
+      <div className="flex items-center gap-2">
+        {hasPhoto && photoUserId ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={`/api/users/${photoUserId}/photo?t=${photoBust}`}
+            alt=""
+            className="h-10 w-10 rounded-full object-cover"
+          />
+        ) : null}
+        <button
+          ref={buttonRef}
+          type="button"
+          aria-label="Open menu"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+          className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border border-white/10 text-[#e8c547] hover:border-[#e8c547]/40"
+        >
+          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </button>
+      </div>
 
       {menu}
 
@@ -328,6 +341,10 @@ export default function AppMenu({
         currentRestExtraMinutes={userRestExtraMinutes}
         onClose={() => setShowEdit(false)}
         onSaved={(profile) => {
+          if (profile.hasPhoto) {
+            setHasPhoto(true);
+            setPhotoBust(Date.now());
+          }
           onProfileSaved?.(profile);
           router.refresh();
         }}

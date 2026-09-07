@@ -70,8 +70,8 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
         email,
         phone,
         bodyWeightLb,
-        photo,
         acceptWaiver: true,
+        ...(photo ? { photo } : {}),
       }),
     });
     const data = await res.json();
@@ -97,11 +97,11 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
           <input className="glass-input w-full" placeholder="Last name" value={lastName} onChange={(e) => setLastName(e.target.value)} />
           <p className="text-sm text-[#f6f1e3]/55">Full name · {fullName || '—'}</p>
           <input className="glass-input w-full" placeholder="Alias" value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
-          {hasPhoto && userId ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/users/${userId}/photo`} alt="" className="h-16 w-16 rounded-full object-cover" />
-          ) : null}
-          <PhotoCropField optional onChange={setPhoto} />
+          <PhotoCropField
+            optional
+            initialSrc={hasPhoto && userId ? `/api/users/${userId}/photo?t=1` : null}
+            onChange={setPhoto}
+          />
           <div>
             <input
               className="glass-input w-full"

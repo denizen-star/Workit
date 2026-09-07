@@ -37,7 +37,7 @@ How to use Work-It. Linked from Home banner (until 5 finished workouts) and the 
 
 ## `/home` — Home Quiet
 
-- Header: gold dumbbell + Work-It + menu. Menu: house switch if in more than one (The OG / Gowanus). Photo lives in the menu, not in place of the dumbbell.
+- Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house switch if in more than one (The OG / Gowanus)
 - First visit without waiver: Update your profile (prefilled) + required waiver
 - How to use banner until 5 finished workouts
 - Today card (`gold-hero`)
