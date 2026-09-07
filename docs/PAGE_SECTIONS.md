@@ -8,7 +8,7 @@ Redirect. Session → `/home`. Else `/login`. Middleware usually handles this.
 
 ## `/login`
 
-- Email + 4-digit PIN
+- Email + 4-digit PIN. Last email stays on this phone after logout. Autofill on.
 - Session already on this phone → `/home`
 - Unverified new join: “email has not been verified”
 - Forgot PIN (mails `/login?reset=`)

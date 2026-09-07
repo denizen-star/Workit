@@ -6,6 +6,26 @@ import PinPad from '@/components/PinPad';
 import { FORGOT_PIN_NOTICE } from '@/lib/helpCopy';
 import { EMAIL_NOT_VERIFIED, JOIN_INTRO_LEAD } from '@/lib/joinCopy';
 
+const LOGIN_EMAIL_KEY = 'workit_login_email';
+
+function readSavedEmail() {
+  try {
+    return (window.localStorage.getItem(LOGIN_EMAIL_KEY) || '').trim();
+  } catch {
+    return '';
+  }
+}
+
+function saveLoginEmail(value: string) {
+  try {
+    const trimmed = value.trim();
+    if (trimmed) window.localStorage.setItem(LOGIN_EMAIL_KEY, trimmed);
+    else window.localStorage.removeItem(LOGIN_EMAIL_KEY);
+  } catch {
+    /* private mode */
+  }
+}
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -17,6 +37,8 @@ export default function LoginPage() {
   const [confirmPin, setConfirmPin] = useState('');
 
   useEffect(() => {
+    const saved = readSavedEmail();
+    if (saved) setEmail(saved);
     const params = new URLSearchParams(window.location.search);
     const verify = params.get('verify') || '';
     const reset = params.get('reset') || '';
@@ -59,6 +81,7 @@ export default function LoginPage() {
         setConfirmPin('');
         return;
       }
+      saveLoginEmail(email);
       router.replace('/home');
       return;
     }
@@ -74,6 +97,7 @@ export default function LoginPage() {
       setPin('');
       return;
     }
+    saveLoginEmail(email);
     router.replace('/home');
   };
 
@@ -91,18 +115,62 @@ export default function LoginPage() {
       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#e8c547]/80">Work-It</p>
       <h1 className="mt-2 text-3xl font-black text-white">Log in</h1>
       <p className="mt-3 text-sm text-[#f6f1e3]/70">{JOIN_INTRO_LEAD}</p>
-      <label className="mt-8 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
+      <form
+        className="mt-8 flex flex-col"
+        autoComplete="on"
+        onSubmit={(event) => {
+          event.preventDefault();
+          submit();
+        }}
+      >
+      <label
+        htmlFor="login-email"
+        className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50"
+      >
         Email
       </label>
       <input
+        id="login-email"
+        name="email"
         type="email"
         value={email}
-        onChange={(event) => setEmail(event.target.value)}
+        onChange={(event) => {
+          const next = event.target.value;
+          setEmail(next);
+          saveLoginEmail(next);
+        }}
         className="mt-2 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-white"
-        autoComplete="email"
+        autoComplete="username"
+        autoCapitalize="none"
+        autoCorrect="off"
+        spellCheck={false}
+        inputMode="email"
+        enterKeyHint="next"
       />
-      <p className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">PIN</p>
-      <div className="mt-2">
+      <label
+        htmlFor="login-pin"
+        className="mt-6 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50"
+      >
+        PIN
+      </label>
+      <input
+        id="login-pin"
+        name="password"
+        type="password"
+        value={pin}
+        onChange={(event) => {
+          const next = event.target.value.replace(/\D/g, '').slice(0, 4);
+          setPin(next);
+          if (next.length === 4) submit(next);
+        }}
+        className="mt-2 rounded-2xl border border-white/10 bg-black/40 px-4 py-3 text-center text-lg tracking-[0.4em] text-white"
+        autoComplete="current-password"
+        inputMode="numeric"
+        pattern="[0-9]*"
+        maxLength={4}
+        enterKeyHint="go"
+      />
+      <div className="mt-4">
         <PinPad
           value={pin}
           onChange={(value) => {
@@ -114,13 +182,13 @@ export default function LoginPage() {
       {error ? <p className="mt-4 text-sm text-[#a35d52]">{error}</p> : null}
       {notice ? <p className="mt-4 text-sm text-[#6d8b6e]">{notice}</p> : null}
       <button
-        type="button"
+        type="submit"
         disabled={busy}
-        onClick={() => submit()}
         className="mt-6 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
       >
         Enter
       </button>
+      </form>
       <button type="button" onClick={forgot} className="mt-3 text-sm font-bold text-[#e8c547]">
         Forgot PIN
       </button>
