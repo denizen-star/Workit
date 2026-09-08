@@ -13,6 +13,16 @@ const DRAFT_KEY = 'workit_join_draft';
 
 type Step = 'intro' | 'form' | 'pin' | 'confirm' | 'wait';
 
+// Collapses the five internal steps into 3 visual stages for the progress bar.
+const STAGE_LABELS = ['Details', 'PIN', 'Done'];
+const STAGE_FOR_STEP: Record<Step, number> = {
+  intro: 0,
+  form: 0,
+  pin: 1,
+  confirm: 1,
+  wait: 2,
+};
+
 export default function JoinPage() {
   const router = useRouter();
   const [step, setStep] = useState<Step>('intro');
@@ -42,7 +52,11 @@ export default function JoinPage() {
     if (saved) {
       try {
         const draft = JSON.parse(saved) as { step?: Step; firstName?: string };
-        if (draft.step && draft.step !== 'wait') setStep(draft.step);
+        // 'pin'/'confirm' entries aren't persisted, so a restored 'confirm' step
+        // can never be completed. Always resume PIN entry from the 'pin' screen.
+        if (draft.step && draft.step !== 'wait') {
+          setStep(draft.step === 'confirm' ? 'pin' : draft.step);
+        }
         if (draft.firstName) setFirstName(draft.firstName);
       } catch {
         /* ignore */
@@ -71,7 +85,12 @@ export default function JoinPage() {
     localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, firstName, lastName, displayName, email }));
   }, [step, firstName, lastName, displayName, email]);
 
-  const submit = async () => {
+  // Takes confirmPinValue explicitly rather than reading the `confirmPin` state
+  // directly: the auto-submit call fires from the same PinPad onChange handler
+  // that just called setConfirmPin(value), and since that update hasn't
+  // re-rendered yet, `confirmPin` in this closure would still be the prior,
+  // one-digit-short value — sending a false mismatch to the server.
+  const submit = async (confirmPinValue: string) => {
     setBusy(true);
     setError('');
     const res = await fetch('/api/join', {
@@ -89,7 +108,7 @@ export default function JoinPage() {
         photo,
         acceptedWaiver: accepted,
         pin,
-        confirmPin,
+        confirmPin: confirmPinValue,
       }),
     });
     const data = await res.json();
@@ -113,6 +132,7 @@ export default function JoinPage() {
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-5 py-8">
       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#e8c547]/80">Work-It</p>
+      <StepProgress stage={STAGE_FOR_STEP[step]} />
       {step === 'intro' ? (
         <>
           <h1 className="mt-2 text-3xl font-black text-white">{JOIN_INTRO_TITLE}</h1>
@@ -194,6 +214,7 @@ export default function JoinPage() {
           >
             Next
           </button>
+          <BackLink onClick={() => setStep('intro')} />
         </>
       ) : null}
 
@@ -207,11 +228,27 @@ export default function JoinPage() {
               value={step === 'pin' ? pin : confirmPin}
               onChange={(value) => {
                 if (step === 'pin') {
+                  setError('');
                   setPin(value);
+                  // A stale confirmPin from an earlier attempt must never carry
+                  // forward into a fresh PIN — always require a fresh confirmation.
+                  setConfirmPin('');
                   if (value.length === 4) setStep('confirm');
                 } else {
                   setConfirmPin(value);
-                  if (value.length === 4 && value === pin) submit();
+                  if (value.length === 4) {
+                    if (value === pin) {
+                      submit(value);
+                    } else {
+                      // Mismatch: surface it and send them back to re-enter the
+                      // PIN from scratch, instead of leaving them stuck on 4
+                      // filled, disabled dots with no way forward or back.
+                      setError('PINs do not match. Enter your PIN again.');
+                      setPin('');
+                      setConfirmPin('');
+                      setStep('pin');
+                    }
+                  }
                 }
               }}
             />
@@ -219,12 +256,25 @@ export default function JoinPage() {
           {error ? <p className="mt-3 text-sm text-[#a35d52]">{error}</p> : null}
           <button
             type="button"
-            disabled={busy}
-            onClick={() => (step === 'pin' ? setStep('confirm') : submit())}
-            className="mt-8 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
+            disabled={busy || (step === 'pin' ? pin.length !== 4 : confirmPin.length !== 4)}
+            onClick={() => (step === 'pin' ? setStep('confirm') : submit(confirmPin))}
+            className="mt-8 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404] disabled:opacity-40"
           >
             {step === 'pin' ? 'Next' : 'Finish'}
           </button>
+          <BackLink
+            onClick={() => {
+              setError('');
+              if (step === 'pin') {
+                setStep('form');
+              } else {
+                // Keep the original pin so they can review/edit it; only the
+                // stale confirmation needs to be cleared.
+                setConfirmPin('');
+                setStep('pin');
+              }
+            }}
+          />
         </>
       ) : null}
 
@@ -242,6 +292,41 @@ export default function JoinPage() {
 
       <WaiverSheet open={waiverOpen} onClose={() => setWaiverOpen(false)} />
     </main>
+  );
+}
+
+function StepProgress({ stage }: { stage: number }) {
+  return (
+    <div className="mt-4 flex items-center gap-2">
+      {STAGE_LABELS.map((label, index) => (
+        <div key={label} className="flex flex-1 items-center gap-2">
+          <div
+            className={`h-1.5 flex-1 rounded-full ${
+              index <= stage ? 'bg-[#e8c547]' : 'bg-white/10'
+            }`}
+          />
+          <span
+            className={`text-[10px] font-black uppercase tracking-[0.14em] ${
+              index <= stage ? 'text-[#e8c547]' : 'text-[#f6f1e3]/40'
+            }`}
+          >
+            {label}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mt-4 text-center text-sm font-bold text-[#f6f1e3]/60"
+    >
+      Back
+    </button>
   );
 }
 

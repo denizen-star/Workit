@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 7.3.0 - 2026-09-08
+
+### Fixed
+- Join wizard PIN confirmation: a correctly re-typed PIN could get falsely rejected ("PIN must be four matching digits") because the confirm step submitted a stale copy of the PIN missing its last digit
+- Join wizard PIN mismatch no longer leaves you stuck on 4 filled, disabled dots with no way forward — it now shows an error and drops you back to re-enter the PIN
+
+### Added
+- Join wizard (`/join`): progress bar (Details / PIN / Done) and a Back button on every step, so you can fix an earlier answer without starting over
+
 ## 7.2.4 - 2026-09-07
 
 ### Changed
