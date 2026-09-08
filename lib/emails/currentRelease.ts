@@ -36,22 +36,41 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.2.4',
-  title: 'You will see my name different now.',
-  subject: 'You will see my name different now.',
+  version: '7.4.0',
+  title: 'The house calls you the right name now.',
+  subject: 'The house calls you the right name now.',
   signer: 'Master Tom Iron',
   tone: 'master',
-  onlyAthletesWithWorkouts: false,
+  onlyAthletesWithWorkouts: true,
+  activeInDays: 14,
+  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
-  intro:
-    'Small thing, man. Nothing about the work changed. Just my name in your inbox.',
-  mid: 'Mail from me now shows up as "Workit - Coach Tom" instead of just my name. Same voice, same standards, same account. James Grey and Luna Meadows get the same treatment for their people. You will still know it is me the second you open it.',
-  close: 'Nothing to do here. Just do not delete it thinking it is spam.',
+  intro: 'Man, cleaned up a few things this week. Nothing you asked for out loud. You will still feel it.',
+  mid: 'The house and You vs now call other people by the name they picked for themselves, not the name on their license. You always see your own real name. New people stop getting scolded for a week that closed before they even joined, and a missing photo shows an initial instead of a broken square.',
+  close: 'Also fixed the icon on your home screen if you saved this app there — it went back to looking like Work-It instead of a plain letter. Nothing for you to do, man. Just open it.',
   lead: '',
   groups: [
     {
-      heading: 'Your inbox',
-      wins: ['Mail now arrives from "Workit - Coach Tom" (or James / Luna for their people).'],
+      heading: 'The house and You vs',
+      wins: [
+        'Other athletes show by the name they picked, not their full name.',
+        'You always see your own real name.',
+      ],
+    },
+    {
+      heading: 'New people',
+      wins: [
+        'No more false "you missed last week" message on day one.',
+        'A missing photo shows your initial instead of a broken image.',
+      ],
+    },
+    {
+      heading: 'How to use',
+      wins: ['Rebuilt as numbered steps with pictures, not a plain list.'],
+    },
+    {
+      heading: 'Home screen icon',
+      wins: ['Fixed — shows the Work-It logo again, not a plain letter.'],
     },
   ],
   wins: [],
