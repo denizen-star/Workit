@@ -34,7 +34,7 @@ export const FALLBACK_VOICES: CoachVoiceRecord[] = [
   {
     id: 'master',
     displayName: 'Master Tom Iron',
-    fromName: 'Master Tom Iron',
+    fromName: 'Workit - Coach Tom',
     blurb:
       'Direct. I own the hour. Quit is not a name I use. The prize is growth, lean, definition, power, stamina, mobility.',
     description:
@@ -43,7 +43,7 @@ export const FALLBACK_VOICES: CoachVoiceRecord[] = [
   {
     id: 'james',
     displayName: 'James Grey',
-    fromName: 'James Grey',
+    fromName: 'Workit - Coach James',
     blurb: 'Grey. Private. He wants you present. The hour has to show on the body.',
     description:
       'Precise, British. He takes you under his watch. He wants you present. Praise is rare. The hour has to show as growth, lean, definition, power, stamina, or mobility.',
@@ -51,7 +51,7 @@ export const FALLBACK_VOICES: CoachVoiceRecord[] = [
   {
     id: 'luna',
     displayName: 'Luna Meadows',
-    fromName: 'Luna Meadows',
+    fromName: 'Workit - Coach Luna',
     blurb: 'Calm. Soft. She holds you in the hard part until the strength stays.',
     description:
       'Melodic and still. She talks like a moving meditation: breath, alignment, stay. The work can burn. The voice does not. Praise is quiet. The prize is growth, lean, definition, power, stamina, and mobility.',

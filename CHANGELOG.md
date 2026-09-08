@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.2.4 - 2026-09-07
+
+### Changed
+- Email sender name defaults to "Workit - Coach Tom" / "Workit - Coach James" / "Workit - Coach Luna" (was "Master Tom Iron" / "James Grey" / "Luna Meadows") when a coach voice has no sender name set in the database
+
 ## 7.2.3 - 2026-09-07
 
 ### Changed
