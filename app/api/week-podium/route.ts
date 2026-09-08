@@ -4,6 +4,7 @@ import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { pickMissedWeekLine, pickWeekPlaceLine } from '@/lib/coachLines';
 import { isTestUserName } from '@/lib/householdUsers';
 import {
+  accountExistedBeforeWeek,
   countUserClosedWeekWorkouts,
   ensureClosedWeekPodiums,
   lastClosedMonday,
@@ -39,7 +40,12 @@ export async function GET() {
       : null;
 
     let miss: WeekMissYou | null = null;
-    if (weekMonday && !you && !isTestUserName(user.name)) {
+    if (
+      weekMonday &&
+      !you &&
+      !isTestUserName(user.name) &&
+      accountExistedBeforeWeek(user.createdAt, weekMonday)
+    ) {
       const workouts = await countUserClosedWeekWorkouts(user.id, weekMonday);
       if (missedTheWeek(workouts)) {
         miss = {

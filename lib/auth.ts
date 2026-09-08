@@ -33,6 +33,7 @@ export type SessionUser = {
   householdId: number | null;
   householdSlug: string | null;
   householdName: string | null;
+  createdAt: string | Date | null;
 };
 
 let userSelectMode: 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
@@ -57,11 +58,12 @@ type UserRow = {
   waiver_accepted_at?: string | Date | null;
   email_verified_at?: string | Date | null;
   last_household_id?: number | null;
+  created_at?: string | Date | null;
 };
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -126,6 +128,7 @@ function toSessionUser(
     householdId: house?.id ?? null,
     householdSlug: house?.slug ?? null,
     householdName: house?.name ?? null,
+    createdAt: row.created_at ?? null,
   };
 }
 

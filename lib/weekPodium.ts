@@ -305,6 +305,19 @@ export function missedTheWeek(workouts: number) {
   return workouts < REQUIRED_DAYS_TO_LOCK;
 }
 
+/**
+ * A brand-new account can't have "missed" a week that closed before they joined.
+ * True only when the account existed before that week's Monday started.
+ */
+export function accountExistedBeforeWeek(
+  createdAt: string | Date | null | undefined,
+  monday: string
+): boolean {
+  if (!createdAt) return true;
+  const { startUtc } = weekWindowUtc(monday);
+  return new Date(String(createdAt)).getTime() < new Date(startUtc).getTime();
+}
+
 export async function loadUserWeekMedals(userId: number, userName: string): Promise<WeekPodiumYou[]> {
   if (isTestUserName(userName)) return [];
   try {

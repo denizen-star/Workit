@@ -6,6 +6,7 @@ import { KpiList } from '@/components/KpiList';
 import { formatHardnessWithPct } from '@/lib/hardness';
 import { formatDuration } from '@/lib/formatDuration';
 import { kpisFromScoreboard } from '@/lib/kpi';
+import { athleteCallName } from '@/lib/profile';
 import { formatCompact, formatPct } from '@/lib/athletePerformanceTypes';
 import {
   SCOREBOARD_PERIODS,
@@ -38,6 +39,20 @@ function trackingLine(row: HouseholdScoreboardRow, volumePct: number | null, eff
     effortPct != null ? `· avg Effective ${formatPct(effortPct)}` : null,
   ].filter(Boolean);
   return bits.join(' ');
+}
+
+/**
+ * You always see your own real name here; every other athlete shows by their
+ * alias (else first name) instead of their full real name.
+ */
+function houseAthleteLabel(
+  row: { id: number; name: string; displayName: string | null },
+  highlightUserId: number | null,
+  full: boolean
+) {
+  const isYou = highlightUserId != null && Number(row.id) === highlightUserId;
+  if (isYou) return full ? row.name : row.name.split(/\s+/)[0];
+  return athleteCallName({ display_name: row.displayName, name: row.name });
 }
 
 function lastLabel(value: string | null) {
@@ -123,7 +138,9 @@ export default function HouseholdScoreboard({
             const width = Math.max(4, Math.round((row.volume / max) * 100));
             return (
               <div key={row.id} className="pack-bar">
-                <span className={you ? 'text-[#f6f1e3]' : 'text-[#c08457]'}>{row.name.split(/\s+/)[0]}</span>
+                <span className={you ? 'text-[#f6f1e3]' : 'text-[#c08457]'}>
+                  {houseAthleteLabel(row, highlightUserId, false)}
+                </span>
                 <div className="pack-bar-track">
                   <i
                     style={{
@@ -163,7 +180,9 @@ export default function HouseholdScoreboard({
               <div className="mt-3 space-y-2">
                 {bonusHonor.map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-lg font-black text-white">
+                      {houseAthleteLabel(row, highlightUserId, true)}
+                    </p>
                     <p className="text-base font-semibold text-[#e8c547]">
                       {row.bonusWeeks} bonus {row.bonusWeeks === 1 ? 'week' : 'weeks'}
                     </p>
@@ -181,7 +200,9 @@ export default function HouseholdScoreboard({
               <div className="mt-3 space-y-2">
                 {optionalHonor.map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-lg font-black text-white">
+                      {houseAthleteLabel(row, highlightUserId, true)}
+                    </p>
                     <p className="text-base font-semibold text-[#e8c547]">
                       {row.optionalWeeks} optional {row.optionalWeeks === 1 ? 'week' : 'weeks'}
                     </p>
@@ -201,7 +222,9 @@ export default function HouseholdScoreboard({
               <div className="mt-3 space-y-2">
                 {cardioHonor.map((row) => (
                   <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">{row.name}</p>
+                    <p className="text-lg font-black text-white">
+                      {houseAthleteLabel(row, highlightUserId, true)}
+                    </p>
                     <p className="text-base font-semibold text-[#e8c547]">
                       {formatDuration(row.cardioSeconds)}
                     </p>
@@ -230,7 +253,9 @@ export default function HouseholdScoreboard({
                 }`}
               >
                 <p className="text-sm font-semibold uppercase tracking-[0.16em] text-[#c08457]">{place}</p>
-                <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>{row.name}</p>
+                <p className={`mt-1 text-xl font-black ${you ? 'text-[#f6f1e3]' : 'text-white'}`}>
+                  {houseAthleteLabel(row, highlightUserId, true)}
+                </p>
                 <p className="mt-1 text-[28px] font-black leading-tight text-white">
                   {formatCompact(volume)} Volume
                 </p>

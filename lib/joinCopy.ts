@@ -15,12 +15,39 @@ export const HOW_TO_TITLE = 'How to use Work-It';
 export const HOW_TO_LEAD =
   'Do not think about the workout on the fly. We already planned the year. Open Home. Hit Start WO. Do the day it shows.';
 
-export const HOW_TO_BULLETS = [
-  'Put workitapp.fit on the home screen. Safari, Share, Add to Home Screen.',
-  'Log every set. The log is the training.',
-  'Weights that you can control. Leave a rep or two.',
-  'Wednesday is rest. Four finishes lock the week.',
-  'Travel if you cannot get to a gym. Same day, no iron.',
-] as const;
+export type HowToStep = {
+  title: string;
+  description: string;
+  /** Screenshot for this step, served from public/how-to/. */
+  image: string;
+};
+
+export const HOW_TO_STEPS: HowToStep[] = [
+  {
+    title: 'Add it to your home screen',
+    description: 'Put workitapp.fit on the home screen. Safari, Share, Add to Home Screen.',
+    image: '/how-to/step-1-home-screen.png',
+  },
+  {
+    title: 'Log every set',
+    description: 'Log every set. The log is the training.',
+    image: '/how-to/step-2-log-set.png',
+  },
+  {
+    title: 'Pick weight you control',
+    description: 'Weights that you can control. Leave a rep or two.',
+    image: '/how-to/step-3-pick-weight.png',
+  },
+  {
+    title: 'Four finishes locks the week',
+    description: 'Wednesday is rest. Four finishes lock the week.',
+    image: '/how-to/step-4-week-lock.png',
+  },
+  {
+    title: 'No gym? Go Travel',
+    description: 'Travel if you cannot get to a gym. Same day, no iron.',
+    image: '/how-to/step-5-travel.png',
+  },
+];
 
 export const EMAIL_NOT_VERIFIED = 'That email has not been verified. Open the mail we sent, then come back.';

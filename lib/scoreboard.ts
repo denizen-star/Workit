@@ -49,6 +49,7 @@ function toScoreboardRow(
   row: {
     id: number;
     name: string;
+    display_name?: string | null;
     workouts: number;
     volume: number;
     sets: number;
@@ -76,6 +77,7 @@ function toScoreboardRow(
   return {
     id: Number(row.id),
     name: row.name,
+    displayName: row.display_name ?? null,
     workouts: Number(row.workouts || 0),
     volume: Number(row.volume || 0),
     sets: Number(row.sets || 0),
@@ -132,6 +134,7 @@ async function householdScoreboardFiltered(
     `SELECT
        u.id,
        u.name,
+       u.display_name,
        COUNT(DISTINCT ws.id) as workouts,
        COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
          'u.id',
@@ -155,7 +158,7 @@ async function householdScoreboardFiltered(
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
      WHERE 1=1 ${house.sql}
-     GROUP BY u.id, u.name
+     GROUP BY u.id, u.name, u.display_name
      HAVING COUNT(DISTINCT ws.id) > 0
      ORDER BY workouts DESC, volume DESC, u.name ASC`,
     [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params, ...house.params]
@@ -164,6 +167,7 @@ async function householdScoreboardFiltered(
   const rows = result.rows as {
     id: number;
     name: string;
+    display_name: string | null;
     workouts: number;
     volume: number;
     sets: number;
@@ -340,6 +344,7 @@ export async function emptySnapshotRow(
   return {
     id: userId,
     name,
+    displayName: null,
     workouts: 0,
     volume: 0,
     sets: 0,
@@ -404,20 +409,24 @@ export async function householdBonusHonor(
     `SELECT
        u.id,
        u.name,
+       u.display_name,
        COUNT(DISTINCT ws.week_number) as bonus_weeks
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 AND ${bonusTypeSql('ws')} ${sessionWindow.sql}
      WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
-     GROUP BY u.id, u.name
+     GROUP BY u.id, u.name, u.display_name
      HAVING COUNT(DISTINCT ws.week_number) > 0
      ORDER BY bonus_weeks DESC, u.name ASC`,
     [...sessionWindow.params, ...house.params]
   );
 
-  return (result.rows as { id: number; name: string; bonus_weeks: number }[]).map((row) => ({
+  return (
+    result.rows as { id: number; name: string; display_name: string | null; bonus_weeks: number }[]
+  ).map((row) => ({
     id: Number(row.id),
     name: row.name,
+    displayName: row.display_name ?? null,
     bonusWeeks: Number(row.bonus_weeks || 0),
   }));
 }

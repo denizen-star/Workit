@@ -41,7 +41,11 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <head>
         <link rel="manifest" href="/manifest.json" />
-        <link rel="icon" href="/icon.svg" type="image/svg+xml" />
+        {/* app/icon.svg already auto-generates the SVG favicon tag. The
+            apple-touch-icon must stay a plain, query-string-free URL: iOS
+            Safari's Add to Home Screen icon fetch silently fails on a
+            hashed "?..." URL (which is what Next's own app/apple-icon.png
+            convention would produce) and falls back to a plain letter tile. */}
         <link rel="icon" href="/favicon-32.png" type="image/png" sizes="32x32" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         <meta name="apple-mobile-web-app-capable" content="yes" />

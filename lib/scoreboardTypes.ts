@@ -7,24 +7,29 @@ export type ScoreboardPeriod = (typeof SCOREBOARD_PERIODS)[number];
 export type BonusHonorRow = {
   id: number;
   name: string;
+  /** Alias, else first name — for showing other athletes by their chosen handle. */
+  displayName: string | null;
   bonusWeeks: number;
 };
 
 export type OptionalHonorRow = {
   id: number;
   name: string;
+  displayName: string | null;
   optionalWeeks: number;
 };
 
 export type CardioHonorRow = {
   id: number;
   name: string;
+  displayName: string | null;
   cardioSeconds: number;
 };
 
 export type HouseholdScoreboardRow = {
   id: number;
   name: string;
+  displayName: string | null;
   workouts: number;
   volume: number;
   sets: number;

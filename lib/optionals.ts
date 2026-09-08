@@ -274,6 +274,7 @@ export async function householdOptionalHonor(period: ScoreboardPeriod, household
     `SELECT
        u.id,
        u.name,
+       u.display_name,
        COUNT(*) as optional_weeks
      FROM (
        SELECT
@@ -286,14 +287,17 @@ export async function householdOptionalHonor(period: ScoreboardPeriod, household
      ) weeks
      INNER JOIN users u ON u.id = weeks.user_id
      WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
-     GROUP BY u.id, u.name
+     GROUP BY u.id, u.name, u.display_name
      ORDER BY optional_weeks DESC, u.name ASC`,
     house.params
   );
 
-  return (result.rows as { id: number; name: string; optional_weeks: number }[]).map((row) => ({
+  return (
+    result.rows as { id: number; name: string; display_name: string | null; optional_weeks: number }[]
+  ).map((row) => ({
     id: Number(row.id),
     name: row.name,
+    displayName: row.display_name ?? null,
     optionalWeeks: Number(row.optional_weeks || 0),
   }));
 }
@@ -334,21 +338,25 @@ export async function householdCardioHonor(
     `SELECT
        u.id,
        u.name,
+       u.display_name,
        COALESCE(SUM(${cardioSecondsCaseSql('ws.warmup_track', 'ws.warmup_started_at', 'ws.warmup_completed_at', warmupWindow)}), 0)
        + COALESCE(SUM(${cardioSecondsCaseSql('ws.cooldown_track', 'ws.cooldown_started_at', 'ws.cooldown_completed_at', cooldownWindow)}), 0)
        AS cardio_seconds
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id
      WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
-     GROUP BY u.id, u.name
+     GROUP BY u.id, u.name, u.display_name
      HAVING cardio_seconds > 0
      ORDER BY cardio_seconds DESC, u.name ASC`,
     house.params
   );
 
-  return (result.rows as { id: number; name: string; cardio_seconds: number }[]).map((row) => ({
+  return (
+    result.rows as { id: number; name: string; display_name: string | null; cardio_seconds: number }[]
+  ).map((row) => ({
     id: Number(row.id),
     name: row.name,
+    displayName: row.display_name ?? null,
     cardioSeconds: Number(row.cardio_seconds || 0),
   }));
 }

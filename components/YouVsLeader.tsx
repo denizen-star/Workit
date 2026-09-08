@@ -8,6 +8,7 @@ import {
   scoreboardBestDay,
   type HouseholdScoreboardRow,
 } from '@/lib/scoreboardTypes';
+import { athleteCallName } from '@/lib/profile';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatHardnessWithPct } from '@/lib/hardness';
 
@@ -84,7 +85,7 @@ export default function YouVsLeader({ userId }: { userId: number | null }) {
     );
   }
 
-  const rivalName = firstName(rival.name);
+  const rivalName = athleteCallName({ display_name: rival.displayName, name: rival.name });
   const youVol = you.volume;
   const rivalVol = rival.volume;
   const max = Math.max(youVol, rivalVol, 1);

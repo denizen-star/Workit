@@ -1,4 +1,5 @@
 import { formatK, ordinalRank, overallRankSentence, type WeightRank } from '@/lib/exerciseCompare';
+import { athleteCallName } from '@/lib/profile';
 import { firstName } from '@/lib/scoreboardTypes';
 
 function Stat({ label, value }: { label: string; value: number }) {
@@ -35,7 +36,14 @@ export default function WeightRanking({
       <div className="space-y-2">
         {ranking.map((row) => {
           const you = highlightUserId != null && row.userId === highlightUserId;
-          const label = names === 'full' ? row.name : firstName(row.name);
+          // Admin 'full' mode always shows real names. Otherwise you see your own
+          // first name; other athletes show by their alias (else first name).
+          const label =
+            names === 'full'
+              ? row.name
+              : you
+                ? firstName(row.name)
+                : athleteCallName({ display_name: row.displayName, name: row.name });
           return (
             <div
               key={row.userId}

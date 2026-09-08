@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 7.4.0 - 2026-09-08
+
+### Fixed
+- New athletes no longer get a false "you missed last week" takeover on Home right after joining — that only fires now if your account existed before the week it's talking about
+- Home screen icon (Add to Home Screen on iPhone) showed a plain "W" tile instead of the Work-It logo — iOS silently fails to fetch an icon URL with a `?...` cache-busting suffix, which is what was being served
+- Missing profile photo showed as broken/blank in the header and menu — now shows your initial in a circle instead
+
+### Added
+- The house, You vs leader, and Best day / Total weight now show other athletes by their alias (if they set one) instead of their real name. You still see your own real name
+- How to use (`/how`) is now a numbered step-by-step walkthrough with a screenshot per step, instead of a plain bullet list
+
 ## 7.3.0 - 2026-09-08
 
 ### Fixed

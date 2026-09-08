@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
 import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, Info, ClipboardList } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
+import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { type NoiseLevel } from '@/lib/noisePref';
@@ -168,7 +169,9 @@ export default function AppMenu({
                     alt=""
                     className="h-10 w-10 rounded-full object-cover"
                   />
-                ) : null}
+                ) : (
+                  <InitialsAvatar name={callName} />
+                )}
                 <div className="min-w-0">
               <p className="truncate text-sm font-black text-white">{callName}</p>
               {userEmail && (
@@ -327,7 +330,9 @@ export default function AppMenu({
             alt=""
             className="h-10 w-10 rounded-full object-cover"
           />
-        ) : null}
+        ) : (
+          <InitialsAvatar name={callName} />
+        )}
         <button
           ref={buttonRef}
           type="button"

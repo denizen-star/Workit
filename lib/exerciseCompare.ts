@@ -37,6 +37,7 @@ export type ExerciseCompareRow = {
 export type WeightRank = {
   userId: number;
   name: string;
+  displayName: string | null;
   rank: number;
   bestDay: number;
   totalWeight: number;
@@ -135,7 +136,7 @@ function pct(part: number, whole: number): number {
 }
 
 async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
-  athletes: { userId: number; name: string }[];
+  athletes: { userId: number; name: string; displayName: string | null }[];
   sessions: SessionDay[];
   volumeByUser: Map<number, number>;
   effortByUser: Map<number, number>;
@@ -145,7 +146,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
 
   const [athleteResult, setResult, optionalResult] = await Promise.all([
     query(
-      `SELECT DISTINCT u.id, u.name
+      `SELECT DISTINCT u.id, u.name, u.display_name
        FROM users u
        INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1
        WHERE ${SQL_EXCLUDE_TEST_USER} ${filter.sql}
@@ -183,9 +184,12 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     ),
   ]);
 
-  const athletes = (athleteResult.rows as { id: number; name: string }[]).map((row) => ({
+  const athletes = (
+    athleteResult.rows as { id: number; name: string; display_name: string | null }[]
+  ).map((row) => ({
     userId: Number(row.id),
     name: row.name,
+    displayName: row.display_name ?? null,
   }));
 
   const sessionTotals = new Map<string, SessionDay>();
@@ -390,7 +394,7 @@ function trioForAthlete(
 }
 
 function overallWeightRanking(
-  athletes: { userId: number; name: string }[],
+  athletes: { userId: number; name: string; displayName: string | null }[],
   sessions: SessionDay[],
   volumeByUser: Map<number, number>,
   effortByUser: Map<number, number>,
@@ -412,11 +416,13 @@ function overallWeightRanking(
   }
 
   const names = new Map(athletes.map((athlete) => [athlete.userId, athlete.name]));
+  const displayNames = new Map(athletes.map((athlete) => [athlete.userId, athlete.displayName]));
   const ids = new Set([...bestDayByUser.keys(), ...volumeByUser.keys()]);
   const sorted = [...ids]
     .map((userId) => ({
       userId,
       name: names.get(userId) || sessions.find((day) => day.userId === userId)?.name || 'Athlete',
+      displayName: displayNames.get(userId) ?? null,
       bestDay: bestDayByUser.get(userId) || 0,
       totalWeight: volumeByUser.get(userId) || 0,
       effortBestDay: effortBestDayByUser.get(userId) || 0,
