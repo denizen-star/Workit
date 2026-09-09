@@ -20,6 +20,9 @@ export function hardnessLabel(value: unknown): string | null {
   return score == null ? null : HARDNESS_LABELS[score];
 }
 
+/** Skipped How hard counts as Fair. Factor: Easy 0.80 · Fair 1.00 · Max 1.20. */
+export const DEFAULT_HARDNESS: HardnessScore = 3;
+
 export function formatHardnessAvg(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
   return value.toFixed(1);
@@ -30,26 +33,20 @@ export function hardnessPercent(value: number): number {
   return Math.round(Number(value) * 20);
 }
 
+/** Fair = 1.00. 1→0.80 … 5→1.20. Averages interpolate (4.3 → 1.13). */
+export function effortFactorFromScore(score: number): number {
+  return (7 + Number(score)) / 10;
+}
+
+/** `4.3 · 1.13` — How hard average · volume multiplier. */
 export function formatHardnessWithPct(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
   const score = Math.round(value * 10) / 10;
-  return `${score.toFixed(1)} · ${hardnessPercent(score)}%`;
-}
-
-/** Skipped How hard counts as Fair. Display stays 1=20% … 5=100%. */
-export const DEFAULT_HARDNESS: HardnessScore = 3;
-
-/**
- * Perceived Effort offset: (score − Fair) × 20%.
- * Easy 0.6 · Light 0.8 · Fair 1.0 · Hard 1.2 · Max 1.4 as the full factor.
- */
-export function perceivedPerformancePct(value: unknown): number {
-  const score = parseHardness(value) ?? DEFAULT_HARDNESS;
-  return (score - DEFAULT_HARDNESS) * 0.2;
+  return `${score.toFixed(1)} · ${effortFactorFromScore(score).toFixed(2)}`;
 }
 
 export function hardnessEffortFactor(value: unknown): number {
-  return 1 + perceivedPerformancePct(value);
+  return effortFactorFromScore(parseHardness(value) ?? DEFAULT_HARDNESS);
 }
 
 export function effortFromVolume(volume: number, hardness: unknown): number {

@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 7.5.0 - 2026-09-09
+
+### Added
+- Shared compare table (You | Last | them) on You vs, finish recap, and Home session stories
+- You vs table now includes Place, Best day, bonus, optionals, optional lbs, and run + bike. Gold honor cards are off The house
+- Finish recap adds Warmup / Cooldown / Optional lbs. Live optional cards are unchanged
+- Next on You vs ranks everyone in **this house** (Test out), including people with zero finishes. Switch house in the menu for The OG vs Gowanus
+
+### Changed
+- The house: one **7d / 30d / All time** row drives You vs, pack bars, and athlete cards (week medals stay all-time)
+- Home You vs has the same 7d / 30d / All time pills. Cards under Daily weight (Your performance, Session stories, trophies, You vs) start folded
+- You vs rival pills: **Next** + up/down arrow, plus House. Up/down stay muted when nobody is above or below you
+- Week lock tiles show that day’s volume vs last time. Week performance tiles show count / compared and that share as %
+- Effort on Home, Your performance, The house, and You vs is How hard · the Effective factor (`4.3 · 1.13`), not a percent
+- Effective = Volume × that factor: Easy 0.8 · Light 0.9 · Fair 1.0 · Hard 1.1 · Max 1.2 (scores in between interpolate). Skip How hard = Fair. At Fair, Effective matches Volume. Place, week medals, and the live Today bar stay raw. Optional +500 is still added raw
+
 ## 7.4.0 - 2026-09-08
 
 ### Fixed

@@ -46,7 +46,8 @@ export const KPI_CALC_BULLETS = [
   'Weight = sum of completed-set load (lb).',
   'Reps = sum of completed-set reps.',
   'Volume = reps × weight on completed mechanical sets. Timed and distance stay out.',
-  'Effective = Volume × Perceived Effort. Fair = 1.0. Easy 0.6 · Light 0.8 · Hard 1.2 · Max 1.4. Skip = Fair.',
+  'Effective = Volume × Perceived Effort. Easy 0.8 · Light 0.9 · Fair 1.0 · Hard 1.1 · Max 1.2. In-between interpolate. Skip = Fair. Fair Effective matches Volume.',
+  'Effort on tiles is How hard · that factor (`4.3 · 1.13`), not a percent.',
   '% is vs last time those same lifts ran, not vs the last calendar window.',
 ] as const;
 
@@ -58,8 +59,13 @@ export const HOME_TODAY_HELP = {
 
 export const HOME_WEEK_LOCK_HELP = {
   title: 'Week lock',
-  lead: 'Four required days. Four greens lock the week.',
-  bullets: ['Gold = start here.', 'Green = done.', 'Dashed = still open.'],
+  lead: 'Four required days. Four greens lock the week. Volume sits on each tile.',
+  bullets: [
+    'Gold = start here. Green = done. Dashed = still open.',
+    'Done tiles show this day’s volume and % vs last time that day ran.',
+    'Open tiles show last time that day ran.',
+    'Under the row: optionals n/8, optional lbs, and bonus for this program week.',
+  ],
 } as const;
 
 export const HOME_WEEK_PERF_HELP = {
@@ -67,6 +73,7 @@ export const HOME_WEEK_PERF_HELP = {
   lead: 'This program week vs last time you did those lifts.',
   bullets: [
     'Each lift this program week is compared to the last time you did that lift.',
+    'The tile shows count / compared lifts, and that share as a percent.',
     'More load = how many lifts added weight. More reps = how many added reps. Green if at least one. 0 is red.',
     'Less drop = how many lifts cut weight. Less cut = how many cut reps. 0 is green. Any cut is red.',
     'Dashed = no last time yet.',
@@ -92,8 +99,8 @@ export const HOME_PERFORMANCE_HELP = {
 
 export const HOME_STORIES_HELP = {
   title: 'Session stories',
-  lead: 'Last session, best lift, what did not move, and this week vs last time.',
-  bullets: ['Same four KPIs as Today.', 'Effective = Volume × Perceived Effort.'],
+  lead: 'Last session is This | Last per lift. What moved is last session volume, best lift, lifts down, and week volume.',
+  bullets: ['This = this session or this week.', 'Last = last time those lifts ran.'],
 } as const;
 
 export const HOME_TROPHIES_HELP = {
@@ -103,6 +110,12 @@ export const HOME_TROPHIES_HELP = {
 
 export const HOME_YOU_VS_HELP = {
   title: 'You vs',
-  lead: 'Last 7 days vs the person one place up, or one down if you are first.',
-  bullets: ['Rank is finished days, then Volume.', 'Effective = Volume × Perceived Effort.'],
+  lead: '7d / 30d / All time. Next is this house only (everyone in, Test out), not who trained this week.',
+  bullets: [
+    'Place and Best day sit in the table.',
+    'Last is the last time you posted these numbers, not a week window.',
+    '% under You is vs Last. % under them is you vs them.',
+    'Next is this house only. Switch house in the menu to see The OG.',
+    'Bonus, optionals, optional lbs, and run + bike sit in the table.',
+  ],
 } as const;

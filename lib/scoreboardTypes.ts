@@ -71,10 +71,22 @@ export function isScoreboardPeriod(value: unknown): value is ScoreboardPeriod {
   return value === '7' || value === '30' || value === 'all';
 }
 
+export const SCOREBOARD_PERIOD_LABELS: Record<ScoreboardPeriod, string> = {
+  '7': '7d',
+  '30': '30d',
+  all: 'All time',
+};
+
 export function scoreboardRangeLabel(period: ScoreboardPeriod) {
-  if (period === '30') return 'last 30 days';
+  if (period === '30') return 'last 30d';
   if (period === 'all') return 'all time';
-  return 'last 7 days';
+  return 'last 7d';
+}
+
+export function scoreboardRangeTitle(period: ScoreboardPeriod) {
+  if (period === '30') return 'Last 30d';
+  if (period === 'all') return 'All time';
+  return 'Last 7d';
 }
 
 export function firstName(name: string) {

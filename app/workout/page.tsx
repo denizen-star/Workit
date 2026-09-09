@@ -47,8 +47,8 @@ import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
 import { bonusActivityType } from '@/lib/bonusActivity';
-import { optionalRegionFromDay } from '@/lib/optionals';
-import { kpisFromLine, type KpiRowModel } from '@/lib/kpi';
+import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
+import { recapExerciseRows, type CompareRow } from '@/lib/compareTable';
 import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
@@ -78,12 +78,14 @@ function WorkoutPageInner() {
   const [showRecap, setShowRecap] = useState(false);
   const [showAwards, setShowAwards] = useState(false);
   const [recapTitle, setRecapTitle] = useState('Workout');
-  const [recapKpis, setRecapKpis] = useState<KpiRowModel[]>([]);
+  const [recapRows, setRecapRows] = useState<CompareRow[]>([]);
   const [completeLine, setCompleteLine] = useState('');
   const [replenishLine, setReplenishLine] = useState('');
   const [bonusFinish, setBonusFinish] = useState(false);
   const [bonusFinishCount, setBonusFinishCount] = useState(0);
   const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
+  const [recapWarmup, setRecapWarmup] = useState(false);
+  const [recapCooldown, setRecapCooldown] = useState(false);
   const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [earnedBelt, setEarnedBelt] = useState<TakeoverBelt | null>(null);
@@ -376,9 +378,9 @@ function WorkoutPageInner() {
               row.workoutType.replace(' Body ', ' ') === workoutType.replace(' Body ', ' ')
           )
         : rows[0];
-      setRecapKpis(match ? kpisFromLine(match) : []);
+      setRecapRows(match ? recapExerciseRows(match.exercises || []) : []);
     } catch {
-      setRecapKpis([]);
+      setRecapRows([]);
     }
   };
 
@@ -386,10 +388,12 @@ function WorkoutPageInner() {
     setShowRecap(false);
     setShowSuccess(false);
     setShowAwards(false);
-    setRecapKpis([]);
+    setRecapRows([]);
     setBonusFinish(false);
     setBonusFinishCount(0);
     setOptionalFinishLbs(0);
+    setRecapWarmup(false);
+    setRecapCooldown(false);
     setOptionalKickerLbs(0);
     setAwardedBadges([]);
     setEarnedBelt(null);
@@ -541,7 +545,10 @@ function WorkoutPageInner() {
       setBonusFinishCount(Number(data.bonusCount || 0));
       const optionalLbs = Number(data.optionalLbs || 0);
       const kickerLbs = Number(data.kickerLbs || 0);
+      const finished = sessions.find((session) => Number(session.id) === currentSession);
       setOptionalFinishLbs(optionalLbs);
+      setRecapWarmup(finished ? sessionWarmupDone(finished) : false);
+      setRecapCooldown(finished ? sessionCooldownDone(finished) : false);
       setOptionalKickerLbs(kickerLbs);
       setCompleteLine(
         optionalLbs > 0
@@ -756,7 +763,10 @@ function WorkoutPageInner() {
         <WorkoutRecapTakeover
           open={showRecap}
           title={recapTitle}
-          kpis={recapKpis}
+          rows={recapRows}
+          optionalLbs={optionalFinishLbs}
+          warmup={recapWarmup}
+          cooldown={recapCooldown}
           onClose={openCoachLine}
         />
         <CompleteTakeover
@@ -1053,7 +1063,10 @@ function WorkoutPageInner() {
       <WorkoutRecapTakeover
         open={showRecap}
         title={recapTitle}
-        kpis={recapKpis}
+        rows={recapRows}
+        optionalLbs={optionalFinishLbs}
+        warmup={recapWarmup}
+        cooldown={recapCooldown}
         onClose={openCoachLine}
       />
       <CompleteTakeover

@@ -3,27 +3,17 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { KpiList } from '@/components/KpiList';
+import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
 import { formatHardnessWithPct } from '@/lib/hardness';
-import { formatDuration } from '@/lib/formatDuration';
 import { kpisFromScoreboard } from '@/lib/kpi';
 import { athleteCallName } from '@/lib/profile';
 import { formatCompact, formatPct } from '@/lib/athletePerformanceTypes';
 import {
-  SCOREBOARD_PERIODS,
   scoreboardRangeLabel,
   tomScoreboardLine,
-  type BonusHonorRow,
-  type CardioHonorRow,
   type HouseholdScoreboardRow,
-  type OptionalHonorRow,
   type ScoreboardPeriod,
 } from '@/lib/scoreboardTypes';
-
-const PERIOD_LABELS: Record<ScoreboardPeriod, string> = {
-  '7': '7 days',
-  '30': '30 days',
-  all: 'All time',
-};
 
 function trackingLine(row: HouseholdScoreboardRow, volumePct: number | null, effortPct: number | null) {
   const hasPrior = row.priorRawVolume != null || row.priorVolume != null;
@@ -65,16 +55,21 @@ function lastLabel(value: string | null) {
 export default function HouseholdScoreboard({
   standalone = false,
   highlightUserId = null,
+  period: periodProp,
+  onPeriodChange,
+  showPeriodPills = true,
 }: {
   standalone?: boolean;
   highlightUserId?: number | null;
+  period?: ScoreboardPeriod;
+  onPeriodChange?: (period: ScoreboardPeriod) => void;
+  showPeriodPills?: boolean;
 }) {
   const [open, setOpen] = useState(standalone);
-  const [period, setPeriod] = useState<ScoreboardPeriod>('7');
+  const [innerPeriod, setInnerPeriod] = useState<ScoreboardPeriod>('7');
+  const period = periodProp ?? innerPeriod;
+  const setPeriod = onPeriodChange ?? setInnerPeriod;
   const [rows, setRows] = useState<HouseholdScoreboardRow[]>([]);
-  const [bonusHonor, setBonusHonor] = useState<BonusHonorRow[]>([]);
-  const [optionalHonor, setOptionalHonor] = useState<OptionalHonorRow[]>([]);
-  const [cardioHonor, setCardioHonor] = useState<CardioHonorRow[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -85,17 +80,9 @@ export default function HouseholdScoreboard({
       .then((data) => {
         if (cancelled) return;
         setRows(Array.isArray(data?.rows) ? data.rows : []);
-        setBonusHonor(Array.isArray(data?.bonusHonor) ? data.bonusHonor : []);
-        setOptionalHonor(Array.isArray(data?.optionalHonor) ? data.optionalHonor : []);
-        setCardioHonor(Array.isArray(data?.cardioHonor) ? data.cardioHonor : []);
       })
       .catch(() => {
-        if (!cancelled) {
-          setRows([]);
-          setBonusHonor([]);
-          setOptionalHonor([]);
-          setCardioHonor([]);
-        }
+        if (!cancelled) setRows([]);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -107,25 +94,9 @@ export default function HouseholdScoreboard({
 
   const body = (
     <div className={standalone ? '' : 'mt-4'}>
-      <div className="mb-4 grid grid-cols-3 gap-2">
-        {SCOREBOARD_PERIODS.map((option) => {
-          const selected = option === period;
-          return (
-            <button
-              key={option}
-              type="button"
-              onClick={() => setPeriod(option)}
-              className={`min-h-12 rounded-2xl border text-base font-semibold ${
-                selected
-                  ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
-                  : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
-              }`}
-            >
-              {PERIOD_LABELS[option]}
-            </button>
-          );
-        })}
-      </div>
+      {showPeriodPills ? (
+        <ScoreboardPeriodPills period={period} onChange={setPeriod} />
+      ) : null}
 
       {!loading && rows.length > 0 ? (
         <div className="mb-4 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
@@ -171,68 +142,6 @@ export default function HouseholdScoreboard({
         </p>
       ) : (
         <div className="space-y-2">
-          {bonusHonor.length > 0 && (
-            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
-              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">Bonus work</p>
-              <p className="mt-1 text-base text-[#f6f1e3]/70">
-                Extra upper. They did not owe it. They paid it.
-              </p>
-              <div className="mt-3 space-y-2">
-                {bonusHonor.map((row) => (
-                  <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">
-                      {houseAthleteLabel(row, highlightUserId, true)}
-                    </p>
-                    <p className="text-base font-semibold text-[#e8c547]">
-                      {row.bonusWeeks} bonus {row.bonusWeeks === 1 ? 'week' : 'weeks'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {optionalHonor.length > 0 && (
-            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
-              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">Optionals</p>
-              <p className="mt-1 text-base text-[#f6f1e3]/70">
-                Four warmups. Four cooldowns. Easy minutes that still count.
-              </p>
-              <div className="mt-3 space-y-2">
-                {optionalHonor.map((row) => (
-                  <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">
-                      {houseAthleteLabel(row, highlightUserId, true)}
-                    </p>
-                    <p className="text-base font-semibold text-[#e8c547]">
-                      {row.optionalWeeks} optional {row.optionalWeeks === 1 ? 'week' : 'weeks'}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-          {cardioHonor.length > 0 && (
-            <div className="rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-5 py-4">
-              <p className="text-base font-black uppercase tracking-[0.16em] text-[#e8c547]">
-                Running &amp; cycling
-              </p>
-              <p className="mt-1 text-base text-[#f6f1e3]/70">
-                Easy minutes on the run and the bike, added up.
-              </p>
-              <div className="mt-3 space-y-2">
-                {cardioHonor.map((row) => (
-                  <div key={row.id} className="flex items-center justify-between gap-3">
-                    <p className="text-lg font-black text-white">
-                      {houseAthleteLabel(row, highlightUserId, true)}
-                    </p>
-                    <p className="text-base font-semibold text-[#e8c547]">
-                      {formatDuration(row.cardioSeconds)}
-                    </p>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
           {rows.map((row, index) => {
             const place =
               index === 0 ? '1st' : index === 1 ? '2nd' : index === 2 ? '3rd' : `${index + 1}th`;

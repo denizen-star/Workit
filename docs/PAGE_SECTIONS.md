@@ -47,14 +47,14 @@ How to use Work-It. Linked from Home banner (until 5 finished workouts) and the 
   - Start WO / Resume WO · Select WO · Invite (Invite hidden for Test)
   - Restart (open session)
   - Last-week medal in the header row if you placed (not over the whole card)
-  - Four window KPIs (last 15 days vs last time those lifts ran). Totals abbreviate (`12k`) app-wide; logged set load stays exact.
-- Week lock (four required days)
-- Week performance (More load / More reps / Less drop / Less cut)
+  - Four window KPIs (last 15 days vs last time those lifts ran). Totals abbreviate (`12k`) app-wide; logged set load stays exact. Effort under Effective is How hard · factor (`4.3 · 1.13`), not a percent.
+- Week lock (four required days; volume + % vs last time on tiles; optionals n/8 under the row)
+- Week performance (More load / More reps / Less drop / Less cut; count / compared + %)
 - Daily weight lifted (`?` helper)
 - **Your performance** (folded): next workout, or last workout the day after a finish / when the week is locked. Card deep-links to `/performance?tab=analytics` with period, that day, grain=workout
-- **Session stories** (folded): Last session · Best lift · Did not improve · Week vs last time
+- **Session stories** (folded): Last session This | Last per lift. What moved = session volume, best lift, lifts down, week volume
 - **Your trophies** (folded): Yours / Aiming / Next. Opens `/belts`
-- **You vs** (folded, hidden for Test): last 7 days vs next in line. Each KPI stacks You then them (value + %). Days / Effort wrap.
+- **You vs** (folded, hidden for Test): 7d / 30d / All time. You | Last | them (House if you are alone). Next + up/down arrows rank this house only, Test out, including zeros. Last = last time you posted those numbers. Place, Best day, honor, optional lbs, run+bike in the table.
 
 Overlays: Invite · week podium (1st–3rd) · missed-week roast. Test never places or gets the miss roast.
 
@@ -82,7 +82,7 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast. Test never pla
 - Finish it
 - Bonus pick (week 7+: core or class)
 
-Overlays: resume / exit (no stars; leave early does not score the session) / restart / finish (1–5 stars, then Complete it) / recap (four KPIs vs last same day) / Complete (coach line only) / awards (`YOU EARNED IT!` in current-belt color; full diploma card if unlocked + next diploma line; new badges in rows of three) / error / How / PR / set flash / video / bonus pick.
+Overlays: resume / exit (no stars; leave early does not score the session) / restart / finish (1–5 stars, then Complete it) / recap (This | Last per exercise vs last time that lift ran, plus warmup / cooldown / optional lbs) / Complete (coach line only) / awards (`YOU EARNED IT!` in current-belt color; full diploma card if unlocked + next diploma line; new badges in rows of three) / error / How / PR / set flash / video / bonus pick.
 
 ## `/performance` — Your performance
 
@@ -90,20 +90,17 @@ Header via `YouPageShell` (Dashboard back + title + menu). On for Test.
 
 - Tabs: Current · Progress · Analytics
 - Kevin only: athlete multi-select (Test in)
-- **Current:** window four KPIs · last session · best / held · This window · lifts (bars + last-time tick) · Hard sets / muscle
+- **Current:** window four KPIs (Effort under Effective is How hard · factor, not a percent) · last session · best / held · This window · lifts (bars + last-time tick) · Hard sets / muscle
 - **Progress:** intro · up / down count · Summary · last session · By workout vs last same day · Moving up / Moving down / Held
 - **Analytics:** Eastern pills T / T-1 / T-7 / T-15 / T-30 / All · grain workout / exercise / set · workout multi-select · spikes and lists. Deep link: `?tab=analytics&period=t-15&grain=workout&workout=Lower%20Body%20B`
 
 ## `/scoreboard` — The house
 
 - Kevin: Week medals table (gold / silver / bronze counts, Test out)
-- You vs (hidden for Test)
+- Period pills: 7d / 30d / All time (You vs, pack, and athlete cards share one window)
+- You vs (hidden for Test): You | Last | Next+arrows / House. Always three columns (House if you are alone). Honor, Place, Best day in this table. Rank is this house only.
 - Pack weight chart
-- Household table (Belt column)
-- Honor rolls: Bonus work · Optionals
-- Vs the house (hidden for Test)
-
-Period pills: 7 days / 30 days / All time.
+- Household athlete cards (Belt column)
 
 ## `/history` — Completed
 

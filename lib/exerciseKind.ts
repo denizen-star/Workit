@@ -151,8 +151,8 @@ export function sqlSetVolume(alias?: string): string {
   END`;
 }
 
-/** Volume × Perceived Effort. Fair = 1.0. Skip How hard = Fair. */
+/** Volume × Perceived Effort. Easy 0.80 · Fair 1.00 · Max 1.20. Skip = Fair. */
 export function sqlSetEffortVolume(alias?: string): string {
   const col = (column: string) => (alias ? `${alias}.${column}` : column);
-  return `(${sqlSetVolume(alias)}) * (1 + (COALESCE(${col("hardness")}, 3) - 3) * 0.2)`;
+  return `(${sqlSetVolume(alias)}) * ((7 + COALESCE(${col("hardness")}, 3)) / 10)`;
 }

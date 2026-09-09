@@ -22,10 +22,10 @@ const LEGEND = 'Green = good. Red = still a problem. Dashed = no last time yet.'
 
 const HELP: Record<string, string> = {
   header: `This program week vs the last time you did those lifts. ${LEGEND}`,
-  loadUp: 'More load. Green is how many lifts you added weight to. Red 0 means you did not add load.',
-  repsUp: 'More reps. Green is how many lifts you added reps to. Red 0 means you did not add reps.',
-  loadDown: 'Less drop. Green 0 means you did not cut weight. Red is how many lifts you dropped.',
-  repsDown: 'Less cut. Green 0 means you did not cut reps. Red is how many lifts you cut.',
+  loadUp: 'More load. Green is how many compared lifts added weight. The fraction is that count / lifts with a last time.',
+  repsUp: 'More reps. Green is how many compared lifts added reps. The fraction is that count / lifts with a last time.',
+  loadDown: 'Less drop. Green 0 means you did not cut weight. Red is how many compared lifts dropped.',
+  repsDown: 'Less cut. Green 0 means you did not cut reps. Red is how many compared lifts cut.',
 };
 
 function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
@@ -70,6 +70,16 @@ function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
           kpi.status
         )}
       </p>
+      {kpi.share != null ? (
+        <p
+          className={`mt-1 text-sm font-black ${
+            kpi.state === 'good' ? 'text-[#1a1404]' : kpi.state === 'bad' ? '' : 'text-[#f6f1e3]/40'
+          }`}
+          style={kpi.state === 'bad' ? { color: BAD } : undefined}
+        >
+          {kpi.share}%
+        </p>
+      ) : null}
     </button>
   );
 }

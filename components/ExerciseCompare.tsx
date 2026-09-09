@@ -3,19 +3,10 @@
 import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Dumbbell } from 'lucide-react';
 import ExerciseCompareCells from '@/components/ExerciseCompareCells';
+import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
 import WeightRanking from '@/components/WeightRanking';
 import type { ExerciseCompareRow, WeightRank } from '@/lib/exerciseCompare';
-import {
-  SCOREBOARD_PERIODS,
-  scoreboardRangeLabel,
-  type ScoreboardPeriod,
-} from '@/lib/scoreboardTypes';
-
-const PERIOD_LABELS: Record<ScoreboardPeriod, string> = {
-  '7': '7 days',
-  '30': '30 days',
-  all: 'All time',
-};
+import { scoreboardRangeLabel, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 export default function ExerciseCompare({ standalone = false }: { standalone?: boolean }) {
   const [open, setOpen] = useState(standalone);
@@ -86,25 +77,7 @@ export default function ExerciseCompare({ standalone = false }: { standalone?: b
             lead, one you trail, one closest — by weight, then by reps.
           </p>
 
-          <div className="mb-3 grid grid-cols-3 gap-2">
-            {SCOREBOARD_PERIODS.map((option) => {
-              const selected = option === period;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setPeriod(option)}
-                  className={`min-h-12 rounded-2xl border text-base font-semibold ${
-                    selected
-                      ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
-                      : 'border-white/10 bg-black/25 text-[#f6f1e3]/75'
-                  }`}
-                >
-                  {PERIOD_LABELS[option]}
-                </button>
-              );
-            })}
-          </div>
+          <ScoreboardPeriodPills period={period} onChange={setPeriod} className="mb-3 grid grid-cols-3 gap-2" />
 
           {loading ? (
             <p className="text-sm text-[#f6f1e3]/55">Loading lifts...</p>

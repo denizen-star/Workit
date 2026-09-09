@@ -191,14 +191,16 @@ export function HomeFold({
   title,
   trailing,
   help,
+  defaultOpen = false,
   children,
 }: {
   title: string;
   trailing?: string;
   help?: { title: string; lead: string; bullets?: readonly string[] };
+  defaultOpen?: boolean;
   children: ReactNode;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(defaultOpen);
   return (
     <div>
       <div className="flex items-center gap-1">

@@ -10,6 +10,8 @@ export type WeekKpi = {
   /** Earth green = good. Earth red = bad. Dashed = nothing to compare. */
   state: 'good' | 'bad' | 'open';
   status: string;
+  /** Count / compared, as a percent. */
+  share: number | null;
 };
 
 export type WeekPerformanceCounts = {
@@ -50,16 +52,23 @@ export function weekPerformanceCounts(
   return counts;
 }
 
-function moreState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status'> {
-  if (compared === 0) return { state: 'open', status: '—' };
-  if (count > 0) return { state: 'good', status: String(count) };
-  return { state: 'bad', status: '0' };
+function sharePct(count: number, compared: number) {
+  if (!compared) return null;
+  return Math.round((count / compared) * 100);
 }
 
-function lessState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status'> {
-  if (compared === 0) return { state: 'open', status: '—' };
-  if (count === 0) return { state: 'good', status: '0' };
-  return { state: 'bad', status: String(count) };
+function moreState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status' | 'share'> {
+  if (compared === 0) return { state: 'open', status: '—', share: null };
+  const status = `${count} / ${compared}`;
+  if (count > 0) return { state: 'good', status, share: sharePct(count, compared) };
+  return { state: 'bad', status, share: 0 };
+}
+
+function lessState(count: number, compared: number): Pick<WeekKpi, 'state' | 'status' | 'share'> {
+  if (compared === 0) return { state: 'open', status: '—', share: null };
+  const status = `${count} / ${compared}`;
+  if (count === 0) return { state: 'good', status, share: 0 };
+  return { state: 'bad', status, share: sharePct(count, compared) };
 }
 
 export function weekPerformanceKpis(counts: WeekPerformanceCounts): WeekKpi[] {

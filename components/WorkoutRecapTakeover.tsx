@@ -1,22 +1,34 @@
 'use client';
 
+import CompareTable from '@/components/CompareTable';
 import { HelpTip } from '@/components/HelpSheet';
-import { formatKpiPct, KPI_COLOR, KPI_LABEL, kpiTone, type KpiRowModel } from '@/lib/kpi';
+import type { CompareRow } from '@/lib/compareTable';
+import { recapOptionalRows } from '@/lib/compareTable';
 import { KPI_CALC_BULLETS } from '@/lib/helpCopy';
 
-/** Finish recap. Same 2×2 tiles as a live set, at workout grain. */
+/** Finish recap. This | Last per exercise vs last time that lift ran. */
 export default function WorkoutRecapTakeover({
   open,
   title,
-  kpis,
+  rows,
+  optionalLbs = 0,
+  warmup = false,
+  cooldown = false,
   onClose,
 }: {
   open: boolean;
   title: string;
-  kpis: KpiRowModel[];
+  rows: CompareRow[];
+  optionalLbs?: number;
+  warmup?: boolean;
+  cooldown?: boolean;
   onClose: () => void;
 }) {
   if (!open) return null;
+
+  const extra =
+    optionalLbs || warmup || cooldown ? recapOptionalRows({ lbs: optionalLbs, warmup, cooldown }) : [];
+  const tableRows = [...rows, ...extra];
 
   return (
     <div
@@ -34,33 +46,18 @@ export default function WorkoutRecapTakeover({
       </div>
       <div className="relative w-full max-w-md" onClick={(event) => event.stopPropagation()}>
         <div className="mb-3 flex items-center justify-center gap-1">
-          <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">This workout</p>
+          <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">This session</p>
           <HelpTip
             label="How these numbers are made"
-            title="This workout"
-            lead="Same four KPIs as Home, for this day vs last time you ran it."
+            title="This vs last time"
+            lead="Each row is that lift vs the last time you ran that same exercise, not last time you ran this program day."
             bullets={KPI_CALC_BULLETS}
           />
         </div>
         <h2 className="text-center text-3xl font-black tracking-tight text-white">{title}</h2>
-        {kpis.length > 0 ? (
-          <div className="live-kpis mt-6">
-            {kpis.map((row) => {
-              const tone = kpiTone(row.pct);
-              const pctColor = tone === 'up' ? '#6d8b6e' : tone === 'down' ? '#a35d52' : '#f6f1e3';
-              return (
-                <div key={row.id} className="kpi">
-                  <label style={{ color: KPI_COLOR[row.id] }}>{KPI_LABEL[row.id]}</label>
-                  <div className="big" style={{ color: KPI_COLOR[row.id] }}>
-                    {row.value}
-                  </div>
-                  <div className="sub">
-                    {row.hint ? `${row.hint} · ` : ''}
-                    <span style={{ color: pctColor }}>{formatKpiPct(row.pct)}</span>
-                  </div>
-                </div>
-              );
-            })}
+        {tableRows.length > 0 ? (
+          <div className="mt-6 max-h-[50vh] overflow-y-auto">
+            <CompareTable rows={tableRows} youLabel="This" />
           </div>
         ) : (
           <p className="mt-6 text-center text-base text-[#f6f1e3]/70">No completed sets to score.</p>

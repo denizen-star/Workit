@@ -327,3 +327,124 @@ body {
 .vs-col .bar.rival {
   background: #c08457;
 }
+
+.vs-col .bar.last {
+  background: rgba(246, 241, 227, 0.35);
+}
+
+.compare-scroll {
+  overflow-x: auto;
+}
+
+.compare-table {
+  width: 100%;
+  min-width: 16rem;
+  border-collapse: collapse;
+}
+
+.compare-table-three {
+  min-width: 18rem;
+}
+
+.compare-table th,
+.compare-table td {
+  padding: 13px 8px;
+  border-bottom: 1px solid rgba(246, 241, 227, 0.18);
+  vertical-align: middle;
+}
+
+.compare-table thead th {
+  border-bottom: 1px solid rgba(246, 241, 227, 0.28);
+}
+
+.compare-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.compare-table .feat {
+  text-align: left;
+  font-size: 14px;
+  font-weight: 700;
+  color: rgba(246, 241, 227, 0.88);
+}
+
+.compare-table .col {
+  text-align: center;
+}
+
+.compare-table .you {
+  background: rgba(246, 241, 227, 0.1);
+  box-shadow: inset 0 0 0 1px rgba(246, 241, 227, 0.12);
+}
+
+.compare-table thead .you {
+  border-radius: 14px 14px 0 0;
+}
+
+.compare-table tbody tr:last-child .you {
+  border-radius: 0 0 14px 14px;
+}
+
+.compare-table .last {
+  background: rgba(192, 132, 87, 0.08);
+}
+
+.compare-table thead .last {
+  border-radius: 14px 14px 0 0;
+}
+
+.compare-table tbody tr:last-child .last {
+  border-radius: 0 0 14px 14px;
+}
+
+.compare-table .head-you {
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #f6f1e3;
+}
+
+.compare-table .head-last {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(246, 241, 227, 0.55);
+}
+
+.compare-table .head-them {
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #c08457;
+}
+
+.compare-table .val {
+  display: block;
+  font-size: 15px;
+  font-weight: 900;
+  color: #f6f1e3;
+}
+
+.compare-table .pct-up,
+.compare-table .pct-down,
+.compare-table .pct-held {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.compare-table .pct-up {
+  color: #6d8b6e;
+}
+
+.compare-table .pct-down {
+  color: #a35d52;
+}
+
+.compare-table .pct-held {
+  color: rgba(246, 241, 227, 0.5);
+}

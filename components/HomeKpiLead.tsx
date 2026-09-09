@@ -1,14 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { KpiList } from '@/components/KpiList';
-import { LastSessionCard, LiftCard } from '@/components/KpiStory';
+import CompareTable from '@/components/CompareTable';
 import { HomeFold } from '@/components/ScanCard';
 import { HOME_STORIES_HELP } from '@/lib/helpCopy';
+import { recapExerciseRows, sessionStoryRows } from '@/lib/compareTable';
 import { performanceRangeLabel, type AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
-import { kpisFromBoard, kpisFromLine } from '@/lib/kpi';
-import { bestProgress, heldOrFirst, latestWorkout, weekVsLast } from '@/lib/kpiView';
-import { strongerLine, whyFromLine } from '@/lib/kpiWhy';
+import { kpisFromBoard } from '@/lib/kpi';
+import { KpiList } from '@/components/KpiList';
+import { latestWorkout, weekVsLast } from '@/lib/kpiView';
 
 let homeBoardCache: AthletePerformanceBoard | null | undefined;
 let homeBoardInflight: Promise<AthletePerformanceBoard | null> | null = null;
@@ -80,35 +80,27 @@ export default function HomeKpiLead({ weekNumber }: { weekNumber?: number | null
   if (!board || (board.exercises.length === 0 && !board.window?.setCount)) return null;
 
   const last = latestWorkout(board);
-  const best = last ? bestProgress(last.exercises) : undefined;
-  const held = last ? heldOrFirst(last.exercises) : undefined;
   const week = weekVsLast(board, weekNumber ?? last?.weekNumber ?? null);
+  const recapRows = last ? recapExerciseRows(last.exercises || []) : [];
+  const storyRows = sessionStoryRows(last, week);
 
   return (
     <HomeFold title="Session stories" help={HOME_STORIES_HELP}>
-      <div className="space-y-3">
-        {last ? <LastSessionCard workout={last} /> : null}
-
-        {best ? <LiftCard row={best} chip="best" /> : null}
-
-        {held ? (
-          <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/55">
-              Did not improve
+      <div className="space-y-5">
+        {last && recapRows.length > 0 ? (
+          <div>
+            <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">
+              Last session · {last.workoutType.replace(' Body ', ' ')}
             </p>
-            <p className="mt-1 text-base font-black text-white">{held.name}</p>
-            <p className="mt-1 text-sm text-[#f6f1e3]/55">Why: {whyFromLine(held)}</p>
-            <KpiList rows={kpisFromLine(held)} />
+            <CompareTable rows={recapRows} youLabel="This" />
           </div>
         ) : null}
-
-        {week ? (
-          <div className="rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
-            <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">Week vs last time</p>
-            <KpiList rows={kpisFromLine(week, true)} />
-            <p className="mt-2 text-sm text-[#f6f1e3]/55">
-              {strongerLine(week.rawVolumeChangePct, week.volumeChangePct)}
+        {storyRows.length > 0 ? (
+          <div>
+            <p className="mb-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">
+              What moved
             </p>
+            <CompareTable rows={storyRows} youLabel="This" />
           </div>
         ) : null}
       </div>

@@ -2,10 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
+import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
 import WeekMedalCountTable from '@/components/WeekMedalCountTable';
 import YouPageShell from '@/components/YouPageShell';
 import YouVsLeader from '@/components/YouVsLeader';
 import { isTestUserName } from '@/lib/householdUsers';
+import type { ScoreboardPeriod } from '@/lib/scoreboardTypes';
 import type { WeekMedalCountRow } from '@/lib/weekPodium';
 
 export default function ScoreboardPage() {
@@ -13,6 +15,7 @@ export default function ScoreboardPage() {
   const [userName, setUserName] = useState('');
   const [isAdmin, setIsAdmin] = useState(false);
   const [medalCounts, setMedalCounts] = useState<WeekMedalCountRow[]>([]);
+  const [period, setPeriod] = useState<ScoreboardPeriod>('7');
 
   useEffect(() => {
     fetch('/api/me')
@@ -47,12 +50,24 @@ export default function ScoreboardPage() {
   return (
     <YouPageShell title="The house">
       {isAdmin && <WeekMedalCountTable rows={medalCounts} />}
+      <ScoreboardPeriodPills period={period} onChange={setPeriod} />
       {!isTestUserName(userName) && (
         <div className="mb-6">
-          <YouVsLeader userId={userId} />
+          <YouVsLeader
+            userId={userId}
+            period={period}
+            onPeriodChange={setPeriod}
+            showPeriodPills={false}
+          />
         </div>
       )}
-      <HouseholdScoreboard standalone highlightUserId={userId} />
+      <HouseholdScoreboard
+        standalone
+        highlightUserId={userId}
+        period={period}
+        onPeriodChange={setPeriod}
+        showPeriodPills={false}
+      />
     </YouPageShell>
   );
 }

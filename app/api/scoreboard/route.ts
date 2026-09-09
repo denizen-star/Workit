@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { listHouseholdAthletes } from '@/lib/household';
 import { attachHouseTracking } from '@/lib/houseTracking';
 import { householdBonusHonor, householdScoreboard, householdWeightSeries } from '@/lib/scoreboard';
 import { householdCardioHonor, householdOptionalHonor } from '@/lib/optionals';
@@ -19,12 +20,13 @@ export async function GET(request: NextRequest) {
     const requested = request.nextUrl.searchParams.get('period') || '7';
     const period: ScoreboardPeriod = isScoreboardPeriod(requested) ? requested : '7';
     const houseId = user.householdId;
-    const [rawRows, bonusHonor, optionalHonor, cardioHonor, dailySeries] = await Promise.all([
+    const [rawRows, bonusHonor, optionalHonor, cardioHonor, dailySeries, members] = await Promise.all([
       householdScoreboard(period, houseId),
       householdBonusHonor(period, houseId),
       householdOptionalHonor(period, houseId),
       householdCardioHonor(period, houseId),
       householdWeightSeries(period, houseId),
+      listHouseholdAthletes(houseId),
     ]);
     const rows = await attachHouseTracking(rawRows, period);
 
@@ -32,6 +34,7 @@ export async function GET(request: NextRequest) {
       period,
       rangeLabel: scoreboardRangeLabel(period),
       rows,
+      members,
       bonusHonor,
       optionalHonor,
       cardioHonor,

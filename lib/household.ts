@@ -77,6 +77,24 @@ export async function listHouseholdsForUser(userId: number): Promise<Household[]
   );
 }
 
+export async function listHouseholdAthletes(householdId: number | null | undefined) {
+  const id = Number(householdId);
+  if (!Number.isFinite(id) || id <= 0) return [] as Array<{ id: number; name: string; displayName: string | null }>;
+  const result = await query(
+    `SELECT u.id, u.name, u.display_name
+     FROM users u
+     INNER JOIN household_members m ON m.user_id = u.id AND m.household_id = ?
+     WHERE LOWER(TRIM(u.name)) != 'test'
+     ORDER BY u.name ASC`,
+    [id]
+  );
+  return (result.rows as { id: number; name: string; display_name: string | null }[]).map((row) => ({
+    id: Number(row.id),
+    name: row.name,
+    displayName: row.display_name,
+  }));
+}
+
 export async function userInHousehold(userId: number, householdId: number): Promise<boolean> {
   const result = await query(
     'SELECT user_id FROM household_members WHERE user_id = ? AND household_id = ? LIMIT 1',
