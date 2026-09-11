@@ -36,49 +36,32 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.5.0',
-  title: 'Fair work is still itself.',
-  subject: 'Fair work is still itself.',
+  version: '7.6.0',
+  title: 'The board stopped repeating itself.',
+  subject: 'The board stopped repeating itself.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    'The board got honest. Fair work still counts as itself. Soft work pays less. Max pays more. That is growth, man.',
-  mid: 'You vs is a table now: you, last time you posted those numbers, and the person next to you in this house — or the house average. Pick 7d, 30d, or all time. Same window on The house. Finish recap is each lift versus last time that lift ran, warmup and cooldown included. Cards under Daily weight start folded. Open what you need.',
-  close:
-    'Look at Last. Then beat it. Quit stays on the floor if you leave the work there. Open the app and report in.',
+    'Man, the medal screen had a glitch. Win a week, and the board should tell you once. Instead it kept telling you — new phone, new browser, same news, over and over. Fixed. It tells you once, then it lets you work.',
+  mid: 'Also cleaned up the live card. Mid-set, the numbers used to just add up today’s work. Now one tile shows what you moved the last time you ran this exact lift, so you know what you are actually chasing. And the row under the exercise name — sets, Gym or Travel, Lb or Kg, thumbs — fits on one line now, even on a phone. No more hunting for the second thumb.',
+  close: 'None of this changes the work. It just gets out of the way of it faster. Open the app and see it, man.',
   lead: '',
   groups: [
     {
-      heading: 'You vs',
+      heading: 'Medal takeover',
       wins: [
-        'You — Last — them. Them is Next in this house, or House if you are alone.',
-        '7d / 30d / All time. One row on The house drives the whole board.',
-        'Place, best day, bonus, optionals, and run + bike sit in the table.',
+        'Shows once per week now, not every login.',
+        'Same result whether you open it from your phone’s home screen or a browser.',
       ],
     },
     {
-      heading: 'Finish recap',
+      heading: 'Live workout card',
       wins: [
-        'Each lift versus last time that lift ran.',
-        'Warmup, cooldown, and optional lbs on that same table.',
-      ],
-    },
-    {
-      heading: 'Effort',
-      wins: [
-        'Fair is 1.0 — Effective matches Volume.',
-        'Easy 0.8 · Light 0.9 · Hard 1.1 · Max 1.2. In between interpolates.',
-        'The number next to How hard is that factor (`4.3 · 1.13`), not a percent.',
-      ],
-    },
-    {
-      heading: 'Home',
-      wins: [
-        'Week lock tiles show that day’s volume versus last time.',
-        'Cards under Daily weight start folded.',
+        'One tile now shows your last time on this exact lift, not just today’s sum.',
+        'Sets, Gym/Travel, Lb/Kg, and the thumbs all sit on one line — no more wrapping.',
       ],
     },
   ],
