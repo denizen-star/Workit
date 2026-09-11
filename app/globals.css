@@ -208,10 +208,25 @@ body {
   color: rgba(246, 241, 227, 0.55);
 }
 
+.live-kpis .kpi-label-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.live-kpis .kpi-value-row {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+
 .live-kpis .big {
   margin-top: 4px;
   font-size: 22px;
   font-weight: 900;
+  white-space: nowrap;
 }
 
 /* Set-unit text ("40 lb × 10") runs longer than a compact number — shrink to fit the tile. */
@@ -223,6 +238,20 @@ body {
   margin-top: 2px;
   font-size: 12px;
   color: rgba(246, 241, 227, 0.5);
+}
+
+.live-kpis .delta {
+  font-size: 11px;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.live-kpis .delta-up {
+  color: var(--good);
+}
+
+.live-kpis .delta-down {
+  color: var(--bad);
 }
 
 .pack-bar {

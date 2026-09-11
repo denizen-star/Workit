@@ -12,7 +12,7 @@ import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
-import { DEFAULT_HARDNESS, effortFromVolume, parseHardness, type HardnessScore } from '@/lib/hardness';
+import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
@@ -37,7 +37,13 @@ import {
   weightFieldLabel,
   type ExerciseKind,
 } from '@/lib/exerciseKind';
-import { bestLoggedSet, setDirection } from '@/lib/setHistory';
+import {
+  bestLoggedSet,
+  foldSetIntoHistory,
+  setDirection,
+  tileDelta,
+  type SetNumberHistory,
+} from '@/lib/setHistory';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
 import {
@@ -72,6 +78,8 @@ interface HistoryPayload {
   personalRecords: Record<string, { weight: number; reps: number }>;
   /** Heaviest single set ever logged for this exercise (weight+reps as one pair). */
   bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }>;
+  /** How each set position of this exercise has gone across every past completed session. */
+  setNumberHistory: SetNumberHistory;
 }
 
 interface ExerciseTrackerProps {
@@ -214,7 +222,7 @@ export default function ExerciseTracker({
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; exercise: Exercise } | null>(
     null
   );
-  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {} });
+  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
   const [setFlash, setSetFlash] = useState<{
     variant: 'up' | 'down' | 'call';
@@ -248,7 +256,7 @@ export default function ExerciseTracker({
         storedModes = parseExerciseModes(data.exerciseModes ?? data.exercise_modes);
       }
 
-      let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {} };
+      let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} };
       if (historyRes.ok) {
         historyData = await historyRes.json();
       }
@@ -674,7 +682,6 @@ export default function ExerciseTracker({
   const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
   const totalSetCount = exerciseSets.length;
   const allSetsComplete = totalSetCount > 0 && completedSetCount === totalSetCount;
-  const liveSession = sessionSetTotals(exerciseSets);
 
   return (
     <div className="space-y-6">
@@ -994,28 +1001,68 @@ export default function ExerciseTracker({
               {(() => {
                 const lastDone = [...sets].reverse().find((item) => item.is_completed);
                 if (!lastDone) return null;
-                const lastVol = setVolume(
-                  lastDone.exercise_name,
-                  lastDone.target_reps,
-                  lastDone.weight_lbs,
-                  lastDone.actual_reps
+                const key = exerciseHistoryKey(exercise.name);
+
+                // Set N History / Avg Effective: the historical average for this exact set
+                // position, folded live with today's own set the instant it completes. With
+                // no prior session at this position, both stay dashed rather than presenting
+                // today's lone set as if it were a meaningful average.
+                const beforeStats = history.setNumberHistory[key]?.[lastDone.set_number] ?? null;
+                const afterStats = beforeStats ? foldSetIntoHistory(beforeStats, lastDone) : null;
+
+                const historyLabel = afterStats
+                  ? `${Math.round(afterStats.weightAvg)} × ${Math.round(afterStats.repAvg * 10) / 10}`
+                  : null;
+                const historySub = beforeStats
+                  ? `← ${Math.round(beforeStats.weightAvg)} lb × ${Math.round(beforeStats.hardnessAvg * 10) / 10} PE`
+                  : 'no past sets yet';
+                const historyDelta = afterStats ? tileDelta(afterStats.weightAvg, beforeStats!.weightAvg) : null;
+
+                const effectiveValue = afterStats ? afterStats.effectiveAvg : null;
+                const effectiveSub = beforeStats
+                  ? `avg of ${beforeStats.count} past set${beforeStats.count === 1 ? '' : 's'}`
+                  : 'no past sets yet';
+                const effectiveDelta = afterStats
+                  ? tileDelta(afterStats.effectiveAvg, beforeStats!.effectiveAvg)
+                  : null;
+
+                // Best: this set's slot in the most recent prior completed session, flipping
+                // to today's own set (with PR noting the value it just replaced) now that it's done.
+                const lastSpot = lastSetsFor(exercise.name, history).find(
+                  (item) => item.set_number === lastDone.set_number
                 );
-                // All-time heaviest single set on this exact exercise, in set units (e.g. "40 lb × 10") —
-                // not a volume number, and not limited to last session.
-                const bestSet = history.bestSets[exerciseHistoryKey(exercise.name)];
-                const allTimeBestLabel = bestSet ? setLogLabel(kind, bestSet.weight_lbs, bestSet.actual_reps) : null;
+                const bestLabel = lastSpot ? setSummaryLabel(kind, lastDone) : null;
+                const bestSub = lastSpot?.weight_lbs != null ? `PR · ${lastSpot.weight_lbs} lb` : 'no prior session';
+                const bestDelta =
+                  lastSpot?.weight_lbs != null
+                    ? tileDelta(Number(lastDone.weight_lbs ?? 0), Number(lastSpot.weight_lbs))
+                    : null;
+
+                // Volume: average (weight × reps) per completed set of this exercise today so far.
+                const volumeValues = sets
+                  .filter((item) => item.is_completed)
+                  .map((item) => setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps));
+                const volumeAvg = volumeValues.reduce((sum, value) => sum + value, 0) / volumeValues.length;
+                const volumeBeforeAvg =
+                  volumeValues.length > 1
+                    ? volumeValues.slice(0, -1).reduce((sum, value) => sum + value, 0) / (volumeValues.length - 1)
+                    : null;
+                const volumeDelta = tileDelta(volumeAvg, volumeBeforeAvg);
+
                 return (
                   <LiveSetKpis
-                    setVolume={lastVol}
-                    setEffective={effortFromVolume(lastVol, lastDone.hardness)}
-                    allTimeBestLabel={allTimeBestLabel}
-                    sessionVolume={liveSession.lbs}
-                    sessionEffective={liveSession.effort}
-                    setHint={
-                      lastDone.weight_lbs != null && lastDone.actual_reps != null
-                        ? `${lastDone.weight_lbs} × ${lastDone.actual_reps}`
-                        : undefined
-                    }
+                    setNumber={lastDone.set_number}
+                    historyLabel={historyLabel}
+                    historySub={historySub}
+                    historyDelta={historyDelta}
+                    effectiveValue={effectiveValue}
+                    effectiveSub={effectiveSub}
+                    effectiveDelta={effectiveDelta}
+                    bestLabel={bestLabel}
+                    bestSub={bestSub}
+                    bestDelta={bestDelta}
+                    volumeAvg={volumeAvg}
+                    volumeDelta={volumeDelta}
                   />
                 );
               })()}

@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.8.0 - 2026-09-11
+
+### Changed
+- Live exercise card KPI tiles redesigned: **Set N History** (avg weight/reps/Perceived Effort for this exact set position across your past sessions, updating live the instant today's set completes), **Avg Effective**, **Best** (last session's set at this position, flipping to today's own the moment you finish it, with a PR line), and **Volume** (average weight × reps per set today, not a running total). Each tile now shows a ▲/▼ vs. what it read a moment before, and a `?` explaining the math
+
 ## 7.7.0 - 2026-09-11
 
 ### Added

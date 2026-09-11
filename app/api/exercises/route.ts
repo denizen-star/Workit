@@ -5,6 +5,7 @@ import { updateDailyStats } from '@/lib/dailyStats';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { parseExerciseModes } from '@/lib/exerciseModes';
 import { parseHardness } from '@/lib/hardness';
+import { foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
@@ -222,6 +223,9 @@ export async function GET(request: NextRequest) {
       // Heaviest single set ever logged for this exercise (weight+reps as one pair, not two
       // independent maxes like personalRecords) — same tie-break as bestLoggedSet: more reps wins ties.
       const bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }> = {};
+      // How "Set N" of each exercise has gone across every past completed session — the
+      // live KPI grid folds today's own set into this average client-side (see LiveSetKpis).
+      const setNumberHistory: Record<string, Record<number, SetNumberStats>> = {};
 
       const trackBestSet = (name: string, weightLbs: number | null, actualReps: number | null) => {
         const weight = weightLbs ?? 0;
@@ -253,6 +257,15 @@ export async function GET(request: NextRequest) {
         if (previousWeek && Number(row.week_number) === previousWeek) {
           lastWeekMax[name] = Math.max(lastWeekMax[name] || 0, weight);
         }
+
+        const setNumber = Number(row.set_number);
+        const byNumber = (setNumberHistory[name] ||= {});
+        const folded = foldSetIntoHistory(byNumber[setNumber] ?? null, {
+          weight_lbs: row.weight_lbs == null ? null : weight,
+          actual_reps: row.actual_reps == null ? null : reps,
+          hardness: row.hardness,
+        });
+        if (folded) byNumber[setNumber] = folded;
       }
 
       // Fold in this session's own already-completed sets too — otherwise resuming
@@ -290,7 +303,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ lastSets, lastWeekMax, personalRecords, bestSets });
+      return NextResponse.json({ lastSets, lastWeekMax, personalRecords, bestSets, setNumberHistory });
     }
 
     if (!sessionId) {
