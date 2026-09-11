@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 7.6.1 - 2026-09-11
+
+### Fixed
+- The week-medal / missed-week takeover could still reappear even after you dismissed it — the dismissal was only recorded when a fetch fired on close actually finished, which a closed tab or backgrounded app could cut off. It's now recorded the moment the takeover is delivered, so it only ever shows once
+
+### Changed
+- "Last Time" KPI tile on the live card now shows the average volume per set from last time, not the full multi-set total — comparable to the other tiles instead of always looking inflated
+
 ## 7.6.0 - 2026-09-11
 
 ### Fixed
