@@ -7,14 +7,15 @@ import { KPI_COLOR } from '@/lib/kpi';
 export default function LiveSetKpis({
   setVolume,
   setEffective,
-  exerciseVolume,
+  lastTimeVolume,
   sessionVolume,
   sessionEffective,
   setHint,
 }: {
   setVolume: number;
   setEffective: number;
-  exerciseVolume: number;
+  /** Volume from the last time this exercise was completed, not this session's own sum — more useful mid-lift. */
+  lastTimeVolume: number | null;
   sessionVolume: number;
   sessionEffective: number;
   setHint?: string;
@@ -36,10 +37,11 @@ export default function LiveSetKpis({
         <div className="sub">volume × Effort</div>
       </div>
       <div className="kpi">
-        <label>Exercise Volume</label>
+        <label>Last Time</label>
         <div className="big" style={{ color: KPI_COLOR.volume }}>
-          {formatCompact(exerciseVolume)}
+          {lastTimeVolume != null ? formatCompact(lastTimeVolume) : '—'}
         </div>
+        <div className="sub">this exercise, last session</div>
       </div>
       <div className="kpi">
         <label>Session Volume</label>

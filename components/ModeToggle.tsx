@@ -37,7 +37,7 @@ export default function ModeToggle({
             }
             onChange(value);
           }}
-          className={`rounded-full px-2 py-0.5 text-[11px] font-black uppercase tracking-wide ${
+          className={`rounded-full px-1.5 py-0.5 text-[10px] font-black uppercase ${
             mode === value ? 'bg-[#e8c547] text-[#1a1404]' : 'text-[#f6f1e3]/55'
           }`}
         >

@@ -318,6 +318,50 @@ export function accountExistedBeforeWeek(
   return new Date(String(createdAt)).getTime() < new Date(startUtc).getTime();
 }
 
+export type WeekTakeoverKind = 'podium' | 'miss';
+
+function isMissingSeenTable(error: unknown) {
+  const message = String(error instanceof Error ? error.message : error);
+  return /week_takeover_seen/i.test(message) && /exist|unknown table/i.test(message);
+}
+
+/**
+ * Has this user already dismissed the podium/miss takeover for this week? Server-side
+ * (keyed by account, not device) so it doesn't reappear on a different browser or PWA-vs-browser.
+ */
+export async function hasSeenWeekTakeover(
+  userId: number,
+  weekMonday: string,
+  kind: WeekTakeoverKind
+): Promise<boolean> {
+  try {
+    const result = await query(
+      'SELECT id FROM week_takeover_seen WHERE user_id = ? AND week_monday = ? AND kind = ? LIMIT 1',
+      [userId, weekMonday, kind]
+    );
+    return result.rows.length > 0;
+  } catch (error) {
+    if (isMissingSeenTable(error)) return false;
+    throw error;
+  }
+}
+
+export async function markWeekTakeoverSeen(
+  userId: number,
+  weekMonday: string,
+  kind: WeekTakeoverKind
+): Promise<void> {
+  try {
+    await query(
+      `INSERT IGNORE INTO week_takeover_seen (user_id, week_monday, kind) VALUES (?, ?, ?)`,
+      [userId, weekMonday, kind]
+    );
+  } catch (error) {
+    if (isMissingSeenTable(error)) return;
+    throw error;
+  }
+}
+
 export async function loadUserWeekMedals(userId: number, userName: string): Promise<WeekPodiumYou[]> {
   if (isTestUserName(userName)) return [];
   try {

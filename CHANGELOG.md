@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 7.6.0 - 2026-09-11
+
+### Fixed
+- The "Last week · 2nd/3rd" medal takeover and the missed-week takeover no longer reappear every time you log in from a different device or from the PWA vs. Safari — dismissal is now tied to your account instead of that one browser's storage
+
+### Changed
+- Live exercise card KPI tile "Exercise Volume" is now "Last Time" — shows the volume from the last time you actually did that exercise, instead of summing this session's own sets so far
+- Live exercise card: sets×reps target, Gym/Travel, Lb/Kg, and the exercise feedback thumbs now sit on one line at every screen width, phone included (was wrapping to two lines)
+
 ## 7.5.0 - 2026-09-09
 
 ### Added

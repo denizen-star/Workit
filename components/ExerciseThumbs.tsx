@@ -84,21 +84,21 @@ export default function ExerciseThumbs({
   };
 
   return (
-    <div className="mb-4">
-      <div className="flex items-center gap-2">
+    <div className="shrink-0">
+      <div className="flex flex-nowrap items-center gap-1">
         <button
           type="button"
           disabled={locked || busy}
           aria-label="Looks good"
           aria-pressed={saved ? saved.reason == null : false}
           onClick={() => post('up')}
-          className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border ${
+          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
             saved && saved.reason == null
               ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
               : 'border-white/10 text-[#f6f1e3]/55 hover:border-[#e8c547]/40'
           } disabled:opacity-70`}
         >
-          <ThumbsUp className="h-4 w-4" />
+          <ThumbsUp className="h-3.5 w-3.5" />
         </button>
         <button
           type="button"
@@ -109,16 +109,16 @@ export default function ExerciseThumbs({
             setPicking(true);
             setOtherOpen(false);
           }}
-          className={`inline-flex min-h-10 min-w-10 items-center justify-center rounded-xl border ${
+          className={`inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border ${
             saved && saved.reason != null
               ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
               : 'border-white/10 text-[#f6f1e3]/55 hover:border-[#e8c547]/40'
           } disabled:opacity-70`}
         >
-          <ThumbsDown className="h-4 w-4" />
+          <ThumbsDown className="h-3.5 w-3.5" />
         </button>
         {saved ? (
-          <span className="text-xs font-semibold text-[#f6f1e3]/50">{reasonLabel(saved.reason)}</span>
+          <span className="truncate text-xs font-semibold text-[#f6f1e3]/50">{reasonLabel(saved.reason)}</span>
         ) : null}
       </div>
       {saved?.message ? (

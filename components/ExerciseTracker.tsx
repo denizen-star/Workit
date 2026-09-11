@@ -677,16 +677,17 @@ export default function ExerciseTracker({
 
         return (
           <div key={gym.name} className="glass-card p-5">
-            <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="mb-3 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-start gap-1">
                   <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
                   {how ? <HowTrigger notes={how} /> : null}
                 </div>
-                <p className="mt-1 text-sm text-[#f6f1e3]/70">
-                  Target: {exercise.sets} sets × {exercise.reps}
-                </p>
-                <div className="mt-2 flex flex-wrap items-center gap-2">
+                {/* One line at every width: target, Gym/Travel, Lb/Kg, and exercise-feedback thumbs together. */}
+                <div className="mt-2 mb-4 flex flex-nowrap items-center gap-1 overflow-hidden">
+                  <span className="min-w-0 shrink truncate text-xs font-bold text-[#f6f1e3]/70">
+                    {exercise.sets}×{exercise.reps}
+                  </span>
                   <ModeToggle
                     mode={mode}
                     locked={locked}
@@ -698,13 +699,13 @@ export default function ExerciseTracker({
                     context={gym.name}
                     onChange={(next) => changeWeightUnit(gym.name, next)}
                   />
+                  <ExerciseThumbs
+                    sessionId={sessionId}
+                    exerciseName={exercise.name}
+                    saved={thumbs[exercise.name] || thumbs[gym.name]}
+                    onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
+                  />
                 </div>
-                <ExerciseThumbs
-                  sessionId={sessionId}
-                  exerciseName={exercise.name}
-                  saved={thumbs[exercise.name] || thumbs[gym.name]}
-                  onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
-                />
               </div>
               <button
                 type="button"
@@ -715,7 +716,7 @@ export default function ExerciseTracker({
                     videos: exerciseVideos(media),
                   })
                 }
-                className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
+                className="relative h-14 w-16 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
                 aria-label={`Watch ${exercise.name} video`}
               >
                 <img
@@ -976,19 +977,20 @@ export default function ExerciseTracker({
                   lastDone.weight_lbs,
                   lastDone.actual_reps
                 );
-                const exerciseVol = sets.reduce(
-                  (sum, item) =>
-                    item.is_completed
-                      ? sum +
-                        setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps)
-                      : sum,
-                  0
-                );
+                // Last time this exercise was completed (a prior session), not this session's own sum —
+                // that's the number that's actually useful to compare against mid-lift.
+                const lastTimeSets = lastSetsFor(exercise.name, history);
+                const lastTimeVolume = lastTimeSets.length
+                  ? lastTimeSets.reduce(
+                      (sum, item) => sum + setVolume(exercise.name, exercise.reps, item.weight_lbs, item.actual_reps),
+                      0
+                    )
+                  : null;
                 return (
                   <LiveSetKpis
                     setVolume={lastVol}
                     setEffective={effortFromVolume(lastVol, lastDone.hardness)}
-                    exerciseVolume={exerciseVol}
+                    lastTimeVolume={lastTimeVolume}
                     sessionVolume={liveSession.lbs}
                     sessionEffective={liveSession.effort}
                     setHint={

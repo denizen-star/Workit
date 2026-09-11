@@ -38,13 +38,20 @@ import UpdateProfileGate from '@/components/UpdateProfileGate';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
 import { lockedWeekCount } from '@/lib/belts';
-import {
-  markWeekMissSeen,
-  markWeekPodiumSeen,
-  shouldShowWeekMissTakeover,
-  shouldShowWeekPodiumTakeover,
-} from '@/lib/weekPodiumSeen';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
+
+/** Tell the server this takeover has been dismissed, so it won't show again on any device. */
+async function markWeekTakeoverSeen(weekMonday: string, kind: 'podium' | 'miss') {
+  try {
+    await fetch('/api/week-podium', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weekMonday, kind }),
+    });
+  } catch (error) {
+    console.error('Error marking week takeover seen:', error);
+  }
+}
 
 function shortDayName(name: string) {
   return name
@@ -78,8 +85,8 @@ export default function Home() {
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
-  const [weekYou, setWeekYou] = useState<(WeekPodiumYou & { line: string }) | null>(null);
-  const [weekMiss, setWeekMiss] = useState<WeekMissYou | null>(null);
+  const [weekYou, setWeekYou] = useState<(WeekPodiumYou & { line: string; seen: boolean }) | null>(null);
+  const [weekMiss, setWeekMiss] = useState<(WeekMissYou & { seen: boolean }) | null>(null);
   const [weekTakeover, setWeekTakeover] = useState(false);
   const [weekMissTakeover, setWeekMissTakeover] = useState(false);
   const [resumeLine, setResumeLine] = useState('');
@@ -140,8 +147,8 @@ export default function Home() {
         if (statsRes.ok) setStats(await statsRes.json());
         if (podiumRes.ok) {
           const podium = await podiumRes.json();
-          const you = podium?.you as (WeekPodiumYou & { line: string }) | null;
-          const miss = podium?.miss as WeekMissYou | null;
+          const you = podium?.you as (WeekPodiumYou & { line: string; seen: boolean }) | null;
+          const miss = podium?.miss as (WeekMissYou & { seen: boolean }) | null;
           setWeekYou(you && isWeekPlace(you.place) ? you : null);
           setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
         }
@@ -158,13 +165,13 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    if (userId == null || !weekYou) return;
-    if (shouldShowWeekPodiumTakeover(userId, weekYou)) setWeekTakeover(true);
+    if (userId == null || !weekYou || weekYou.seen) return;
+    setWeekTakeover(true);
   }, [userId, weekYou]);
 
   useEffect(() => {
-    if (userId == null || !weekMiss || weekYou) return;
-    if (shouldShowWeekMissTakeover(userId, weekMiss)) setWeekMissTakeover(true);
+    if (userId == null || !weekMiss || weekMiss.seen || weekYou) return;
+    setWeekMissTakeover(true);
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
@@ -462,7 +469,7 @@ export default function Home() {
           place={weekYou.place}
           line={weekYou.line}
           onClose={() => {
-            if (userId != null) markWeekPodiumSeen(userId, weekYou.weekMonday);
+            void markWeekTakeoverSeen(weekYou.weekMonday, 'podium');
             setWeekTakeover(false);
           }}
         />
@@ -472,7 +479,7 @@ export default function Home() {
           open={weekMissTakeover}
           line={weekMiss.line}
           onClose={() => {
-            if (userId != null) markWeekMissSeen(userId, weekMiss.weekMonday);
+            void markWeekTakeoverSeen(weekMiss.weekMonday, 'miss');
             setWeekMissTakeover(false);
           }}
         />
