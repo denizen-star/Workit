@@ -7,15 +7,15 @@ import { KPI_COLOR } from '@/lib/kpi';
 export default function LiveSetKpis({
   setVolume,
   setEffective,
-  lastTimeVolume,
+  allTimeBestLabel,
   sessionVolume,
   sessionEffective,
   setHint,
 }: {
   setVolume: number;
   setEffective: number;
-  /** This same set number, last time this exercise was completed — apples-to-apples against Set Volume. */
-  lastTimeVolume: number | null;
+  /** Heaviest single set ever logged for this exercise, in set units (e.g. "40 lb × 10") — not a volume number. */
+  allTimeBestLabel: string | null;
   sessionVolume: number;
   sessionEffective: number;
   setHint?: string;
@@ -37,11 +37,11 @@ export default function LiveSetKpis({
         <div className="sub">volume × Effort</div>
       </div>
       <div className="kpi">
-        <label>Last Time</label>
-        <div className="big" style={{ color: KPI_COLOR.volume }}>
-          {lastTimeVolume != null ? formatCompact(lastTimeVolume) : '—'}
+        <label>All-Time Best</label>
+        <div className="big text" style={{ color: KPI_COLOR.volume }}>
+          {allTimeBestLabel ?? '—'}
         </div>
-        <div className="sub">this set, last session</div>
+        <div className="sub">heaviest set ever</div>
       </div>
       <div className="kpi">
         <label>Session Volume</label>

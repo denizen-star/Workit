@@ -219,6 +219,20 @@ export async function GET(request: NextRequest) {
       > = {};
       const personalRecords: Record<string, { weight: number; reps: number }> = {};
       const lastWeekMax: Record<string, number> = {};
+      // Heaviest single set ever logged for this exercise (weight+reps as one pair, not two
+      // independent maxes like personalRecords) — same tie-break as bestLoggedSet: more reps wins ties.
+      const bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }> = {};
+
+      const trackBestSet = (name: string, weightLbs: number | null, actualReps: number | null) => {
+        const weight = weightLbs ?? 0;
+        const reps = actualReps ?? 0;
+        const current = bestSets[name];
+        const currentWeight = current?.weight_lbs ?? 0;
+        const currentReps = current?.actual_reps ?? 0;
+        if (!current || weight > currentWeight || (weight === currentWeight && reps > currentReps)) {
+          bestSets[name] = { weight_lbs: weightLbs, actual_reps: actualReps };
+        }
+      };
 
       for (const row of result.rows as any[]) {
         const name = exerciseHistoryKey(row.exercise_name);
@@ -234,6 +248,7 @@ export async function GET(request: NextRequest) {
         }
         personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
         personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
+        trackBestSet(name, row.weight_lbs == null ? null : weight, row.actual_reps == null ? null : reps);
 
         if (previousWeek && Number(row.week_number) === previousWeek) {
           lastWeekMax[name] = Math.max(lastWeekMax[name] || 0, weight);
@@ -259,6 +274,7 @@ export async function GET(request: NextRequest) {
           }
           personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
           personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
+          trackBestSet(name, row.weight_lbs == null ? null : weight, row.actual_reps == null ? null : reps);
         }
       }
 
@@ -274,7 +290,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ lastSets, lastWeekMax, personalRecords });
+      return NextResponse.json({ lastSets, lastWeekMax, personalRecords, bestSets });
     }
 
     if (!sessionId) {

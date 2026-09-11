@@ -214,6 +214,11 @@ body {
   font-weight: 900;
 }
 
+/* Set-unit text ("40 lb × 10") runs longer than a compact number — shrink to fit the tile. */
+.live-kpis .big.text {
+  font-size: 17px;
+}
+
 .live-kpis .sub {
   margin-top: 2px;
   font-size: 12px;

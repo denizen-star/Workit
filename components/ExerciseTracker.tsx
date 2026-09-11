@@ -70,6 +70,8 @@ interface HistoryPayload {
   >;
   lastWeekMax: Record<string, number>;
   personalRecords: Record<string, { weight: number; reps: number }>;
+  /** Heaviest single set ever logged for this exercise (weight+reps as one pair). */
+  bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }>;
 }
 
 interface ExerciseTrackerProps {
@@ -212,7 +214,7 @@ export default function ExerciseTracker({
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; exercise: Exercise } | null>(
     null
   );
-  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {} });
+  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {} });
   const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
   const [setFlash, setSetFlash] = useState<{
     variant: 'up' | 'down' | 'call';
@@ -246,7 +248,7 @@ export default function ExerciseTracker({
         storedModes = parseExerciseModes(data.exerciseModes ?? data.exercise_modes);
       }
 
-      let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {} };
+      let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {} };
       if (historyRes.ok) {
         historyData = await historyRes.json();
       }
@@ -998,19 +1000,15 @@ export default function ExerciseTracker({
                   lastDone.weight_lbs,
                   lastDone.actual_reps
                 );
-                // This same set number, last time this exercise was completed (a prior session) —
-                // apples-to-apples against Set Volume above, not an average across every set.
-                const lastTimeSet = lastSetsFor(exercise.name, history).find(
-                  (item) => item.set_number === lastDone.set_number
-                );
-                const lastTimeVolume = lastTimeSet
-                  ? setVolume(exercise.name, exercise.reps, lastTimeSet.weight_lbs, lastTimeSet.actual_reps)
-                  : null;
+                // All-time heaviest single set on this exact exercise, in set units (e.g. "40 lb × 10") —
+                // not a volume number, and not limited to last session.
+                const bestSet = history.bestSets[exerciseHistoryKey(exercise.name)];
+                const allTimeBestLabel = bestSet ? setLogLabel(kind, bestSet.weight_lbs, bestSet.actual_reps) : null;
                 return (
                   <LiveSetKpis
                     setVolume={lastVol}
                     setEffective={effortFromVolume(lastVol, lastDone.hardness)}
-                    lastTimeVolume={lastTimeVolume}
+                    allTimeBestLabel={allTimeBestLabel}
                     sessionVolume={liveSession.lbs}
                     sessionEffective={liveSession.effort}
                     setHint={
