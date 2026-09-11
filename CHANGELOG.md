@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 7.7.0 - 2026-09-11
+
+### Added
+- New coach voice: **Eli Sparks**, high-energy and encouraging. Pick him in Edit profile alongside Master Tom Iron, James Grey, and Luna Meadows
+- New athletes now start with Eli as their coach by default, whether they join at `/join?h=gowanus` or accept an invite — existing athletes keep whichever voice they already had
+
+### Changed
+- The "How hard?" call-out now fires once per exercise, after its last set, instead of after every individual set — voting itself is unchanged (still per set, still skippable)
+
 ## 7.6.1 - 2026-09-11
 
 ### Fixed

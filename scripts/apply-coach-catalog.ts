@@ -28,7 +28,7 @@ type LineRow = [string, string, number, string | null, string];
 
 function collectRows(): LineRow[] {
   const rows: LineRow[] = [];
-  for (const voiceId of ['master', 'james', 'luna'] as const) {
+  for (const voiceId of ['master', 'james', 'luna', 'eli'] as const) {
     const pack = FALLBACK_LINE_PACKS[voiceId];
     const lists: Array<[readonly string[], string]> = [
       [pack.initial, 'initial'],
@@ -64,7 +64,7 @@ async function main() {
   console.log('replacing', rows.length, 'coach_lines');
 
   await query(
-    `DELETE FROM coach_lines WHERE voice_id IN ('master', 'james', 'luna') AND bucket IN (${BUCKETS.map(() => '?').join(',')})`,
+    `DELETE FROM coach_lines WHERE voice_id IN ('master', 'james', 'luna', 'eli') AND bucket IN (${BUCKETS.map(() => '?').join(',')})`,
     [...BUCKETS]
   );
 
@@ -93,7 +93,7 @@ async function main() {
   }
 
   const check = await query(
-    `SELECT voice_id, bucket, COUNT(*) as n FROM coach_lines WHERE voice_id IN ('master','james','luna') GROUP BY voice_id, bucket ORDER BY voice_id, bucket`
+    `SELECT voice_id, bucket, COUNT(*) as n FROM coach_lines WHERE voice_id IN ('master','james','luna','eli') GROUP BY voice_id, bucket ORDER BY voice_id, bucket`
   );
   console.log(check.rows);
 }

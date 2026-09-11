@@ -28,7 +28,7 @@ export type LinePack = {
   hardness: Partial<Record<1 | 2 | 3 | 4 | 5, { title: string; body: string }>>;
 };
 
-const VOICE_ORDER: CoachTone[] = ['master', 'james', 'luna'];
+const VOICE_ORDER: CoachTone[] = ['master', 'james', 'luna', 'eli'];
 
 export const FALLBACK_VOICES: CoachVoiceRecord[] = [
   {
@@ -55,6 +55,14 @@ export const FALLBACK_VOICES: CoachVoiceRecord[] = [
     blurb: 'Calm. Soft. She holds you in the hard part until the strength stays.',
     description:
       'Melodic and still. She talks like a moving meditation: breath, alignment, stay. The work can burn. The voice does not. Praise is quiet. The prize is growth, lean, definition, power, stamina, and mobility.',
+  },
+  {
+    id: 'eli',
+    displayName: 'Eli Sparks',
+    fromName: 'Workit - Coach Eli',
+    blurb: 'Loud belief. He is in your corner. The reps are proof you already have it.',
+    description:
+      'High-energy and open-hearted. He believes in you louder than you believe in yourself, and says so. Praise is frequent and earned in the moment, not saved up. The reward is still growth, lean, definition, power, stamina, and mobility. He just wants you to feel every bit of it landing.',
   },
 ];
 
@@ -143,6 +151,7 @@ export function hydrateCoachCatalog(input: {
       master: input.packs.master,
       luna: lunaPack,
       james: input.packs.james || emptyPack(),
+      eli: input.packs.eli || emptyPack(),
     };
   }
 }
@@ -180,6 +189,7 @@ export function catalogFromRows(
     master: emptyPack(),
     james: emptyPack(),
     luna: emptyPack(),
+    eli: emptyPack(),
   };
   const seenLine = new Set<string>();
 

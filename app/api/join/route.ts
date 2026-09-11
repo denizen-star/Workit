@@ -101,7 +101,7 @@ export async function POST(request: NextRequest) {
       await query(
         `UPDATE users SET
            name = ?, first_name = ?, last_name = ?, display_name = ?, email = ?, phone = ?,
-           body_weight_lb = ?, pin_hash = ?, invite_token = NULL, coach_tone = COALESCE(coach_tone, 'luna'),
+           body_weight_lb = ?, pin_hash = ?, invite_token = NULL, coach_tone = COALESCE(coach_tone, 'eli'),
            waiver_text = ?, waiver_accepted_at = UTC_TIMESTAMP(), email_verified_at = UTC_TIMESTAMP()
            ${photo ? ', photo = ?' : ''}
          WHERE id = ?`,
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
       `INSERT INTO users (
          name, email, pin_hash, coach_tone, first_name, last_name, display_name, phone,
          body_weight_lb, photo, waiver_text, waiver_accepted_at, email_verified_at, last_household_id
-       ) VALUES (?, ?, ?, 'luna', ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, ?)`,
+       ) VALUES (?, ?, ?, 'eli', ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, ?)`,
       [
         name,
         email,

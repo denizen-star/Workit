@@ -15,12 +15,13 @@ import { pickCompleteLine, pickReplenishLine } from '../lib/coachLines';
 import { coachDisplayName, type CoachTone } from '../lib/coachTone';
 import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
 
-const TONES: CoachTone[] = ['master', 'james', 'luna'];
+const TONES: CoachTone[] = ['master', 'james', 'luna', 'eli'];
 
 const TAG: Record<CoachTone, string> = {
   master: 'Tom',
   james: 'Grey',
   luna: 'Luna',
+  eli: 'Eli',
 };
 
 const YEAR_RELEASE = {

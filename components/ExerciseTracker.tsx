@@ -108,6 +108,13 @@ function setsForMovement(sets: ExerciseSet[], name: string) {
   return sets.filter((item) => sameExerciseMovement(item.exercise_name, name));
 }
 
+/** Exercise-level "How hard?" score: mean of that exercise's set votes, unset sets default to Fair (3) same as a skipped vote. */
+function averageHardness(sets: ExerciseSet[]): HardnessScore {
+  if (sets.length === 0) return DEFAULT_HARDNESS;
+  const total = sets.reduce((sum, item) => sum + (parseHardness(item.hardness) ?? DEFAULT_HARDNESS), 0);
+  return Math.round(total / sets.length) as HardnessScore;
+}
+
 function inferExerciseMode(
   gym: Exercise,
   saved: Array<{ exercise_name: string; is_completed?: unknown }>,
@@ -495,6 +502,17 @@ export default function ExerciseTracker({
     const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
     const direction = setDirection({ ...set, actual_reps: actualReps }, prior);
 
+    // This exercise's planned (non-extra) sets, as they stand right before this
+    // completion lands. `plannedSets.length` never changes (extras only add set
+    // numbers above `exercise.sets`), and a set can only go incomplete -> complete,
+    // so "one more completion reaches the planned total" can only be true once
+    // per exercise — no extra "already flashed" bookkeeping needed.
+    const plannedSets = setsForMovement(exerciseSets, exercise.name).filter(
+      (item) => item.set_number <= exercise.sets
+    );
+    const completedPlannedCount = plannedSets.filter((item) => item.is_completed).length + 1;
+    const exerciseJustFinished = completedPlannedCount === exercise.sets;
+
     if ((isWeightPr || isTimedPr) && showPrs) {
       setPrFlash({
         exerciseName: exercise.name,
@@ -503,6 +521,11 @@ export default function ExerciseTracker({
     } else if (noiseTakeover === 'set' && direction) {
       const copy = setProgressCopy(direction, tone, athleteName);
       setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+    } else if (exerciseJustFinished && noiseEffort === 'set') {
+      // The "How hard?" takeover now fires once per exercise (on its last planned
+      // set) instead of once per vote, since votes are optional and skippable.
+      const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
+      setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
     }
 
     if (isWeightPr || isTimedPr) {
@@ -549,11 +572,9 @@ export default function ExerciseTracker({
           : item
       );
       setExerciseSets(updatedSets);
-
-      if (noiseEffort === 'set') {
-        const copy = hardnessCopy(nextScore, tone, athleteName);
-        setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
-      }
+      // The result flash for this no longer fires per vote — see the
+      // exercise-level takeover fired from `completeSet` when the exercise's
+      // last planned set completes. The vote itself still always saves.
     } catch (error) {
       console.error('Error saving hardness:', error);
     }

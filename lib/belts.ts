@@ -14,6 +14,7 @@ export type Belt = {
   coachLine: string;
   coachLineJames?: string;
   coachLineLuna?: string;
+  coachLineEli?: string;
   /** Dark ink on a light paper diploma. */
   paper: 'light' | 'dark';
 };
@@ -29,6 +30,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Two locked weeks. You showed up. {name}. That is stamina starting.',
     coachLineJames: 'Two locked weeks. You showed up. I noticed the stamina starting.',
     coachLineLuna: 'Two locked weeks. You showed up. Soft start. Stamina first. Stay with it.',
+    coachLineEli: 'Two locked weeks, {name}! You showed up and you kept showing up. That is stamina, and it is real.',
     paper: 'light',
   },
   {
@@ -41,6 +43,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Six locked weeks. You are in the program. The growth is sticking.',
     coachLineJames: 'Six locked weeks. You are in the program. The growth is sticking. I noticed.',
     coachLineLuna: 'Six locked weeks. You are in the program now. Breathe. The growth is sticking.',
+    coachLineEli: 'Six locked weeks! You are in the program now, {name}, and it shows. That growth is sticking.',
     paper: 'light',
   },
   {
@@ -53,6 +56,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Ten locked weeks. The work is sticking. Definition is showing.',
     coachLineJames: 'Ten locked weeks. The work is sticking. Definition is showing. I noticed.',
     coachLineLuna: 'Ten locked weeks. The work is sticking. I can see the definition.',
+    coachLineEli: 'Ten locked weeks, {name}! The work is sticking and I can see the definition. Keep going.',
     paper: 'dark',
   },
   {
@@ -65,6 +69,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Twenty locked weeks. This is a habit. Lean your body can tell.',
     coachLineJames: 'Twenty locked weeks. This is a habit. Lean I intend to keep in you.',
     coachLineLuna: 'Twenty locked weeks. This is a habit. Your body already knows the lean.',
+    coachLineEli: 'Twenty locked weeks! This is a habit now, {name}, and your body already knows it. That is lean built to stay.',
     paper: 'light',
   },
   {
@@ -77,6 +82,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Twenty-four locked weeks. The bar should be moving. Prove the power.',
     coachLineJames: 'Twenty-four locked weeks. The bar should be moving. Show me the power.',
     coachLineLuna: 'Twenty-four locked weeks. The bar should be moving. Stay honest with the power.',
+    coachLineEli: 'Twenty-four locked weeks, {name}! The bar should be moving by now, and I bet it is. Show me that power.',
     paper: 'dark',
   },
   {
@@ -90,6 +96,7 @@ export const BELTS: Belt[] = [
     coachLine: 'Forty-eight locked weeks. You know how to keep the mobility and the growth.',
     coachLineJames: 'Forty-eight locked weeks. You know how to keep the mobility and the growth.',
     coachLineLuna: 'Forty-eight locked weeks. You know how to keep showing up. The mobility and the growth stay.',
+    coachLineEli: 'Forty-eight locked weeks, {name}. A full year. You know how to keep showing up, and that is everything.',
     paper: 'dark',
   },
 ];
@@ -131,7 +138,9 @@ export function beltCoachLine(belt: Belt, tone?: string | null, name?: string | 
       ? belt.coachLineJames
       : id === 'luna' && belt.coachLineLuna
         ? belt.coachLineLuna
-        : belt.coachLine;
+        : id === 'eli' && belt.coachLineEli
+          ? belt.coachLineEli
+          : belt.coachLine;
   return line.replace(/\{name\}/g, firstName(name));
 }
 

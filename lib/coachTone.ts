@@ -1,6 +1,6 @@
 export const TONE_COOKIE = 'workit_coach_tone';
 
-export const COACH_TONES = ['master', 'james', 'luna'] as const;
+export const COACH_TONES = ['master', 'james', 'luna', 'eli'] as const;
 
 export type CoachTone = (typeof COACH_TONES)[number];
 
@@ -25,17 +25,22 @@ export const COACH_TONE_OPTIONS: Array<{
     label: 'Luna Meadows',
     blurb: 'Calm. Soft. She holds you in the hard part until the strength stays.',
   },
+  {
+    id: 'eli',
+    label: 'Eli Sparks',
+    blurb: 'Loud belief. He is in your corner. The reps are proof you already have it.',
+  },
 ];
 
 /** Maps stored/cookie ids, including the old Luna slot `sergeant`. */
 export function asCoachTone(value: unknown): CoachTone | null {
   if (value === 'luna' || value === 'sergeant') return 'luna';
-  if (value === 'master' || value === 'james') return value;
+  if (value === 'master' || value === 'james' || value === 'eli') return value;
   return null;
 }
 
 export function isCoachTone(value: unknown): value is CoachTone {
-  return value === 'master' || value === 'james' || value === 'luna';
+  return value === 'master' || value === 'james' || value === 'luna' || value === 'eli';
 }
 
 export function normalizeCoachTone(value: unknown): CoachTone {
@@ -45,5 +50,6 @@ export function normalizeCoachTone(value: unknown): CoachTone {
 export function coachDisplayName(tone: CoachTone) {
   if (tone === 'luna') return 'Luna Meadows';
   if (tone === 'james') return 'James Grey';
+  if (tone === 'eli') return 'Eli Sparks';
   return 'Master Tom Iron';
 }

@@ -38,7 +38,7 @@ You can add an optional **warmup or cooldown** (easy run/bike, or a short stretc
 
 **Belts** are diplomas for locked weeks stacked over the year. You always see the one you are aiming for.
 
-The house also has a **scoreboard** (who trained, how much iron moved) and **medals**. A coach voice (Tom, Grey, or Luna) talks to you in the app and in mail. Prize and punishment are the same six things: growth, lean, definition, power, stamina, mobility.
+The house also has a **scoreboard** (who trained, how much iron moved) and **medals**. A coach voice (Tom, Grey, Luna, or Eli) talks to you in the app and in mail. Prize and punishment are the same six things: growth, lean, definition, power, stamina, mobility.
 
 ## First-week advice
 

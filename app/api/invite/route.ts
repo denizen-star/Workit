@@ -76,8 +76,8 @@ export async function POST(request: NextRequest) {
 
     const { raw, hash } = createInviteToken();
     const result = await query(
-      `INSERT INTO users (name, email, pin_hash, invited_by, invite_token, invited_at)
-       VALUES (?, ?, NULL, ?, ?, UTC_TIMESTAMP())`,
+      `INSERT INTO users (name, email, pin_hash, coach_tone, invited_by, invite_token, invited_at)
+       VALUES (?, ?, NULL, 'eli', ?, ?, UTC_TIMESTAMP())`,
       [name, email, user.id, hash]
     );
 
