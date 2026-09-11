@@ -15,7 +15,6 @@ import {
   missedTheWeek,
   type WeekMissYou,
   type WeekPodiumYou,
-  type WeekTakeoverKind,
 } from '@/lib/weekPodium';
 
 export async function GET() {
@@ -34,14 +33,21 @@ export async function GET() {
       weekMonday && !isTestUserName(user.name)
         ? history.find((row) => row.weekMonday === weekMonday)
         : undefined;
-    const you: (WeekPodiumYou & { line: string; seen: boolean }) | null = placed
-      ? {
-          weekMonday: placed.weekMonday,
-          place: placed.place,
-          line: pickWeekPlaceLine(placed.place, user.coachTone, user.callName),
-          seen: await hasSeenWeekTakeover(user.id, placed.weekMonday, 'podium'),
-        }
-      : null;
+
+    // "seen" is decided (and marked) right here at delivery time, not on client dismiss — a fire-and-forget
+    // fetch from onClose can get cancelled by a tab close / PWA backgrounding / navigation before it lands,
+    // which is exactly why this used to keep reappearing. Marking on GET means it only ever gets sent once.
+    let you: (WeekPodiumYou & { line: string; seen: boolean }) | null = null;
+    if (placed) {
+      const alreadySeen = await hasSeenWeekTakeover(user.id, placed.weekMonday, 'podium');
+      if (!alreadySeen) await markWeekTakeoverSeen(user.id, placed.weekMonday, 'podium');
+      you = {
+        weekMonday: placed.weekMonday,
+        place: placed.place,
+        line: pickWeekPlaceLine(placed.place, user.coachTone, user.callName),
+        seen: alreadySeen,
+      };
+    }
 
     let miss: (WeekMissYou & { seen: boolean }) | null = null;
     if (
@@ -52,11 +58,13 @@ export async function GET() {
     ) {
       const workouts = await countUserClosedWeekWorkouts(user.id, weekMonday);
       if (missedTheWeek(workouts)) {
+        const alreadySeen = await hasSeenWeekTakeover(user.id, weekMonday, 'miss');
+        if (!alreadySeen) await markWeekTakeoverSeen(user.id, weekMonday, 'miss');
         miss = {
           weekMonday,
           workouts,
           line: pickMissedWeekLine(user.name, user.coachTone),
-          seen: await hasSeenWeekTakeover(user.id, weekMonday, 'miss'),
+          seen: alreadySeen,
         };
       }
     }
@@ -71,28 +79,5 @@ export async function GET() {
   } catch (error) {
     console.error('Error getting week podium:', error);
     return NextResponse.json({ error: 'Failed to get week podium' }, { status: 500 });
-  }
-}
-
-/** Mark the podium or miss takeover dismissed for this user + week, so it doesn't show again on any device. */
-export async function POST(request: Request) {
-  try {
-    const user = await getCurrentUser();
-    if (!user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-    }
-
-    const body = await request.json();
-    const weekMonday = typeof body?.weekMonday === 'string' ? body.weekMonday : null;
-    const kind: WeekTakeoverKind = body?.kind === 'miss' ? 'miss' : 'podium';
-    if (!weekMonday) {
-      return NextResponse.json({ error: 'weekMonday required' }, { status: 400 });
-    }
-
-    await markWeekTakeoverSeen(user.id, weekMonday, kind);
-    return NextResponse.json({ ok: true });
-  } catch (error) {
-    console.error('Error marking week takeover seen:', error);
-    return NextResponse.json({ error: 'Failed to mark week takeover seen' }, { status: 500 });
   }
 }

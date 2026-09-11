@@ -977,14 +977,14 @@ export default function ExerciseTracker({
                   lastDone.weight_lbs,
                   lastDone.actual_reps
                 );
-                // Last time this exercise was completed (a prior session), not this session's own sum —
-                // that's the number that's actually useful to compare against mid-lift.
+                // Average per-set volume from the last time this exercise was completed (a prior session) —
+                // comparable to this single set's volume, not a whole-exercise total against a partial one.
                 const lastTimeSets = lastSetsFor(exercise.name, history);
                 const lastTimeVolume = lastTimeSets.length
                   ? lastTimeSets.reduce(
                       (sum, item) => sum + setVolume(exercise.name, exercise.reps, item.weight_lbs, item.actual_reps),
                       0
-                    )
+                    ) / lastTimeSets.length
                   : null;
                 return (
                   <LiveSetKpis

@@ -40,19 +40,6 @@ import { pickResumeLine } from '@/lib/coachLines';
 import { lockedWeekCount } from '@/lib/belts';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
 
-/** Tell the server this takeover has been dismissed, so it won't show again on any device. */
-async function markWeekTakeoverSeen(weekMonday: string, kind: 'podium' | 'miss') {
-  try {
-    await fetch('/api/week-podium', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ weekMonday, kind }),
-    });
-  } catch (error) {
-    console.error('Error marking week takeover seen:', error);
-  }
-}
-
 function shortDayName(name: string) {
   return name
     .replace(/^Upper Body /, 'Upper ')
@@ -468,20 +455,14 @@ export default function Home() {
           open={weekTakeover}
           place={weekYou.place}
           line={weekYou.line}
-          onClose={() => {
-            void markWeekTakeoverSeen(weekYou.weekMonday, 'podium');
-            setWeekTakeover(false);
-          }}
+          onClose={() => setWeekTakeover(false)}
         />
       ) : null}
       {weekMiss && !weekYou ? (
         <WeekMissTakeover
           open={weekMissTakeover}
           line={weekMiss.line}
-          onClose={() => {
-            void markWeekTakeoverSeen(weekMiss.weekMonday, 'miss');
-            setWeekMissTakeover(false);
-          }}
+          onClose={() => setWeekMissTakeover(false)}
         />
       ) : null}
     </div>

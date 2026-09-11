@@ -14,7 +14,7 @@ export default function LiveSetKpis({
 }: {
   setVolume: number;
   setEffective: number;
-  /** Volume from the last time this exercise was completed, not this session's own sum — more useful mid-lift. */
+  /** Average per-set volume from the last time this exercise was completed — comparable to a single set, not a whole-exercise sum. */
   lastTimeVolume: number | null;
   sessionVolume: number;
   sessionEffective: number;
@@ -41,7 +41,7 @@ export default function LiveSetKpis({
         <div className="big" style={{ color: KPI_COLOR.volume }}>
           {lastTimeVolume != null ? formatCompact(lastTimeVolume) : '—'}
         </div>
-        <div className="sub">this exercise, last session</div>
+        <div className="sub">avg/set, last session</div>
       </div>
       <div className="kpi">
         <label>Session Volume</label>
