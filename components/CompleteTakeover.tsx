@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { formatCompact } from "@/lib/athletePerformanceTypes";
+import FinishStepper from "@/components/FinishStepper";
 
 export type TakeoverBadge = {
   id: number;
@@ -30,6 +31,9 @@ interface CompleteTakeoverProps {
   bonusCount?: number;
   optionalLbs?: number;
   kickerLbs?: number;
+  /** This screen's position in the post-finish sequence, for the segmented stepper. */
+  step?: number;
+  totalSteps?: number;
   onClose: () => void;
 }
 
@@ -48,6 +52,8 @@ export default function CompleteTakeover({
   bonusCount = 0,
   optionalLbs = 0,
   kickerLbs = 0,
+  step,
+  totalSteps,
   onClose,
 }: CompleteTakeoverProps) {
   const onCloseRef = useRef(onClose);
@@ -90,6 +96,7 @@ export default function CompleteTakeover({
         <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
       </div>
       <div className="relative max-w-xl text-center">
+        {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
           {bonus ? 'Bonus locked' : optionalLbs > 0 ? 'Optional locked' : 'Workout complete'}
         </p>

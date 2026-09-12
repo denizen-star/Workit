@@ -3,6 +3,7 @@
 import BadgeMark from '@/components/BadgeMark';
 import BeltDiploma from '@/components/BeltDiploma';
 import type { TakeoverBadge, TakeoverBelt } from '@/components/CompleteTakeover';
+import FinishStepper from '@/components/FinishStepper';
 import { BELTS, type Belt } from '@/lib/belts';
 
 function diplomaBelt(earned: TakeoverBelt): Belt {
@@ -38,12 +39,17 @@ export default function AwardsTakeover({
   belt,
   badges,
   accent,
+  step,
+  totalSteps,
   onClose,
 }: {
   open: boolean;
   belt: TakeoverBelt | null;
   badges: TakeoverBadge[];
   accent?: { fill: string; trim?: string | null } | null;
+  /** This screen's position in the post-finish sequence, for the segmented stepper. */
+  step?: number;
+  totalSteps?: number;
   onClose: () => void;
 }) {
   if (!open || (!belt && badges.length === 0)) return null;
@@ -70,6 +76,7 @@ export default function AwardsTakeover({
         <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
       </div>
       <div className="relative w-full max-w-md">
+        {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         <h2
           className="get-to-it-text mb-8 text-center text-4xl font-black leading-tight tracking-tight drop-shadow-[0_0_28px_rgba(255,255,255,0.35)] sm:text-6xl"
           style={{ color: titleColor }}

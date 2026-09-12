@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
@@ -232,6 +232,12 @@ export default function ExerciseTracker({
     body: string;
   } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
+  // A PR can land on any set of an exercise, but the flash itself is now held
+  // until that exercise's last planned set. Remember the best PR seen so far
+  // per exercise (by name) so it still surfaces, delayed, when the exercise
+  // finishes — a ref (not state) so it's readable synchronously inside the
+  // same completeSet() call that may set it.
+  const pendingPrRef = useRef<Record<string, { valueLabel: string }>>({});
   useEffect(() => {
     setRestSeconds(restClock);
   }, [restClock]);
@@ -525,19 +531,32 @@ export default function ExerciseTracker({
     const completedPlannedCount = plannedSets.filter((item) => item.is_completed).length + 1;
     const exerciseJustFinished = completedPlannedCount === exercise.sets;
 
-    if ((isWeightPr || isTimedPr) && showPrs) {
-      setPrFlash({
-        exerciseName: exercise.name,
+    // A PR can land on any set, but its flash is now held until exercise-end —
+    // remember the best one seen so far for this exercise so it isn't lost by
+    // the time the last set completes.
+    if (isWeightPr || isTimedPr) {
+      pendingPrRef.current[exercise.name] = {
         valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
-      });
-    } else if (noiseTakeover === 'set' && direction) {
-      const copy = setProgressCopy(direction, tone, athleteName);
-      setSetFlash({ variant: direction, title: copy.title, body: copy.body });
-    } else if (exerciseJustFinished && noiseEffort === 'set') {
-      // The "How hard?" takeover now fires once per exercise (on its last planned
-      // set) instead of once per vote, since votes are optional and skippable.
-      const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
-      setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+      };
+    }
+
+    // All three flashes now share one trigger — the exercise's last planned set —
+    // instead of popping mid-exercise on every set. Same priority as before:
+    // PR > gain/loss > hardness, single flash slot.
+    if (exerciseJustFinished) {
+      const pendingPr = pendingPrRef.current[exercise.name];
+      if (pendingPr && showPrs) {
+        setPrFlash({ exerciseName: exercise.name, valueLabel: pendingPr.valueLabel });
+      } else if (noiseTakeover === 'set' && direction) {
+        const copy = setProgressCopy(direction, tone, athleteName);
+        setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+      } else if (noiseEffort === 'set') {
+        // The "How hard?" takeover fires once per exercise (on its last planned
+        // set) instead of once per vote, since votes are optional and skippable.
+        const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
+        setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+      }
+      delete pendingPrRef.current[exercise.name];
     }
 
     if (isWeightPr || isTimedPr) {

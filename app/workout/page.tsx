@@ -29,6 +29,7 @@ import ExerciseTracker from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/components/CompleteTakeover';
 import AwardsTakeover from '@/components/AwardsTakeover';
 import WorkoutRecapTakeover from '@/components/WorkoutRecapTakeover';
+import FinishStepper from '@/components/FinishStepper';
 import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
@@ -577,6 +578,11 @@ function WorkoutPageInner() {
     return pickModes[dayModeKey(weekNumber, dayNumber)] ?? 'gym';
   };
 
+  // Post-finish sequence: star rating -> Recap -> Complete -> Awards. Awards
+  // only shows when something was earned, so the stepper's total reflects
+  // that instead of always counting a screen that may not appear.
+  const finishTotalSteps = 3 + (earnedBelt || awardedBadges.length > 0 ? 1 : 0);
+
   if (currentSession && selectedDay) {
     const workout = getCurrentWorkout();
     if (!workout) return null;
@@ -767,6 +773,8 @@ function WorkoutPageInner() {
           optionalLbs={optionalFinishLbs}
           warmup={recapWarmup}
           cooldown={recapCooldown}
+          step={2}
+          totalSteps={finishTotalSteps}
           onClose={openCoachLine}
         />
         <CompleteTakeover
@@ -777,6 +785,8 @@ function WorkoutPageInner() {
           bonusCount={bonusFinishCount}
           optionalLbs={optionalFinishLbs}
           kickerLbs={optionalKickerLbs}
+          step={3}
+          totalSteps={finishTotalSteps}
           onClose={openAwardsOrHome}
         />
         <AwardsTakeover
@@ -784,6 +794,8 @@ function WorkoutPageInner() {
           belt={earnedBelt}
           badges={awardedBadges}
           accent={displayBelt(lockedWeekCount(sessions))}
+          step={4}
+          totalSteps={finishTotalSteps}
           onClose={leaveWorkout}
         />
 
@@ -815,6 +827,7 @@ function WorkoutPageInner() {
           }}
           onConfirm={completeWorkout}
         >
+          <FinishStepper current={1} total={finishTotalSteps} />
           <p>Nice work. We will save the end time and add this session to your dashboard stats.</p>
           <div className="mt-5">
             <StarRating
@@ -1067,6 +1080,8 @@ function WorkoutPageInner() {
         optionalLbs={optionalFinishLbs}
         warmup={recapWarmup}
         cooldown={recapCooldown}
+        step={2}
+        totalSteps={finishTotalSteps}
         onClose={openCoachLine}
       />
       <CompleteTakeover
@@ -1077,6 +1092,8 @@ function WorkoutPageInner() {
         bonusCount={bonusFinishCount}
         optionalLbs={optionalFinishLbs}
         kickerLbs={optionalKickerLbs}
+        step={3}
+        totalSteps={finishTotalSteps}
         onClose={openAwardsOrHome}
       />
       <AwardsTakeover
@@ -1084,6 +1101,8 @@ function WorkoutPageInner() {
         belt={earnedBelt}
         badges={awardedBadges}
         accent={displayBelt(lockedWeekCount(sessions))}
+        step={4}
+        totalSteps={finishTotalSteps}
         onClose={leaveWorkout}
       />
 

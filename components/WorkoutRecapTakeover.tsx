@@ -1,6 +1,7 @@
 'use client';
 
 import CompareTable from '@/components/CompareTable';
+import FinishStepper from '@/components/FinishStepper';
 import { HelpTip } from '@/components/HelpSheet';
 import type { CompareRow } from '@/lib/compareTable';
 import { recapOptionalRows } from '@/lib/compareTable';
@@ -14,6 +15,8 @@ export default function WorkoutRecapTakeover({
   optionalLbs = 0,
   warmup = false,
   cooldown = false,
+  step,
+  totalSteps,
   onClose,
 }: {
   open: boolean;
@@ -22,6 +25,9 @@ export default function WorkoutRecapTakeover({
   optionalLbs?: number;
   warmup?: boolean;
   cooldown?: boolean;
+  /** This screen's position in the post-finish sequence, for the segmented stepper. */
+  step?: number;
+  totalSteps?: number;
   onClose: () => void;
 }) {
   if (!open) return null;
@@ -45,6 +51,7 @@ export default function WorkoutRecapTakeover({
         <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
       </div>
       <div className="relative w-full max-w-md" onClick={(event) => event.stopPropagation()}>
+        {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         <div className="mb-3 flex items-center justify-center gap-1">
           <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">This session</p>
           <HelpTip

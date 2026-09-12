@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 7.9.0 - 2026-09-11
+
 ### Added
 - Finish flow now shows a segmented progress bar across star rating → Recap → Complete → Awards, so you can see how many screens are left before Home
 
