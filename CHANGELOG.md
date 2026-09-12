@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+### Added
+- Finish flow now shows a segmented progress bar across star rating → Recap → Complete → Awards, so you can see how many screens are left before Home
+
+### Changed
+- The New-PR and gain/loss flashes now fire once per exercise, after its last set, instead of popping mid-exercise on every set — matches the "How hard?" call-out's existing timing
+
+## 7.8.1 - 2026-09-11
+
+### Fixed
+- Live KPI grid: an extra set beyond the plan (Set 4, 5, ...) with no history of its own no longer shows dashes for Set N History / Avg Effective / Best — it now falls back to the last planned set's numbers instead
+
 ## 7.8.0 - 2026-09-11
 
 ### Changed

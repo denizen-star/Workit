@@ -12,6 +12,7 @@ Replace the 4-tile live KPI grid on `components/LiveSetKpis.tsx` (shown under th
 - **Tile 4 — "Volume"** (was "Session Volume"): changes from a running raw-lb total to the average volume (weight × reps) per completed set in today's session so far.
 - **Live folding**: Tiles 1 & 2 recompute the instant today's same-set-number set completes, folding it into the historical average. Tile 3 rolls forward to today's set on completion (see above). Tile 4 is live by definition.
 - **No-history fallback**: `—` placeholder, tile stays visible (never hidden).
+- **Extras fallback** (added post-ship, 2026-09-11): an extra set beyond the planned count (Set 4, 5, ... on a 3-set exercise) with no history of its own no longer dashes — it borrows the last planned set's average/last-session entry instead (`setNumberStatsFor` / `lastSpotFor` in `lib/setHistory.ts`), since it's "more of the same" work rather than a new position to track alone. Only a genuinely first-ever session on that exercise still dashes.
 - **Scope**: this change touches only `LiveSetKpis.tsx` / `ExerciseTracker.tsx`. `SessionTotalsBar`, `GET /api/stats`, badges, `daily_stats`, etc. keep using today's existing raw-total definitions — untouched.
 - **Up/down indicators**: all four tiles get a ▲/▼ + raw delta badge.
   - Tile 1 delta: on **weight only** — avg weight after folding today's set minus avg weight before.

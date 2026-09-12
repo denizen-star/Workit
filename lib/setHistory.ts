@@ -99,6 +99,34 @@ export function foldSetIntoHistory(
   };
 }
 
+/**
+ * Set-N stats for the live KPI grid, with an extras fallback: an extra set beyond the
+ * planned count (Set 4, 5, ...) with no history of its own borrows the last planned set's
+ * average, since it's "more of the same" work rather than a new position to track alone.
+ */
+export function setNumberStatsFor(
+  history: SetNumberHistory,
+  key: string,
+  setNumber: number,
+  plannedSets: number
+): SetNumberStats | null {
+  const byNumber = history[key];
+  if (!byNumber) return null;
+  if (byNumber[setNumber]) return byNumber[setNumber];
+  return setNumber > plannedSets ? byNumber[plannedSets] ?? null : null;
+}
+
+/** Same extras fallback as `setNumberStatsFor`, for a single session's set list (the "Best" tile). */
+export function lastSpotFor<T extends { set_number: number }>(
+  sets: T[],
+  setNumber: number,
+  plannedSets: number
+): T | undefined {
+  const exact = sets.find((item) => item.set_number === setNumber);
+  if (exact) return exact;
+  return setNumber > plannedSets ? sets.find((item) => item.set_number === plannedSets) : undefined;
+}
+
 export type TileDelta = { direction: 'up' | 'down'; value: number } | null;
 
 /** Signed ▲/▼ badge value for a live KPI tile. `null` when there's nothing to compare yet. */

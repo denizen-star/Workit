@@ -40,7 +40,9 @@ import {
 import {
   bestLoggedSet,
   foldSetIntoHistory,
+  lastSpotFor,
   setDirection,
+  setNumberStatsFor,
   tileDelta,
   type SetNumberHistory,
 } from '@/lib/setHistory';
@@ -1004,10 +1006,12 @@ export default function ExerciseTracker({
                 const key = exerciseHistoryKey(exercise.name);
 
                 // Set N History / Avg Effective: the historical average for this exact set
-                // position, folded live with today's own set the instant it completes. With
-                // no prior session at this position, both stay dashed rather than presenting
-                // today's lone set as if it were a meaningful average.
-                const beforeStats = history.setNumberHistory[key]?.[lastDone.set_number] ?? null;
+                // position, folded live with today's own set the instant it completes. An extra
+                // set beyond the plan (Set 4, 5, ...) with no history of its own borrows the last
+                // planned set's average instead of dashing — it's more of the same work, not a
+                // brand-new position. Only a genuinely untracked position (or a first-ever session
+                // on this exercise) stays dashed.
+                const beforeStats = setNumberStatsFor(history.setNumberHistory, key, lastDone.set_number, exercise.sets);
                 const afterStats = beforeStats ? foldSetIntoHistory(beforeStats, lastDone) : null;
 
                 const historyLabel = afterStats
@@ -1026,11 +1030,10 @@ export default function ExerciseTracker({
                   ? tileDelta(afterStats.effectiveAvg, beforeStats!.effectiveAvg)
                   : null;
 
-                // Best: this set's slot in the most recent prior completed session, flipping
-                // to today's own set (with PR noting the value it just replaced) now that it's done.
-                const lastSpot = lastSetsFor(exercise.name, history).find(
-                  (item) => item.set_number === lastDone.set_number
-                );
+                // Best: this set's slot in the most recent prior completed session (same extras
+                // fallback as above), flipping to today's own set (with PR noting the value it
+                // just replaced) now that it's done.
+                const lastSpot = lastSpotFor(lastSetsFor(exercise.name, history), lastDone.set_number, exercise.sets);
                 const bestLabel = lastSpot ? setSummaryLabel(kind, lastDone) : null;
                 const bestSub = lastSpot?.weight_lbs != null ? `PR · ${lastSpot.weight_lbs} lb` : 'no prior session';
                 const bestDelta =
