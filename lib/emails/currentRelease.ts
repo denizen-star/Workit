@@ -36,9 +36,9 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.10.0',
-  title: 'The card lights up gold when you’ve earned it.',
-  subject: 'The card lights up gold when you’ve earned it.',
+  version: '7.11.0',
+  title: 'Every set gets its say now — and you can change it.',
+  subject: 'Every set gets its say now — and you can change it.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
@@ -46,33 +46,34 @@ export const CURRENT_RELEASE: {
   onlyAthletes: [],
   includeNewAthletes: false,
   intro:
-    "Man, when you finish a lift now, the card knows it. Rate that last set and gold sweeps across it, a mark lands by the name — your work counted right in front of you, not buried in a menu.",
-  mid: "How hard used to be five buttons. Now it is a slide — drag it, gold marks light up as you go, and once you rate it the set folds down to one clean line instead of sitting there cluttering the card. Between lifts, the rest clock got bigger too — it tells you plainly to catch your breath, counts down loud, and does not let you miss it.",
-  close: "And Best on that card is now your best ever on that lift, not just what you did last time. Nothing borrowed, nothing softened. Quit never sees any of it. That is growth counted right, man.",
+    "Man, a bug had you skipping past rating a set sometimes — move to the next one and the last one folded up before you got a say. That is fixed. Every set gets its moment now.",
+  mid: "And once you rate it, you are not locked in. Open a finished set back up and change how hard it was, if you called it wrong the first time. The slide starts empty too, nothing filled in until you actually drag it — it will never look rated when it isn't. Rate it and the set folds down smooth now, one clean move instead of two.",
+  close: "Finish the exercise and the card holds its gold a beat longer — long enough to feel earned, not rushed by. Nothing borrowed, nothing hurried. That is growth counted right, man.",
   lead: '',
   groups: [
     {
-      heading: 'Finishing a lift',
-      wins: [
-        'The exercise card flashes gold and marks itself the moment you rate your last set.',
-      ],
-    },
-    {
       heading: 'Rating a set',
       wins: [
-        'How hard is now a slider you drag, and a rated set folds down to one clean line.',
+        'Every set now gets its chance to be rated — a bug that skipped it sometimes is fixed.',
+        'You can reopen a finished set and change how hard it was.',
       ],
     },
     {
-      heading: 'Between sets',
+      heading: 'The slide',
       wins: [
-        'The rest clock is bigger, plainer, and impossible to miss.',
+        'Starts empty until you actually rate it — it never looks pre-filled anymore.',
       ],
     },
     {
-      heading: 'Your best',
+      heading: 'Finishing an exercise',
       wins: [
-        'Best now shows your all-time best on that lift, not just last session’s number.',
+        'The gold flash holds a beat longer, and the card cleans itself up once every set is done.',
+      ],
+    },
+    {
+      heading: 'Rest',
+      wins: [
+        'Rest between sets is bigger and plainer to read.',
       ],
     },
   ],
