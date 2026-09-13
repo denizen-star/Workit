@@ -486,17 +486,6 @@ body {
 /* Set-rating / exercise-complete / rest-bar animations (validated in /preview-hardness,
    /preview-animations, /preview-restbar before productionizing — see docs/plans/PLAN_RATING_UX_REWORK.md). */
 
-@keyframes set-row-bounce {
-  0% { transform: scale(1); }
-  35% { transform: scale(1.04); }
-  60% { transform: scale(0.98); }
-  100% { transform: scale(1); }
-}
-
-.set-row-bounce {
-  animation: set-row-bounce 380ms ease-in-out both;
-}
-
 @keyframes exercise-card-sweep {
   0% { transform: translateY(-130%); opacity: 0; }
   40% { opacity: 0.85; }
@@ -513,7 +502,7 @@ body {
     rgba(232, 197, 71, 0.5),
     transparent
   );
-  animation: exercise-card-sweep 1400ms ease-out both;
+  animation: exercise-card-sweep 2200ms ease-out both;
 }
 
 @keyframes exercise-card-pulse {
@@ -523,7 +512,7 @@ body {
 }
 
 .exercise-card-pulse {
-  animation: exercise-card-pulse 1400ms ease-out both;
+  animation: exercise-card-pulse 2200ms ease-out both;
 }
 
 @keyframes exercise-title-stamp {
@@ -533,7 +522,7 @@ body {
 }
 
 .exercise-title-stamp {
-  animation: exercise-title-stamp 380ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  animation: exercise-title-stamp 500ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
 @keyframes rest-bar-entry {

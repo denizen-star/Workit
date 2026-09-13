@@ -52,77 +52,85 @@ export default function LiveSetKpis({
 }) {
   return (
     <div className="live-kpis">
-      <div className="kpi">
-        <div className="kpi-label-row">
-          <label>Set {setNumber} History</label>
-          <HelpTip
-            label="Set History"
-            title="Set History"
-            lead={`Average Weight × Reps · Perceived Effort (PE) logged in Set ${setNumber} of this exercise, across every past completed session. Extras beyond the planned set count don't count.`}
-          />
+      {historyLabel != null && (
+        <div className="kpi">
+          <div className="kpi-label-row">
+            <label>Set {setNumber} History</label>
+            <HelpTip
+              label="Set History"
+              title="Set History"
+              lead={`Average Weight × Reps · Perceived Effort (PE) logged in Set ${setNumber} of this exercise, across every past completed session. Extras beyond the planned set count don't count.`}
+            />
+          </div>
+          <div className="kpi-value-row">
+            <span className="big text" style={{ color: KPI_COLOR.volume }}>
+              {historyLabel}
+            </span>
+            <DeltaBadge delta={historyDelta} />
+          </div>
+          <div className="sub">{historySub}</div>
         </div>
-        <div className="kpi-value-row">
-          <span className="big text" style={{ color: KPI_COLOR.volume }}>
-            {historyLabel ?? '—'}
-          </span>
-          <DeltaBadge delta={historyDelta} />
-        </div>
-        <div className="sub">{historySub}</div>
-      </div>
+      )}
 
-      <div className="kpi">
-        <div className="kpi-label-row">
-          <label>Avg Effective</label>
-          <HelpTip
-            label="Avg Effective"
-            title="Average Set Effective"
-            lead="(Weight × Reps × Effort factor) computed for each historical set at this position, then averaged — not derived from the rounded numbers in Set History."
-          />
+      {effectiveValue != null && (
+        <div className="kpi">
+          <div className="kpi-label-row">
+            <label>Avg Effective</label>
+            <HelpTip
+              label="Avg Effective"
+              title="Average Set Effective"
+              lead="(Weight × Reps × Effort factor) computed for each historical set at this position, then averaged — not derived from the rounded numbers in Set History."
+            />
+          </div>
+          <div className="kpi-value-row">
+            <span className="big" style={{ color: KPI_COLOR.effective }}>
+              {formatCompact(effectiveValue)}
+            </span>
+            <DeltaBadge delta={effectiveDelta} />
+          </div>
+          <div className="sub">{effectiveSub}</div>
         </div>
-        <div className="kpi-value-row">
-          <span className="big" style={{ color: KPI_COLOR.effective }}>
-            {effectiveValue != null ? formatCompact(effectiveValue) : '—'}
-          </span>
-          <DeltaBadge delta={effectiveDelta} />
-        </div>
-        <div className="sub">{effectiveSub}</div>
-      </div>
+      )}
 
-      <div className="kpi">
-        <div className="kpi-label-row">
-          <label>Best</label>
-          <HelpTip
-            label="Best"
-            title="Best Last Session"
-            lead="The weight logged in this set position during your most recent completed session. The moment you finish this set today, it flips to show what you just lifted, and PR notes what it replaced."
-          />
+      {bestLabel != null && (
+        <div className="kpi">
+          <div className="kpi-label-row">
+            <label>Best</label>
+            <HelpTip
+              label="Best"
+              title="All-Time Best"
+              lead="The heaviest set you've ever logged for this movement, at any set number. The moment you beat it, this flips to show what you just lifted, with a New PR note."
+            />
+          </div>
+          <div className="kpi-value-row">
+            <span className="big text" style={{ color: KPI_COLOR.volume }}>
+              {bestLabel}
+            </span>
+            <DeltaBadge delta={bestDelta} />
+          </div>
+          <div className="sub">{bestSub}</div>
         </div>
-        <div className="kpi-value-row">
-          <span className="big text" style={{ color: KPI_COLOR.volume }}>
-            {bestLabel ?? '—'}
-          </span>
-          <DeltaBadge delta={bestDelta} />
-        </div>
-        <div className="sub">{bestSub}</div>
-      </div>
+      )}
 
-      <div className="kpi">
-        <div className="kpi-label-row">
-          <label>Volume</label>
-          <HelpTip
-            label="Volume"
-            title="Session Volume"
-            lead="Average Weight × Reps per completed set of this exercise, in today's session so far."
-          />
+      {Number.isFinite(volumeAvg) && (
+        <div className="kpi">
+          <div className="kpi-label-row">
+            <label>Volume</label>
+            <HelpTip
+              label="Volume"
+              title="Session Volume"
+              lead="Average Weight × Reps per completed set of this exercise, in today's session so far."
+            />
+          </div>
+          <div className="kpi-value-row">
+            <span className="big" style={{ color: KPI_COLOR.volume }}>
+              {formatCompact(volumeAvg)}
+            </span>
+            <DeltaBadge delta={volumeDelta} />
+          </div>
+          <div className="sub">Avg</div>
         </div>
-        <div className="kpi-value-row">
-          <span className="big" style={{ color: KPI_COLOR.volume }}>
-            {formatCompact(volumeAvg)}
-          </span>
-          <DeltaBadge delta={volumeDelta} />
-        </div>
-        <div className="sub">Avg</div>
-      </div>
+      )}
     </div>
   );
 }

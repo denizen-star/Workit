@@ -13,7 +13,7 @@ import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
-import { DEFAULT_HARDNESS, HARDNESS_LABELS, parseHardness, type HardnessScore } from '@/lib/hardness';
+import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
@@ -117,7 +117,7 @@ const EXTRA_SET_CAP = 5;
 // How long the exercise-complete sweep + stamp celebration runs (matches the CSS
 // animation durations in globals.css) before the deferred PR/gain-loss/hardness
 // flash is allowed to show, so the two never render on top of each other.
-const CELEBRATION_MS = 1500;
+const CELEBRATION_MS = 2400;
 
 function parseMaybeNumber(value: string): number | null {
   if (value === '') return null;
@@ -262,10 +262,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // celebration for it has played out (see `resolveFinish` and `completeSet` below).
   const [celebrateExercise, setCelebrateExercise] = useState<string | null>(null);
   const pendingFinishRef = useRef<Record<string, () => void>>({});
-  // The row currently mid spring-bounce, right after being rated — cleared once the
-  // bounce finishes, at which point the row's own `resolved` state takes over and the
-  // CSS grid-row transition (not this flag) carries the rest of the fold animation.
-  const [bouncingRowKey, setBouncingRowKey] = useState<string | null>(null);
   // Which exercise the athlete most recently completed a set in — lets a completed-
   // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
   // and lets a same-exercise finish celebration resolve once they've clearly left it.
@@ -655,7 +651,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   };
 
   const saveHardness = async (set: ExerciseSet, score: HardnessScore, plannedSets: number) => {
-    if (parseHardness(set.hardness) != null) return;
+    // No "already rated" guard here on purpose — the explicit "Editing" flow on a
+    // completed set needs to be able to change an existing vote, not just set it once.
     try {
       const response = await fetch('/api/exercises', {
         method: 'POST',
@@ -807,6 +804,11 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         const how = howForExercise(exercise.name) || howForExercise(gym.name);
         // Next set the athlete should work on, for the gold "you're here" border.
         const activeSetNumber = sets.find((item) => !item.is_completed)?.set_number;
+        // Once every planned set is done, the Gym/Travel + Lb/Kg toggles, the feedback
+        // thumbs, the video thumbnail, and the start/end photos are no longer actionable —
+        // hide them so the finished card reads as sets + KPIs, not leftover setup chrome.
+        const plannedSets = sets.filter((item) => item.set_number <= exercise.sets);
+        const exerciseFullyDone = plannedSets.length > 0 && plannedSets.every((item) => item.is_completed);
 
         const celebrating = celebrateExercise === exercise.name;
 
@@ -827,98 +829,104 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   )}
                   {how ? <HowTrigger notes={how} /> : null}
                 </div>
-                {/* One line at every width: target, Gym/Travel, Lb/Kg, and exercise-feedback thumbs together. */}
-                <div className="mt-2 mb-4 flex flex-nowrap items-center gap-1 overflow-hidden">
-                  <span className="min-w-0 shrink truncate text-xs font-bold text-[#f6f1e3]/70">
-                    {exercise.sets}×{exercise.reps}
-                  </span>
-                  <ModeToggle
-                    mode={mode}
-                    locked={locked}
-                    context={gym.name}
-                    onChange={(next) => changeExerciseMode(gym, next)}
-                  />
-                  <UnitToggle
-                    unit={unitForExercise(gym.name, weightUnits)}
-                    context={gym.name}
-                    onChange={(next) => changeWeightUnit(gym.name, next)}
-                  />
-                  <ExerciseThumbs
-                    sessionId={sessionId}
-                    exerciseName={exercise.name}
-                    saved={thumbs[exercise.name] || thumbs[gym.name]}
-                    onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
-                  />
-                </div>
+                {!exerciseFullyDone && (
+                  // One line at every width: target, Gym/Travel, Lb/Kg, and exercise-feedback thumbs together.
+                  <div className="mt-2 mb-4 flex flex-nowrap items-center gap-1 overflow-hidden">
+                    <span className="min-w-0 shrink truncate text-xs font-bold text-[#f6f1e3]/70">
+                      {exercise.sets}×{exercise.reps}
+                    </span>
+                    <ModeToggle
+                      mode={mode}
+                      locked={locked}
+                      context={gym.name}
+                      onChange={(next) => changeExerciseMode(gym, next)}
+                    />
+                    <UnitToggle
+                      unit={unitForExercise(gym.name, weightUnits)}
+                      context={gym.name}
+                      onChange={(next) => changeWeightUnit(gym.name, next)}
+                    />
+                    <ExerciseThumbs
+                      sessionId={sessionId}
+                      exerciseName={exercise.name}
+                      saved={thumbs[exercise.name] || thumbs[gym.name]}
+                      onSaved={(thumb) => setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))}
+                    />
+                  </div>
+                )}
               </div>
-              <button
-                type="button"
-                onClick={() =>
-                  setActiveVideo({
-                    title: exercise.name,
-                    videoId: media.videoId,
-                    videos: exerciseVideos(media),
-                  })
-                }
-                className="relative h-14 w-16 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
-                aria-label={`Watch ${exercise.name} video`}
-              >
-                <img
-                  src={youtubeThumbUrl(media.videoId)}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-                <span className="absolute inset-0 flex items-center justify-center bg-black/40">
-                  <Play className="h-5 w-5 fill-white text-white" />
-                </span>
-              </button>
-            </div>
-
-            <div className="mb-4 grid grid-cols-2 gap-2">
-              {photos ? (
-                <>
-                  <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
-                    <img
-                      src={photos.start}
-                      alt={`${exercise.name} start position`}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                    <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
-                      Start
-                    </figcaption>
-                  </figure>
-                  <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
-                    <img
-                      src={photos.end}
-                      alt={`${exercise.name} end position`}
-                      className="aspect-[4/3] w-full object-cover"
-                    />
-                    <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
-                      End
-                    </figcaption>
-                  </figure>
-                </>
-              ) : (
-                <>
+              {!exerciseFullyDone && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setActiveVideo({
+                      title: exercise.name,
+                      videoId: media.videoId,
+                      videos: exerciseVideos(media),
+                    })
+                  }
+                  className="relative h-14 w-16 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
+                  aria-label={`Watch ${exercise.name} video`}
+                >
                   <img
-                    src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=start&v=3`}
-                    alt={`${exercise.name} start`}
-                    className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
+                    src={youtubeThumbUrl(media.videoId)}
+                    alt=""
+                    className="h-full w-full object-cover"
                   />
-                  <img
-                    src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=end&v=3`}
-                    alt={`${exercise.name} end`}
-                    className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).style.display = 'none';
-                    }}
-                  />
-                </>
+                  <span className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <Play className="h-5 w-5 fill-white text-white" />
+                  </span>
+                </button>
               )}
             </div>
+
+            {!exerciseFullyDone && (
+              <div className="mb-4 grid grid-cols-2 gap-2">
+                {photos ? (
+                  <>
+                    <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                      <img
+                        src={photos.start}
+                        alt={`${exercise.name} start position`}
+                        className="aspect-[4/3] w-full object-cover"
+                      />
+                      <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                        Start
+                      </figcaption>
+                    </figure>
+                    <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
+                      <img
+                        src={photos.end}
+                        alt={`${exercise.name} end position`}
+                        className="aspect-[4/3] w-full object-cover"
+                      />
+                      <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
+                        End
+                      </figcaption>
+                    </figure>
+                  </>
+                ) : (
+                  <>
+                    <img
+                      src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=start&v=3`}
+                      alt={`${exercise.name} start`}
+                      className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                    <img
+                      src={`/api/exercise-image?name=${encodeURIComponent(exercise.name)}&type=end&v=3`}
+                      alt={`${exercise.name} end`}
+                      className="aspect-[4/3] w-full rounded-xl object-cover ring-1 ring-[#e8c547]/25"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  </>
+                )}
+              </div>
+            )}
 
             <div className="mb-4 flex flex-wrap gap-2">
               {lastTime && (
@@ -960,18 +968,19 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35';
 
                 // A folded set collapses all the way to one line once it's rated, OR once
-                // the athlete has clearly moved on without rating it — either a later set
-                // in this same exercise is underway/done, or they've started completing
-                // sets in a different exercise entirely. Skipping the vote still defaults
-                // to Fair (3) for the effort bar, same as everywhere else a vote is skipped.
+                // the athlete has clearly moved on without rating it — either a LATER set in
+                // this same exercise has actually been COMPLETED (not merely queued up next —
+                // `activeSetNumber` flips to the next set the instant this one completes, so
+                // checking against it here would skip the rating prompt before it's ever seen),
+                // or they've started completing sets in a different exercise entirely. Skipping
+                // the vote still defaults to Fair (3) for the effort bar, same as elsewhere.
                 const rowKey = `${set.exercise_name}-${set.set_number}`;
                 const hardnessScore = parseHardness(set.hardness);
                 const laterSetTouched = sets.some(
-                  (item) => item.set_number > set.set_number && (item.is_completed || item.set_number === activeSetNumber)
+                  (item) => item.set_number > set.set_number && item.is_completed
                 );
                 const movedToOtherExercise = lastTouchedExercise != null && lastTouchedExercise !== exercise.name;
                 const resolved = folded && (hardnessScore != null || laterSetTouched || movedToOtherExercise);
-                const isBouncing = bouncingRowKey === rowKey;
 
                 return (
                   <div
@@ -986,11 +995,13 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   >
                     {folded ? (
                       <div>
-                        {/* Block A: header + (bounce | How-hard widget) — height-collapses away
-                            once resolved-and-settled, leaving just the one-line view below. */}
+                        {/* Block A: header + How-hard widget — height-collapses away the instant
+                            it's resolved, leaving just the one-line view below. Both this block
+                            and Block B share one elastic easing curve so the fold reads as a
+                            single springy swipe, not a rate-then-separately-collapse sequence. */}
                         <div
-                          className="grid transition-[grid-template-rows] duration-300 ease-out"
-                          style={{ gridTemplateRows: resolved && !isBouncing ? '0fr' : '1fr' }}
+                          className="grid transition-[grid-template-rows] duration-700 delay-150 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                          style={{ gridTemplateRows: resolved ? '0fr' : '1fr' }}
                         >
                           <div className="overflow-hidden">
                             <div className="flex items-center gap-3">
@@ -1012,32 +1023,33 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                                 <ChevronDown className="h-4 w-4" />
                               </button>
                             </div>
-                            {isBouncing ? (
-                              <div className="set-row-bounce mt-3 flex items-center justify-between">
-                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-                                  How hard · {hardnessScore != null ? HARDNESS_LABELS[hardnessScore] : ''}
-                                </span>
-                                {hardnessScore != null && <EffortBar score={hardnessScore} />}
-                              </div>
-                            ) : !resolved ? (
+                            {!resolved && (
                               <SetHardness
                                 value={hardnessScore}
                                 highlight={hardnessScore == null}
                                 onPick={(score) => {
+                                  // Optimistic: reflect the rating immediately so the fold plays
+                                  // as one smooth motion right on release, not after the network
+                                  // round-trip — saveHardness reconciles with the server after.
+                                  setExerciseSets((current) =>
+                                    current.map((item) =>
+                                      item.exercise_name === set.exercise_name && item.set_number === set.set_number
+                                        ? { ...item, hardness: score }
+                                        : item
+                                    )
+                                  );
                                   saveHardness(set, score, exercise.sets);
-                                  setBouncingRowKey(rowKey);
-                                  setTimeout(() => setBouncingRowKey((current) => (current === rowKey ? null : current)), 380);
                                 }}
                               />
-                            ) : null}
+                            )}
                           </div>
                         </div>
 
                         {/* Block B: the true one-line resolved view — grows in as Block A
                             collapses, so the row visibly shrinks into this line. */}
                         <div
-                          className="grid transition-[grid-template-rows] duration-300 ease-out"
-                          style={{ gridTemplateRows: resolved && !isBouncing ? '1fr' : '0fr' }}
+                          className="grid transition-[grid-template-rows] duration-700 delay-150 ease-[cubic-bezier(0.34,1.56,0.64,1)]"
+                          style={{ gridTemplateRows: resolved ? '1fr' : '0fr' }}
                         >
                           <div className="overflow-hidden">
                             <button
@@ -1141,6 +1153,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           </button>
                         )}
 
+                        {set.is_completed && (
+                          <SetHardness
+                            value={hardnessScore}
+                            forceEditable
+                            onPick={(score) => saveHardness(set, score, exercise.sets)}
+                          />
+                        )}
+
                         <button
                           type="button"
                           onClick={() => {
@@ -1151,7 +1171,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                             }
                           }}
                           disabled={!set.is_completed && !ready}
-                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass}`}
+                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass} ${set.is_completed ? 'mt-3' : ''}`}
                         >
                           {set.is_completed ? (
                             <>

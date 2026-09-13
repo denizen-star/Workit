@@ -116,13 +116,12 @@ export default function SetRestTimer({
               </span>
               <div className="min-w-0 flex-1">
                 <p
-                  className={`text-lg font-black uppercase tracking-[0.1em] sm:text-xl ${
+                  className={`text-3xl font-black uppercase leading-none tracking-[0.06em] sm:text-4xl ${
                     urgent ? 'text-[#e8c547]' : 'text-white'
                   }`}
                 >
-                  Resting
+                  Rest
                 </p>
-                <p className="text-xs text-white/50 sm:text-sm">Take it easy. Your next set is coming up.</p>
               </div>
               <p
                 className={`shrink-0 text-3xl font-black tabular-nums sm:text-4xl ${
@@ -133,9 +132,9 @@ export default function SetRestTimer({
               </p>
             </div>
 
-            <div className="mt-3 h-1.5 w-full bg-white/10">
+            <div className="mx-4 mt-3 h-1 overflow-hidden rounded-full bg-white/10 sm:mx-5">
               <div
-                className="h-1.5 bg-[#e8c547] transition-[width] duration-500 ease-linear"
+                className="h-full rounded-full bg-[#e8c547] transition-[width] duration-500 ease-linear"
                 style={{ width: `${drainPct}%` }}
               />
             </div>

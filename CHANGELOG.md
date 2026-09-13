@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 7.11.0 - 2026-09-13
+
+### Fixed
+- Completing a set could skip you straight past rating How hard it was — the next set becoming "up next" was enough to fold the one you just finished before you got to vote. Rating now always gets a chance to happen
+- Best tile's `?` helper still described the old "last session" behavior instead of the current all-time-best logic
+
+### Changed
+- How-hard slider starts empty (no dots filled) instead of pre-filled to Fair — skipping it still silently scores Fair, same as before
+- You can now change a How-hard rating after the fact by reopening a completed set to edit it — it used to lock forever once voted
+- Rating a set now folds the row in one smooth motion (with a short deliberate pause first) instead of a two-step bounce-then-collapse
+- Finishing an exercise's last set holds the celebration a little longer so it reads as intentional
+- Set History / Avg Effective tiles on the live KPI grid now disappear entirely instead of showing a dash when there's no history yet for that exercise
+- Once every set in an exercise is done, its Gym/Travel, Lb/Kg, feedback thumbs, video thumbnail, and Start/End photos hide from the card — just the logged sets and KPIs stay
+- Rest banner: dropped the explainer subtitle, made "Rest" bigger, and the progress bar now sits inset instead of running edge to edge
+
 ## 7.10.0 - 2026-09-12
 
 ### Added

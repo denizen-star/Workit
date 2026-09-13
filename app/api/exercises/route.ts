@@ -69,11 +69,8 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: 'Complete the set first' }, { status: 400 });
       }
 
-      const already = parseHardness(hardnessRow.hardness);
-      if (already != null) {
-        return NextResponse.json({ success: true, hardness: already, locked: true }, { status: 409 });
-      }
-
+      // A vote can be changed — the client only reopens this once the athlete explicitly
+      // taps "Editing" on a completed set, not on the normal first-time rating flow.
       await query('UPDATE exercise_sets SET hardness = ? WHERE id = ?', [hardness, hardnessRow.id]);
       return NextResponse.json({ success: true, setId: hardnessRow.id, hardness });
     }
