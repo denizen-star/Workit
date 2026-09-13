@@ -1,7 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
+import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
 import ModeToggle from './ModeToggle';
@@ -12,7 +13,7 @@ import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
-import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
+import { DEFAULT_HARDNESS, HARDNESS_LABELS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
@@ -40,12 +41,12 @@ import {
 import {
   bestLoggedSet,
   foldSetIntoHistory,
-  lastSpotFor,
   setDirection,
   setNumberStatsFor,
   tileDelta,
   type SetNumberHistory,
 } from '@/lib/setHistory';
+import { formatWhen } from '@/lib/kpiView';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
 import {
@@ -78,8 +79,11 @@ interface HistoryPayload {
   >;
   lastWeekMax: Record<string, number>;
   personalRecords: Record<string, { weight: number; reps: number }>;
-  /** Heaviest single set ever logged for this exercise (weight+reps as one pair). */
-  bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }>;
+  /** Heaviest single set ever logged for this exercise (weight+reps as one pair), any set position. */
+  bestSets: Record<
+    string,
+    { weight_lbs: number | null; actual_reps: number | null; set_number: number; done_at: string | null }
+  >;
   /** How each set position of this exercise has gone across every past completed session. */
   setNumberHistory: SetNumberHistory;
 }
@@ -102,7 +106,18 @@ interface ExerciseTrackerProps {
   onTotals?: (totals: { lbs: number; reps: number; effort: number }) => void;
 }
 
+/** Imperative escape hatch for the Finish flow: let a parent wait out any in-flight (or
+ * about-to-start) exercise-complete celebration before its own takeovers start mounting,
+ * so the celebration never gets cut off. See `resolveFinish` / `awaitPendingCelebration` below. */
+export interface ExerciseTrackerHandle {
+  awaitPendingCelebration: () => Promise<void>;
+}
+
 const EXTRA_SET_CAP = 5;
+// How long the exercise-complete sweep + stamp celebration runs (matches the CSS
+// animation durations in globals.css) before the deferred PR/gain-loss/hardness
+// flash is allowed to show, so the two never render on top of each other.
+const CELEBRATION_MS = 1500;
 
 function parseMaybeNumber(value: string): number | null {
   if (value === '') return null;
@@ -191,7 +206,7 @@ function setSummaryLabel(
 }
 
 
-export default function ExerciseTracker({
+const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(function ExerciseTracker({
   sessionId,
   weekNumber,
   exercises,
@@ -204,7 +219,7 @@ export default function ExerciseTracker({
   showPrs = true,
   onLiftsDone,
   onTotals,
-}: ExerciseTrackerProps) {
+}: ExerciseTrackerProps, ref) {
   const tone = normalizeCoachTone(coachTone);
   const defaultMode = normalizeWorkoutMode(sessionMode);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
@@ -238,6 +253,52 @@ export default function ExerciseTracker({
   // finishes — a ref (not state) so it's readable synchronously inside the
   // same completeSet() call that may set it.
   const pendingPrRef = useRef<Record<string, { valueLabel: string }>>({});
+
+  // Exercise-complete celebration (gold sweep + checkmark stamp) — always plays once
+  // per exercise, fully, before the PR/gain-loss/hardness flash it gates is allowed
+  // to show. `celebrateExercise` drives which exercise card renders the animation;
+  // `pendingFinishRef` holds one deferred "show whichever flash applies" thunk per
+  // exercise between the moment its last planned set finishes and the moment the
+  // celebration for it has played out (see `resolveFinish` and `completeSet` below).
+  const [celebrateExercise, setCelebrateExercise] = useState<string | null>(null);
+  const pendingFinishRef = useRef<Record<string, () => void>>({});
+  // The row currently mid spring-bounce, right after being rated — cleared once the
+  // bounce finishes, at which point the row's own `resolved` state takes over and the
+  // CSS grid-row transition (not this flag) carries the rest of the fold animation.
+  const [bouncingRowKey, setBouncingRowKey] = useState<string | null>(null);
+  // Which exercise the athlete most recently completed a set in — lets a completed-
+  // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
+  // and lets a same-exercise finish celebration resolve once they've clearly left it.
+  const [lastTouchedExercise, setLastTouchedExercise] = useState<string | null>(null);
+
+  const resolveFinish = (exerciseName: string) => {
+    const fireFlash = pendingFinishRef.current[exerciseName];
+    if (!fireFlash) return;
+    delete pendingFinishRef.current[exerciseName];
+    setCelebrateExercise(exerciseName);
+    setTimeout(() => {
+      setCelebrateExercise((current) => (current === exerciseName ? null : current));
+      fireFlash();
+    }, CELEBRATION_MS);
+  };
+
+  useImperativeHandle(ref, () => ({
+    // Called by the Finish flow right before it starts showing its own takeover
+    // stack (recap -> complete -> awards), so a celebration still in flight — or
+    // one that never got resolved because the athlete skipped rating the very
+    // last set of the workout — always finishes before anything mounts on top of it.
+    awaitPendingCelebration: () =>
+      new Promise<void>((resolve) => {
+        const stillPending = Object.keys(pendingFinishRef.current);
+        if (stillPending.length === 0 && celebrateExercise == null) {
+          resolve();
+          return;
+        }
+        stillPending.forEach((name) => resolveFinish(name));
+        setTimeout(resolve, CELEBRATION_MS);
+      }),
+  }));
+
   useEffect(() => {
     setRestSeconds(restClock);
   }, [restClock]);
@@ -505,6 +566,15 @@ export default function ExerciseTracker({
     const kind = kindFor(exercise);
     if (!canCompleteSet(kind, actualReps, set.weight_lbs)) return;
 
+    // Moving on to a different exercise resolves any still-pending finish from the
+    // one just left — this is the fallback for a last planned set that finished but
+    // never got rated (the athlete skipped it and kept going), so its celebration
+    // and deferred flash still fire instead of waiting forever for a vote.
+    if (lastTouchedExercise && lastTouchedExercise !== exercise.name) {
+      resolveFinish(lastTouchedExercise);
+    }
+    setLastTouchedExercise(exercise.name);
+
     unlockAudio();
     playSetChime();
 
@@ -542,20 +612,25 @@ export default function ExerciseTracker({
 
     // All three flashes now share one trigger — the exercise's last planned set —
     // instead of popping mid-exercise on every set. Same priority as before:
-    // PR > gain/loss > hardness, single flash slot.
+    // PR > gain/loss > hardness, single flash slot. The flash itself is no longer
+    // fired here directly — it's handed to `pendingFinishRef` and only shown once
+    // the exercise-complete celebration (triggered by rating that last set, or by
+    // moving on without rating it) has fully played, via `resolveFinish`.
     if (exerciseJustFinished) {
       const pendingPr = pendingPrRef.current[exercise.name];
-      if (pendingPr && showPrs) {
-        setPrFlash({ exerciseName: exercise.name, valueLabel: pendingPr.valueLabel });
-      } else if (noiseTakeover === 'set' && direction) {
-        const copy = setProgressCopy(direction, tone, athleteName);
-        setSetFlash({ variant: direction, title: copy.title, body: copy.body });
-      } else if (noiseEffort === 'set') {
-        // The "How hard?" takeover fires once per exercise (on its last planned
-        // set) instead of once per vote, since votes are optional and skippable.
-        const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
-        setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
-      }
+      pendingFinishRef.current[exercise.name] = () => {
+        if (pendingPr && showPrs) {
+          setPrFlash({ exerciseName: exercise.name, valueLabel: pendingPr.valueLabel });
+        } else if (noiseTakeover === 'set' && direction) {
+          const copy = setProgressCopy(direction, tone, athleteName);
+          setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+        } else if (noiseEffort === 'set') {
+          // The "How hard?" takeover fires once per exercise (on its last planned
+          // set) instead of once per vote, since votes are optional and skippable.
+          const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
+          setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+        }
+      };
       delete pendingPrRef.current[exercise.name];
     }
 
@@ -579,7 +654,7 @@ export default function ExerciseTracker({
     );
   };
 
-  const saveHardness = async (set: ExerciseSet, score: HardnessScore) => {
+  const saveHardness = async (set: ExerciseSet, score: HardnessScore, plannedSets: number) => {
     if (parseHardness(set.hardness) != null) return;
     try {
       const response = await fetch('/api/exercises', {
@@ -606,6 +681,13 @@ export default function ExerciseTracker({
       // The result flash for this no longer fires per vote — see the
       // exercise-level takeover fired from `completeSet` when the exercise's
       // last planned set completes. The vote itself still always saves.
+
+      // Rating the exercise's last planned set is the primary trigger for the
+      // exercise-complete celebration (a no-op if that exercise hasn't actually
+      // finished yet, or its celebration already resolved via "moved on").
+      if (set.set_number === plannedSets) {
+        resolveFinish(set.exercise_name);
+      }
     } catch (error) {
       console.error('Error saving hardness:', error);
     }
@@ -726,12 +808,23 @@ export default function ExerciseTracker({
         // Next set the athlete should work on, for the gold "you're here" border.
         const activeSetNumber = sets.find((item) => !item.is_completed)?.set_number;
 
+        const celebrating = celebrateExercise === exercise.name;
+
         return (
-          <div key={gym.name} className="glass-card p-5">
+          <div
+            key={gym.name}
+            className={`glass-card relative overflow-hidden p-5 ${celebrating ? 'exercise-card-pulse' : ''}`}
+          >
+            {celebrating && <div className="exercise-card-sweep pointer-events-none absolute inset-0" />}
             <div className="mb-3 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-start gap-1">
                   <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
+                  {celebrating && (
+                    <span className="exercise-title-stamp flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#e8c547] bg-[#e8c547]/20 text-[#e8c547]">
+                      <Check className="h-3.5 w-3.5" />
+                    </span>
+                  )}
                   {how ? <HowTrigger notes={how} /> : null}
                 </div>
                 {/* One line at every width: target, Gym/Travel, Lb/Kg, and exercise-feedback thumbs together. */}
@@ -866,9 +959,23 @@ export default function ExerciseTracker({
                     : 'bg-white/10 text-white/45'
                   : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35';
 
+                // A folded set collapses all the way to one line once it's rated, OR once
+                // the athlete has clearly moved on without rating it — either a later set
+                // in this same exercise is underway/done, or they've started completing
+                // sets in a different exercise entirely. Skipping the vote still defaults
+                // to Fair (3) for the effort bar, same as everywhere else a vote is skipped.
+                const rowKey = `${set.exercise_name}-${set.set_number}`;
+                const hardnessScore = parseHardness(set.hardness);
+                const laterSetTouched = sets.some(
+                  (item) => item.set_number > set.set_number && (item.is_completed || item.set_number === activeSetNumber)
+                );
+                const movedToOtherExercise = lastTouchedExercise != null && lastTouchedExercise !== exercise.name;
+                const resolved = folded && (hardnessScore != null || laterSetTouched || movedToOtherExercise);
+                const isBouncing = bouncingRowKey === rowKey;
+
                 return (
                   <div
-                    key={`${set.exercise_name}-${set.set_number}`}
+                    key={rowKey}
                     className={`rounded-2xl border p-4 transition-all ${
                       folded
                         ? 'border-white/10 bg-white/[0.04]'
@@ -879,30 +986,75 @@ export default function ExerciseTracker({
                   >
                     {folded ? (
                       <div>
-                        <div className="flex items-center gap-3">
-                          <div className="min-w-0 flex-1">
-                            <div className="text-xs font-black uppercase tracking-[0.2em] text-white/45">
-                              Set {set.set_number}
+                        {/* Block A: header + (bounce | How-hard widget) — height-collapses away
+                            once resolved-and-settled, leaving just the one-line view below. */}
+                        <div
+                          className="grid transition-[grid-template-rows] duration-300 ease-out"
+                          style={{ gridTemplateRows: resolved && !isBouncing ? '0fr' : '1fr' }}
+                        >
+                          <div className="overflow-hidden">
+                            <div className="flex items-center gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="text-xs font-black uppercase tracking-[0.2em] text-white/45">
+                                  Set {set.set_number}
+                                </div>
+                                <p className="mt-1 truncate text-xs font-semibold text-white/40">
+                                  {setSummaryLabel(kind, set)}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setEditingSet(rowKey)}
+                                className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black transition-colors ${completeButtonClass}`}
+                              >
+                                <Check className="h-4 w-4" />
+                                Completed
+                                <ChevronDown className="h-4 w-4" />
+                              </button>
                             </div>
-                            <p className="mt-1 truncate text-xs font-semibold text-white/40">
-                              {setSummaryLabel(kind, set)}
-                            </p>
+                            {isBouncing ? (
+                              <div className="set-row-bounce mt-3 flex items-center justify-between">
+                                <span className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
+                                  How hard · {hardnessScore != null ? HARDNESS_LABELS[hardnessScore] : ''}
+                                </span>
+                                {hardnessScore != null && <EffortBar score={hardnessScore} />}
+                              </div>
+                            ) : !resolved ? (
+                              <SetHardness
+                                value={hardnessScore}
+                                highlight={hardnessScore == null}
+                                onPick={(score) => {
+                                  saveHardness(set, score, exercise.sets);
+                                  setBouncingRowKey(rowKey);
+                                  setTimeout(() => setBouncingRowKey((current) => (current === rowKey ? null : current)), 380);
+                                }}
+                              />
+                            ) : null}
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setEditingSet(`${set.exercise_name}-${set.set_number}`)}
-                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 text-xs font-black transition-colors ${completeButtonClass}`}
-                          >
-                            <Check className="h-4 w-4" />
-                            Completed
-                            <ChevronDown className="h-4 w-4" />
-                          </button>
                         </div>
-                        <SetHardness
-                          value={parseHardness(set.hardness)}
-                          highlight={parseHardness(set.hardness) == null}
-                          onPick={(score) => saveHardness(set, score)}
-                        />
+
+                        {/* Block B: the true one-line resolved view — grows in as Block A
+                            collapses, so the row visibly shrinks into this line. */}
+                        <div
+                          className="grid transition-[grid-template-rows] duration-300 ease-out"
+                          style={{ gridTemplateRows: resolved && !isBouncing ? '1fr' : '0fr' }}
+                        >
+                          <div className="overflow-hidden">
+                            <button
+                              type="button"
+                              onClick={() => setEditingSet(rowKey)}
+                              className="flex w-full items-center justify-between gap-3 pt-1 text-left"
+                            >
+                              <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">
+                                Set {set.set_number} · {setSummaryLabel(kind, set)}
+                              </span>
+                              <span className="flex shrink-0 items-center gap-2">
+                                <EffortBar score={hardnessScore ?? DEFAULT_HARDNESS} />
+                                <ChevronDown className="h-4 w-4 text-white/40" />
+                              </span>
+                            </button>
+                          </div>
+                        </div>
                       </div>
                     ) : (
                       <>
@@ -1049,16 +1201,30 @@ export default function ExerciseTracker({
                   ? tileDelta(afterStats.effectiveAvg, beforeStats!.effectiveAvg)
                   : null;
 
-                // Best: this set's slot in the most recent prior completed session (same extras
-                // fallback as above), flipping to today's own set (with PR noting the value it
-                // just replaced) now that it's done.
-                const lastSpot = lastSpotFor(lastSetsFor(exercise.name, history), lastDone.set_number, exercise.sets);
-                const bestLabel = lastSpot ? setSummaryLabel(kind, lastDone) : null;
-                const bestSub = lastSpot?.weight_lbs != null ? `PR · ${lastSpot.weight_lbs} lb` : 'no prior session';
-                const bestDelta =
-                  lastSpot?.weight_lbs != null
-                    ? tileDelta(Number(lastDone.weight_lbs ?? 0), Number(lastSpot.weight_lbs))
+                // Best: the true all-time max ever logged for this movement, at ANY set
+                // position — not just this slot's value from the last session. If today's own
+                // set now beats it, the tile flips to today's number with a "New PR" subtitle;
+                // otherwise it keeps showing the standing max, captioned with which set and
+                // session it came from (formatWhen returns null for a still-open session, i.e.
+                // `done_at: null`, so that reads as "this session" instead of a bad date).
+                const allTimeBest = history.bestSets[key] || history.bestSets[exercise.name] || null;
+                const bestBeaten =
+                  !allTimeBest ||
+                  Number(lastDone.weight_lbs ?? 0) > Number(allTimeBest.weight_lbs ?? 0) ||
+                  (Number(lastDone.weight_lbs ?? 0) === Number(allTimeBest.weight_lbs ?? 0) &&
+                    Number(lastDone.actual_reps ?? 0) > Number(allTimeBest.actual_reps ?? 0));
+                const bestLabel = allTimeBest
+                  ? setSummaryLabel(kind, bestBeaten ? lastDone : allTimeBest)
+                  : bestBeaten
+                    ? setSummaryLabel(kind, lastDone)
                     : null;
+                const bestSub = bestBeaten
+                  ? allTimeBest
+                    ? 'New PR'
+                    : 'First set logged'
+                  : `Set ${allTimeBest!.set_number} · ${formatWhen(allTimeBest!.done_at) ?? 'this session'}`;
+                const bestDelta =
+                  bestBeaten && allTimeBest ? tileDelta(Number(lastDone.weight_lbs ?? 0), Number(allTimeBest.weight_lbs ?? 0)) : null;
 
                 // Volume: average (weight × reps) per completed set of this exercise today so far.
                 const volumeValues = sets
@@ -1172,4 +1338,6 @@ export default function ExerciseTracker({
 
     </div>
   );
-}
+});
+
+export default ExerciseTracker;

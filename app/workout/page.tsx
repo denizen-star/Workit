@@ -25,7 +25,7 @@ import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import { usePortraitLock } from '@/lib/usePortraitLock';
-import ExerciseTracker from '@/components/ExerciseTracker';
+import ExerciseTracker, { type ExerciseTrackerHandle } from '@/components/ExerciseTracker';
 import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/components/CompleteTakeover';
 import AwardsTakeover from '@/components/AwardsTakeover';
 import WorkoutRecapTakeover from '@/components/WorkoutRecapTakeover';
@@ -94,6 +94,10 @@ function WorkoutPageInner() {
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const cooldownRef = useRef<HTMLDivElement>(null);
+  // Lets completeWorkout() wait out any in-flight exercise-complete celebration
+  // before the Finish takeover stack (recap -> complete -> awards) starts mounting,
+  // so the celebration is never cut off by a takeover landing on top of it.
+  const exerciseTrackerRef = useRef<ExerciseTrackerHandle>(null);
   const [liftsDone, setLiftsDone] = useState(false);
   const autoOpened = useRef(false);
   const selectWeekInit = useRef(false);
@@ -512,6 +516,12 @@ function WorkoutPageInner() {
     unlockAudio();
     playCompleteChime();
 
+    // If the last set of the last exercise was just rated (or skipped and moved past),
+    // its celebration animation may still be playing or about to start — give it the
+    // full run before the Finish takeover stack (recap -> complete -> awards) begins
+    // mounting, so the celebration is never interrupted or hidden underneath a takeover.
+    await exerciseTrackerRef.current?.awaitPendingCelebration();
+
     try {
       const rated = await saveSessionRating(completeStars, 'complete');
       if (!rated) {
@@ -712,6 +722,7 @@ function WorkoutPageInner() {
             onLbs={handleWarmupLbs}
           />
           <ExerciseTracker
+            ref={exerciseTrackerRef}
             sessionId={currentSession}
             weekNumber={selectedWeek}
             exercises={workout.exercises}

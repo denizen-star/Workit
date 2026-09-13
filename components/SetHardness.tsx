@@ -15,47 +15,53 @@ export default function SetHardness({
   highlight?: boolean;
   onPick: (score: HardnessScore) => void;
 }) {
+  // Optimistic drag position before the pick round-trips and locks `value` in.
   const [pending, setPending] = useState<HardnessScore | null>(null);
   const locked = value != null;
+  const disabled = locked || busy;
+  const shown = locked ? value : (pending ?? 3);
 
   return (
-    <div className={`mt-3 ${highlight ? 'rounded-xl border border-[#e8c547]/50 p-2' : ''}`}>
-      <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-white/40">
-        {locked ? `How hard · ${HARDNESS_LABELS[value]}` : 'How hard?'}
-      </p>
-      <div className="mt-2 flex gap-1" role="radiogroup" aria-label="How hard was this set">
-        {HARDNESS_SCORES.map((score) => {
-          const selected = locked ? value === score : pending === score;
-          const ends = score === 1 || score === 5;
-          return (
-            <button
+    <div className={`mt-3 flex items-center gap-2 ${highlight ? 'rounded-lg border border-[#e8c547]/50 p-1.5' : ''}`}>
+      <div className="relative flex h-6 flex-1 items-center">
+        <input
+          type="range"
+          aria-label="How hard was this set"
+          aria-valuemin={1}
+          aria-valuemax={5}
+          aria-valuenow={shown}
+          aria-valuetext={`${shown} ${HARDNESS_LABELS[shown]}`}
+          aria-disabled={disabled}
+          tabIndex={disabled ? -1 : 0}
+          min={1}
+          max={5}
+          step={1}
+          value={shown}
+          onChange={(event) => {
+            if (disabled) return;
+            setPending(Number(event.target.value) as HardnessScore);
+          }}
+          onPointerUp={() => {
+            if (disabled || pending == null) return;
+            onPick(pending);
+          }}
+          // Locked/busy skips the native `disabled` attribute on purpose — most browsers gray
+          // out a disabled range's accent color, which reads as "broken" once it's rated gold.
+          // `pointer-events-none` blocks further input while keeping the gold track/thumb.
+          className={`absolute inset-x-0 h-6 w-full accent-[#e8c547] ${disabled ? 'pointer-events-none' : ''}`}
+        />
+        <div className="pointer-events-none absolute inset-x-1 flex justify-between">
+          {HARDNESS_SCORES.map((score) => (
+            <span
               key={score}
-              type="button"
-              role="radio"
-              aria-checked={selected}
-              aria-label={`${score} ${HARDNESS_LABELS[score]}`}
-              disabled={locked || busy}
-              onClick={() => {
-                if (locked || busy) return;
-                setPending(score);
-                onPick(score);
-              }}
-              className={`min-h-11 flex-1 rounded-xl border text-sm font-black ${
-                selected
-                  ? 'border-[#e8c547] bg-[#e8c547]/20 text-[#e8c547]'
-                  : 'border-white/10 bg-black/25 text-white/45'
-              } ${locked || busy ? 'cursor-default' : ''}`}
-            >
-              <span className="block">{score}</span>
-              {ends && (
-                <span className="block text-[9px] font-semibold uppercase tracking-wider">
-                  {HARDNESS_LABELS[score]}
-                </span>
-              )}
-            </button>
-          );
-        })}
+              className={`h-1.5 w-1.5 rounded-full ${score <= shown ? 'bg-[#e8c547]' : 'bg-white/20'}`}
+            />
+          ))}
+        </div>
       </div>
+      <span className="w-14 shrink-0 text-right text-[10px] font-black text-[#e8c547]">
+        {HARDNESS_LABELS[shown]}
+      </span>
     </div>
   );
 }

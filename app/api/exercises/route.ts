@@ -222,19 +222,31 @@ export async function GET(request: NextRequest) {
       const lastWeekMax: Record<string, number> = {};
       // Heaviest single set ever logged for this exercise (weight+reps as one pair, not two
       // independent maxes like personalRecords) — same tie-break as bestLoggedSet: more reps wins ties.
-      const bestSets: Record<string, { weight_lbs: number | null; actual_reps: number | null }> = {};
+      // This is the true all-time max the "Best" KPI tile shows, at any set position (not just
+      // the same slot from the last session) — set_number/done_at let the client caption which
+      // set/session it came from. `done_at: null` means it was set in the session in progress.
+      const bestSets: Record<
+        string,
+        { weight_lbs: number | null; actual_reps: number | null; set_number: number | null; done_at: string | null }
+      > = {};
       // How "Set N" of each exercise has gone across every past completed session — the
       // live KPI grid folds today's own set into this average client-side (see LiveSetKpis).
       const setNumberHistory: Record<string, Record<number, SetNumberStats>> = {};
 
-      const trackBestSet = (name: string, weightLbs: number | null, actualReps: number | null) => {
+      const trackBestSet = (
+        name: string,
+        weightLbs: number | null,
+        actualReps: number | null,
+        setNumber: number | null,
+        doneAt: string | null
+      ) => {
         const weight = weightLbs ?? 0;
         const reps = actualReps ?? 0;
         const current = bestSets[name];
         const currentWeight = current?.weight_lbs ?? 0;
         const currentReps = current?.actual_reps ?? 0;
         if (!current || weight > currentWeight || (weight === currentWeight && reps > currentReps)) {
-          bestSets[name] = { weight_lbs: weightLbs, actual_reps: actualReps };
+          bestSets[name] = { weight_lbs: weightLbs, actual_reps: actualReps, set_number: setNumber, done_at: doneAt };
         }
       };
 
@@ -252,7 +264,13 @@ export async function GET(request: NextRequest) {
         }
         personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
         personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
-        trackBestSet(name, row.weight_lbs == null ? null : weight, row.actual_reps == null ? null : reps);
+        trackBestSet(
+          name,
+          row.weight_lbs == null ? null : weight,
+          row.actual_reps == null ? null : reps,
+          Number(row.set_number),
+          row.done_at ? new Date(row.done_at).toISOString() : null
+        );
 
         if (previousWeek && Number(row.week_number) === previousWeek) {
           lastWeekMax[name] = Math.max(lastWeekMax[name] || 0, weight);
@@ -273,7 +291,7 @@ export async function GET(request: NextRequest) {
       // that weight fires "NEW PR" again.
       if (currentSessionId) {
         const ownRows = await query(
-          `SELECT exercise_name, weight_lbs, actual_reps
+          `SELECT exercise_name, weight_lbs, actual_reps, set_number
            FROM exercise_sets
            WHERE workout_session_id = ? AND is_completed = 1`,
           [currentSessionId]
@@ -287,7 +305,15 @@ export async function GET(request: NextRequest) {
           }
           personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
           personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
-          trackBestSet(name, row.weight_lbs == null ? null : weight, row.actual_reps == null ? null : reps);
+          // `done_at: null` signals "this session" to the client — the session
+          // hasn't been marked complete yet, so there's no meaningful past date.
+          trackBestSet(
+            name,
+            row.weight_lbs == null ? null : weight,
+            row.actual_reps == null ? null : reps,
+            Number(row.set_number),
+            null
+          );
         }
       }
 

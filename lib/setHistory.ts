@@ -116,17 +116,6 @@ export function setNumberStatsFor(
   return setNumber > plannedSets ? byNumber[plannedSets] ?? null : null;
 }
 
-/** Same extras fallback as `setNumberStatsFor`, for a single session's set list (the "Best" tile). */
-export function lastSpotFor<T extends { set_number: number }>(
-  sets: T[],
-  setNumber: number,
-  plannedSets: number
-): T | undefined {
-  const exact = sets.find((item) => item.set_number === setNumber);
-  if (exact) return exact;
-  return setNumber > plannedSets ? sets.find((item) => item.set_number === plannedSets) : undefined;
-}
-
 export type TileDelta = { direction: 'up' | 'down'; value: number } | null;
 
 /** Signed ▲/▼ badge value for a live KPI tile. `null` when there's nothing to compare yet. */

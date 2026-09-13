@@ -1,5 +1,12 @@
 /** Same movement, different program names (gym vs travel / older hotel-week aliases). */
 
+// Known residual gap (flagged, not fixed): "Incline Dumbbell Bench Press" and
+// "Barbell or Chest-Supported Rows" each travel-substitute (lib/travelExercises.ts)
+// to a name grouped under a DIFFERENT movement here ("Push-Ups / Incline Push-Ups"
+// under flat bench, and "Towel Door Rows or Table Inverted Rows" under single-arm
+// rows). Folding them together would merge two distinct lifts' PR/history, which
+// needs a program-design call, not a silent data change — so switching Gym/Travel
+// mid-program on these two still resets that exercise's history/PR tracking.
 const GROUPS: string[][] = [
   [
     "Barbell or Dumbbell Bench Press",

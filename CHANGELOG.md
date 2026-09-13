@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 7.10.0 - 2026-09-12
+
+### Added
+- Finishing an exercise's last planned set now fires a gold sweep + checkmark stamp celebration on the card, before the usual New PR / gain-loss / How-hard call-out
+- Rating a set now bounces the row once, then folds it — instead of just tapping Complete Set
+
+### Changed
+- How-hard selector is now a slider with gold dot markers instead of 5 tap buttons — smaller, and it stays gold once you rate instead of graying out
+- A rated (or skipped-and-moved-on) set collapses all the way to one line — `Set N · weight × reps` plus a small gold effort bar — tap it to reopen
+- **Best** on the live exercise KPI grid is now your true all-time-best for that lift (any set number), not just what you did in that same slot last session — it flips to today's number the instant you beat it
+- Rest between sets is now a bigger "Resting" banner with a bouncing icon, a plain explainer line, and a full drain bar, with a pop-in flash each time it starts — same urgent-pulse warning and Skip button as before
+
+### Fixed
+- The Best/PR tile no longer shows "PR · 0 lb" for a bodyweight set logged with no added weight
+
 ## 7.9.0 - 2026-09-11
 
 ### Added
