@@ -36,32 +36,43 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.6.0',
-  title: 'The board stopped repeating itself.',
-  subject: 'The board stopped repeating itself.',
+  version: '7.10.0',
+  title: 'The card lights up gold when you’ve earned it.',
+  subject: 'The card lights up gold when you’ve earned it.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
+  onlyAthletes: [],
   includeNewAthletes: false,
   intro:
-    'Man, the medal screen had a glitch. Win a week, and the board should tell you once. Instead it kept telling you — new phone, new browser, same news, over and over. Fixed. It tells you once, then it lets you work.',
-  mid: 'Also cleaned up the live card. Mid-set, the numbers used to just add up today’s work. Now one tile shows what you moved the last time you ran this exact lift, so you know what you are actually chasing. And the row under the exercise name — sets, Gym or Travel, Lb or Kg, thumbs — fits on one line now, even on a phone. No more hunting for the second thumb.',
-  close: 'None of this changes the work. It just gets out of the way of it faster. Open the app and see it, man.',
+    "Man, when you finish a lift now, the card knows it. Rate that last set and gold sweeps across it, a mark lands by the name — your work counted right in front of you, not buried in a menu.",
+  mid: "How hard used to be five buttons. Now it is a slide — drag it, gold marks light up as you go, and once you rate it the set folds down to one clean line instead of sitting there cluttering the card. Between lifts, the rest clock got bigger too — it tells you plainly to catch your breath, counts down loud, and does not let you miss it.",
+  close: "And Best on that card is now your best ever on that lift, not just what you did last time. Nothing borrowed, nothing softened. Quit never sees any of it. That is growth counted right, man.",
   lead: '',
   groups: [
     {
-      heading: 'Medal takeover',
+      heading: 'Finishing a lift',
       wins: [
-        'Shows once per week now, not every login.',
-        'Same result whether you open it from your phone’s home screen or a browser.',
+        'The exercise card flashes gold and marks itself the moment you rate your last set.',
       ],
     },
     {
-      heading: 'Live workout card',
+      heading: 'Rating a set',
       wins: [
-        'One tile now shows your last time on this exact lift, not just today’s sum.',
-        'Sets, Gym/Travel, Lb/Kg, and the thumbs all sit on one line — no more wrapping.',
+        'How hard is now a slider you drag, and a rated set folds down to one clean line.',
+      ],
+    },
+    {
+      heading: 'Between sets',
+      wins: [
+        'The rest clock is bigger, plainer, and impossible to miss.',
+      ],
+    },
+    {
+      heading: 'Your best',
+      wins: [
+        'Best now shows your all-time best on that lift, not just last session’s number.',
       ],
     },
   ],
