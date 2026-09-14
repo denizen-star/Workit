@@ -26,8 +26,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ hidden: false, period, rows });
     }
 
+    // Only 'hyrox' is accepted — an unrecognized value falls back to the athlete's
+    // whole (untracked) history rather than silently filtering to nothing.
+    const track = request.nextUrl.searchParams.get('track') === 'hyrox' ? 'hyrox' : undefined;
+
     const [board, cardioSeconds] = await Promise.all([
-      athletePerformanceWithSnapshot(user.id, user.callName, period),
+      athletePerformanceWithSnapshot(user.id, user.callName, period, track),
       athleteCardioSeconds(user.id, period),
     ]);
     return NextResponse.json({ hidden: false, ...board, cardioSeconds });

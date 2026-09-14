@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 7.16.0 - 2026-09-14
+
+### Added
+- **Hyrox Training** — a new opt-in 16-week track (this release: Phase 1, weeks 1-4, plus your first benchmark milestone). Unlocks once you've locked 6 weeks of your normal program; reachable from the menu or a Home banner once you qualify. Starts the next Monday, five training days a week (a run, a lower-body + sled day, active recovery, an upper-body + compromised-run day, a full-body finisher), and fully takes over Home and your workout screen while it's active — your normal program picks back up exactly where you left it once you leave
+- Live Hyrox sessions get their own look: a red/black "Hyrox Red" theme instead of your belt color
+- Hyrox circuits (Sled Push Alt, Compromised Run, Finisher) show as clearly grouped, back-to-back movements with one rest per round, not separate unrelated exercises
+- A separate Hyrox diploma track, earned by passing each milestone — independent of your regular belts
+- Failing a milestone lets you retry that exact day or drop back to your normal program; leaving and coming back later always restarts Hyrox from Week 1
+
 ## 7.15.0 - 2026-09-14
 
 ### Added

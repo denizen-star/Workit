@@ -63,6 +63,23 @@ body {
   );
 }
 
+/* Hyrox Training live session: "Hyrox Red" — black/charcoal ground, competition
+ * red accent — picked from public/hyrox-session-preview.html's 3 options. Same
+ * .glass-header / .glass-card hooks the belt wash uses, not a blanket filter. */
+.hyrox-session {
+  background: #07070a;
+}
+
+.hyrox-session .glass-header {
+  background: #16090a;
+  border-bottom-color: rgba(228, 3, 46, 0.4);
+}
+
+.hyrox-session .glass-card {
+  border-color: rgba(228, 3, 46, 0.35);
+  background: linear-gradient(180deg, rgba(228, 3, 46, 0.14), rgba(228, 3, 46, 0.04));
+}
+
 .gold-hero {
   background: linear-gradient(135deg, rgba(232, 197, 71, 0.18), rgba(255, 255, 255, 0.04) 45%, rgba(7, 7, 10, 0.4));
   backdrop-filter: blur(28px);

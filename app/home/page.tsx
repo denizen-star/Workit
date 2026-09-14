@@ -36,6 +36,9 @@ import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
 import UpdateProfileGate from '@/components/UpdateProfileGate';
 import QuickstartTakeover from '@/components/QuickstartTakeover';
+import HyroxHome from '@/components/HyroxHome';
+import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
+import HyroxRewardBanner from '@/components/HyroxRewardBanner';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
 import { lockedWeekCount } from '@/lib/belts';
@@ -82,23 +85,32 @@ export default function Home() {
   const [needsWaiver, setNeedsWaiver] = useState(false);
   const [showQuickstartTakeover, setShowQuickstartTakeover] = useState(false);
   const [showHowBanner, setShowHowBanner] = useState(false);
+  const [hyroxActive, setHyroxActive] = useState(false);
+  const [hyroxEligibleFlag, setHyroxEligibleFlag] = useState(false);
+  const [showHyroxIntro, setShowHyroxIntro] = useState(false);
+  const [hyroxStartError, setHyroxStartError] = useState('');
+  const [showHyroxBanner, setShowHyroxBanner] = useState(false);
+  const [hyroxResumeFloor, setHyroxResumeFloor] = useState(1);
 
   useEffect(() => {
     let cancelled = false;
 
     const loadShell = async () => {
       try {
-        const [meRes, sessionsRes, catalogRes] = await Promise.all([
+        const [meRes, sessionsRes, catalogRes, hyroxRes] = await Promise.all([
           fetch('/api/me'),
           fetch('/api/sessions'),
           fetch('/api/coach-catalog'),
+          fetch('/api/hyrox'),
         ]);
 
         if (cancelled) return;
 
+        let resolvedUserId: number | null = null;
         if (meRes.ok) {
           const meData = await meRes.json();
-          setUserId(meData.user?.id != null ? Number(meData.user.id) : null);
+          resolvedUserId = meData.user?.id != null ? Number(meData.user.id) : null;
+          setUserId(resolvedUserId);
           setUserName(meData.user?.callName || meData.user?.name || '');
           setUserEmail(meData.user?.email || '');
           setUserTone(normalizeCoachTone(meData.user?.coachTone));
@@ -119,6 +131,27 @@ export default function Home() {
 
         if (catalogRes.ok) {
           hydrateCoachCatalog(await catalogRes.json());
+        }
+
+        if (hyroxRes.ok) {
+          const hyroxData = await hyroxRes.json();
+          setHyroxActive(Boolean(hyroxData.active));
+          setHyroxEligibleFlag(Boolean(hyroxData.eligible));
+          setHyroxResumeFloor(Number(hyroxData.resumeFloor) || 1);
+          if (hyroxData.eligible && !hyroxData.active) {
+            try {
+              setShowHyroxBanner(!localStorage.getItem(`hyrox_banner_seen_${resolvedUserId ?? ''}`));
+            } catch {
+              // localStorage can throw in private browsing; just skip the one-time nudge.
+            }
+            // The "Hyrox Training" menu item on every other page can't open the
+            // takeover directly (only Home has it mounted) — it instead navigates
+            // here with ?hyrox=1, which this picks up on the resulting fresh mount.
+            if (typeof window !== 'undefined' && window.location.search.includes('hyrox=1')) {
+              setShowHyroxIntro(true);
+              window.history.replaceState(null, '', '/home');
+            }
+          }
         }
       } catch (error) {
         console.error('Error loading home shell:', error);
@@ -165,15 +198,15 @@ export default function Home() {
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
-    if (getTodayTarget(sessions).type !== 'resume') {
+    if (getTodayTarget(sessions, hyroxResumeFloor).type !== 'resume') {
       setResumeLine('');
       return;
     }
     setResumeLine(pickResumeLine(userTone, userName));
-  }, [sessions, userTone, userName]);
+  }, [sessions, userTone, userName, hyroxResumeFloor]);
 
   useEffect(() => {
-    const target = getTodayTarget(sessions);
+    const target = getTodayTarget(sessions, hyroxResumeFloor);
     const typeName = target.day?.name;
     if (!typeName || target.type === 'hold' || target.type === 'done') {
       setHoldLine('');
@@ -191,9 +224,9 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [sessions]);
+  }, [sessions, hyroxResumeFloor]);
 
-  const today = getTodayTarget(sessions);
+  const today = getTodayTarget(sessions, hyroxResumeFloor);
   const homeFocus = homePerformanceFocus(today, sessions);
   const todayHref =
     today.type === 'resume' && today.session
@@ -228,6 +261,50 @@ export default function Home() {
     );
   }
 
+  if (hyroxActive) {
+    return <HyroxHome userName={userName} userEmail={userEmail} userTone={userTone} isAdmin={isAdmin} />;
+  }
+
+  const startHyrox = async () => {
+    setHyroxStartError('');
+    try {
+      const res = await fetch('/api/hyrox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      });
+      if (!res.ok) {
+        setHyroxStartError("Couldn't start Hyrox Training — try again in a moment.");
+        return;
+      }
+      setShowHyroxIntro(false);
+      window.location.assign('/home');
+    } catch {
+      setHyroxStartError("Couldn't start Hyrox Training — try again in a moment.");
+    }
+  };
+
+  const dismissHyroxBanner = () => {
+    setShowHyroxBanner(false);
+    try {
+      if (userId != null) localStorage.setItem(`hyrox_banner_seen_${userId}`, '1');
+    } catch {
+      // Best-effort only.
+    }
+  };
+
+  if (showHyroxIntro) {
+    return (
+      <HyroxIntroTakeover
+        tone={userTone}
+        name={userName}
+        onStart={startHyrox}
+        onCancel={() => setShowHyroxIntro(false)}
+        error={hyroxStartError}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen">
       <header className="glass-header">
@@ -244,6 +321,8 @@ export default function Home() {
               userSoundOn={userSoundOn}
               userRestExtraMinutes={userRestExtraMinutes}
               isAdmin={isAdmin}
+              hyroxAvailable={hyroxEligibleFlag}
+              onHyroxClick={() => setShowHyroxIntro(true)}
               onProfileSaved={(profile) => {
                 setUserName(profile.name);
                 setUserEmail(profile.email || '');
@@ -279,6 +358,16 @@ export default function Home() {
           >
             How to use Work-It
           </Link>
+        ) : null}
+        {showHyroxBanner ? (
+          <HyroxRewardBanner
+            onClick={() => {
+              dismissHyroxBanner();
+              setShowHyroxIntro(true);
+            }}
+          />
+        ) : hyroxEligibleFlag ? (
+          <HyroxRewardBanner onClick={() => setShowHyroxIntro(true)} />
         ) : null}
         <div className="gold-hero p-6 sm:p-8">
           <div className="min-w-0">

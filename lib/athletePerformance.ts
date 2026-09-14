@@ -318,15 +318,20 @@ function avg(sum: number, count: number): number | null {
 
 export async function athletePerformance(
   userId: number,
-  rawPeriod: PerformancePeriod | string
+  rawPeriod: PerformancePeriod | string,
+  /** Scopes to one program track (e.g. 'hyrox') instead of the athlete's whole
+   * history. Undefined keeps every existing caller's behavior unchanged. */
+  programTrack?: string
 ): Promise<AthletePerformanceBoard> {
   const sessionCols = `ws.id as session_id, ws.week_number, ws.day_number, ws.workout_type,
             COALESCE(ws.completed_at, ws.created_at) as done_at,
             TIMESTAMPDIFF(SECOND, ws.started_at, COALESCE(ws.ended_at, ws.completed_at)) as duration_seconds,
             (SELECT MAX(sr.stars) FROM session_ratings sr WHERE sr.session_id = ws.id) as session_stars`;
+  const trackFilter = programTrack ? 'AND ws.program_track = ?' : '';
+  const params = programTrack ? [userId, programTrack] : [userId];
   const fromWhere = `FROM exercise_sets es
      JOIN workout_sessions ws ON ws.id = es.workout_session_id
-     WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.is_completed = 1
+     WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.is_completed = 1 ${trackFilter}
      ORDER BY done_at ASC, ws.id ASC, es.set_number ASC`;
 
   let rows: SetRow[] = [];
@@ -335,7 +340,7 @@ export async function athletePerformance(
       `SELECT es.exercise_name, es.set_number, es.target_reps, es.weight_lbs, es.actual_reps, es.hardness,
               ${sessionCols}
        ${fromWhere}`,
-      [userId]
+      params
     );
     rows = result.rows as SetRow[];
   } catch {
@@ -343,7 +348,7 @@ export async function athletePerformance(
       `SELECT es.exercise_name, es.set_number, es.target_reps, es.weight_lbs, es.actual_reps,
               ${sessionCols}
        ${fromWhere}`,
-      [userId]
+      params
     );
     rows = (result.rows as SetRow[]).map((row) => ({ ...row, hardness: null }));
   }
@@ -832,9 +837,13 @@ export async function householdAthletePerformance(
 export async function athletePerformanceWithSnapshot(
   userId: number,
   name: string,
-  rawPeriod: PerformancePeriod | string
+  rawPeriod: PerformancePeriod | string,
+  programTrack?: string
 ) {
-  const board = await athletePerformance(userId, rawPeriod);
+  const board = await athletePerformance(userId, rawPeriod, programTrack);
+  // The house snapshot (vs pack average) only makes sense against the whole
+  // household's normal-program numbers — skip it entirely for a track-scoped board.
+  if (programTrack) return board;
   try {
     const snapshot = await performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod));
     return {

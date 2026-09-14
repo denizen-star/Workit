@@ -6,7 +6,10 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
   const n = name.toLowerCase();
   const r = reps.toLowerCase();
 
-  if (r.includes("second") || (n.includes("plank") && !n.includes("iso"))) return "timed";
+  // "min"/"minutes" catches continuous cardio (runs, easy bike, mobility flows)
+  // logged by time rather than weight×reps — same Start-timer/Stop-completes
+  // flow as a Plank Hold, just with a longer target.
+  if (r.includes("second") || /\bmin(ute)?s?\b/.test(r) || (n.includes("plank") && !n.includes("iso"))) return "timed";
   if (r.includes("meter") || r.includes("walk") || n.includes("carry")) return "distance";
   if (
     n.includes("push-up") ||
@@ -38,7 +41,12 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
 }
 
 export function parseTimedTarget(reps: string): number {
-  const match = reps.toLowerCase().match(/(\d+)\s*seconds?/) || reps.match(/(\d+)/);
+  const lower = reps.toLowerCase();
+  const secondsMatch = lower.match(/(\d+(?:\.\d+)?)\s*seconds?/);
+  if (secondsMatch) return Math.max(1, Math.round(Number(secondsMatch[1])));
+  const minutesMatch = lower.match(/(\d+(?:\.\d+)?)\s*min/);
+  if (minutesMatch) return Math.max(1, Math.round(Number(minutesMatch[1]) * 60));
+  const match = reps.match(/(\d+)/);
   const value = match ? Number(match[1]) : 45;
   return Number.isFinite(value) && value > 0 ? value : 45;
 }

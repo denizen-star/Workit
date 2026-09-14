@@ -12,6 +12,7 @@ import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes'
 import { exerciseGroupNames } from '@/lib/exerciseKey';
 import { applyExerciseMode, getWorkoutDay } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import { HYROX_WEEK_OFFSET } from '@/lib/hyroxProgram';
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,12 +23,15 @@ export async function POST(request: NextRequest) {
 
     const { weekNumber, dayNumber, workoutType, scheduledDate, workoutMode, complete } = await request.json();
     const mode = String(workoutMode || '').trim().toLowerCase() === 'travel' ? 'travel' : 'gym';
+    // Derived from the week number, not trusted from the client — Hyrox weeks are
+    // namespaced at 101+ (see lib/hyroxProgram.ts) specifically so this is authoritative.
+    const track = Number(weekNumber) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main';
     const markComplete = Boolean(complete);
 
     const result = await query(
-      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, scheduled_date, started_at, is_completed, completed_at, ended_at) 
-       VALUES (?, ?, ?, ?, ?, ?, NOW(), ?, ${markComplete ? 'NOW()' : 'NULL'}, ${markComplete ? 'NOW()' : 'NULL'})`,
-      [user.id, weekNumber, dayNumber, workoutType, mode, scheduledDate, markComplete ? 1 : 0]
+      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, program_track, scheduled_date, started_at, is_completed, completed_at, ended_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ${markComplete ? 'NOW()' : 'NULL'}, ${markComplete ? 'NOW()' : 'NULL'})`,
+      [user.id, weekNumber, dayNumber, workoutType, mode, track, scheduledDate, markComplete ? 1 : 0]
     );
 
     if (markComplete) {

@@ -56,8 +56,15 @@ export function completedInWeek(sessions: SessionLike[], weekNumber: number): Se
   );
 }
 
-export function weekLocked(sessions: SessionLike[], weekNumber: number): boolean {
-  return completedInWeek(sessions, weekNumber).length >= REQUIRED_DAYS_TO_LOCK;
+/** requiredCount defaults to the normal program's fixed 4; pass a week-specific
+ * count (e.g. `requiredDays(week).length`) for a program whose weeks don't all
+ * have the same required-day count, like Hyrox's 5-day weeks. */
+export function weekLocked(
+  sessions: SessionLike[],
+  weekNumber: number,
+  requiredCount = REQUIRED_DAYS_TO_LOCK
+): boolean {
+  return completedInWeek(sessions, weekNumber).length >= requiredCount;
 }
 
 /** Locked weeks in a row, counting back from the latest week that exists. Rest days do not break it. */

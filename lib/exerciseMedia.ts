@@ -146,6 +146,17 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "backpack reverse wrist curls": { images: gym.hotel, videoId: "SfENsl5klVA" },
   "db triceps extensions": { images: gym.hotel, videoId: "ir5PsbniVSc" },
   "db single-leg rdls": { images: gym.hotel, videoId: "2iP-TfS1tXo" },
+
+  // Hyrox Training stations
+  "floor plate push (sled push substitute)": { images: gym.squat, videoId: "ZlxfUs1wVdw" },
+  "off-treadmill drive": { images: gym.squat, videoId: "ZlxfUs1wVdw" },
+  "wall balls": { images: gym.core, videoId: "c9d9VmwcZd4" },
+  "burpees": { images: gym.core, videoId: "fZx6nxKMq4E" },
+  "burpee broad jumps": { images: gym.core, videoId: "W5gc1Inyha0" },
+  "skierg": { images: gym.pull, videoId: "B0lIgT5PHc8" },
+  "row (skierg or rower)": { images: gym.pull, videoId: "4zWu1yuJ0_g" },
+  "leg press": { images: gym.squat, videoId: "XNvaNipSycI" },
+  "seated cable row": { images: gym.pull, videoId: "EU7bOadUsNI" },
 };
 
 const DEFAULT_MEDIA: ExerciseMedia = {

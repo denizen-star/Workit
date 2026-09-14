@@ -1,5 +1,5 @@
 import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
-import { isBonusDay, weekLocked } from "@/lib/bonusDay";
+import { isBonusDay, requiredDays, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 
 export interface WorkoutSessionRow {
@@ -111,7 +111,10 @@ export function homePerformanceFocus(
 
 export function findNextProgramDay(
   sessions: WorkoutSessionRow[],
-  program: WeekPlan[] = workoutProgram
+  program: WeekPlan[] = workoutProgram,
+  /** Weeks below this are skipped outright, even if never completed. Used to resume
+   * the 48-week program past weeks "spent" on a completed/abandoned Hyrox track. */
+  minWeek = 1
 ): { week: WeekPlan; day: WorkoutDay } | null {
   const completed = new Set(
     sessions
@@ -120,7 +123,10 @@ export function findNextProgramDay(
   );
 
   for (const week of program) {
-    if (weekLocked(sessions, week.weekNumber)) continue;
+    if (week.weekNumber < minWeek) continue;
+    // Week-specific required count — always 4 for the normal program's weeks,
+    // but Hyrox weeks have 5 required (non-bonus) days.
+    if (weekLocked(sessions, week.weekNumber, requiredDays(week).length)) continue;
     for (const day of week.days) {
       if (isBonusDay(day)) continue;
       if (!completed.has(`${week.weekNumber}-${day.dayNumber}`)) {
@@ -135,14 +141,16 @@ export function findNextProgramDay(
 /** Select Workout: resume week if one is open, else the next unlocked week. Locked weeks stay folded. */
 export function defaultSelectWeek(
   sessions: WorkoutSessionRow[],
-  program: WeekPlan[] = workoutProgram
+  program: WeekPlan[] = workoutProgram,
+  minWeek = 1
 ): number | null {
   const resume = findIncompleteSession(sessions);
   if (resume) return Number(resume.week_number);
-  return findNextProgramDay(sessions, program)?.week.weekNumber ?? null;
+  return findNextProgramDay(sessions, program, minWeek)?.week.weekNumber ?? null;
 }
 
-export function getTodayTarget(sessions: WorkoutSessionRow[]) {
+/** minWeek resumes the 48-week program past weeks "spent" on a Hyrox track (see findNextProgramDay). */
+export function getTodayTarget(sessions: WorkoutSessionRow[], minWeek = 1) {
   const resume = findIncompleteSession(sessions);
   if (resume) {
     const week = workoutProgram.find((item) => item.weekNumber === Number(resume.week_number));
@@ -152,7 +160,7 @@ export function getTodayTarget(sessions: WorkoutSessionRow[]) {
     }
   }
 
-  const next = findNextProgramDay(sessions);
+  const next = findNextProgramDay(sessions, workoutProgram, minWeek);
   if (next && isEasternWeekend()) {
     const prior = workoutProgram.find((item) => item.weekNumber === next.week.weekNumber - 1);
     const nextTouched = sessions.some(

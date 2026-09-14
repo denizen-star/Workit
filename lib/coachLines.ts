@@ -22,6 +22,9 @@ type LinePack = {
    * purely so `packFor()`'s cast of that external type still lines up. */
   sessionStart?: readonly string[];
   missedWeek: readonly string[];
+  /** Hyrox Training milestone moments. Code bank only, same as sessionStart — not DB-editable. */
+  hyroxMilestonePass?: readonly string[];
+  hyroxMilestoneFail?: readonly string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -187,6 +190,14 @@ const MASTER: LinePack = {
   missedWeek: [
     'Oh, sorry... were you busy?\nThe power took the week off with {name}. So did the lean.',
   ],
+  hyroxMilestonePass: [
+    'You passed, {name}. That base is real. Phase 2 starts loading it.',
+    'Clean run, clean stations, no pain. That is what I asked for. Move on.',
+  ],
+  hyroxMilestoneFail: [
+    'Not yet, {name}. The base is not there. Run it back before I let you load more on it.',
+    'That is not a pass. Retry it, or take the 48-week program back. Your call.',
+  ],
   setUpTitle: '{name}. THAT IS POWER.',
   setUpBody: 'The load went up. Stay there. That is growth.',
   setDownTitle: 'That is not the load',
@@ -345,6 +356,14 @@ const JAMES: LinePack = {
     "I'M HERE\nSo are you, {name}. Let's make the hour count.",
   ],
   missedWeek: ['{name}. The week closed. You did not. So the power did not. I noticed the gap.'],
+  hyroxMilestonePass: [
+    '{name}, that is a pass. I want the base held, not just hit. Phase 2 now.',
+    'Clean. I noticed. Move on.',
+  ],
+  hyroxMilestoneFail: [
+    'Not there yet, {name}. I would rather you repeat it properly than carry it broken.',
+    'That is a no. Run it again, or take the normal programme back. I want it earned either way.',
+  ],
   setUpTitle: 'I LIKE THIS',
   setUpBody: 'The load is climbing. That is power. Stay with it.',
   setDownTitle: 'That is not what we agreed',
@@ -504,6 +523,14 @@ const SERGEANT: LinePack = {
   ],
   missedWeek: [
     '{name}. Last week closed without you. Softly said: the stamina did not get built. Come back present.',
+  ],
+  hyroxMilestonePass: [
+    'You passed, {name}. Quietly, cleanly. The base is real. On to the next phase.',
+    'That was steady work. I saw it. Continue.',
+  ],
+  hyroxMilestoneFail: [
+    'Not yet, {name}. No shame in that. Rest, then run it again when you are ready.',
+    'That is a not-yet. Retry it, or return to the normal program. Either is fine.',
   ],
   setUpTitle: 'This is growth',
   setUpBody: 'The load moved. Definition is starting. Stay with it.',
@@ -667,6 +694,14 @@ const ELI: LinePack = {
   missedWeek: [
     '{name}, last week closed without you. No judgment, just come back. The growth is still here waiting.',
   ],
+  hyroxMilestonePass: [
+    'You passed, {name}! That base is locked in. Phase 2, let\'s go!',
+    'Clean run, clean stations. I am so proud of that. Keep moving.',
+  ],
+  hyroxMilestoneFail: [
+    'Not quite yet, {name} — and that is okay! Give it another go when you are ready.',
+    'Not a pass this time. Retry it, or head back to the normal program. Either way, I am with you.',
+  ],
   setUpTitle: 'THERE IT IS!',
   setUpBody: 'The load went up and you handled it. That is power showing up right on schedule.',
   setDownTitle: "Let's build back up",
@@ -729,6 +764,9 @@ function shuffle<T>(items: T[]): T[] {
 }
 
 function pickFrom(pool: readonly string[], key: string): string {
+  // An empty pool (an optional LinePack field left unfilled) must not throw or
+  // return undefined typed as string — callers just get back the empty string.
+  if (pool.length === 0) return '';
   let deck = decks[key];
   if (!deck || deck.length === 0) {
     deck = shuffle([...pool]);
@@ -790,6 +828,17 @@ export function pickSessionStartCopy(
   const raw = fillCoachName(pickFrom(PACKS[id].sessionStart ?? [], `session-start:${id}`), name);
   const [title, ...rest] = raw.split('\n');
   return { title, body: rest.join('\n').trim() };
+}
+
+/** Hyrox milestone self-report result. Code bank only. */
+export function pickHyroxMilestoneLine(
+  passed: boolean,
+  tone?: CoachTone | null,
+  name?: string | null
+): string {
+  const id = normalizeCoachTone(tone);
+  const pool = passed ? PACKS[id].hyroxMilestonePass : PACKS[id].hyroxMilestoneFail;
+  return fillCoachName(pickFrom(pool ?? [], `hyrox-milestone:${id}:${passed}`), name);
 }
 
 export function pickCompleteLine(tone?: CoachTone | null, name?: string | null): string {

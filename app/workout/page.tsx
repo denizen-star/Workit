@@ -12,6 +12,8 @@ import {
   weekProgressLabel,
 } from '@/lib/bonusDay';
 import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
+import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
+import HyroxMilestoneTakeover from '@/components/HyroxMilestoneTakeover';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes, REST_SECONDS } from '@/lib/estimateDuration';
 import {
@@ -127,6 +129,20 @@ function WorkoutPageInner() {
   const [priorAllTimeLbs, setPriorAllTimeLbs] = useState(0);
   const [priorAllTimeEffort, setPriorAllTimeEffort] = useState(0);
   const [headerCollapsed, setHeaderCollapsed] = useState(false);
+  // While a Hyrox run is active, this page operates entirely in Hyrox mode: the
+  // Hyrox program feeds Select Workout + the live session, new sessions are tagged
+  // program_track='hyrox', and the live session gets an inverted wash instead of belt.
+  const [hyroxMode, setHyroxMode] = useState(false);
+  // The session-resume effect must not run until this is known — resuming an open
+  // Hyrox session (week 101+) while `program` still defaults to the normal
+  // 48-week array would make getCurrentWorkout() return undefined and blank the page.
+  const [hyroxLoaded, setHyroxLoaded] = useState(false);
+  const [pendingHyroxMilestone, setPendingHyroxMilestone] = useState<{
+    number: number;
+    weekNumber: number;
+    dayNumber: number;
+  } | null>(null);
+  const program = hyroxMode ? hyroxProgram : workoutProgram;
 
   useWakeLock(!!currentSession);
   usePortraitLock(!!currentSession);
@@ -150,8 +166,11 @@ function WorkoutPageInner() {
     Promise.all([
       fetch('/api/me').then((res) => (res.ok ? res.json() : null)),
       fetch('/api/coach-catalog').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/hyrox').then((res) => (res.ok ? res.json() : null)),
     ])
-      .then(([data, catalog]) => {
+      .then(([data, catalog, hyroxData]) => {
+        setHyroxMode(Boolean(hyroxData?.active));
+        setHyroxLoaded(true);
         if (data?.user) {
           setAthleteName(data.user.name || '');
           setCoachTone(normalizeCoachTone(data.user.coachTone));
@@ -167,6 +186,7 @@ function WorkoutPageInner() {
       })
       .catch((error) => {
         console.error('Error loading workout prefs / coach catalog:', error);
+        setHyroxLoaded(true);
       });
   }, []);
 
@@ -267,6 +287,7 @@ function WorkoutPageInner() {
   };
 
   useEffect(() => {
+    if (!hyroxLoaded) return;
     loadSessions().then((rows) => {
       if (autoOpened.current) return;
       const sessionId = searchParams.get('session');
@@ -302,7 +323,7 @@ function WorkoutPageInner() {
         }
       }
     });
-  }, []);
+  }, [hyroxLoaded]);
 
   useEffect(() => {
     if (!startedAt) return;
@@ -367,7 +388,7 @@ function WorkoutPageInner() {
     options?: { forceNew?: boolean; mode?: WorkoutMode; skipBonusPick?: boolean }
   ) => {
     try {
-      const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
+      const week = program.find((item) => item.weekNumber === weekNumber);
       const day = week?.days.find((item) => item.dayNumber === dayNumber);
       if (!day) return;
 
@@ -445,6 +466,11 @@ function WorkoutPageInner() {
   };
 
   const leaveWorkout = () => {
+    // Capture before the state it reads (selectedWeek/selectedDay) gets cleared below.
+    const finishedMilestoneNumber = hyroxMode ? getCurrentWorkout()?.milestone ?? null : null;
+    const finishedMilestone = finishedMilestoneNumber
+      ? { number: finishedMilestoneNumber, weekNumber: selectedWeek, dayNumber: selectedDay as number }
+      : null;
     setShowRecap(false);
     setShowSuccess(false);
     setShowAwards(false);
@@ -460,6 +486,39 @@ function WorkoutPageInner() {
     setCurrentSession(null);
     setSelectedDay(null);
     setStartedAt(null);
+    if (finishedMilestone) {
+      setPendingHyroxMilestone(finishedMilestone);
+      return;
+    }
+    router.push('/home');
+  };
+
+  const resolveHyroxMilestone = async (result: { passed: boolean; leaveHyrox: boolean }) => {
+    const milestone = pendingHyroxMilestone;
+    if (!milestone) return;
+    await fetch('/api/hyrox', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'milestone', milestoneNumber: milestone.number, passed: result.passed }),
+    }).catch(() => {});
+
+    if (!result.passed && !result.leaveHyrox) {
+      // Retry: the failed day is already saved is_completed=1, so findNextProgramDay
+      // would otherwise skip right past it — force a fresh session for that exact day
+      // instead of just sending them home and hoping they find "Do Again" themselves.
+      setPendingHyroxMilestone(null);
+      startWorkout(milestone.weekNumber, milestone.dayNumber, undefined, { forceNew: true });
+      return;
+    }
+
+    if (result.leaveHyrox) {
+      await fetch('/api/hyrox', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'drop' }),
+      }).catch(() => {});
+    }
+    setPendingHyroxMilestone(null);
     router.push('/home');
   };
 
@@ -634,7 +693,7 @@ function WorkoutPageInner() {
   };
 
   const getCurrentWorkout = () => {
-    const week = workoutProgram.find((item) => item.weekNumber === selectedWeek);
+    const week = program.find((item) => item.weekNumber === selectedWeek);
     return week?.days.find((item) => item.dayNumber === selectedDay);
   };
 
@@ -655,8 +714,8 @@ function WorkoutPageInner() {
     const wash = beltWashStyle(displayBelt(lockedWeekCount(sessions)));
     return (
       <div
-        className="belt-session min-h-screen"
-        style={{ background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
+        className={hyroxMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
+        style={hyroxMode ? undefined : { background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
       >
         <header className="glass-header sticky top-0 z-10" style={{ borderBottomColor: wash.borderColor }}>
           <div className="container mx-auto px-4 py-2.5 sm:py-4">
@@ -721,7 +780,7 @@ function WorkoutPageInner() {
                 }`}
               >
                 <h1 className="text-lg font-black leading-tight text-[#f5d76e] sm:text-xl">
-                  Week {selectedWeek} · {workout.name}
+                  Week {hyroxMode ? hyroxDisplayWeek(selectedWeek) : selectedWeek} · Day {workout.dayNumber} · {workout.name}
                 </h1>
                 <p className="text-sm text-[#f6f1e3]/65">
                   {workout.focus}
@@ -939,7 +998,7 @@ function WorkoutPageInner() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
-          {workoutProgram.map((week) => (
+          {program.map((week) => (
             <div key={week.weekNumber} className="glass-card overflow-hidden">
               <button
                 type="button"
@@ -948,7 +1007,9 @@ function WorkoutPageInner() {
                 aria-expanded={expandedWeek === week.weekNumber}
               >
                 <div className="flex items-center gap-4">
-                  <h2 className="text-xl font-black text-white">Week {week.weekNumber}</h2>
+                  <h2 className="text-xl font-black text-white">
+                    Week {hyroxMode ? hyroxDisplayWeek(week.weekNumber) : week.weekNumber}
+                  </h2>
                   <span className="text-sm text-[#f6f1e3]/65">
                     {weekProgressLabel(weekProgress(sessions, week))}
                   </span>
@@ -1045,6 +1106,9 @@ function WorkoutPageInner() {
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0 flex-1">
                               <div className="mb-1 flex items-center gap-2">
+                                <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f6f1e3]/70">
+                                  Day {day.dayNumber}
+                                </span>
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
                                 {isBonusDay(day) ? (
                                   <span className="rounded-full border border-[#e8c547]/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#e8c547]">
@@ -1184,6 +1248,15 @@ function WorkoutPageInner() {
       >
         {errorMessage}
       </Modal>
+
+      {pendingHyroxMilestone && (
+        <HyroxMilestoneTakeover
+          tone={coachTone}
+          name={athleteName}
+          milestoneNumber={pendingHyroxMilestone.number}
+          onResolve={resolveHyroxMilestone}
+        />
+      )}
     </div>
   );
 }

@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Hyrox session wash samples</title>
+  <style>
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      padding: 28px 22px 40px;
+      background: #07070a;
+      color: #f6f1e3;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+    }
+    h1 { margin: 0 0 6px; font-size: 22px; }
+    .sub { margin: 0 0 26px; color: rgba(246,241,227,0.62); font-size: 14px; max-width: 640px; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      border-radius: 22px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .label { padding: 12px 16px; font-size: 13px; font-weight: 900; letter-spacing: 0.04em; background: #12121a; }
+    .session {
+      padding: 0 0 18px;
+    }
+    .header {
+      padding: 14px 16px 12px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 12px;
+      font-weight: 800;
+    }
+    .title { padding: 14px 16px 4px; }
+    .title h2 { margin: 0; font-size: 18px; font-weight: 900; }
+    .title p { margin: 4px 0 0; font-size: 12px; opacity: 0.75; }
+    .body { padding: 14px 16px 0; display: grid; gap: 12px; }
+    .exercise {
+      border-radius: 16px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .exercise .name { font-size: 14px; font-weight: 800; margin: 0 0 6px; }
+    .set-row { display: flex; justify-content: space-between; font-size: 12px; opacity: 0.85; padding: 4px 0; }
+    .rest {
+      margin: 14px 16px 0;
+      border-radius: 16px;
+      padding: 12px 14px;
+      text-align: center;
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    /* Option A: Hyrox Red — black/charcoal ground, competition red accent */
+    .opt-red .header { background: #16090a; border-bottom: 1px solid rgba(228,3,46,0.4); color: #ff5c6c; }
+    .opt-red .session { background: #0d0607; }
+    .opt-red .title h2 { color: #ffffff; }
+    .opt-red .title p { color: #ff8f97; }
+    .opt-red .exercise { background: linear-gradient(180deg, rgba(228,3,46,0.14), rgba(228,3,46,0.04)); border-color: rgba(228,3,46,0.35); }
+    .opt-red .set-row { color: #f2d9dc; }
+    .opt-red .rest { background: rgba(228,3,46,0.18); border: 1px solid rgba(228,3,46,0.5); color: #ff8f97; }
+
+    /* Option B: Hyrox Steel — graphite/navy ground, electric orange accent */
+    .opt-steel .header { background: #0c1014; border-bottom: 1px solid rgba(255,122,26,0.35); color: #ff9d52; }
+    .opt-steel .session { background: #0a0d10; }
+    .opt-steel .title h2 { color: #eef3f7; }
+    .opt-steel .title p { color: #9fb3c4; }
+    .opt-steel .exercise { background: linear-gradient(180deg, rgba(255,122,26,0.12), rgba(46,90,120,0.08)); border-color: rgba(255,122,26,0.3); }
+    .opt-steel .set-row { color: #cbd8e2; }
+    .opt-steel .rest { background: rgba(255,122,26,0.16); border: 1px solid rgba(255,122,26,0.45); color: #ff9d52; }
+
+    /* Option C: Hyrox Dusk — near-black ground, magenta/red gradient wash (closest to the "cool wash" ask, without a literal invert) */
+    .opt-dusk .header { background: linear-gradient(90deg, rgba(255,45,85,0.22), rgba(120,20,90,0.22)); border-bottom: 1px solid rgba(255,45,85,0.4); color: #ff6fa0; }
+    .opt-dusk .session { background: radial-gradient(140% 90% at 50% 0%, rgba(255,45,85,0.14), transparent 60%), #08050a; }
+    .opt-dusk .title h2 { color: #ffffff; }
+    .opt-dusk .title p { color: #e79bc0; }
+    .opt-dusk .exercise { background: linear-gradient(180deg, rgba(255,45,85,0.14), rgba(120,20,90,0.06)); border-color: rgba(255,45,85,0.32); }
+    .opt-dusk .set-row { color: #ecd6e2; }
+    .opt-dusk .rest { background: rgba(255,45,85,0.16); border: 1px solid rgba(255,45,85,0.45); color: #ff6fa0; }
+  </style>
+</head>
+<body>
+  <h1>Hyrox live-session color scheme — 3 options</h1>
+  <p class="sub">
+    The literal <code>filter: invert(1)</code> currently wired in looks broken, not intentional — this is a real
+    design pass instead. Each card below is the same mock live-session screen (header, exercise card, rest banner)
+    styled with a different palette. Pick one (or ask for changes) and I'll wire it into <code>.hyrox-session</code>
+    in <code>app/globals.css</code>, replacing the invert filter.
+  </p>
+
+  <div class="grid">
+    <div class="card">
+      <div class="label">A · Hyrox Red</div>
+      <div class="session opt-red">
+        <div class="header"><span>Exit</span><span>34:12</span></div>
+        <div class="title">
+          <h2>Week 1 · Day 3 · Upper Body Strength + Compromised Run</h2>
+          <p>Push/Pull &amp; Engine</p>
+        </div>
+        <div class="body">
+          <div class="exercise">
+            <p class="name">Dumbbell Bench Press</p>
+            <div class="set-row"><span>Set 1</span><span>65 lb × 9</span></div>
+            <div class="set-row"><span>Set 2</span><span>65 lb × 8</span></div>
+          </div>
+          <div class="exercise">
+            <p class="name">Compromised Run Circuit</p>
+            <div class="set-row"><span>Round 1</span><span>600m Run → 15 Wall Balls → 15 Burpees</span></div>
+          </div>
+        </div>
+        <div class="rest">Rest · 0:42</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">B · Hyrox Steel</div>
+      <div class="session opt-steel">
+        <div class="header"><span>Exit</span><span>34:12</span></div>
+        <div class="title">
+          <h2>Week 1 · Day 3 · Upper Body Strength + Compromised Run</h2>
+          <p>Push/Pull &amp; Engine</p>
+        </div>
+        <div class="body">
+          <div class="exercise">
+            <p class="name">Dumbbell Bench Press</p>
+            <div class="set-row"><span>Set 1</span><span>65 lb × 9</span></div>
+            <div class="set-row"><span>Set 2</span><span>65 lb × 8</span></div>
+          </div>
+          <div class="exercise">
+            <p class="name">Compromised Run Circuit</p>
+            <div class="set-row"><span>Round 1</span><span>600m Run → 15 Wall Balls → 15 Burpees</span></div>
+          </div>
+        </div>
+        <div class="rest">Rest · 0:42</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="label">C · Hyrox Dusk</div>
+      <div class="session opt-dusk">
+        <div class="header"><span>Exit</span><span>34:12</span></div>
+        <div class="title">
+          <h2>Week 1 · Day 3 · Upper Body Strength + Compromised Run</h2>
+          <p>Push/Pull &amp; Engine</p>
+        </div>
+        <div class="body">
+          <div class="exercise">
+            <p class="name">Dumbbell Bench Press</p>
+            <div class="set-row"><span>Set 1</span><span>65 lb × 9</span></div>
+            <div class="set-row"><span>Set 2</span><span>65 lb × 8</span></div>
+          </div>
+          <div class="exercise">
+            <p class="name">Compromised Run Circuit</p>
+            <div class="set-row"><span>Round 1</span><span>600m Run → 15 Wall Balls → 15 Burpees</span></div>
+          </div>
+        </div>
+        <div class="rest">Rest · 0:42</div>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

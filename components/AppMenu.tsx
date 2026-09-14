@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -22,6 +22,15 @@ interface AppMenuProps {
   userNoiseEffort?: NoiseLevel | string | null;
   userShowPrs?: boolean | null;
   isAdmin?: boolean;
+  /** Shown once the athlete has 6 locked weeks — hidden otherwise, and while a run is active it routes to /home (which renders the Hyrox view). */
+  hyroxAvailable?: boolean;
+  /** Called instead of navigating when the Hyrox nav item is tapped and the current
+   * page can handle it directly (Home opens the intro takeover in place) — pages
+   * that don't pass this fall back to `/home?hyrox=1`, which Home reads on mount. */
+  onHyroxClick?: () => void;
+  /** A Hyrox run is active right now — shows "Leave Hyrox Training" in the footer. */
+  hyroxActive?: boolean;
+  onLeaveHyrox?: () => void;
   onProfileSaved?: (profile: {
     name: string;
     email: string | null;
@@ -45,6 +54,10 @@ export default function AppMenu({
   userNoiseEffort = 'set',
   userShowPrs = true,
   isAdmin = false,
+  hyroxAvailable = false,
+  hyroxActive = false,
+  onLeaveHyrox,
+  onHyroxClick,
   onProfileSaved,
 }: AppMenuProps) {
   const router = useRouter();
@@ -254,16 +267,26 @@ export default function AppMenu({
                   { href: '/history', label: 'Completed log', Icon: ClipboardList },
                   { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
+                  ...(hyroxAvailable
+                    ? [{ href: '/home?hyrox=1', label: 'Hyrox Training', Icon: Flame, isHyrox: true }]
+                    : []),
                   { href: '/help', label: 'Help', Icon: CircleHelp },
                   { href: '/faq', label: 'Why Work-It', Icon: Sparkles },
-                ].map(({ href, label, Icon }) => {
-                    const active = pathname === href || pathname.startsWith(href + '/');
+                ].map(({ href, label, Icon, isHyrox }) => {
+                    // The Hyrox item never counts as the "active" nav entry — /home
+                    // is also where the plain Home page lives, and highlighting this
+                    // one there would be misleading.
+                    const active = !isHyrox && (pathname === href || pathname.startsWith(href + '/'));
                     return (
                       <button
                         key={href}
                         type="button"
                         onClick={() => {
                           setOpen(false);
+                          if (isHyrox && onHyroxClick) {
+                            onHyroxClick();
+                            return;
+                          }
                           router.push(href);
                         }}
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
@@ -302,6 +325,19 @@ export default function AppMenu({
                 >
                   <UserPlus className="h-4 w-4 shrink-0 text-[#e8c547]" />
                   Invite a friend
+                </button>
+              )}
+              {hyroxActive && onLeaveHyrox && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onLeaveHyrox();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#ff5c6c] hover:bg-[#e4032e]/10"
+                >
+                  <DoorOpen className="h-4 w-4 shrink-0 text-[#e4032e]" />
+                  Leave Hyrox Training
                 </button>
               )}
               <button

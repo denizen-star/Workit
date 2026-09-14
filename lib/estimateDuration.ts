@@ -56,6 +56,15 @@ export function estimateWorkoutSeconds(day: WorkoutDay, restSeconds = REST_SECON
   let total = 0;
 
   day.exercises.forEach((exercise, index) => {
+    // estimatedMinutes is a total-time override (sets + internal rest already
+    // accounted for) for content the sets×reps model can't parse — a continuous
+    // run, an AMRAP, a multi-movement circuit packed into one reps string.
+    if (exercise.estimatedMinutes != null) {
+      total += exercise.estimatedMinutes * 60;
+      if (index !== day.exercises.length - 1) total += rest;
+      return;
+    }
+
     const work = estimateSetWorkSeconds(exercise);
     const sets = exercise.sets;
 

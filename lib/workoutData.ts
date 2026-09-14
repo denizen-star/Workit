@@ -11,6 +11,17 @@ export interface Exercise {
   reps: string;
   notes?: string;
   videoUrl?: string;
+  /** Overrides the sets×reps duration estimate for content that doesn't fit that
+   * model (a continuous run, an AMRAP, a multi-movement circuit described in one
+   * reps string). Total minutes for this whole exercise entry, sets included. */
+  estimatedMinutes?: number;
+  /** Circuit training: this movement flows straight into the next with no rest
+   * (e.g. a sled push into walking lunges into a carry, same round). Only the last
+   * movement in a circuit round should omit this, so rest still fires once per round. */
+  noRestAfter?: boolean;
+  /** Groups consecutive exercises under one "Circuit" header in the live session —
+   * same label ties them together. Purely visual; each still logs its own sets. */
+  circuitGroup?: string;
 }
 
 export interface WorkoutDay {
@@ -21,6 +32,8 @@ export interface WorkoutDay {
   exercises: Exercise[];
   /** Optional extra day. Never a nudge / Home "Today" target after the week is locked. */
   bonus?: boolean;
+  /** Hyrox Training only: this day is a self-reported benchmark test (1-4), gating the next phase. */
+  milestone?: number;
 }
 
 const COMPOUND_BUILD = 'Add 2.5-5 lb or 1-2 reps';

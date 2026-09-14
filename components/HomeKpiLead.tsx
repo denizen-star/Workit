@@ -10,39 +10,49 @@ import { kpisFromBoard } from '@/lib/kpi';
 import { KpiList } from '@/components/KpiList';
 import { latestWorkout, weekVsLast } from '@/lib/kpiView';
 
-let homeBoardCache: AthletePerformanceBoard | null | undefined;
-let homeBoardInflight: Promise<AthletePerformanceBoard | null> | null = null;
+// Keyed by track ('all' for the untracked default) so a Hyrox-scoped fetch never
+// clobbers — or gets clobbered by — the normal Home's whole-history cache.
+const homeBoardCache = new Map<string, AthletePerformanceBoard | null>();
+const homeBoardInflight = new Map<string, Promise<AthletePerformanceBoard | null>>();
 
-function loadHomeBoard() {
-  if (homeBoardCache !== undefined) return Promise.resolve(homeBoardCache);
-  if (homeBoardInflight) return homeBoardInflight;
-  homeBoardInflight = (async () => {
-    const first = await fetch('/api/athlete-performance?period=t-15').then((res) =>
+function loadHomeBoard(track?: 'hyrox') {
+  const key = track ?? 'all';
+  const trackQuery = track ? `&track=${track}` : '';
+  if (homeBoardCache.has(key)) return Promise.resolve(homeBoardCache.get(key) ?? null);
+  const inflight = homeBoardInflight.get(key);
+  if (inflight) return inflight;
+  const promise = (async () => {
+    const first = await fetch(`/api/athlete-performance?period=t-15${trackQuery}`).then((res) =>
       res.ok ? res.json() : null
     );
     if (first?.hidden) {
-      homeBoardCache = null;
+      homeBoardCache.set(key, null);
       return null;
     }
     if (first?.exercises?.length || first?.window?.setCount) {
-      homeBoardCache = first as AthletePerformanceBoard;
-      return homeBoardCache;
+      const board = first as AthletePerformanceBoard;
+      homeBoardCache.set(key, board);
+      return board;
     }
-    const fallback = await fetch('/api/athlete-performance?period=all').then((res) =>
+    const fallback = await fetch(`/api/athlete-performance?period=all${trackQuery}`).then((res) =>
       res.ok ? res.json() : null
     );
-    homeBoardCache = fallback?.hidden ? null : (fallback as AthletePerformanceBoard);
-    return homeBoardCache;
+    const board = fallback?.hidden ? null : (fallback as AthletePerformanceBoard);
+    homeBoardCache.set(key, board);
+    return board;
   })();
-  return homeBoardInflight;
+  homeBoardInflight.set(key, promise);
+  return promise;
 }
 
-function useHomeBoard() {
-  const [board, setBoard] = useState<AthletePerformanceBoard | null>(homeBoardCache ?? null);
+function useHomeBoard(track?: 'hyrox') {
+  const [board, setBoard] = useState<AthletePerformanceBoard | null>(
+    homeBoardCache.get(track ?? 'all') ?? null
+  );
 
   useEffect(() => {
     let cancelled = false;
-    loadHomeBoard()
+    loadHomeBoard(track)
       .then((value) => {
         if (!cancelled) setBoard(value);
       })
@@ -52,14 +62,14 @@ function useHomeBoard() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [track]);
 
   return board;
 }
 
 /** Four KPI rows that sit inside the Today card. */
-export function HomeTodayKpis({ locked = false }: { locked?: boolean }) {
-  const board = useHomeBoard();
+export function HomeTodayKpis({ locked = false, track }: { locked?: boolean; track?: 'hyrox' }) {
+  const board = useHomeBoard(track);
   const rows = board ? kpisFromBoard(board) : null;
   if (!rows || !board) return null;
   const range = performanceRangeLabel(board.period);
@@ -75,8 +85,14 @@ export function HomeTodayKpis({ locked = false }: { locked?: boolean }) {
   );
 }
 
-export default function HomeKpiLead({ weekNumber }: { weekNumber?: number | null }) {
-  const board = useHomeBoard();
+export default function HomeKpiLead({
+  weekNumber,
+  track,
+}: {
+  weekNumber?: number | null;
+  track?: 'hyrox';
+}) {
+  const board = useHomeBoard(track);
   if (!board || (board.exercises.length === 0 && !board.window?.setCount)) return null;
 
   const last = latestWorkout(board);

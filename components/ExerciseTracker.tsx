@@ -57,7 +57,7 @@ import {
   type WeightUnit,
 } from '@/lib/weightUnit';
 
-type Exercise = Pick<ProgramExercise, 'name' | 'sets' | 'reps' | 'notes'>;
+type Exercise = Pick<ProgramExercise, 'name' | 'sets' | 'reps' | 'notes' | 'noRestAfter' | 'circuitGroup'>;
 
 interface ExerciseSet {
   id?: number;
@@ -664,7 +664,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     updateSet(
       index,
       { is_completed: true, weight_lbs: set.weight_lbs ?? 0, actual_reps: actualReps },
-      { copyForward: true, startRest: true }
+      // Circuit movements (noRestAfter) flow straight into the next one — only the
+      // round's last movement should fire the shared rest timer.
+      { copyForward: true, startRest: !exercise.noRestAfter }
     );
   };
 
@@ -830,12 +832,44 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
         const celebrating = celebrateExercise === exercise.name;
 
+        // Circuit training: consecutive cards sharing the same circuitGroup (e.g. a
+        // sled push into walking lunges into a carry, one round) get a shared red
+        // accent + step badge so they read as one grouped circuit, not unrelated
+        // exercises — purely a label here, each card still logs its own sets as before.
+        // The first card also spells out the 1x1x1 round-robin order in plain
+        // language, since "Circuit · 1 of 3" alone reads like 3 separate exercises.
+        const circuitGroup = exercise.circuitGroup;
+        const circuitSiblings = circuitGroup
+          ? groupedSets.filter((item) => item.exercise.circuitGroup === circuitGroup)
+          : [];
+        const circuitIndex = circuitGroup
+          ? circuitSiblings.findIndex((item) => item.gym.name === gym.name)
+          : -1;
+        const circuitRounds = circuitSiblings[0]?.exercise.sets;
+        const circuitOrder = circuitSiblings.map((item) => item.exercise.name).join(' → ');
+
         return (
           <div
             key={gym.name}
             className={`glass-card relative overflow-hidden p-5 ${celebrating ? 'exercise-card-pulse' : ''}`}
+            style={circuitGroup ? { borderColor: 'rgba(228, 3, 46, 0.45)' } : undefined}
           >
             {celebrating && <div className="exercise-card-sweep pointer-events-none absolute inset-0" />}
+            {circuitGroup && (
+              <div className="mb-3 rounded-xl border border-[#e4032e]/35 bg-[#e4032e]/10 px-3 py-2">
+                <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#ff5c6c]">
+                  <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e4032e]" />
+                  {circuitGroup} · Step {circuitIndex + 1} of {circuitSiblings.length}
+                </p>
+                {circuitIndex === 0 && (
+                  <p className="mt-1.5 text-xs font-semibold leading-snug text-[#f6f1e3]/80">
+                    One round = one set of each, back to back, no rest between them:{' '}
+                    <span className="text-white">{circuitOrder}</span>. Rest after the round, then repeat —{' '}
+                    {circuitRounds} rounds total.
+                  </p>
+                )}
+              </div>
+            )}
             <div className="mb-3 flex items-start justify-between gap-2">
               <div className="min-w-0">
                 <div className="flex items-start gap-1">
