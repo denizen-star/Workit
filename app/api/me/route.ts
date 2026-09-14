@@ -77,6 +77,11 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    if (body.quickstartSeen === true) {
+      await query('UPDATE users SET quickstart_seen_at = UTC_TIMESTAMP() WHERE id = ?', [user.id]);
+      return NextResponse.json({ success: true });
+    }
+
     const soundOnly = typeof body.soundOn === 'boolean' && body.name == null && body.firstName == null;
     if (soundOnly) {
       const soundOn = normalizeSoundOn(body.soundOn);

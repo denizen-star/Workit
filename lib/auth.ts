@@ -30,6 +30,7 @@ export type SessionUser = {
   hasPhoto: boolean;
   waiverAccepted: boolean;
   emailVerified: boolean;
+  quickstartSeen: boolean;
   householdId: number | null;
   householdSlug: string | null;
   householdName: string | null;
@@ -57,13 +58,14 @@ type UserRow = {
   has_photo?: number | boolean | null;
   waiver_accepted_at?: string | Date | null;
   email_verified_at?: string | Date | null;
+  quickstart_seen_at?: string | Date | null;
   last_household_id?: number | null;
   created_at?: string | Date | null;
 };
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -125,6 +127,7 @@ function toSessionUser(
     hasPhoto: Boolean(row.has_photo),
     waiverAccepted: Boolean(row.waiver_accepted_at),
     emailVerified: row.email_verified_at !== undefined ? Boolean(row.email_verified_at) : true,
+    quickstartSeen: row.quickstart_seen_at !== undefined ? Boolean(row.quickstart_seen_at) : true,
     householdId: house?.id ?? null,
     householdSlug: house?.slug ?? null,
     householdName: house?.name ?? null,

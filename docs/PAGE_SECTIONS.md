@@ -31,15 +31,11 @@ Redirect to `/login`. Old `?claim=` → `/join?claim=`. Old `?reset=` → `/logi
 
 Public waiver text.
 
-## `/how`
-
-How to use Work-It. Linked from Home banner (until 5 finished workouts) and the menu.
-
 ## `/home` — Home Quiet
 
 - Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house switch if in more than one (The OG / Gowanus)
 - First visit without waiver: Update your profile (prefilled) + required waiver
-- How to use banner until 5 finished workouts
+- How to use banner until 5 finished workouts (links to `/quickstart`)
 - Today card (`gold-hero`)
   - Rest / Today / Pick back up / Program-done title
   - Focus · Est. (live day)
@@ -56,7 +52,9 @@ How to use Work-It. Linked from Home banner (until 5 finished workouts) and the 
 - **Your trophies** (folded): Yours / Aiming / Next. Opens `/belts`
 - **You vs** (folded, hidden for Test): 7d / 30d / All time. You | Last | them (House if you are alone). Next + up/down arrows rank this house only, Test out, including zeros. Last = last time you posted those numbers. Place, Best day, honor, optional lbs, run+bike in the table.
 
-Overlays: Invite · week podium (1st–3rd) · missed-week roast. Test never places or gets the miss roast.
+Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login Quickstart takeover (see below). Test never places or gets the miss roast.
+
+**First-login sequence**: waiver gate (`UpdateProfileGate`, if `waiverAccepted` is false) runs first and blocks everything else; once it closes, a brand-new athlete gets the `QuickstartTakeover` (same 3 steps as `/quickstart`, full-screen, "Let's go" or "Read the full guide" both dismiss it) exactly once, gated on `users.quickstart_seen_at` (`migrate-quickstart-seen.sql`; already on prod — re-run = duplicate column). If `quickstart_seen_at` is ever unselectable (column missing), `quickstartSeen` reads as `true` and the takeover just never fires — no crash. Note: `lib/auth.ts`'s column-fallback mode is cached per server process, so a running dev server needs a restart after this migration lands to pick the column back up.
 
 ## `/workout` — Select + live
 
@@ -119,17 +117,26 @@ Header via `YouPageShell` (Dashboard back + title + menu). On for Test.
 - The house (pack rows + belt chips). Test sees own belts
 - How each diploma looks (Before / During / After glossary + each belt)
 
-## `/about` — About
+## `/quickstart` — Quickstart
 
-- About program (48-week year)
-- Weeks 1 to 6
-- Week 7 onward
-- Belts
-- Progressive overload + Gym / Travel note
+Short first-look page for brand-new athletes: 3 numbered steps (start it, move through it, finish it) in fresh, tighter copy, ending in a link to `/help`. Linked from the Home banner (until 5 finished workouts); not in the athlete menu.
+
+## `/help` — Help
+
+Single-page user guide, replacing the old `/how` and `/about`. Linked from the menu, and from the bottom of `/quickstart`.
+
+- Summary (jump-to index of the sections below)
+- Getting Started (3 numbered steps: home screen, login, first workout)
+- Running a Workout (5 numbered steps: start/resume, log a set, rest & rate, optional warmup/cooldown, finish it)
+- Your Coach (what the coach voices do, where they show up, the 4 coach cards from `COACH_TONE_OPTIONS`)
+- App Pages (one card per athlete-menu destination: Home, Your performance, The house, Completed log, Belts, Medals, Edit profile, Invite a friend)
+- Training Mechanics (logging a set, Gym vs Travel, week lock, miss the week, bonus & optionals)
+- Program & Belts (48-week shape)
+- Glossary (History, Avg Effective, Best, Volume, Effort, Noise Control)
 
 ## Menu (home + You pages + admin)
 
-Athlete: Your performance · The house · Completed log · Medals · Belts · About program. Your performance + Belts on for Test. You vs still hidden on Home / The house.
+Athlete: Your performance · The house · Completed log · Medals · Belts · Help. Your performance + Belts on for Test. You vs still hidden on Home / The house.
 
 Pinned footer: Edit profile · Invite a friend (not Test) · Switch profile.
 

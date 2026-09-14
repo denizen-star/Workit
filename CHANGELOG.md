@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 7.14.0 - 2026-09-14
+
+### Added
+- A new **Help** page (menu → Help): every screen explained, how a workout actually runs start to finish, what your coach does and where you'll hear from them, and a plain-English glossary for the stats on your set cards
+- A new **Quickstart** page for brand-new athletes — three steps, no manual required — with a link into the full Help page whenever you want more
+- Quickstart now also shows itself automatically, once, the first time you log in (right after the waiver, if you needed one) — no hunting for the banner
+
+### Changed
+- The "How to use Work-It" banner on Home (shows until your 5th finished workout) now opens the new Quickstart page instead of the old step-by-step walkthrough
+
+### Removed
+- The old "How to use" and "About program" pages are gone — everything they covered now lives in the new Help page
+
 ## 7.13.1 - 2026-09-14
 
 ### Fixed

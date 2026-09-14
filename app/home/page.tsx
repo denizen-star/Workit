@@ -35,6 +35,7 @@ import WeekMedal from '@/components/WeekMedal';
 import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
 import UpdateProfileGate from '@/components/UpdateProfileGate';
+import QuickstartTakeover from '@/components/QuickstartTakeover';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
 import { lockedWeekCount } from '@/lib/belts';
@@ -79,6 +80,7 @@ export default function Home() {
   const [resumeLine, setResumeLine] = useState('');
   const [holdLine, setHoldLine] = useState('');
   const [needsWaiver, setNeedsWaiver] = useState(false);
+  const [showQuickstartTakeover, setShowQuickstartTakeover] = useState(false);
   const [showHowBanner, setShowHowBanner] = useState(false);
 
   useEffect(() => {
@@ -106,6 +108,7 @@ export default function Home() {
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setIsAdmin(!!meData.user?.isAdmin);
           setNeedsWaiver(meData.user?.waiverAccepted === false);
+          setShowQuickstartTakeover(meData.user?.quickstartSeen === false);
           setShowHowBanner(Number(meData.completedWorkouts || 0) < 5);
         }
 
@@ -254,11 +257,24 @@ export default function Home() {
         </div>
       </header>
 
-      {needsWaiver ? <UpdateProfileGate onDone={() => setNeedsWaiver(false)} /> : null}
+      {needsWaiver ? (
+        <UpdateProfileGate onDone={() => setNeedsWaiver(false)} />
+      ) : showQuickstartTakeover ? (
+        <QuickstartTakeover
+          onDone={() => {
+            setShowQuickstartTakeover(false);
+            fetch('/api/me', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ quickstartSeen: true }),
+            }).catch(() => {});
+          }}
+        />
+      ) : null}
       <div className="container mx-auto px-4 py-8">
         {showHowBanner ? (
           <Link
-            href="/how"
+            href="/quickstart"
             className="mb-6 block rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 text-sm font-black text-[#e8c547]"
           >
             How to use Work-It

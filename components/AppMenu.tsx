@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, Info, ClipboardList } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -254,8 +254,7 @@ export default function AppMenu({
                   { href: '/history', label: 'Completed log', Icon: ClipboardList },
                   { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
-                  { href: '/how', label: 'How to use', Icon: Info },
-                  { href: '/about', label: 'About program', Icon: Info },
+                  { href: '/help', label: 'Help', Icon: CircleHelp },
                 ].map(({ href, label, Icon }) => {
                     const active = pathname === href || pathname.startsWith(href + '/');
                     return (

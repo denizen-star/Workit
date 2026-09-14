@@ -2,7 +2,7 @@
 
 New-athlete explanation of the program. Not the short Who-sheet copy (`lib/helpCopy.ts`).
 
-**Keep current:** when week shape, lock rule, bonus, belts, gym/travel, or Home Start change, update this file to match `components/ProgramInfo.tsx`, `lib/bonusDay.ts`, and `CLAUDE.md`.
+**Keep current:** when week shape, lock rule, bonus, belts, gym/travel, or Home Start change, update this file to match `app/help/page.tsx`, `lib/bonusDay.ts`, and `CLAUDE.md`.
 
 ---
 
