@@ -36,9 +36,9 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.13.0',
-  title: 'Starting fresh gets its own hello now.',
-  subject: 'Starting fresh gets its own hello now.',
+  version: '7.13.1',
+  title: 'The hello actually shows up now.',
+  subject: 'The hello actually shows up now.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
@@ -46,16 +46,15 @@ export const CURRENT_RELEASE: {
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    "Man, starting a brand new session used to feel the same as walking back into one you left open. Not anymore. Start fresh now and I say something different, right up front.",
-  mid: "Five different lines from me alone, picked at random so it never feels canned. Grey, Luna, and Eli each got their own five too. Quit sounds the same every time it shows up. This does not.",
-  close: "Small change. Still growth. See you on the floor, man.",
+    "Man, I owe you a word. That hello I promised last time, resuming a session, starting a fresh one, it was not showing up. A timing bug killed it before you ever saw it.",
+  mid: "Fixed. Quit does not get a second chance to hide something broken. Neither do I.",
+  close: "Should be on the floor waiting for you now. See you there, man.",
   lead: '',
   groups: [
     {
-      heading: 'New session',
+      heading: 'Fixed',
       wins: [
-        'Starting a brand-new workout now gets its own quick hello from your coach.',
-        'It reads differently than the message you get when you resume one already open.',
+        "The coach welcome message now actually appears, whether you're resuming a session or starting a new one.",
       ],
     },
   ],
