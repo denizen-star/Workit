@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.13.0 - 2026-09-14
+
+### Added
+- Starting a brand-new workout now gets its own quick hello from your coach, separate from the "still open" message you get when resuming one
+
 ## 7.12.0 - 2026-09-13
 
 ### Added

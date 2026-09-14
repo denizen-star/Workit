@@ -72,7 +72,7 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast. Test never pla
 
 - Belt wash from last earned / aiming belt
 - Phone header: Exit / Restart / clock / sound, then week + focus
-- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`)
+- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`), starting a brand-new one fires a different Welcome bubble (`pickSessionStartCopy`)
 - Optional warmup (`OptionalCard`)
 - Exercise cards: thumbs, How (`?`), Gym/Travel pill, sets, How hard 1–5, extra sets
 - Rest overlay (`SetRestTimer`) — coach dock lifts clear of it while open

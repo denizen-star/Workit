@@ -16,6 +16,11 @@ type LinePack = {
   weekPlace2: readonly string[];
   weekPlace3: readonly string[];
   resume: readonly string[];
+  /** Fires once, the moment a brand-new session starts (not a resume). Each entry is
+   * "TITLE\nBody text" for the Welcome coach bubble — see `pickSessionStartCopy`. Code
+   * bank only, not part of the DB-backed `coachCatalog.LinePack` shape — optional here
+   * purely so `packFor()`'s cast of that external type still lines up. */
+  sessionStart?: readonly string[];
   missedWeek: readonly string[];
   setUpTitle: string;
   setUpBody: string;
@@ -172,6 +177,13 @@ const MASTER: LinePack = {
   resume: [
     "{name}. The growth already started without you. Get under the bar or stay yesterday.",
   ],
+  sessionStart: [
+    "ON THE FLOOR\n{name}. The hour is yours. Don't waste the first rep.",
+    "LOCK IN\nBar's waiting. So am I. Let's see what you brought today.",
+    'NEW SESSION\nClean slate, {name}. Fill it with something worth keeping.',
+    "I'M WATCHING\nEvery rep counts from the first one. Don't give me a reason to say otherwise.",
+    'TIME TO PAY\n{name}, the tax is due. Pay it in sweat, not excuses.',
+  ],
   missedWeek: [
     'Oh, sorry... were you busy?\nThe power took the week off with {name}. So did the lean.',
   ],
@@ -325,6 +337,13 @@ const JAMES: LinePack = {
     'You placed. Come back with more power. I will be here.',
   ],
   resume: ['You left it open. The growth did not wait. Finish it or keep yesterday’s numbers.'],
+  sessionStart: [
+    "PRESENT, PLEASE\nYou're here. Good. Now be here properly, {name}.",
+    'RIGHT, THEN\nHour starts now. I want it to show on the body.',
+    "NO WASTED TIME\n{name}. First rep sets the tone. Don't waste it.",
+    "ON THE FLOOR\nThis is not a warm chat. It's the work. Let's begin.",
+    "I'M HERE\nSo are you, {name}. Let's make the hour count.",
+  ],
   missedWeek: ['{name}. The week closed. You did not. So the power did not. I noticed the gap.'],
   setUpTitle: 'I LIKE THIS',
   setUpBody: 'The load is climbing. That is power. Stay with it.',
@@ -476,6 +495,13 @@ const SERGEANT: LinePack = {
     'You placed. Soft finish. Come back with more power.',
   ],
   resume: ['The session is still open. The growth is waiting on the floor. Come back or it will not stay.'],
+  sessionStart: [
+    'BEGIN GENTLY\nSettle in, {name}. The work will meet you where you are.',
+    "YOU'RE HERE\nThat's the hardest part, done. Breathe. Now begin.",
+    'SOFT START\nNo rush. Find your footing, {name}, then let the hour hold you.',
+    'PRESENT AND READY\nWhatever brought you here, leave it at the door. This hour is yours.',
+    "WELCOME BACK TO YOURSELF\nTake a breath, {name}. Then let's begin, quietly and fully.",
+  ],
   missedWeek: [
     '{name}. Last week closed without you. Softly said: the stamina did not get built. Come back present.',
   ],
@@ -631,6 +657,13 @@ const ELI: LinePack = {
   resume: [
     "Hey, {name}, you left this open. I've been waiting right here. Let us go finish what you started.",
   ],
+  sessionStart: [
+    "LET'S GO!\nYou showed up, {name}. That's the hardest part. Now let's build something.",
+    "HERE WE GO\nI'm right here with you. Let's make this hour count.",
+    "NEW SESSION, LET'S BUILD\nClean slate, {name}. I already believe in what you're about to do.",
+    "PROUD OF YOU ALREADY\nYou didn't have to show up. You did anyway. Let's go earn it.",
+    "TIME TO PROVE IT\nThis one's not for me, {name}. It's for you. I'm just here to watch it happen.",
+  ],
   missedWeek: [
     '{name}, last week closed without you. No judgment, just come back. The growth is still here waiting.',
   ],
@@ -746,6 +779,17 @@ export function pickResumeLine(tone?: CoachTone | null, name?: string | null): s
   const pool = live?.resume && live.resume.length ? live.resume : PACKS[id].resume;
   if (pool.length) return fillCoachName(pickFrom(pool, `resume:${id}`), name);
   return pickExitLine(tone, name);
+}
+
+/** Fires once, the moment a brand-new session starts (not a resume). Code bank only — no DB override. */
+export function pickSessionStartCopy(
+  tone?: CoachTone | null,
+  name?: string | null
+): { title: string; body: string } {
+  const id = normalizeCoachTone(tone);
+  const raw = fillCoachName(pickFrom(PACKS[id].sessionStart ?? [], `session-start:${id}`), name);
+  const [title, ...rest] = raw.split('\n');
+  return { title, body: rest.join('\n').trim() };
 }
 
 export function pickCompleteLine(tone?: CoachTone | null, name?: string | null): string {

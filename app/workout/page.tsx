@@ -37,7 +37,7 @@ import ExitTakeover from '@/components/ExitTakeover';
 import CoachBubble, { type CoachBubbleHandle } from '@/components/CoachBubble';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeLine } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeLine, pickSessionStartCopy } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, playHorn, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -72,6 +72,9 @@ function WorkoutPageInner() {
   // True for one render after an existing session is opened — the effect below fires
   // the resume coach bubble once the live session (and its CoachBubble dock) is mounted.
   const [pendingResume, setPendingResume] = useState(false);
+  // Same idea, for a brand-new session (not a resume) — the effect below fires the
+  // welcome-to-the-workout coach bubble once the live session is mounted.
+  const [pendingSessionStart, setPendingSessionStart] = useState(false);
   const coachBubbleRef = useRef<CoachBubbleHandle>(null);
   // Measured pixel height of the open rest-timer banner (0 when it's closed) — the coach
   // dock lifts by exactly this much so it never sits underneath that banner.
@@ -191,6 +194,29 @@ function WorkoutPageInner() {
     setPendingResume(false);
     return () => window.cancelAnimationFrame(raf);
   }, [pendingResume, coachTone, athleteName]);
+
+  useEffect(() => {
+    if (!pendingSessionStart) return;
+    // Same one-frame defer as the resume effect above — guarantees the CoachBubble
+    // dock's ref is attached before it's asked to show anything.
+    const raf = window.requestAnimationFrame(() => {
+      try {
+        navigator.vibrate?.(60);
+      } catch {
+        // Vibration is not available on every phone.
+      }
+      const copy = pickSessionStartCopy(coachTone, athleteName);
+      coachBubbleRef.current?.announce({
+        tone: coachTone,
+        expression: 'welcome',
+        kicker: 'New session',
+        title: copy.title,
+        body: copy.body,
+      });
+    });
+    setPendingSessionStart(false);
+    return () => window.cancelAnimationFrame(raf);
+  }, [pendingSessionStart, coachTone, athleteName]);
 
   useEffect(() => {
     if (!currentSession) {
@@ -381,6 +407,7 @@ function WorkoutPageInner() {
         setWorkoutMode(mode);
         setStartedAt(Date.now());
         setElapsedSeconds(0);
+        setPendingSessionStart(true);
         await loadSessions();
       } else {
         setErrorMessage('Could not start this workout. Try again in a moment.');
