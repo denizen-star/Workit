@@ -36,25 +36,24 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.13.1',
-  title: 'The hello actually shows up now.',
-  subject: 'The hello actually shows up now.',
+  version: '7.15.0',
+  title: 'Every doubt, answered.',
+  subject: 'Every doubt, answered.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    "Man, I owe you a word. That hello I promised last time, resuming a session, starting a fresh one, it was not showing up. A timing bug killed it before you ever saw it.",
-  mid: "Fixed. Quit does not get a second chance to hide something broken. Neither do I.",
-  close: "Should be on the floor waiting for you now. See you there, man.",
+    "Man, doubt is quiet. It sits in the back of your head and asks if this whole thing is worth the trouble. I do not like leaving it there unanswered.",
+  mid: "So it has an answer now. Straight, no dodge: why the sets fill themselves in, why you are not crossing the floor for equipment, why none of this costs you a cent. Quit needs a reason to stick around. I took it away.",
+  close: "Read it once, man. Then get back to work.",
   lead: '',
   groups: [
     {
-      heading: 'Fixed',
+      heading: 'Added',
       wins: [
-        "The coach welcome message now actually appears, whether you're resuming a session or starting a new one.",
+        'A new Why Work-It page — nine straight answers on why the app logs itself, keeps you off crowded equipment, and never nickel-and-dimes your training. Find it from Join, Login, Help, or the menu',
       ],
     },
   ],
