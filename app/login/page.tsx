@@ -195,6 +195,9 @@ export default function LoginPage() {
       <a href="/join?h=gowanus" className="mt-8 text-center text-sm font-bold text-[#f6f1e3]/60">
         Join the movement
       </a>
+      <a href="/faq" className="mt-3 text-center text-sm font-bold text-[#f6f1e3]/60">
+        Why Work-It
+      </a>
     </main>
   );
 }

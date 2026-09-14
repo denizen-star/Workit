@@ -152,6 +152,9 @@ export default function JoinPage() {
           <a href="/login" className="mt-4 text-center text-sm font-bold text-[#f6f1e3]/60">
             I already train
           </a>
+          <a href="/faq" className="mt-3 text-center text-sm font-bold text-[#f6f1e3]/60">
+            Why Work-It
+          </a>
         </>
       ) : null}
 

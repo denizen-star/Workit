@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.15.0 - 2026-09-14
+
+### Added
+- A new public **Why Work-It** page (`/faq`) answering 9 common questions about how the app works — no login needed, reachable from Join, Login, Help, and the menu
+
 ## 7.14.0 - 2026-09-14
 
 ### Added

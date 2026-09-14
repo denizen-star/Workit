@@ -36,7 +36,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (pathname.startsWith('/api/auth') || pathname === '/api/join' || pathname === '/waiver') {
+  if (pathname.startsWith('/api/auth') || pathname === '/api/join' || pathname === '/waiver' || pathname === '/faq') {
     return NextResponse.next();
   }
 

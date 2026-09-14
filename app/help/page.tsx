@@ -349,6 +349,9 @@ export default function HelpPage() {
         How to get started, what each screen shows you, how the training rules work, and what those numbers on your
         stats mean.
       </p>
+      <a href="/faq" className="mt-3 inline-block text-sm font-bold text-[#e8c547]">
+        Why Work-It &rarr;
+      </a>
 
       {/* Summary: an index of every section below, so you can jump straight to what you need. */}
       <section className="mt-8">
