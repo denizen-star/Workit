@@ -175,7 +175,10 @@ function WorkoutPageInner() {
     // The live session (and its CoachBubble dock) mounts in this same render, but the
     // dock's ref is only guaranteed attached once the browser has painted — a same-tick
     // announce() call can land before that and get silently dropped. Deferring one frame
-    // guarantees the dock exists before it's asked to show anything.
+    // guarantees the dock exists before it's asked to show anything. The pending flag is
+    // cleared INSIDE the frame callback, not right after scheduling it — clearing it
+    // synchronously here would re-render immediately, and that render's effect cleanup
+    // (cancelAnimationFrame) would cancel the frame before it ever fires.
     const raf = window.requestAnimationFrame(() => {
       playHorn();
       try {
@@ -190,15 +193,15 @@ function WorkoutPageInner() {
         title: 'Still open',
         body: pickResumeLine(coachTone, athleteName),
       });
+      setPendingResume(false);
     });
-    setPendingResume(false);
     return () => window.cancelAnimationFrame(raf);
   }, [pendingResume, coachTone, athleteName]);
 
   useEffect(() => {
     if (!pendingSessionStart) return;
-    // Same one-frame defer as the resume effect above — guarantees the CoachBubble
-    // dock's ref is attached before it's asked to show anything.
+    // Same one-frame defer as the resume effect above, and the same reason the pending
+    // flag is cleared inside the callback rather than right after scheduling it.
     const raf = window.requestAnimationFrame(() => {
       try {
         navigator.vibrate?.(60);
@@ -213,8 +216,8 @@ function WorkoutPageInner() {
         title: copy.title,
         body: copy.body,
       });
+      setPendingSessionStart(false);
     });
-    setPendingSessionStart(false);
     return () => window.cancelAnimationFrame(raf);
   }, [pendingSessionStart, coachTone, athleteName]);
 

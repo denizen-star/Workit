@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.13.1 - 2026-09-14
+
+### Fixed
+- The coach's welcome message (both resuming a session and starting a fresh one) wasn't showing up — a timing bug canceled it before it ever appeared
+
 ## 7.13.0 - 2026-09-14
 
 ### Added
