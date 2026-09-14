@@ -8,8 +8,6 @@ import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { pickCompleteLine, pickReplenishLine } from '@/lib/coachLines';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import {
-  buildBadgeEmail,
-  buildBeltEmail,
   buildInviteEmail,
   buildInviteNotifyEmail,
   buildPinResetEmail,
@@ -282,6 +280,15 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   await loadCoachCatalogFromDb();
   const tone = await getUserTone(opts.userId);
+
+  // Belt and badge, if either was earned by this same session, roll into the one
+  // recap email below instead of firing their own separate sends.
+  const earnedBelt = weekComplete ? BELTS.find((belt) => belt.weeks === weeks.rows.length) : undefined;
+  const awarded = opts.awarded ?? (await checkAndAwardBadges(opts.userId));
+  const emailBadges = awarded
+    .filter((badge) => BADGE_EMAIL_TYPES.has(badge.requirement_type))
+    .map((badge) => ({ name: badge.name, description: badge.description }));
+
   const recap = buildWorkoutCompleteEmail({
     name: opts.name,
     weekNumber: opts.weekNumber,
@@ -297,6 +304,8 @@ export async function sendWorkoutCompleteBundle(opts: {
     nextLabel,
     lockedWeeks: weeks.rows.length,
     tone,
+    badges: emailBadges,
+    belt: earnedBelt ?? null,
   });
 
   await claimAndSend({
@@ -307,42 +316,4 @@ export async function sendWorkoutCompleteBundle(opts: {
     to: opts.email,
     email: recap,
   });
-
-  if (weekComplete) {
-    const lockedWeeks = weeks.rows.length;
-    const earnedBelt = BELTS.find((belt) => belt.weeks === lockedWeeks);
-    if (earnedBelt) {
-      await claimAndSend({
-        userId: opts.userId,
-        athleteName: opts.name,
-        template: 'belt',
-        dedupeKey: 'user:' + opts.userId + ':belt:' + earnedBelt.slug,
-        to: opts.email,
-        email: buildBeltEmail({
-          name: opts.name,
-          belt: earnedBelt,
-          tone,
-        }),
-      });
-    }
-  }
-
-  const awarded = opts.awarded ?? await checkAndAwardBadges(opts.userId);
-  for (const badge of awarded) {
-    if (!BADGE_EMAIL_TYPES.has(badge.requirement_type)) continue;
-    const email = buildBadgeEmail({
-      name: opts.name,
-      badgeName: badge.name,
-      badgeDescription: badge.description,
-      tone,
-    });
-    await claimAndSend({
-      userId: opts.userId,
-      athleteName: opts.name,
-      template: 'badge',
-      dedupeKey: 'user:' + opts.userId + ':badge:' + badge.id,
-      to: opts.email,
-      email,
-    });
-  }
 }

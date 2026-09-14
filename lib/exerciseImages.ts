@@ -102,7 +102,7 @@ const IMAGE_MAP: Record<string, { start: string; end: string }> = {
   },
   "Straight-Arm Pulldowns or Dumbbell Pullovers": {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Pulldown/0.jpg",
-    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Pullover/1.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Straight-Arm_Pulldown/1.jpg",
   },
   "Lying Triceps Extensions (Skull Crushers)": {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Lying_Triceps_Press/0.jpg",

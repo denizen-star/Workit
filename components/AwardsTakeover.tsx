@@ -1,10 +1,13 @@
 'use client';
 
+import { useRef } from 'react';
 import BadgeMark from '@/components/BadgeMark';
 import BeltDiploma from '@/components/BeltDiploma';
 import type { TakeoverBadge, TakeoverBelt } from '@/components/CompleteTakeover';
 import FinishStepper from '@/components/FinishStepper';
 import { BELTS, type Belt } from '@/lib/belts';
+import type { CoachTone } from '@/lib/coachTone';
+import { coachPersonaSrc } from '@/lib/coachPersonas';
 
 function diplomaBelt(earned: TakeoverBelt): Belt {
   const catalog = BELTS.find((row) => row.slug === earned.slug || row.name === earned.name);
@@ -39,6 +42,7 @@ export default function AwardsTakeover({
   belt,
   badges,
   accent,
+  tone,
   step,
   totalSteps,
   onClose,
@@ -47,11 +51,15 @@ export default function AwardsTakeover({
   belt: TakeoverBelt | null;
   badges: TakeoverBadge[];
   accent?: { fill: string; trim?: string | null } | null;
+  tone: CoachTone;
   /** This screen's position in the post-finish sequence, for the segmented stepper. */
   step?: number;
   totalSteps?: number;
   onClose: () => void;
 }) {
+  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
+  const avatarSrc = useRef(coachPersonaSrc(tone, 'celebratory')).current;
+
   if (!open || (!belt && badges.length === 0)) return null;
 
   const earned = belt ? diplomaBelt(belt) : null;
@@ -77,6 +85,11 @@ export default function AwardsTakeover({
       </div>
       <div className="relative w-full max-w-md">
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mx-auto mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+        />
         <h2
           className="get-to-it-text mb-8 text-center text-4xl font-black leading-tight tracking-tight drop-shadow-[0_0_28px_rgba(255,255,255,0.35)] sm:text-6xl"
           style={{ color: titleColor }}

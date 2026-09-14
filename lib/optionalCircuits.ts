@@ -6,6 +6,10 @@ import {
   type OptionalTrack,
 } from '@/lib/optionals';
 
+/** Mirrors lib/optionals.ts YOGA_HOLD_SECONDS/ABS_WORK_SECONDS. Kept local to avoid a value-level import cycle with lib/optionals.ts (which imports the circuit builders below). */
+const YOGA_HOLD_SECONDS = 120;
+const ABS_WORK_SECONDS = 45;
+
 const FED = 'https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises';
 
 type Cue = {
@@ -619,4 +623,223 @@ export function guidedOptionalCircuit(
   }
   const cues = region === 'lower' ? coreLower(level, dayName) : coreUpper(level, dayName);
   return render(slot, level, cues);
+}
+
+/** One Yoga pose or Abs exercise. Unlike Cue above, body text does not vary by slot — warmup and cooldown are entirely separate sequences. */
+type FixedStep = {
+  title: string;
+  body: string;
+  /** free-exercise-db id for stills. Omitted when no matching entry exists. */
+  id?: string;
+  videoId?: string;
+  /**
+   * YouTube auto-generated frame index (0-3) to use as the "end" still when there's
+   * no free-exercise-db id. Frame 0 is the high-res thumbnail (same as the video
+   * button); 1-3 are lower-res but real, distinct moments from the video, hand-picked
+   * per pose so every Yoga/Abs step gets a start/end pair, not just the ones with a
+   * free-exercise-db match.
+   */
+  endFrame?: 0 | 1 | 2 | 3;
+};
+
+/** One of YouTube's auto-generated preview frames for a video (0 = high-res thumbnail, 1-3 lower-res). */
+function youtubeFrame(videoId: string, frame: number) {
+  return `https://img.youtube.com/vi/${videoId}/${frame}.jpg`;
+}
+
+function renderFixed(steps: FixedStep[], holdSeconds: number): OptionalCircuitStep[] {
+  return steps.map((step) => {
+    const media = step.id
+      ? stills(step.id)
+      : step.videoId
+        ? { start: youtubeFrame(step.videoId, 0), end: youtubeFrame(step.videoId, step.endFrame ?? 0) }
+        : {};
+    return {
+      title: step.title,
+      body: step.body,
+      holdSeconds,
+      videoId: step.videoId,
+      ...media,
+    };
+  });
+}
+
+const YOGA_WARMUP_UPPER: FixedStep[] = [
+  {
+    title: 'Cat-Cow',
+    body: 'Move between arching and rounding your spine on tabletop position to warm up the spinal column.',
+    id: 'Cat_Stretch',
+    videoId: 'y39PrKY_4JM',
+  },
+  {
+    title: 'Downward-Facing Dog',
+    body: 'Pedal your feet out to stretch calves, hamstrings, and shoulders.',
+    id: 'Inchworm',
+    videoId: 'zqwK6J3yHfA',
+  },
+  {
+    title: 'Sun Salutation A Flow',
+    body: 'Move smoothly through mountain pose, forward fold, plank, and cobra to heat up the entire body.',
+    videoId: 'NO2dfdqhsvo',
+    endFrame: 2,
+  },
+  {
+    title: 'Dynamic Low Lunge with Arm Reaches',
+    body: 'Step one foot forward, press hips down, and reach upward to open the hip flexors and side body.',
+    videoId: 'a_g_qUpsBII',
+    endFrame: 1,
+  },
+  {
+    title: 'Standing Forward Fold with Ragdoll Sway',
+    body: 'Hold opposite elbows, bend knees slightly, and gently sway side-to-side to release lower back tension.',
+    videoId: '2W7Dhf6n5aM',
+    endFrame: 1,
+  },
+];
+
+const YOGA_COOLDOWN_UPPER: FixedStep[] = [
+  {
+    title: "Child's Pose",
+    body: 'Kneel on the mat, reach arms forward, and rest your forehead down to release shoulder and lumbar strain.',
+    id: 'Childs_Pose',
+    videoId: 'zqwK6J3yHfA',
+  },
+  {
+    title: 'Seated Forward Fold',
+    body: 'Sit tall, reach toward your feet, and fold forward over straight legs to stretch the posterior chain.',
+    id: 'Seated_Floor_Hamstring_Stretch',
+    videoId: 'wr_8aak4Wbc',
+  },
+  {
+    title: 'Reclining Pigeon Pose (Thread the Needle)',
+    body: 'Lie on your back, cross one ankle over the opposite knee, and pull your thigh toward your chest to release glutes.',
+    id: 'Lying_Glute',
+    videoId: 'WDOBkhKEuu0',
+  },
+  {
+    title: 'Supine Spinal Twist',
+    body: 'Lie down, bring one knee across your torso to the floor, and extend the opposite arm out flat.',
+    id: 'Knee_Across_The_Body',
+    videoId: 'hZduN8rruKM',
+  },
+  {
+    title: 'Legs-Up-the-Wall',
+    body: 'Rest flat on your back with your legs extended vertically up a wall to aid circulation and nervous system recovery.',
+    videoId: 'nYqIz8oMxRc',
+    endFrame: 1,
+  },
+];
+
+const YOGA_WARMUP_LOWER: FixedStep[] = [
+  {
+    title: 'Low Lunge Flow',
+    body: 'Step one foot forward, rock gently between a deep lunge and a straight-leg hamstring stretch to warm the hip flexors and backs of the legs.',
+    videoId: 'a_g_qUpsBII',
+    endFrame: 1,
+  },
+  {
+    title: 'Down Dog to Low Lunge Flow',
+    body: 'Flow from downward dog into a low lunge and back, alternating legs, to open the hips and stretch the calves and hamstrings dynamically.',
+    videoId: 'a_g_qUpsBII',
+    endFrame: 1,
+  },
+  {
+    title: 'Wide-Leg Forward Fold',
+    body: 'Feet wide, fold forward and let the head hang to release the inner thighs and hamstrings.',
+    videoId: 'F7you4Sw1o0',
+    endFrame: 2,
+  },
+  {
+    title: 'Standing Figure-Four',
+    body: 'Balance on one leg, cross the other ankle over the knee, and hinge slightly forward to open the glute and hip.',
+    videoId: 'uikhOx-AvxI',
+  },
+  {
+    title: 'Chair Pose Pulses',
+    body: 'Sit the hips back like a squat and pulse gently to wake up the quads and glutes before loading.',
+    videoId: 'UEsSjeq5B18',
+    endFrame: 2,
+  },
+];
+
+const YOGA_COOLDOWN_LOWER: FixedStep[] = [
+  {
+    title: 'Reclining Pigeon Pose (Thread the Needle)',
+    body: 'Lie on your back, cross one ankle over the opposite knee, and pull your thigh toward your chest to release glutes.',
+    id: 'Lying_Glute',
+    videoId: 'WDOBkhKEuu0',
+  },
+  {
+    title: 'Happy Baby Pose',
+    body: 'Lie on your back, grab the outer edges of your feet, and gently rock side to side to release the hips and low back.',
+    id: 'Lying_Bent_Leg_Groin',
+    videoId: 'JJAHGpe0AVU',
+  },
+  {
+    title: 'Seated Forward Fold',
+    body: 'Sit tall, reach toward your feet, and fold forward over straight legs to stretch the posterior chain.',
+    id: 'Seated_Floor_Hamstring_Stretch',
+    videoId: 'wr_8aak4Wbc',
+  },
+  {
+    title: 'Supine Figure-Four Twist',
+    body: 'Lie on your back, cross one ankle over the opposite knee, then let both knees fall to one side to release the glutes and low back together.',
+    id: 'Knee_Across_The_Body',
+    videoId: 'hZduN8rruKM',
+  },
+  {
+    title: 'Legs-Up-the-Wall',
+    body: 'Rest flat on your back with your legs extended vertically up a wall to aid circulation and nervous system recovery.',
+    videoId: 'nYqIz8oMxRc',
+    endFrame: 1,
+  },
+];
+
+/** Fixed 5-pose Yoga sequence, no levels. Upper/Lower and warmup/cooldown each get their own list. */
+export function guidedYogaCircuit(slot: OptionalSlot, region: OptionalRegion): OptionalCircuitStep[] {
+  const bank =
+    region === 'lower'
+      ? slot === 'warmup'
+        ? YOGA_WARMUP_LOWER
+        : YOGA_COOLDOWN_LOWER
+      : slot === 'warmup'
+        ? YOGA_WARMUP_UPPER
+        : YOGA_COOLDOWN_UPPER;
+  return renderFixed(bank, YOGA_HOLD_SECONDS);
+}
+
+const ABS_EXERCISES: FixedStep[] = [
+  {
+    title: 'Forearm Plank',
+    body: 'Keep your elbows under your shoulders, glutes squeezed, and core engaged to maintain a straight line from head to heels.',
+    videoId: 's6coxb732BA',
+    endFrame: 3,
+  },
+  {
+    title: 'Bicycle Crunches',
+    body: 'Lie on your back, bring opposite elbow to opposite knee while extending the other leg, moving with slow, controlled tempo.',
+    videoId: 'PAEo-zRSanM',
+  },
+  {
+    title: 'Dead Bugs',
+    body: 'On your back with arms raised and knees at 90 degrees, lower opposite arm and leg toward the floor simultaneously without letting your lower back arch.',
+    id: 'Dead_Bug',
+    videoId: '4XLEnwUr1d8',
+  },
+  {
+    title: 'Russian Twists',
+    body: 'Sit with torso angled back at 45 degrees, feet elevated or grounded, and rotate your shoulders side-to-side while maintaining a neutral spine.',
+    id: 'Russian_Twist',
+    videoId: 'RUNrHkbP4Pc',
+  },
+  {
+    title: 'Reverse Crunches',
+    body: 'Contract your lower abs to curl your hips off the floor, bringing knees toward your chest without using momentum.',
+    videoId: 'ue6j6k0Vgbc',
+  },
+];
+
+/** 5 exercises x 2 rounds = 10 work intervals. Rest between intervals is a UI-level timer (ABS_REST_SECONDS), not part of this data. Identical for both slots. */
+export function absCircuit(): OptionalCircuitStep[] {
+  return [...renderFixed(ABS_EXERCISES, ABS_WORK_SECONDS), ...renderFixed(ABS_EXERCISES, ABS_WORK_SECONDS)];
 }

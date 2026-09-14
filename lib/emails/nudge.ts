@@ -69,6 +69,23 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     return { sent: false, skipped: 'no-target' };
   }
 
+  const template = target.type === 'resume' ? 'resume' : 'nudge';
+  const dedupeKey =
+    target.type === 'resume'
+      ? date + ':session:' + target.session?.id
+      : date + ':week' + target.week.weekNumber + ':day' + target.day.dayNumber;
+
+  // A nudge is a repeat once the same week/day target has already gone out on an
+  // earlier date — the coach photo turns from a gentle OK to a more insistent Mad.
+  let isRepeat = false;
+  if (template === 'nudge') {
+    const priorSends = await query(
+      "SELECT id FROM email_sends WHERE user_id = ? AND template = 'nudge' AND dedupe_key LIKE ? LIMIT 1",
+      [user.id, '%:week' + target.week.weekNumber + ':day' + target.day.dayNumber]
+    );
+    isRepeat = priorSends.rows.length > 0;
+  }
+
   await loadCoachCatalogFromDb();
   const email = buildNudgeEmail({
     name: user.name,
@@ -79,13 +96,8 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
     estimate: formatEstimateMinutes(estimateWorkoutSeconds(target.day)),
     href: whoUrl(),
     tone: await getUserTone(user.id),
+    isRepeat,
   });
-
-  const template = target.type === 'resume' ? 'resume' : 'nudge';
-  const dedupeKey =
-    target.type === 'resume'
-      ? date + ':session:' + target.session?.id
-      : date + ':week' + target.week.weekNumber + ':day' + target.day.dayNumber;
 
   return claimAndSend({
     userId: user.id,

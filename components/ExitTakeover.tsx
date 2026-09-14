@@ -2,17 +2,22 @@
 
 import { useEffect, useRef } from "react";
 import { playHorn } from "@/lib/playChime";
+import type { CoachTone } from "@/lib/coachTone";
+import { coachPersonaSrc } from "@/lib/coachPersonas";
 
 interface ExitTakeoverProps {
   open: boolean;
   line: string;
+  tone: CoachTone;
   onStay: () => void;
   onQuit: () => void;
 }
 
-export default function ExitTakeover({ open, line, onStay, onQuit }: ExitTakeoverProps) {
+export default function ExitTakeover({ open, line, tone, onStay, onQuit }: ExitTakeoverProps) {
   const onStayRef = useRef(onStay);
   onStayRef.current = onStay;
+  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
+  const avatarSrc = useRef(coachPersonaSrc(tone, 'close')).current;
 
   useEffect(() => {
     if (!open) return;
@@ -46,6 +51,11 @@ export default function ExitTakeover({ open, line, onStay, onQuit }: ExitTakeove
         <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
       </div>
       <div className="relative flex w-full max-w-xl flex-col items-center text-center">
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+        />
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-white/80">
           Attempting to exit early
         </p>

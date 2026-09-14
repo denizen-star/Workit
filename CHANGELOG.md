@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 7.12.0 - 2026-09-13
+
+### Added
+- Two new Optional warmup/cooldown tracks: **Yoga** (5 poses, 2 min each, tap through — different pose list for warmup vs cooldown, and for Upper vs Lower days) and **Abs** (5 exercises, 45s work / 15s rest, twice through, auto-advancing — same list every time, on the same clock as the other Optionals, with a manual Next/Skip rest button if you want to move faster)
+- Starting week 4 of the program, every workout day now carries one ab/core exercise from a rotating pool (Plank Hold, Pallof Press, Dead Bugs, Hanging Knee Raises or Ab Wheel Rollouts, Side Plank) instead of always the same one — it alternates between the start and end of the day and never repeats back to back
+- Your coach now has a face. A floating photo of your coach sits in the corner during a live workout and reacts to what's happening — resuming a session, a personal record, a load going up or down, how a set felt — in a small bubble that fades on its own after 5 seconds (tap it to dismiss sooner, tap the coach again to replay it). Welcome, invite, PIN reset, nudge, scoreboard, and workout-complete emails now carry that same photo
+
+### Changed
+- Workout-complete, badge, and belt emails used to arrive as up to three separate messages after one session — they're now one email
+- Invite emails (and resends) now lead with who sent them: "An invitation from &lt;name&gt; — ..."
+
+### Fixed
+- Several exercise videos were dead links (Dumbbell or Barbell Shrugs, Straight-Arm Pulldowns or Dumbbell Pullovers, Lying Triceps Extensions/Skull Crushers, Reverse Wrist Curls, Dumbbell Biceps Curls, Hanging Knee Raises) — replaced with working ones
+- Straight-Arm Pulldowns or Dumbbell Pullovers' Start/End photos were two different exercises stitched together — now a matching pair
+- Yoga poses were missing Start/End photos more often than not, making the picker look inconsistent — every pose now has a matching photo pair
+
 ## 7.11.0 - 2026-09-13
 
 ### Fixed

@@ -1,5 +1,6 @@
 // Complete 6-week workout program data structure
 
+import { applyAbCoreRotation } from '@/lib/abCoreRotation';
 import { toTravelExercise } from '@/lib/travelExercises';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { buildYearWeeks } from '@/lib/yearProgram';
@@ -426,7 +427,7 @@ const FIRST_SIX: WeekPlan[] = [
   }
 ];
 
-export const workoutProgram: WeekPlan[] = [...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)];
+export const workoutProgram: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)]);
 
 export function getWeekPlan(weekNumber: number): WeekPlan | undefined {
   return workoutProgram.find(week => week.weekNumber === weekNumber);

@@ -2,7 +2,7 @@ import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
-import { guidedOptionalCircuit } from '@/lib/optionalCircuits';
+import { absCircuit, guidedOptionalCircuit, guidedYogaCircuit } from '@/lib/optionalCircuits';
 import { performancePeriodWindow, sqlPeriodWindow } from '@/lib/performancePeriod';
 import { type PerformancePeriod } from '@/lib/athletePerformanceTypes';
 import { type CardioHonorRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
@@ -13,7 +13,7 @@ export const OPTIONAL_KICKER_RATE = 0.25;
 export const OPTIONAL_WEEK_SLOTS = 4;
 
 export type OptionalSlot = 'warmup' | 'cooldown';
-export type OptionalTrack = 'run' | 'bike' | 'stretch' | 'core';
+export type OptionalTrack = 'run' | 'bike' | 'stretch' | 'core' | 'yoga' | 'abs';
 export type OptionalLevel = 'easy' | 'medium' | 'hard';
 export type OptionalRegion = 'upper' | 'lower';
 
@@ -28,7 +28,7 @@ export type OptionalCircuitStep = {
   videoId?: string;
 };
 
-const TRACKS: OptionalTrack[] = ['run', 'bike', 'stretch', 'core'];
+const TRACKS: OptionalTrack[] = ['run', 'bike', 'stretch', 'core', 'yoga', 'abs'];
 export const OPTIONAL_LEVELS: OptionalLevel[] = ['easy', 'medium', 'hard'];
 
 const TRACK_LABELS: Record<OptionalTrack, string> = {
@@ -36,7 +36,17 @@ const TRACK_LABELS: Record<OptionalTrack, string> = {
   bike: 'Easy bike',
   stretch: 'Stretch',
   core: 'Core',
+  yoga: 'Yoga',
+  abs: 'Abs',
 };
+
+/** Flat hold per Yoga pose. No levels, unlike Stretch/Core. */
+export const YOGA_HOLD_SECONDS = 120;
+
+/** Abs interval work/rest lengths. No levels, unlike Stretch/Core. */
+export const ABS_WORK_SECONDS = 45;
+export const ABS_REST_SECONDS = 15;
+export const ABS_ROUNDS = 2;
 
 const LEVEL_LABELS: Record<OptionalLevel, string> = {
   easy: 'Easy',
@@ -128,11 +138,24 @@ export function optionalCircuit(
   dayName = ''
 ): OptionalCircuitStep[] {
   if (track === 'run' || track === 'bike') return CARDIO[slot][track];
+  if (track === 'yoga') return guidedYogaCircuit(slot, region);
+  if (track === 'abs') return absCircuit();
   return guidedOptionalCircuit(slot, track, region, level, dayName);
 }
 
+/** Step-based tracks (as opposed to run/bike's rotating countdown). All four credit via circuitComplete. */
 export function isGuidedOptionalTrack(track: unknown) {
+  return track === 'stretch' || track === 'core' || track === 'yoga' || track === 'abs';
+}
+
+/** Only Stretch/Core ask Easy/Medium/Hard before starting. Yoga/Abs are fixed, single sequences. */
+export function needsLevelPicker(track: unknown) {
   return track === 'stretch' || track === 'core';
+}
+
+/** Abs auto-advances through timed work/rest intervals instead of tap-to-complete holds. */
+export function isIntervalOptionalTrack(track: unknown) {
+  return track === 'abs';
 }
 
 export function optionalHoldSeconds(step: OptionalCircuitStep | null | undefined) {

@@ -21,8 +21,7 @@ import { HowTrigger } from './HelpSheet';
 import { howForExercise } from '@/lib/exerciseHow';
 import ExerciseThumbs, { type ExerciseThumb } from './ExerciseThumbs';
 import VideoModal from './VideoModal';
-import PrFlash from './PrFlash';
-import SetProgressFlash from './SetProgressFlash';
+import type { CoachMoment } from './CoachBubble';
 import SetHardness from './SetHardness';
 import { exerciseVideos, getExerciseMedia, youtubeThumbUrl } from '@/lib/exerciseMedia';
 import { getExerciseImages } from '@/lib/exerciseImages';
@@ -100,10 +99,14 @@ interface ExerciseTrackerProps {
   noiseTakeover?: NoiseLevel;
   /** How often the perceived-load result flash shows. Voting itself always stays per set. */
   noiseEffort?: NoiseLevel;
-  /** Whether the full-screen "NEW PR" flash fires in-app (PRs always land in the recap email). */
+  /** Whether the "NEW PR" coach bubble fires in-app (PRs always land in the recap email). */
   showPrs?: boolean;
   onLiftsDone?: () => void;
   onTotals?: (totals: { lbs: number; reps: number; effort: number }) => void;
+  /** Hands a PR / gain-loss / effort-call moment to the floating coach bubble dock. */
+  onCoachMoment?: (moment: CoachMoment) => void;
+  /** The rest-timer banner's open state and measured height, so the coach dock can lift clear of it. */
+  onRestBannerChange?: (info: { active: boolean; height: number }) => void;
 }
 
 /** Imperative escape hatch for the Finish flow: let a parent wait out any in-flight (or
@@ -219,6 +222,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   showPrs = true,
   onLiftsDone,
   onTotals,
+  onCoachMoment,
+  onRestBannerChange,
 }: ExerciseTrackerProps, ref) {
   const tone = normalizeCoachTone(coachTone);
   const defaultMode = normalizeWorkoutMode(sessionMode);
@@ -240,12 +245,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     null
   );
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} });
-  const [prFlash, setPrFlash] = useState<{ exerciseName: string; valueLabel: string } | null>(null);
-  const [setFlash, setSetFlash] = useState<{
-    variant: 'up' | 'down' | 'call';
-    title: string;
-    body: string;
-  } | null>(null);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
   // A PR can land on any set of an exercise, but the flash itself is now held
   // until that exercise's last planned set. Remember the best PR seen so far
@@ -616,15 +615,34 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       const pendingPr = pendingPrRef.current[exercise.name];
       pendingFinishRef.current[exercise.name] = () => {
         if (pendingPr && showPrs) {
-          setPrFlash({ exerciseName: exercise.name, valueLabel: pendingPr.valueLabel });
+          onCoachMoment?.({
+            tone,
+            expression: 'celebratory',
+            kicker: 'Personal record',
+            title: 'NEW PR',
+            body: `${exercise.name} · ${pendingPr.valueLabel}`,
+          });
         } else if (noiseTakeover === 'set' && direction) {
           const copy = setProgressCopy(direction, tone, athleteName);
-          setSetFlash({ variant: direction, title: copy.title, body: copy.body });
+          onCoachMoment?.({
+            tone,
+            expression: direction === 'up' ? 'happy' : 'mad',
+            kicker: direction === 'up' ? 'Set up' : 'Set down',
+            title: copy.title,
+            body: copy.body,
+          });
         } else if (noiseEffort === 'set') {
           // The "How hard?" takeover fires once per exercise (on its last planned
           // set) instead of once per vote, since votes are optional and skippable.
-          const copy = hardnessCopy(averageHardness(plannedSets), tone, athleteName);
-          setSetFlash({ variant: 'call', title: copy.title, body: copy.body });
+          const score = averageHardness(plannedSets);
+          const copy = hardnessCopy(score, tone, athleteName);
+          onCoachMoment?.({
+            tone,
+            expression: 'ok',
+            kicker: `Effort · ${score} of 5`,
+            title: copy.title,
+            body: copy.body,
+          });
         }
       };
       delete pendingPrRef.current[exercise.name];
@@ -1317,6 +1335,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         completedSets={completedSetCount}
         totalSets={totalSetCount}
         seconds={restSeconds}
+        onBannerChange={onRestBannerChange}
       />
 
       <TimedSetTimer
@@ -1339,21 +1358,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         videos={activeVideo?.videos}
         how={activeVideo ? howForExercise(activeVideo.title) : null}
         onClose={() => setActiveVideo(null)}
-      />
-
-      <PrFlash
-        open={!!prFlash}
-        exerciseName={prFlash?.exerciseName || ''}
-        valueLabel={prFlash?.valueLabel || ''}
-        onClose={() => setPrFlash(null)}
-      />
-
-      <SetProgressFlash
-        open={!!setFlash}
-        title={setFlash?.title || ''}
-        body={setFlash?.body || ''}
-        variant={setFlash?.variant || 'up'}
-        onClose={() => setSetFlash(null)}
       />
 
     </div>

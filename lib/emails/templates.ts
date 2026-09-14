@@ -8,6 +8,7 @@ import {
   verifyUrl,
   resetUrl,
   bullets,
+  coachPersonaArt,
   cta,
   emailArt,
   emailTextHeader,
@@ -70,6 +71,9 @@ export type NudgeEmailInput = {
   estimate?: string | null;
   href: string;
   tone?: CoachTone | null;
+  /** True once this is not the first nudge sent for this same week/day target — the coach
+   * photo turns from OK (a gentle first reminder) to Mad (a repeat one). */
+  isRepeat?: boolean;
 };
 
 export type WorkoutCompleteEmailInput = {
@@ -87,6 +91,10 @@ export type WorkoutCompleteEmailInput = {
   nextLabel?: string | null;
   lockedWeeks?: number;
   tone?: CoachTone | null;
+  /** Badges earned by this same completed session — rolled into this one email instead of a separate send per badge. */
+  badges?: Array<{ name: string; description: string }>;
+  /** Belt earned by this same completed session (a week just locked into it), if any. */
+  belt?: Belt | null;
 };
 
 export type BadgeEmailInput = {
@@ -369,6 +377,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     subtitle,
     signer,
     childrenHtml: [
+      coachPersonaArt(tone, 'welcome'),
       address(name),
       p(open),
       p(next),
@@ -482,6 +491,7 @@ export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
     subtitle,
     signer,
     childrenHtml: [
+      coachPersonaArt(tone, 'welcome'),
       address(name),
       p(put),
       p(next),
@@ -531,9 +541,15 @@ export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
     iosHomeScreenStepsText(),
     emailTextSignOff(signer),
   ].join('\n');
+  const toneSubject = luna
+    ? 'You are welcome. Work-It.'
+    : eli
+      ? "Welcome, let's go. Work-It."
+      : 'Report in. Work-It.';
   return {
     from: fromFor(input.tone),
-    subject: luna ? 'You are welcome. Work-It.' : eli ? "Welcome, let's go. Work-It." : 'Report in. Work-It.',
+    // Every invite (including resends, which reuse this builder) leads with who sent it.
+    subject: 'An invitation from ' + input.inviterName + ' — ' + toneSubject,
     html,
     text,
   };
@@ -548,6 +564,7 @@ export function buildPinResetEmail(input: PinResetEmailInput): BuiltEmail {
     subtitle: '- Work-It',
     signer: voiceDisplayName('master'),
     childrenHtml: [
+      coachPersonaArt('master', 'ok'),
       address(name),
       p('You asked to change your PIN, man. Open the link. Create four digits. Confirm them.'),
       p('If that was not you, ignore this. Your old PIN still works until you finish.'),
@@ -692,6 +709,7 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
     title,
     signer,
     childrenHtml: [
+      coachPersonaArt(tone, input.isRepeat ? 'mad' : 'ok'),
       address(name),
       p('<strong style="color:#fff;">' + esc(shout) + '</strong>'),
       p(body),
@@ -818,22 +836,46 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
         )
       : '';
 
+  const badges = input.badges ?? [];
+  const belt = input.belt ?? null;
+  const earned = belt != null || badges.length > 0;
+
+  // Belt and badge blocks reuse the same art + copy as the standalone diploma/badge
+  // emails (buildBeltEmail / buildBadgeEmail below), which still serve the admin
+  // template preview — here they roll into this one send instead of separate mails.
+  const beltBlockHtml = belt
+    ? p('<strong style="color:#fff;">Diploma earned</strong>') +
+      emailArt(hostedAsset(beltArtSrc(belt.slug)), belt.name, 160) +
+      p('<strong style="color:#fff;">' + esc(belt.quote) + '</strong>') +
+      p(esc(belt.saidBy)) +
+      p(esc(beltCoachLine(belt, input.tone, input.name)))
+    : '';
+  const badgesBlockHtml = badges.length
+    ? p('<strong style="color:#fff;">' + (badges.length === 1 ? 'New badge' : 'New badges') + '</strong>') +
+      badges
+        .map((badge) => emailArt(hostedAsset(badgeArtSrc(badge.name)), badge.name, 80) + p(esc(badge.name) + ' — ' + esc(badge.description)))
+        .join('')
+    : '';
+
   const html = wrapEmailHtml({
     eyebrow,
     title,
     signer,
     childrenHtml: [
+      coachPersonaArt(tone, earned ? 'celebratory' : 'happy'),
       address(name),
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
       input.replenishLine ? p(esc(input.replenishLine)) : '',
       statsTable(rows),
       beltProgressBlock(input.lockedWeeks).html,
+      beltBlockHtml,
+      badgesBlockHtml,
       next,
       cta(whoUrl(), input.programComplete ? 'OPEN HOME' : luna ? 'SEE THE WORK' : eli ? 'SEE WHAT YOU BUILT' : 'OPEN HOME'),
     ].join(''),
   });
 
-  const subject = input.programComplete
+  let subject = input.programComplete
     ? luna
       ? 'The year bought growth.'
       : eli
@@ -850,6 +892,9 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
         : eli
           ? 'Nailed it. ' + input.dayName + ' is done.'
           : 'Paid. ' + input.dayName + ' is done.';
+  if (belt) subject += ' · ' + belt.name + ' diploma';
+  else if (badges.length === 1) subject += ' · ' + badges[0].name;
+  else if (badges.length > 1) subject += ' · ' + badges.length + ' badges';
 
   const text = [
     emailTextHeader(eyebrow, title),
@@ -862,6 +907,10 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     'Time: ' + formatDuration(input.durationSeconds),
     'Volume: ' + formatLbs(input.volumeLbs),
     ...beltProgressBlock(input.lockedWeeks).text,
+    ...(belt ? ['', 'Diploma earned: ' + belt.name, belt.quote, belt.saidBy] : []),
+    ...(badges.length
+      ? ['', badges.length === 1 ? 'New badge:' : 'New badges:', ...badges.map((badge) => badge.name + ' — ' + badge.description)]
+      : []),
     input.programComplete
       ? luna
         ? 'The work is complete. Let the lean land.'
@@ -1041,6 +1090,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     eyebrow,
     title,
     childrenHtml: [
+      coachPersonaArt('master', 'celebratory'),
       p('I do not care about feelings. I care who showed up and who went soft. Quit does not get a row of honor.'),
       p('Open sessions are unfinished business. I see them.'),
       rankingHtml,

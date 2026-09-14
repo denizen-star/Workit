@@ -34,13 +34,13 @@ import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
-import ResumeTakeover from '@/components/ResumeTakeover';
+import CoachBubble, { type CoachBubbleHandle } from '@/components/CoachBubble';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
 import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeLine } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { playCompleteChime, setSoundEnabled, unlockAudio } from '@/lib/playChime';
+import { playCompleteChime, playHorn, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
@@ -69,8 +69,13 @@ function WorkoutPageInner() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [exitLine, setExitLine] = useState('');
-  const [confirmResume, setConfirmResume] = useState(false);
-  const [resumeLine, setResumeLine] = useState('');
+  // True for one render after an existing session is opened — the effect below fires
+  // the resume coach bubble once the live session (and its CoachBubble dock) is mounted.
+  const [pendingResume, setPendingResume] = useState(false);
+  const coachBubbleRef = useRef<CoachBubbleHandle>(null);
+  // Measured pixel height of the open rest-timer banner (0 when it's closed) — the coach
+  // dock lifts by exactly this much so it never sits underneath that banner.
+  const [restBannerLift, setRestBannerLift] = useState(0);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
@@ -163,9 +168,29 @@ function WorkoutPageInner() {
   }, []);
 
   useEffect(() => {
-    if (!confirmResume) return;
-    setResumeLine(pickResumeLine(coachTone, athleteName));
-  }, [confirmResume, coachTone, athleteName]);
+    if (!pendingResume) return;
+    // The live session (and its CoachBubble dock) mounts in this same render, but the
+    // dock's ref is only guaranteed attached once the browser has painted — a same-tick
+    // announce() call can land before that and get silently dropped. Deferring one frame
+    // guarantees the dock exists before it's asked to show anything.
+    const raf = window.requestAnimationFrame(() => {
+      playHorn();
+      try {
+        navigator.vibrate?.([200, 80, 200]);
+      } catch {
+        // Vibration is not available on every phone.
+      }
+      coachBubbleRef.current?.announce({
+        tone: coachTone,
+        expression: 'welcome',
+        kicker: 'Resume',
+        title: 'Still open',
+        body: pickResumeLine(coachTone, athleteName),
+      });
+    });
+    setPendingResume(false);
+    return () => window.cancelAnimationFrame(raf);
+  }, [pendingResume, coachTone, athleteName]);
 
   useEffect(() => {
     if (!currentSession) {
@@ -303,7 +328,7 @@ function WorkoutPageInner() {
     const start = new Date(session.started_at || session.created_at || Date.now()).getTime();
     setStartedAt(start);
     setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
-    setConfirmResume(true);
+    setPendingResume(true);
   };
 
   const startWorkout = async (
@@ -740,6 +765,8 @@ function WorkoutPageInner() {
               });
             }}
             onTotals={handleLiftTotals}
+            onCoachMoment={(moment) => coachBubbleRef.current?.announce(moment)}
+            onRestBannerChange={({ active, height }) => setRestBannerLift(active ? height : 0)}
           />
           <div ref={cooldownRef}>
             <OptionalCard
@@ -760,14 +787,11 @@ function WorkoutPageInner() {
           </button>
         </div>
 
-        <ResumeTakeover
-          open={confirmResume}
-          line={resumeLine}
-          onClose={() => setConfirmResume(false)}
-        />
+        <CoachBubble ref={coachBubbleRef} tone={coachTone} liftPx={restBannerLift} />
         <ExitTakeover
           open={confirmExit}
           line={exitLine}
+          tone={coachTone}
           onStay={() => setConfirmExit(false)}
           onQuit={() => {
             setConfirmExit(false);
@@ -781,6 +805,7 @@ function WorkoutPageInner() {
           open={showRecap}
           title={recapTitle}
           rows={recapRows}
+          tone={coachTone}
           optionalLbs={optionalFinishLbs}
           warmup={recapWarmup}
           cooldown={recapCooldown}
@@ -805,6 +830,7 @@ function WorkoutPageInner() {
           belt={earnedBelt}
           badges={awardedBadges}
           accent={displayBelt(lockedWeekCount(sessions))}
+          tone={coachTone}
           step={4}
           totalSteps={finishTotalSteps}
           onClose={leaveWorkout}
@@ -1088,6 +1114,7 @@ function WorkoutPageInner() {
         open={showRecap}
         title={recapTitle}
         rows={recapRows}
+        tone={coachTone}
         optionalLbs={optionalFinishLbs}
         warmup={recapWarmup}
         cooldown={recapCooldown}
@@ -1112,6 +1139,7 @@ function WorkoutPageInner() {
         belt={earnedBelt}
         badges={awardedBadges}
         accent={displayBelt(lockedWeekCount(sessions))}
+        tone={coachTone}
         step={4}
         totalSteps={finishTotalSteps}
         onClose={leaveWorkout}

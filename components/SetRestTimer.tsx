@@ -14,6 +14,10 @@ interface SetRestTimerProps {
   completedSets?: number;
   totalSets?: number;
   seconds?: number;
+  /** Fires whenever the full-width rest banner opens/closes or its rendered height
+   * changes, with that exact pixel height — so a sibling docked element (the floating
+   * coach avatar) can lift clear of it by a measured amount instead of a guessed one. */
+  onBannerChange?: (info: { active: boolean; height: number }) => void;
 }
 
 export default function SetRestTimer({
@@ -23,10 +27,28 @@ export default function SetRestTimer({
   completedSets = 0,
   totalSets = 0,
   seconds = REST_SECONDS,
+  onBannerChange,
 }: SetRestTimerProps) {
   const restFor = Math.max(1, seconds);
   const [remaining, setRemaining] = useState(restFor);
   const [running, setRunning] = useState(false);
+  const bannerRef = useRef<HTMLDivElement>(null);
+
+  // Report the banner's real rendered height (not a guessed constant) whenever it opens,
+  // closes, or resizes — the floating coach avatar dock lifts clear of it by this amount.
+  useEffect(() => {
+    if (!running) {
+      onBannerChange?.({ active: false, height: 0 });
+      return;
+    }
+    const node = bannerRef.current;
+    if (!node) return;
+    const report = () => onBannerChange?.({ active: true, height: node.offsetHeight });
+    report();
+    const observer = new ResizeObserver(report);
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [running, onBannerChange]);
   const [showGetToIt, setShowGetToIt] = useState(false);
   const endAtRef = useRef(0);
   const finishedRef = useRef(false);
@@ -96,7 +118,10 @@ export default function SetRestTimer({
   return (
     <>
       {running && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+        <div
+          ref={bannerRef}
+          className="pointer-events-none fixed inset-x-0 bottom-0 z-40 p-4 pb-[max(1rem,env(safe-area-inset-bottom))]"
+        >
           <div
             className={`rest-bar-entry pointer-events-auto relative mx-auto w-full max-w-xl overflow-hidden rounded-[1.75rem] border shadow-[0_18px_50px_rgba(0,0,0,0.55),inset_0_1px_0_rgba(255,255,255,0.08)] backdrop-blur-2xl transition-colors ${
               urgent ? 'animate-pulse border-[#e8c547] bg-[#1a1404]/95' : 'border-[#e8c547]/30 bg-[#101014]/92'

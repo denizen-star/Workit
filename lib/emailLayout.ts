@@ -1,3 +1,6 @@
+import type { CoachTone } from '@/lib/coachTone';
+import { coachPersonaSrc, type CoachExpression } from '@/lib/coachPersonas';
+
 const FONT = "Arial, Helvetica, sans-serif";
 const GOLD = '#e8c547';
 const INK = '#f6f1e3';
@@ -167,6 +170,24 @@ export function emailArt(src: string, alt: string, width = 160) {
     '" style="display:block;width:' +
     width +
     'px;max-width:100%;height:auto;border:0;"/></p>'
+  );
+}
+
+/** Circular coach portrait for an email header — same 6-expression photo set the in-app coach bubble uses. */
+export function coachPersonaArt(tone: CoachTone, expression: CoachExpression, size = 88) {
+  const src = hostedAsset(coachPersonaSrc(tone, expression));
+  return (
+    '<p style="margin:0 0 14px;"><img src="' +
+    esc(src) +
+    '" alt="" width="' +
+    size +
+    '" height="' +
+    size +
+    '" style="display:block;width:' +
+    size +
+    'px;height:' +
+    size +
+    'px;border-radius:50%;object-fit:cover;border:2px solid rgba(232,197,71,0.35);"/></p>'
   );
 }
 

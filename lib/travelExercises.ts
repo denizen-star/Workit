@@ -130,7 +130,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
   'Dumbbell or Barbell Shrugs': {
     name: 'Backpack Shrugs',
     notes: 'Hold a packed backpack by the top handle or wear it and shrug the shoulders straight up.',
-    videoId: 'cJRV_wPVyNM',
+    videoId: 'xiLT85G_GuU',
   },
   'Straight-Arm Pulldowns or Dumbbell Pullovers': {
     name: 'Floor Pullovers or Towel Straight-Arm Pulls',
@@ -142,7 +142,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     name: 'Close-Grip Push-Ups or Backpack Skull Crushers',
     notes:
       'Hands close together for push-ups, or lie on your back and lower a backpack behind your head, then extend.',
-    videoId: 'K3WOYRakP2Q',
+    videoId: 'tj81tVq3wLo',
   },
   'Hammer Curls': {
     name: 'Backpack Hammer Curls',
@@ -152,7 +152,7 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
   'Reverse Wrist Curls': {
     name: 'Backpack Reverse Wrist Curls',
     notes: 'Sit, forearms on thighs, and curl a light backpack up with palms facing down.',
-    videoId: 'sPTb3aF7p6U',
+    videoId: 'SfENsl5klVA',
   },
   'Dead Bugs': {
     name: 'Dead Bugs',

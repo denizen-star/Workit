@@ -1,18 +1,24 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import type { CoachTone } from '@/lib/coachTone';
+import { coachPersonaSrc } from '@/lib/coachPersonas';
 
 export default function WeekMissTakeover({
   open,
   line,
+  tone,
   onClose,
 }: {
   open: boolean;
   line: string;
+  tone: CoachTone;
   onClose: () => void;
 }) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
+  const avatarSrc = useRef(coachPersonaSrc(tone, 'mad')).current;
   const [title, ...rest] = line.split('\n');
   const body = rest.join('\n').trim();
 
@@ -45,6 +51,11 @@ export default function WeekMissTakeover({
         <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#a35d52]/40 blur-3xl" />
       </div>
       <div className="relative max-w-xl text-center">
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mx-auto mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+        />
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#a35d52]">
           Last week · short
         </p>

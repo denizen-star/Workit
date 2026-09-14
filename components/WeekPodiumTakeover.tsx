@@ -3,20 +3,26 @@
 import { useEffect, useRef } from 'react';
 import WeekMedal from '@/components/WeekMedal';
 import { placeWord, type WeekPlace } from '@/lib/weekPodium';
+import type { CoachTone } from '@/lib/coachTone';
+import { coachPersonaSrc } from '@/lib/coachPersonas';
 
 export default function WeekPodiumTakeover({
   open,
   place,
   line,
+  tone,
   onClose,
 }: {
   open: boolean;
   place: WeekPlace;
   line: string;
+  tone: CoachTone;
   onClose: () => void;
 }) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
+  const avatarSrc = useRef(coachPersonaSrc(tone, 'celebratory')).current;
 
   useEffect(() => {
     if (!open) return;
@@ -53,6 +59,11 @@ export default function WeekPodiumTakeover({
         />
       </div>
       <div className="relative max-w-xl text-center">
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mx-auto mb-4 h-14 w-14 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+        />
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
           Last week · {placeWord(place)}
         </p>

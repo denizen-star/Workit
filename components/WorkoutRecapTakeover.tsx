@@ -1,17 +1,21 @@
 'use client';
 
+import { useRef } from 'react';
 import CompareTable from '@/components/CompareTable';
 import FinishStepper from '@/components/FinishStepper';
 import { HelpTip } from '@/components/HelpSheet';
 import type { CompareRow } from '@/lib/compareTable';
 import { recapOptionalRows } from '@/lib/compareTable';
 import { KPI_CALC_BULLETS } from '@/lib/helpCopy';
+import type { CoachTone } from '@/lib/coachTone';
+import { coachPersonaSrc } from '@/lib/coachPersonas';
 
 /** Finish recap. This | Last per exercise vs last time that lift ran. */
 export default function WorkoutRecapTakeover({
   open,
   title,
   rows,
+  tone,
   optionalLbs = 0,
   warmup = false,
   cooldown = false,
@@ -22,6 +26,7 @@ export default function WorkoutRecapTakeover({
   open: boolean;
   title: string;
   rows: CompareRow[];
+  tone: CoachTone;
   optionalLbs?: number;
   warmup?: boolean;
   cooldown?: boolean;
@@ -30,6 +35,9 @@ export default function WorkoutRecapTakeover({
   totalSteps?: number;
   onClose: () => void;
 }) {
+  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
+  const avatarSrc = useRef(coachPersonaSrc(tone, 'happy')).current;
+
   if (!open) return null;
 
   const extra =
@@ -52,6 +60,11 @@ export default function WorkoutRecapTakeover({
       </div>
       <div className="relative w-full max-w-md" onClick={(event) => event.stopPropagation()}>
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mx-auto mb-4 h-14 w-14 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+        />
         <div className="mb-3 flex items-center justify-center gap-1">
           <p className="text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">This session</p>
           <HelpTip

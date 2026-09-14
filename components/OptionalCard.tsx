@@ -9,11 +9,14 @@ import VideoModal from '@/components/VideoModal';
 import ExerciseThumbs, { type ExerciseThumb } from '@/components/ExerciseThumbs';
 import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
+  ABS_REST_SECONDS,
   OPTIONAL_LEVELS,
   OPTIONAL_SECONDS,
   OPTIONAL_SLOT_LBS,
   isGuidedOptionalTrack,
+  isIntervalOptionalTrack,
   isOptionalTrack,
+  needsLevelPicker,
   optionalCircuit,
   optionalCircuitStep,
   optionalElapsedSeconds,
@@ -114,6 +117,8 @@ export default function OptionalCard({
   const [stepIndex, setStepIndex] = useState(0);
   const [circuitDone, setCircuitDone] = useState(false);
   const [holdStartedAt, setHoldStartedAt] = useState<number | null>(null);
+  const [absPhase, setAbsPhase] = useState<'work' | 'rest'>('work');
+  const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const completing = useRef(false);
   const [slotReady, setSlotReady] = useState(false);
   const [mounted, setMounted] = useState(false);
@@ -223,6 +228,7 @@ export default function OptionalCard({
   const running = Boolean(state.startedAt && !state.completedAt);
   const done = Boolean(state.completedAt);
   const guided = isGuidedOptionalTrack(state.track);
+  const isInterval = isIntervalOptionalTrack(state.track);
   const steps = state.track
     ? optionalCircuit(slot, state.track, region, state.level || 'easy', dayName || '')
     : [];
@@ -269,6 +275,56 @@ export default function OptionalCard({
     holdStartedAt != null ? Math.max(0, Math.floor((now - holdStartedAt) / 1000)) : 0;
   const holdRemaining = Math.max(0, holdTarget - holdElapsed);
 
+  /** Abs work interval finished: move to rest, or finish the circuit if that was the last one. */
+  useEffect(() => {
+    if (!isInterval || !running || !open || circuitDone) return;
+    if (absPhase !== 'work' || holdTarget <= 0 || holdRemaining > 0) return;
+    if (stepIndex + 1 >= steps.length) {
+      setCircuitDone(true);
+      writeProgress(sessionId, slot, stepIndex, true);
+      return;
+    }
+    setAbsPhase('rest');
+    setRestStartedAt(Date.now());
+  }, [isInterval, running, open, circuitDone, absPhase, holdTarget, holdRemaining, stepIndex, steps.length, sessionId, slot]);
+
+  const restElapsed = restStartedAt != null ? Math.max(0, Math.floor((now - restStartedAt) / 1000)) : 0;
+  const restRemaining = Math.max(0, ABS_REST_SECONDS - restElapsed);
+
+  /** Abs rest finished: auto-advance to the next work interval. */
+  useEffect(() => {
+    if (!isInterval || absPhase !== 'rest' || restStartedAt == null || restRemaining > 0) return;
+    const next = stepIndex + 1;
+    setStepIndex(next);
+    writeProgress(sessionId, slot, next, false);
+    setAbsPhase('work');
+    setRestStartedAt(null);
+  }, [isInterval, absPhase, restStartedAt, restRemaining, stepIndex, sessionId, slot]);
+
+  const showRest = isInterval && absPhase === 'rest' && !circuitDone;
+  const nextStep = isInterval ? steps[Math.min(stepIndex + 1, Math.max(0, steps.length - 1))] : null;
+  const displayStep = showRest ? nextStep : step;
+
+  /** Manual escape hatch alongside the auto-advance: end the current work/rest phase early. */
+  const skipAbsPhase = () => {
+    if (!isInterval || circuitDone) return;
+    if (absPhase === 'rest') {
+      const next = stepIndex + 1;
+      setStepIndex(next);
+      writeProgress(sessionId, slot, next, false);
+      setAbsPhase('work');
+      setRestStartedAt(null);
+      return;
+    }
+    if (stepIndex + 1 >= steps.length) {
+      setCircuitDone(true);
+      writeProgress(sessionId, slot, stepIndex, true);
+      return;
+    }
+    setAbsPhase('rest');
+    setRestStartedAt(Date.now());
+  };
+
   const startTrack = async (track: OptionalTrack, level?: OptionalLevel) => {
     setError('');
     const response = await fetch('/api/optionals', {
@@ -291,6 +347,8 @@ export default function OptionalCard({
     });
     setStepIndex(0);
     setCircuitDone(false);
+    setAbsPhase('work');
+    setRestStartedAt(null);
     writeProgress(sessionId, slot, 0, false);
     setPicking(false);
     setLevelFor(null);
@@ -298,16 +356,18 @@ export default function OptionalCard({
   };
 
   const pickTrack = (track: OptionalTrack) => {
-    if (isGuidedOptionalTrack(track)) {
+    if (needsLevelPicker(track)) {
       setLevelFor(track);
       setError('');
       return;
     }
-    void startTrack(track);
+    // Yoga/Abs are guided but level-less: send a silent default level so the
+    // API's "guided tracks need a level" check passes without showing a picker screen.
+    void startTrack(track, isGuidedOptionalTrack(track) ? 'easy' : undefined);
   };
 
   const completeStep = () => {
-    if (!guided || circuitDone) return;
+    if (!guided || isInterval || circuitDone) return;
     if (stepIndex + 1 >= steps.length) {
       setCircuitDone(true);
       writeProgress(sessionId, slot, stepIndex, true);
@@ -324,6 +384,8 @@ export default function OptionalCard({
 
   const label = optionalSlotLabel(slot);
   const trackTitle = state.track ? optionalTrackLevelLabel(state.track, state.level) : label;
+  // Stretch/Core are always exactly 6 holds; Yoga is always 5 poses; Abs is always 10 intervals.
+  const circuitDoneCopy = isInterval ? 'That is the circuit.' : steps.length === 5 ? 'That is the five.' : 'That is the six.';
   const runningCopy = guided
     ? `${trackTitle} · ${
         circuitDone ? 'done' : `${Math.min(stepIndex + 1, steps.length)} of ${steps.length}`
@@ -452,7 +514,7 @@ export default function OptionalCard({
                   <span className="mt-8 inline-flex h-16 w-16 items-center justify-center rounded-full bg-[#6d8b6e] text-[#1a1404]">
                     <Check className="h-8 w-8" />
                   </span>
-                  <p className="mt-6 text-3xl font-black text-white">That is the six.</p>
+                  <p className="mt-6 text-3xl font-black text-white">{circuitDoneCopy}</p>
                   <p className="mt-4 text-lg font-medium text-[#f6f1e3]/85">
                     Crediting +{formatCompact(OPTIONAL_SLOT_LBS)} lb.
                   </p>
@@ -464,34 +526,47 @@ export default function OptionalCard({
                       guided ? 'text-6xl' : 'text-7xl'
                     }`}
                   >
-                    {formatClock(guided ? holdRemaining : cardioReady ? elapsed : remaining)}
+                    {formatClock(showRest ? restRemaining : guided ? holdRemaining : cardioReady ? elapsed : remaining)}
                   </p>
                   {!guided && cardioReady ? (
                     <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
                       Counting up · done when you are
                     </p>
                   ) : null}
-                  {guided && holdTarget > 0 ? (
+                  {showRest ? (
                     <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
-                      {holdRemaining === 0 ? 'That is the hold' : `Hold ${holdTarget} seconds`}
+                      Rest
+                    </p>
+                  ) : guided && holdTarget > 0 ? (
+                    <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
+                      {holdRemaining === 0
+                        ? 'That is the hold'
+                        : isInterval
+                          ? `Work ${holdTarget} seconds`
+                          : `Hold ${holdTarget} seconds`}
                     </p>
                   ) : null}
-                  {step ? (
+                  {displayStep ? (
                     <>
-                      <div className="mt-8 flex items-center justify-center gap-3">
-                        <h2 className="text-3xl font-black text-white">{step.title}</h2>
-                        {step.videoId ? (
+                      {showRest ? (
+                        <p className="mt-8 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
+                          Up next
+                        </p>
+                      ) : null}
+                      <div className={`${showRest ? 'mt-2' : 'mt-8'} flex items-center justify-center gap-3`}>
+                        <h2 className="text-3xl font-black text-white">{displayStep.title}</h2>
+                        {displayStep.videoId ? (
                           <button
                             type="button"
                             onClick={() => {
-                              setVideoStep(step);
+                              setVideoStep(displayStep);
                               setVideoOpen(true);
                             }}
                             className="relative h-14 w-20 flex-shrink-0 overflow-hidden rounded-2xl ring-1 ring-[#e8c547]/35"
-                            aria-label={`Watch ${step.title} video`}
+                            aria-label={`Watch ${displayStep.title} video`}
                           >
                             <img
-                              src={youtubeThumbUrl(step.videoId)}
+                              src={youtubeThumbUrl(displayStep.videoId)}
                               alt=""
                               className="h-full w-full object-cover"
                             />
@@ -501,13 +576,13 @@ export default function OptionalCard({
                           </button>
                         ) : null}
                       </div>
-                      {step.start && step.end ? (
+                      {displayStep.start && displayStep.end ? (
                         <div className="mt-6 mx-auto grid w-full max-w-md grid-cols-2 gap-2">
                           <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
                             <img
-                              key={step.start}
-                              src={step.start}
-                              alt={`${step.title} start position`}
+                              key={displayStep.start}
+                              src={displayStep.start}
+                              alt={`${displayStep.title} start position`}
                               className="aspect-[4/3] w-full object-cover"
                             />
                             <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
@@ -516,9 +591,9 @@ export default function OptionalCard({
                           </figure>
                           <figure className="overflow-hidden rounded-xl ring-1 ring-[#e8c547]/25">
                             <img
-                              key={step.end}
-                              src={step.end}
-                              alt={`${step.title} end position`}
+                              key={displayStep.end}
+                              src={displayStep.end}
+                              alt={`${displayStep.title} end position`}
                               className="aspect-[4/3] w-full object-cover"
                             />
                             <figcaption className="bg-black/40 px-2 py-1 text-center text-[10px] font-semibold uppercase tracking-wider text-[#e8c547]">
@@ -528,14 +603,14 @@ export default function OptionalCard({
                         </div>
                       ) : null}
                       <p className="mx-auto mt-4 max-w-md text-lg font-medium leading-relaxed text-[#f6f1e3]/85">
-                        {step.body}
+                        {displayStep.body}
                       </p>
-                      {guided && state.track ? (
+                      {guided && !showRest && state.track ? (
                         <div className="mx-auto mt-4 flex justify-center">
                           <ExerciseThumbs
                             sessionId={sessionId}
-                            exerciseName={optionalThumbName(slot, state.track, step.title)}
-                            saved={thumbs[optionalThumbName(slot, state.track, step.title)]}
+                            exerciseName={optionalThumbName(slot, state.track, displayStep.title)}
+                            saved={thumbs[optionalThumbName(slot, state.track, displayStep.title)]}
                             onSaved={(thumb) =>
                               setThumbs((current) => ({ ...current, [thumb.exerciseName]: thumb }))
                             }
@@ -554,11 +629,13 @@ export default function OptionalCard({
 
               {circuitDone ? null : (
                 <p className="mt-8 text-sm text-[#f6f1e3]/55">
-                  {guided
-                    ? 'Phone can lock. Stay easy. Done when you have it.'
-                    : cardioReady
-                      ? 'Phone can lock. Keep going as long as you like, then hit Done.'
-                      : 'Phone can lock. Stay easy until the clock hits zero.'}
+                  {isInterval
+                    ? 'Phone can lock. Rest and the next set start on their own — tap Next to move on early.'
+                    : guided
+                      ? 'Phone can lock. Stay easy. Done when you have it.'
+                      : cardioReady
+                        ? 'Phone can lock. Keep going as long as you like, then hit Done.'
+                        : 'Phone can lock. Stay easy until the clock hits zero.'}
                 </p>
               )}
               {!guided ? (
@@ -568,7 +645,7 @@ export default function OptionalCard({
               ) : null}
               {error ? <p className="mt-4 text-sm font-semibold text-[#e8c547]">{error}</p> : null}
             </div>
-            {guided && !circuitDone ? (
+            {guided && !isInterval && !circuitDone ? (
               <div className="shrink-0 border-t border-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
                 <button
                   type="button"
@@ -589,6 +666,17 @@ export default function OptionalCard({
                 >
                   <Check className="h-6 w-6" />
                   Done
+                </button>
+              </div>
+            ) : null}
+            {isInterval && !circuitDone ? (
+              <div className="shrink-0 border-t border-white/10 px-6 py-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+                <button
+                  type="button"
+                  onClick={skipAbsPhase}
+                  className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/15 text-lg font-black text-white"
+                >
+                  {showRest ? 'Skip rest' : 'Next'}
                 </button>
               </div>
             ) : null}

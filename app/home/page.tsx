@@ -455,6 +455,7 @@ export default function Home() {
           open={weekTakeover}
           place={weekYou.place}
           line={weekYou.line}
+          tone={userTone}
           onClose={() => setWeekTakeover(false)}
         />
       ) : null}
@@ -462,6 +463,7 @@ export default function Home() {
         <WeekMissTakeover
           open={weekMissTakeover}
           line={weekMiss.line}
+          tone={userTone}
           onClose={() => setWeekMissTakeover(false)}
         />
       ) : null}
