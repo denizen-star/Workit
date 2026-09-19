@@ -28,7 +28,7 @@ interface CoachBubbleProps {
   liftPx?: number;
 }
 
-const DISMISS_MS = 5000;
+const DISMISS_MS = 7000;
 const FADE_MS = 260;
 
 /**
@@ -61,7 +61,19 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
     setLast(next);
     setVisible(true);
     if (dismissTimer.current) clearTimeout(dismissTimer.current);
-    dismissTimer.current = setTimeout(dismiss, DISMISS_MS);
+    dismissTimer.current = setTimeout(advance, DISMISS_MS);
+  };
+
+  // A message's display time is up. If another one is already queued, swap straight
+  // into it — the dock stays visible the whole time, no fade-to-nothing in between —
+  // and only fades away once there's truly nothing left to show.
+  const advance = () => {
+    if (dismissTimer.current) clearTimeout(dismissTimer.current);
+    if (queue.current.length > 0) {
+      showNext();
+      return;
+    }
+    dismiss();
   };
 
   const dismiss = () => {
@@ -76,8 +88,24 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
 
   useImperativeHandle(ref, () => ({
     announce: (moment) => {
-      queue.current.push({ ...moment, src: coachPersonaSrc(moment.tone, moment.expression) });
-      if (!active.current) showNext();
+      let src = '';
+      try {
+        src = coachPersonaSrc(moment.tone, moment.expression);
+      } catch (error) {
+        console.error('Error resolving coach persona image:', error);
+      }
+      queue.current.push({ ...moment, src });
+      // If this throws for any reason, `active` must not get stuck mid-flip — a bad
+      // moment would otherwise silently wedge every one announced after it, only
+      // recoverable by tapping the dock (which goes through a different path).
+      if (!active.current) {
+        try {
+          showNext();
+        } catch (error) {
+          console.error('Error showing coach moment:', error);
+          active.current = false;
+        }
+      }
     },
   }));
 
@@ -119,7 +147,7 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
           <h4 className="get-to-it-text mt-1.5 text-base font-black leading-tight text-[#f6f1e3]">
             {current.title}
           </h4>
-          <p className="mt-1.5 text-[13px] leading-relaxed text-[#f6f1e3]/75">{current.body}</p>
+          <p className="mt-1.5 text-[13px] leading-relaxed text-[#f6f1e3]/95">{current.body}</p>
         </div>
       ) : null}
       <button
@@ -128,7 +156,13 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
         aria-label="Replay last coach message"
         className="block h-24 w-24 overflow-hidden rounded-full border-2 border-white/15 shadow-[0_8px_26px_rgba(0,0,0,0.55)]"
       >
-        <img src={avatarSrc} alt="" className="h-full w-full object-cover object-top" />
+        <img
+          src={avatarSrc}
+          alt=""
+          className={`h-full w-full object-cover object-top transition-opacity duration-[260ms] ${
+            current && !visible ? 'opacity-0' : 'opacity-100'
+          }`}
+        />
       </button>
     </div>
   );

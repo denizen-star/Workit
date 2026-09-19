@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 7.17.0 - 2026-09-19
+
+### Changed
+- Effort ("How hard?") is now rated before you complete a set, not after — it sits right under weight/reps and is required before Complete Set (or Start timer, for timed exercises) unlocks
+
+### Fixed
+- The coach's message after finishing an exercise could show the wrong effort score (defaulting to Fair even when you rated it harder), and sometimes wouldn't appear until you started the next exercise
+- Finishing two exercises close together could cut off the first one's celebration animation and coach message before it played
+- The coach message could occasionally get stuck and only show up after tapping the coach avatar, instead of automatically
+- Changing an already-saved effort rating (via Editing) no longer leaves the new number showing on screen if the save actually failed
+
 ## 7.16.0 - 2026-09-14
 
 ### Added

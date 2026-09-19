@@ -34,8 +34,13 @@ export async function POST(request: NextRequest) {
     const isCompleted = body.isCompleted ?? body.is_completed ?? false;
     const notes = body.notes ?? null;
     const hardness = parseHardness(body.hardness);
+    // The athlete now rates effort before tapping Complete Set, so the normal completion
+    // call carries weight/reps/hardness together in one request — only take the standalone
+    // "just change the vote" path below when the request isn't also completing/updating the
+    // set itself (the explicit "Editing" reopen flow on an already-completed set).
+    const hasCompletionPayload = body.isCompleted !== undefined || body.is_completed !== undefined;
 
-    if (hardness != null) {
+    if (hardness != null && !hasCompletionPayload) {
       let hardnessRow: { id: number; is_completed: unknown; hardness: unknown } | null = null;
 
       if (id) {
@@ -96,9 +101,9 @@ export async function POST(request: NextRequest) {
       await query(
         `UPDATE exercise_sets
          SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?,
-             exercise_name = COALESCE(?, exercise_name)
+             exercise_name = COALESCE(?, exercise_name), hardness = COALESCE(?, hardness)
          WHERE id = ?`,
-        [actualReps, weightLbs, isCompleted, notes, targetReps, exerciseName || null, setId]
+        [actualReps, weightLbs, isCompleted, notes, targetReps, exerciseName || null, hardness, setId]
       );
     } else {
       const existing = await query(
@@ -112,15 +117,15 @@ export async function POST(request: NextRequest) {
         setId = existing.rows[0].id;
         await query(
           `UPDATE exercise_sets
-           SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?
+           SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?, hardness = COALESCE(?, hardness)
            WHERE id = ?`,
-          [actualReps, weightLbs, isCompleted, notes, targetReps, setId]
+          [actualReps, weightLbs, isCompleted, notes, targetReps, hardness, setId]
         );
       } else {
         const result = await query(
-          `INSERT INTO exercise_sets (workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, is_completed, notes)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [workoutSessionId, exerciseName, setNumber, targetReps, actualReps, weightLbs, isCompleted, notes]
+          `INSERT INTO exercise_sets (workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, is_completed, notes, hardness)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [workoutSessionId, exerciseName, setNumber, targetReps, actualReps, weightLbs, isCompleted, notes, hardness]
         );
         setId = result.insertId;
       }
@@ -136,7 +141,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, setId });
+    return NextResponse.json({ success: true, setId, hardness });
   } catch (error) {
     console.error('Error saving exercise set:', error);
     return NextResponse.json({ error: 'Failed to save exercise set' }, { status: 500 });

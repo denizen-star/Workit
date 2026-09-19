@@ -253,28 +253,60 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // same completeSet() call that may set it.
   const pendingPrRef = useRef<Record<string, { valueLabel: string }>>({});
 
+  // Mirrors `exerciseSets` state so deferred closures (fired well after the render
+  // that created them, once the exercise-complete celebration has played) can read
+  // the athlete's actual hardness vote instead of whatever was on the set the instant
+  // it was completed — the vote itself is cast after completion, not before.
+  const exerciseSetsRef = useRef<ExerciseSet[]>([]);
+  useEffect(() => {
+    exerciseSetsRef.current = exerciseSets;
+  }, [exerciseSets]);
+
   // Exercise-complete celebration (gold sweep + checkmark stamp) — always plays once
   // per exercise, fully, before the PR/gain-loss/hardness flash it gates is allowed
   // to show. `celebrateExercise` drives which exercise card renders the animation;
   // `pendingFinishRef` holds one deferred "show whichever flash applies" thunk per
   // exercise between the moment its last planned set finishes and the moment the
   // celebration for it has played out (see `resolveFinish` and `completeSet` below).
+  // Two exercises can finish in quick succession (e.g. a circuit, or a fast athlete),
+  // so celebrations queue instead of one overwriting the other mid-animation.
   const [celebrateExercise, setCelebrateExercise] = useState<string | null>(null);
   const pendingFinishRef = useRef<Record<string, () => void>>({});
+  const celebrationQueueRef = useRef<Array<{ name: string; fire: () => void }>>([]);
+  const celebrationActiveRef = useRef(false);
   // Which exercise the athlete most recently completed a set in — lets a completed-
   // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
   // and lets a same-exercise finish celebration resolve once they've clearly left it.
   const [lastTouchedExercise, setLastTouchedExercise] = useState<string | null>(null);
 
+  const playNextCelebration = () => {
+    const next = celebrationQueueRef.current.shift();
+    if (!next) {
+      celebrationActiveRef.current = false;
+      return;
+    }
+    celebrationActiveRef.current = true;
+    setCelebrateExercise(next.name);
+    setTimeout(() => {
+      setCelebrateExercise((current) => (current === next.name ? null : current));
+      // `fire()` calls out to onCoachMoment, coach-line lookups, etc. — if any of that
+      // ever throws, it must not take the queue down with it: every exercise still
+      // queued behind this one would silently never get its celebration or message.
+      try {
+        next.fire();
+      } catch (error) {
+        console.error('Error firing exercise-complete coach moment:', error);
+      }
+      playNextCelebration();
+    }, CELEBRATION_MS);
+  };
+
   const resolveFinish = (exerciseName: string) => {
     const fireFlash = pendingFinishRef.current[exerciseName];
     if (!fireFlash) return;
     delete pendingFinishRef.current[exerciseName];
-    setCelebrateExercise(exerciseName);
-    setTimeout(() => {
-      setCelebrateExercise((current) => (current === exerciseName ? null : current));
-      fireFlash();
-    }, CELEBRATION_MS);
+    celebrationQueueRef.current.push({ name: exerciseName, fire: fireFlash });
+    if (!celebrationActiveRef.current) playNextCelebration();
   };
 
   useImperativeHandle(ref, () => ({
@@ -284,13 +316,15 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // last set of the workout — always finishes before anything mounts on top of it.
     awaitPendingCelebration: () =>
       new Promise<void>((resolve) => {
-        const stillPending = Object.keys(pendingFinishRef.current);
-        if (stillPending.length === 0 && celebrateExercise == null) {
-          resolve();
-          return;
-        }
-        stillPending.forEach((name) => resolveFinish(name));
-        setTimeout(resolve, CELEBRATION_MS);
+        Object.keys(pendingFinishRef.current).forEach((name) => resolveFinish(name));
+        const waitForQueue = () => {
+          if (!celebrationActiveRef.current && celebrationQueueRef.current.length === 0) {
+            resolve();
+            return;
+          }
+          setTimeout(waitForQueue, 100);
+        };
+        waitForQueue();
       }),
   }));
 
@@ -481,6 +515,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         weightLbs: set.weight_lbs,
         isCompleted: set.is_completed,
         notes: set.notes,
+        hardness: set.hardness,
       }),
     });
 
@@ -613,6 +648,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // moving on without rating it) has fully played, via `resolveFinish`.
     if (exerciseJustFinished) {
       const pendingPr = pendingPrRef.current[exercise.name];
+      const exerciseName = exercise.name;
+      const exerciseSetCount = exercise.sets;
       pendingFinishRef.current[exercise.name] = () => {
         if (pendingPr && showPrs) {
           onCoachMoment?.({
@@ -620,7 +657,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             expression: 'celebratory',
             kicker: 'Personal record',
             title: 'NEW PR',
-            body: `${exercise.name} · ${pendingPr.valueLabel}`,
+            body: `${exerciseName} · ${pendingPr.valueLabel}`,
           });
         } else if (noiseTakeover === 'set' && direction) {
           const copy = setProgressCopy(direction, tone, athleteName);
@@ -634,7 +671,13 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         } else if (noiseEffort === 'set') {
           // The "How hard?" takeover fires once per exercise (on its last planned
           // set) instead of once per vote, since votes are optional and skippable.
-          const score = averageHardness(plannedSets);
+          // Read hardness fresh here, not from the `plannedSets` snapshot taken when
+          // this exercise's last set completed — the athlete rates that set's effort
+          // AFTER completing it, so the snapshot never had the real vote on it.
+          const freshPlanned = setsForMovement(exerciseSetsRef.current, exerciseName).filter(
+            (item) => item.set_number <= exerciseSetCount
+          );
+          const score = averageHardness(freshPlanned);
           const copy = hardnessCopy(score, tone, athleteName);
           onCoachMoment?.({
             tone,
@@ -646,6 +689,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         }
       };
       delete pendingPrRef.current[exercise.name];
+      // Effort is rated before the set completes now, so there's nothing left to wait
+      // on — the celebration/flash for this exercise can start right away instead of
+      // waiting for a later rating tap or for the athlete to start the next exercise.
+      resolveFinish(exercise.name);
     }
 
     if (isWeightPr || isTimedPr) {
@@ -673,6 +720,16 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const saveHardness = async (set: ExerciseSet, score: HardnessScore, plannedSets: number) => {
     // No "already rated" guard here on purpose — the explicit "Editing" flow on a
     // completed set needs to be able to change an existing vote, not just set it once.
+    const previousScore = parseHardness(set.hardness);
+    const setKey = (item: ExerciseSet) =>
+      item.exercise_name === set.exercise_name && item.set_number === set.set_number;
+
+    // Optimistic: reflect the rating immediately (this runs synchronously, before the
+    // `await` below, so the caller sees it applied right away) so a fold or the next
+    // widget can react without waiting on the round-trip. Reverted below if the save
+    // actually fails — a shown rating must always match what's really stored.
+    setExerciseSets((current) => current.map((item) => (setKey(item) ? { ...item, hardness: score } : item)));
+
     try {
       const response = await fetch('/api/exercises', {
         method: 'POST',
@@ -686,15 +743,15 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         }),
       });
       const data = response.ok || response.status === 409 ? await response.json() : null;
+      if (!response.ok && response.status !== 409) {
+        setExerciseSets((current) => current.map((item) => (setKey(item) ? { ...item, hardness: previousScore } : item)));
+        return;
+      }
       const locked = parseHardness(data?.hardness);
-      if (!response.ok && response.status !== 409) return;
       const nextScore = locked ?? score;
-      const updatedSets = exerciseSets.map((item) =>
-        item.exercise_name === set.exercise_name && item.set_number === set.set_number
-          ? { ...item, hardness: nextScore, id: data?.setId || item.id }
-          : item
+      setExerciseSets((current) =>
+        current.map((item) => (setKey(item) ? { ...item, hardness: nextScore, id: data?.setId || item.id } : item))
       );
-      setExerciseSets(updatedSets);
       // The result flash for this no longer fires per vote — see the
       // exercise-level takeover fired from `completeSet` when the exercise's
       // last planned set completes. The vote itself still always saves.
@@ -707,6 +764,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       }
     } catch (error) {
       console.error('Error saving hardness:', error);
+      setExerciseSets((current) => current.map((item) => (setKey(item) ? { ...item, hardness: previousScore } : item)));
     }
   };
 
@@ -1010,7 +1068,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 );
                 const isEditing = editingSet === `${set.exercise_name}-${set.set_number}`;
                 const isActive = !set.is_completed && set.set_number === activeSetNumber;
-                const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs);
+                // Effort is rated before the set completes now, not after — so completing
+                // (or, for a timed set, starting the clock) requires a pick first.
+                const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs) && set.hardness != null;
                 const isExtra = set.set_number > exercise.sets;
                 const folded = set.is_completed && !isEditing;
                 const completeButtonClass = set.is_completed
@@ -1079,19 +1139,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                               <SetHardness
                                 value={hardnessScore}
                                 highlight={hardnessScore == null}
-                                onPick={(score) => {
-                                  // Optimistic: reflect the rating immediately so the fold plays
-                                  // as one smooth motion right on release, not after the network
-                                  // round-trip — saveHardness reconciles with the server after.
-                                  setExerciseSets((current) =>
-                                    current.map((item) =>
-                                      item.exercise_name === set.exercise_name && item.set_number === set.set_number
-                                        ? { ...item, hardness: score }
-                                        : item
-                                    )
-                                  );
-                                  saveHardness(set, score, exercise.sets);
-                                }}
+                                // saveHardness applies the optimistic update itself (and rolls
+                                // it back if the save fails), so the fold still plays right on
+                                // release without a second copy of that logic here.
+                                onPick={(score) => saveHardness(set, score, exercise.sets)}
                               />
                             )}
                           </div>
@@ -1188,6 +1239,24 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           </div>
                         </div>
 
+                        {/* Effort is rated here, before the set completes — not after, on the
+                            folded row. Completing (or, for a timed set, starting the clock)
+                            requires a pick first, so the coach message that fires when the
+                            exercise finishes always has the real, just-given score, not a
+                            pre-rating snapshot. Reopening a finished set via "Editing" reuses
+                            this same widget to change the vote (still allowed, doesn't re-fire
+                            the exercise-complete celebration). */}
+                        <SetHardness
+                          value={hardnessScore}
+                          forceEditable
+                          highlight={!set.is_completed && hardnessScore == null}
+                          onPick={(score) =>
+                            set.is_completed
+                              ? saveHardness(set, score, exercise.sets)
+                              : updateSet(globalIndex, { hardness: score })
+                          }
+                        />
+
                         {kind === 'timed' && !set.is_completed && (
                           <button
                             type="button"
@@ -1198,19 +1267,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                                 exercise,
                               })
                             }
-                            className="mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-base font-black text-white"
+                            disabled={set.hardness == null}
+                            className="mt-3 mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-base font-black text-white disabled:opacity-40"
                           >
                             <Play className="h-5 w-5" />
                             Start timer
                           </button>
-                        )}
-
-                        {set.is_completed && (
-                          <SetHardness
-                            value={hardnessScore}
-                            forceEditable
-                            onPick={(score) => saveHardness(set, score, exercise.sets)}
-                          />
                         )}
 
                         <button
@@ -1223,7 +1285,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                             }
                           }}
                           disabled={!set.is_completed && !ready}
-                          className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass} ${set.is_completed ? 'mt-3' : ''}`}
+                          className={`mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass}`}
                         >
                           {set.is_completed ? (
                             <>
