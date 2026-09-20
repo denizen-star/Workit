@@ -49,9 +49,21 @@ export default function SetHardness({
             if (disabled) return;
             setPending(Number(event.target.value) as HardnessScore);
           }}
-          onPointerUp={() => {
-            if (disabled || pending == null) return;
-            onPick(pending);
+          onClick={(event) => {
+            // Commit on click/tap, not just pointerup-after-a-value-changing-drag: a
+            // tap that lands on the slider's already-current position (e.g. tapping
+            // "Easy" when the thumb already sits at 1) never fires `onChange`, so
+            // `pending` would stay null and the pick would silently never register.
+            // Reading the DOM value directly here always reflects where the browser
+            // just placed the thumb, changed or not.
+            if (disabled) return;
+            onPick(Number(event.currentTarget.value) as HardnessScore);
+          }}
+          onKeyUp={(event) => {
+            // Keyboard (arrow keys, Home/End) never fires click at all.
+            if (disabled) return;
+            if (!['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+            onPick(Number(event.currentTarget.value) as HardnessScore);
           }}
           // Locked/busy skips the native `disabled` attribute on purpose — most browsers gray
           // out a disabled range's accent color, which reads as "broken" once it's rated gold.
