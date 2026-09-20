@@ -1,25 +1,7 @@
 import { progressFor } from '@/lib/belts';
 import { query } from '@/lib/db';
 import { sqlInHousehold } from '@/lib/household';
-
-export async function lockedWeeksByUser() {
-  const result = await query(
-    `SELECT user_id, COUNT(*) as locked
-     FROM (
-       SELECT user_id, week_number
-       FROM workout_sessions
-       WHERE is_completed = 1
-       GROUP BY user_id, week_number
-       HAVING COUNT(*) >= 4
-     ) locked
-     GROUP BY user_id`
-  );
-  const map = new Map<number, number>();
-  for (const row of result.rows as { user_id: number; locked: number }[]) {
-    map.set(Number(row.user_id), Number(row.locked || 0));
-  }
-  return map;
-}
+import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 
 export async function householdBeltRows(householdId?: number | null) {
   const house = sqlInHousehold('id', householdId);
@@ -28,7 +10,7 @@ export async function householdBeltRows(householdId?: number | null) {
       `SELECT id, name, coach_tone FROM users WHERE pin_hash IS NOT NULL ${house.sql} ORDER BY name ASC`,
       house.params
     ),
-    lockedWeeksByUser(),
+    lockedWeeksByUserFromTable(householdId),
   ]);
   return (users.rows as { id: number; name: string; coach_tone?: string | null }[]).map((user) => {
     const lockedWeeks = locked.get(Number(user.id)) || 0;

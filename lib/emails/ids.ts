@@ -12,6 +12,7 @@ export const MAIL_TEMPLATES = [
   'belt',
   'scoreboard',
   'release',
+  'schedule_days_ask',
 ] as const;
 
 export type MailTemplateId = (typeof MAIL_TEMPLATES)[number];

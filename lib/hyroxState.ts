@@ -11,8 +11,9 @@ export interface HyroxStateRow {
   ended_at: string | null;
 }
 
-/** Locked Hyrox weeks so far. Not `lib/belts.ts`'s `lockedWeekCount` — that hardcodes
- * the normal program's fixed 4-day requirement, but Hyrox weeks need all 5. */
+/** Locked Hyrox weeks so far. Not the persisted `locked_weeks` table
+ * (`lib/lockedWeeks.ts`) — that's the normal program's own required-count-per-athlete
+ * tracking, but Hyrox weeks always need all 5, regardless of that setting. */
 export function hyroxWeeksElapsed(
   hyroxSessions: Array<{ week_number?: number; is_completed?: unknown }>
 ): number {

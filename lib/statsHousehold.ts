@@ -194,16 +194,17 @@ export async function householdHomeStats(
 
   return {
     workoutsCompleted: mean(overallRows.map((row) => Number(row.completed_workouts || 0))) ?? 0,
+    // Unchanged from before: this household-average stat only ever looked at
+    // weeks 1-6 against the program's original flat-4 requirement, regardless of
+    // any individual athlete's schedule_days_per_week — a live aggregate display,
+    // not a persisted personal accomplishment, so it's out of scope for the
+    // locked_weeks fix (lib/lockedWeeks.ts) that protects belts/badges from
+    // retroactively regressing when an athlete changes their day count.
     currentStreak:
       mean(
         ids.map((id) =>
           lockedWeekStreak(
-            new Map(
-              [1, 2, 3, 4, 5, 6].map((week) => [
-                week,
-                completedByUserWeek.get(`${id}-${week}`) || 0,
-              ])
-            )
+            [1, 2, 3, 4, 5, 6].filter((week) => (completedByUserWeek.get(`${id}-${week}`) || 0) >= 4)
           )
         )
       ) ?? 0,

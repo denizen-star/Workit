@@ -16,6 +16,7 @@ import {
   type WeekMissYou,
   type WeekPodiumYou,
 } from '@/lib/weekPodium';
+import { clampScheduleDays } from '@/lib/scheduleDays';
 
 export async function GET() {
   try {
@@ -57,7 +58,11 @@ export async function GET() {
       accountExistedBeforeWeek(user.createdAt, weekMonday)
     ) {
       const workouts = await countUserClosedWeekWorkouts(user.id, weekMonday);
-      if (missedTheWeek(workouts)) {
+      // The exact program week that calendar week is not tracked historically, so this
+      // uses the athlete's current chosen count directly rather than looking up a
+      // specific week's bonus-day availability (only weeks 1-2 would differ, and by
+      // the time a week has closed an athlete is almost never still there).
+      if (missedTheWeek(workouts, clampScheduleDays(user.scheduleDaysPerWeek))) {
         const alreadySeen = await hasSeenWeekTakeover(user.id, weekMonday, 'miss');
         if (!alreadySeen) await markWeekTakeoverSeen(user.id, weekMonday, 'miss');
         miss = {

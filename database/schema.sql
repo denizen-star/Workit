@@ -12,6 +12,8 @@ CREATE TABLE users (
     noise_takeover VARCHAR(16) NOT NULL DEFAULT 'set',
     noise_effort VARCHAR(16) NOT NULL DEFAULT 'set',
     show_prs TINYINT(1) NOT NULL DEFAULT 1,
+    schedule_days_per_week TINYINT UNSIGNED NOT NULL DEFAULT 4,
+    schedule_days_asked_week INT NULL,
     invited_by INT NULL,
     invite_token VARCHAR(64) NULL UNIQUE,
     invited_at TIMESTAMP NULL,

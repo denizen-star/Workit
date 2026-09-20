@@ -20,6 +20,8 @@ import { BELTS } from '@/lib/belts';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimUrl, resetUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
+import { clampScheduleDays, daysForWeekFn } from '@/lib/scheduleDays';
+import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -247,24 +249,11 @@ export async function sendWorkoutCompleteBundle(opts: {
      FROM workout_sessions WHERE id = ? AND user_id = ?`,
     [opts.sessionId, opts.userId]
   );
-  const weekDays = await query(
-    `SELECT COUNT(*) as completed_days
-     FROM workout_sessions
-     WHERE user_id = ? AND week_number = ? AND is_completed = 1`,
-    [opts.userId, opts.weekNumber]
-  );
-  const weeks = await query(
-    `SELECT week_number
-     FROM workout_sessions
-     WHERE user_id = ? AND is_completed = 1
-     GROUP BY week_number
-     HAVING COUNT(*) >= 4`,
-    [opts.userId]
-  );
   const sessions = await query(
     'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at FROM workout_sessions WHERE user_id = ?',
     [opts.userId]
   );
+  const userRow = await query('SELECT schedule_days_per_week FROM users WHERE id = ?', [opts.userId]);
 
   const totalRow = totals.rows[0] as {
     volume: number;
@@ -273,9 +262,22 @@ export async function sendWorkoutCompleteBundle(opts: {
   };
   const duration = (timing.rows[0] as { duration_seconds: number | null } | undefined)
     ?.duration_seconds;
-  const weekComplete = Number((weekDays.rows[0] as { completed_days: number })?.completed_days || 0) >= 4;
-  const programComplete = weeks.rows.length >= 6;
-  const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[]);
+
+  const scheduleDays = clampScheduleDays(
+    (userRow.rows[0] as { schedule_days_per_week?: number | null } | undefined)?.schedule_days_per_week
+  );
+  // Persisted count from `locked_weeks` — by the time this async email builder
+  // runs, app/api/sessions/route.ts has already recorded this completion's lock
+  // (if it crossed the bar), so this reflects the true, permanent state rather
+  // than a live recompute against the athlete's current setting.
+  const lockedWeeks = await lockedWeekCountFromTable(opts.userId);
+  const weekLockedRow = await query(
+    'SELECT 1 FROM locked_weeks WHERE user_id = ? AND week_number = ? LIMIT 1',
+    [opts.userId, opts.weekNumber]
+  );
+  const weekComplete = weekLockedRow.rows.length > 0;
+  const programComplete = lockedWeeks >= 6;
+  const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[], undefined, 1, daysForWeekFn(scheduleDays));
   const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
 
   await loadCoachCatalogFromDb();
@@ -283,7 +285,7 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   // Belt and badge, if either was earned by this same session, roll into the one
   // recap email below instead of firing their own separate sends.
-  const earnedBelt = weekComplete ? BELTS.find((belt) => belt.weeks === weeks.rows.length) : undefined;
+  const earnedBelt = weekComplete ? BELTS.find((belt) => belt.weeks === lockedWeeks) : undefined;
   const awarded = opts.awarded ?? (await checkAndAwardBadges(opts.userId));
   const emailBadges = awarded
     .filter((badge) => BADGE_EMAIL_TYPES.has(badge.requirement_type))
@@ -302,7 +304,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     weekComplete,
     programComplete,
     nextLabel,
-    lockedWeeks: weeks.rows.length,
+    lockedWeeks,
     tone,
     badges: emailBadges,
     belt: earnedBelt ?? null,

@@ -1,11 +1,12 @@
-import { getUserTone } from '@/lib/auth';
+import { getUserTone, markScheduleDaysAsked } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
-import { whoUrl } from '@/lib/emailLayout';
+import { loginUrl, whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
 import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimAndSend } from '@/lib/emails/send';
-import { buildNudgeEmail } from '@/lib/emails/templates';
+import { buildNudgeEmail, buildScheduleDaysAskEmail } from '@/lib/emails/templates';
+import { clampScheduleDays, daysForWeekFn, isScheduleDaysAskWeek } from '@/lib/scheduleDays';
 
 const TRAINING_DAYS = new Set(['Monday', 'Tuesday', 'Thursday', 'Friday']);
 
@@ -38,7 +39,15 @@ function trainedToday(sessions: WorkoutSessionRow[], date: string) {
   });
 }
 
-export async function sendNudgesForUser(user: { id: number; name: string; email: string | null }) {
+export async function sendNudgesForUser(
+  user: {
+    id: number;
+    name: string;
+    email: string | null;
+    schedule_days_per_week?: number | null;
+    schedule_days_asked_week?: number | null;
+  }
+) {
   if (!user.email) return { sent: false, skipped: 'no-address' };
 
   const result = await query(
@@ -47,7 +56,8 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
   );
   const sessions = result.rows as WorkoutSessionRow[];
   const { weekday, date } = todayInNewYork();
-  const target = getTodayTarget(sessions);
+  const scheduleDays = clampScheduleDays(user.schedule_days_per_week);
+  const target = getTodayTarget(sessions, 1, daysForWeekFn(scheduleDays));
 
   if (target.type === 'done') {
     return { sent: false, skipped: 'program-complete' };
@@ -67,6 +77,28 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
 
   if (!target.week || !target.day) {
     return { sent: false, skipped: 'no-target' };
+  }
+
+  // Same 6-week checkpoint as the Home takeover (ScheduleDaysAskTakeover) — fired
+  // from the daily nudge run so it reaches them even on a day they don't open the
+  // app. Dedupe key includes the user id: unlike the day-specific nudge below,
+  // every athlete near this week number hits the same boundary at once.
+  if (isScheduleDaysAskWeek(target.week.weekNumber) && user.schedule_days_asked_week !== target.week.weekNumber) {
+    await loadCoachCatalogFromDb();
+    const askEmail = buildScheduleDaysAskEmail({
+      name: user.name,
+      scheduleDaysPerWeek: scheduleDays,
+      loginUrl: loginUrl(),
+    });
+    const askResult = await claimAndSend({
+      userId: user.id,
+      athleteName: user.name,
+      template: 'schedule_days_ask',
+      dedupeKey: 'user:' + user.id + ':week:' + target.week.weekNumber,
+      to: user.email,
+      email: askEmail,
+    });
+    if (askResult.sent) await markScheduleDaysAsked(user.id, target.week.weekNumber);
   }
 
   const template = target.type === 'resume' ? 'resume' : 'nudge';
@@ -111,10 +143,16 @@ export async function sendNudgesForUser(user: { id: number; name: string; email:
 
 export async function sendDailyNudges() {
   const users = await query(
-    'SELECT id, name, email FROM users WHERE email IS NOT NULL AND pin_hash IS NOT NULL'
+    'SELECT id, name, email, schedule_days_per_week, schedule_days_asked_week FROM users WHERE email IS NOT NULL AND pin_hash IS NOT NULL'
   );
   const results = [];
-  for (const user of users.rows as { id: number; name: string; email: string | null }[]) {
+  for (const user of users.rows as {
+    id: number;
+    name: string;
+    email: string | null;
+    schedule_days_per_week?: number | null;
+    schedule_days_asked_week?: number | null;
+  }[]) {
     results.push({
       userId: user.id,
       name: user.name,

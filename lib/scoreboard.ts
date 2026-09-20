@@ -1,4 +1,4 @@
-import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 import { displayBelt } from '@/lib/belts';
 import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
@@ -220,7 +220,7 @@ async function householdScoreboardFiltered(
   }
 
   const [lockedByUser, lastByUser, best, effortBest, badges] = await Promise.all([
-    lockedWeeksByUser(),
+    lockedWeeksByUserFromTable(),
     lastWorkoutByUser(),
     query(
       `SELECT user_id, MAX(session_volume) as best_session
@@ -332,7 +332,7 @@ export async function emptySnapshotRow(
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
   const badgeWindow = sqlPeriodWindow('ub.earned_at', window);
   const [lockedByUser, lastByUser, badges] = await Promise.all([
-    lockedWeeksByUser(),
+    lockedWeeksByUserFromTable(),
     lastWorkoutByUser(),
     query(
       `SELECT COUNT(*) as badges FROM user_badges ub WHERE ub.user_id = ?${badgeWindow.sql}`,

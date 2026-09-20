@@ -1,8 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
 import { householdBeltRows } from '@/lib/beltHousehold';
-import { lockedWeekCount, progressFor } from '@/lib/belts';
-import { query } from '@/lib/db';
+import { progressFor } from '@/lib/belts';
+import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
 
 export async function GET() {
   try {
@@ -11,20 +11,13 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const [mine, household] = await Promise.all([
-      query(
-        'SELECT week_number, is_completed FROM workout_sessions WHERE user_id = ?',
-        [user.id]
-      ),
+    const [lockedWeeks, household] = await Promise.all([
+      lockedWeekCountFromTable(user.id),
       householdBeltRows(user.householdId),
     ]);
 
     return NextResponse.json({
-      ...progressFor(
-        lockedWeekCount(mine.rows as Array<{ week_number: number; is_completed: unknown }>),
-        user.coachTone,
-        user.callName
-      ),
+      ...progressFor(lockedWeeks, user.coachTone, user.callName),
       household,
     });
   } catch (error) {

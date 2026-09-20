@@ -2,6 +2,8 @@ import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
+import { clampScheduleDays, requiredCountForWeek } from '@/lib/scheduleDays';
+import { lockedWeekNumbers } from '@/lib/lockedWeeks';
 
 export type AwardedBadge = {
   id: number;
@@ -47,22 +49,24 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       total_weight_lifted: number;
     };
 
-    const weeklyCompletion = await query(
-      `SELECT week_number, COUNT(*) as completed_days
-       FROM workout_sessions
-       WHERE user_id = ? AND is_completed = true
-       GROUP BY week_number
-       HAVING completed_days >= 4`,
-      [userId]
+    // This athlete's own chosen day count — see lib/scheduleDays.ts. A flat SQL
+    // HAVING can't vary per week (weeks 1-2 have no bonus day, so a 5-day athlete's
+    // required count is naturally 4 there), so completion is filtered in JS for the
+    // per-week checks below (optionalWeeks, travel_week, perfectWeeks) that don't
+    // have a persisted equivalent. Weekly-completion/streak/program-complete instead
+    // read the persisted `locked_weeks` table (lib/lockedWeeks.ts) — a week that
+    // already locked stays counted even if the athlete later changes this setting.
+    const userRow = await query('SELECT schedule_days_per_week FROM users WHERE id = ?', [userId]);
+    const scheduleDays = clampScheduleDays(
+      (userRow.rows[0] as { schedule_days_per_week?: number | null } | undefined)?.schedule_days_per_week
     );
+    const requiredForWeek = requiredCountForWeek(scheduleDays);
 
-    const completedWeeks = weeklyCompletion.rows.length;
+    const weeks = await lockedWeekNumbers(userId);
+    const completedWeeks = weeks.length;
 
     let consecutiveWeeks = 0;
-    if (weeklyCompletion.rows.length > 0) {
-      const weeks = (weeklyCompletion.rows as { week_number: number }[])
-        .map((r) => r.week_number)
-        .sort((a, b) => a - b);
+    if (weeks.length > 0) {
       let streak = 1;
       for (let i = 1; i < weeks.length; i++) {
         if (weeks[i] === weeks[i - 1] + 1) {
@@ -91,18 +95,25 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       bonus_weeks: number;
     };
 
-    const optionalWeeks = await query(
-      `SELECT COUNT(*) as optional_weeks
-       FROM (
-         SELECT week_number
-         FROM workout_sessions
-         WHERE user_id = ?
-         GROUP BY week_number
-         HAVING SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
-            AND SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) >= 4
-       ) weeks`,
+    // Same fairness reasoning as weeklyCompletion above: a 2-3 day athlete never
+    // trains 4 sessions in a week, so the warmup/cooldown week-complete bar has to
+    // scale with their own required count instead of a flat 4.
+    const optionalWeeksRaw = await query(
+      `SELECT
+         week_number,
+         SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END) as warmup_n,
+         SUM(CASE WHEN cooldown_completed_at IS NOT NULL THEN 1 ELSE 0 END) as cooldown_n
+       FROM workout_sessions
+       WHERE user_id = ?
+       GROUP BY week_number`,
       [userId]
     );
+    const optionalWeeksCount = (
+      optionalWeeksRaw.rows as { week_number: number; warmup_n: number; cooldown_n: number }[]
+    ).filter((row) => {
+      const required = requiredForWeek(Number(row.week_number));
+      return Number(row.warmup_n) >= required && Number(row.cooldown_n) >= required;
+    }).length;
     const optionalSlots = await query(
       `SELECT
          SUM(CASE WHEN warmup_completed_at IS NOT NULL THEN 1 ELSE 0 END)
@@ -112,9 +123,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       [userId]
     );
     const optionalRow = {
-      optional_weeks: Number(
-        (optionalWeeks.rows[0] as { optional_weeks: number } | undefined)?.optional_weeks || 0
-      ),
+      optional_weeks: optionalWeeksCount,
       optional_slots: Number(
         (optionalSlots.rows[0] as { optional_slots: number } | undefined)?.optional_slots || 0
       ),
@@ -158,7 +167,9 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'weight_milestone', value: userStats.total_weight_lifted, comparison: 'gte' },
       { type: 'total_workouts', value: userStats.completed_workouts, comparison: 'gte' },
       { type: 'program_complete', value: completedWeeks >= 6 },
-      { type: 'travel_week', value: Number(extra?.travel_days || 0) >= 4 },
+      // Not week-scoped (a running lifetime count of travel-mode days), so it uses
+      // the athlete's own count directly rather than a per-week lookup.
+      { type: 'travel_week', value: Number(extra?.travel_days || 0) >= Math.min(scheduleDays, 4) },
       { type: 'upper_sessions', value: Number(extra?.upper_days || 0), comparison: 'gte' },
       { type: 'lower_sessions', value: Number(extra?.lower_days || 0), comparison: 'gte' },
       { type: 'session_volume', value: maxSessionVolume, comparison: 'gte' },
@@ -189,18 +200,24 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       }
     }
 
-    const perfectWeeks = await query(
-      `SELECT ws.week_number
+    const perfectWeeksRaw = await query(
+      `SELECT ws.week_number, COUNT(*) as completed_days,
+              SUM(CASE WHEN NOT EXISTS (
+                SELECT 1 FROM exercise_sets es
+                WHERE es.workout_session_id = ws.id AND es.is_completed = false
+              ) THEN 1 ELSE 0 END) as full_days
        FROM workout_sessions ws
        WHERE ws.user_id = ? AND ws.is_completed = true
-       GROUP BY ws.week_number
-       HAVING COUNT(*) >= 4 AND 
-              SUM(CASE WHEN NOT EXISTS (
-                SELECT 1 FROM exercise_sets es 
-                WHERE es.workout_session_id = ws.id AND es.is_completed = false
-              ) THEN 1 ELSE 0 END) = COUNT(*)`,
+       GROUP BY ws.week_number`,
       [userId]
     );
+    const perfectWeeks = {
+      rows: (perfectWeeksRaw.rows as { week_number: number; completed_days: number; full_days: number }[]).filter(
+        (row) =>
+          Number(row.completed_days) >= requiredForWeek(Number(row.week_number)) &&
+          Number(row.full_days) === Number(row.completed_days)
+      ),
+    };
 
     if (perfectWeeks.rows.length > 0) {
       const perfectBadge = await query('SELECT * FROM badges WHERE requirement_type = ?', [

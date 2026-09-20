@@ -22,7 +22,7 @@ Redirect to `/login`. Old `?claim=` → `/join?claim=`. Old `?reset=` → `/logi
 ## `/join`
 
 - No query or `h=og` without claim → `/login`
-- `h=gowanus`: intro → form (first, last, alias, email, optional phone/weight/photo) + waiver checkbox/sheet → PIN
+- `h=gowanus`: intro → form (first, last, alias, email, optional phone/weight/photo, days-per-week slider 2-5 default 4) + waiver checkbox/sheet → PIN
 - `h=` + `claim=`: same steps for that house; no verify mail; session on finish
 - New Gowanus: account after PIN; Home after verify mail
 - Draft on the phone until PIN
@@ -44,7 +44,7 @@ Public waiver text.
   - Restart (open session)
   - Last-week medal in the header row if you placed (not over the whole card)
   - Four window KPIs (last 15 days vs last time those lifts ran). Totals abbreviate (`12k`) app-wide; logged set load stays exact. Effort under Effective is How hard · factor (`4.3 · 1.13`), not a percent.
-- Week lock (four required days; volume + % vs last time on tiles; optionals n/8 under the row)
+- Week lock (2-5 required days per your own setting; volume + % vs last time on tiles; an already-locked week's count stays fixed even after you change your setting; optionals n/8 under the row)
 - Week performance (More load / More reps / Less drop / Less cut; count / compared + %)
 - Daily weight lifted (`?` helper)
 - **Your performance** (folded): next workout, or last workout the day after a finish / when the week is locked. Card deep-links to `/performance?tab=analytics` with period, that day, grain=workout
@@ -52,7 +52,7 @@ Public waiver text.
 - **Your trophies** (folded): Yours / Aiming / Next. Opens `/belts`
 - **You vs** (folded, hidden for Test): 7d / 30d / All time. You | Last | them (House if you are alone). Next + up/down arrows rank this house only, Test out, including zeros. Last = last time you posted those numbers. Place, Best day, honor, optional lbs, run+bike in the table.
 
-Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login Quickstart takeover (see below). Test never places or gets the miss roast.
+Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login Quickstart takeover (see below) · days-per-week check-in every 6 program weeks (`ScheduleDaysAskTakeover`; Save updates the count, ignoring it keeps it until the next boundary). Test never places or gets the miss roast.
 
 **First-login sequence**: waiver gate (`UpdateProfileGate`, if `waiverAccepted` is false) runs first and blocks everything else; once it closes, a brand-new athlete gets the `QuickstartTakeover` (same 3 steps as `/quickstart`, full-screen, "Let's go" or "Read the full guide" both dismiss it) exactly once, gated on `users.quickstart_seen_at` (`migrate-quickstart-seen.sql`; already on prod — re-run = duplicate column). If `quickstart_seen_at` is ever unselectable (column missing), `quickstartSeen` reads as `true` and the takeover just never fires — no crash. Note: `lib/auth.ts`'s column-fallback mode is cached per server process, so a running dev server needs a restart after this migration lands to pick the column back up.
 
@@ -62,7 +62,7 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login 
 
 - Header: back + title + menu
 - Week list (locked weeks start folded; open session opens that week)
-- Day cards: Gym/Travel pill on unstarted or in-progress days
+- Day cards: Gym/Travel pill on unstarted or in-progress days. 2-3 day/week athletes see Full Body days instead of the split; 5-day athletes see the bonus day badged "Bonus · Required" instead of plain "Bonus"
 - Finished days: `CompletedSessionCard` + Do Again
 - Bonus Extra credit copy + rest-between-uppers hint (when relevant)
 
@@ -102,7 +102,7 @@ Header via `YouPageShell` (Dashboard back + title + menu). On for Test.
 
 ## `/history` — Completed
 
-- Week folds (check at 4/4)
+- Week folds (check at your required count, or the locked count if that week already locked under a different setting)
 - Closed session cards (`CompletedSessionCard`): check + lbs · reps · time
 - `?week=` `&day=` still used by View leftovers
 
@@ -131,7 +131,7 @@ Single-page user guide, replacing the old `/how` and `/about`. Linked from the m
 - Your Coach (what the coach voices do, where they show up, the 4 coach cards from `COACH_TONE_OPTIONS`)
 - App Pages (one card per athlete-menu destination: Home, Your performance, The house, Completed log, Belts, Medals, Edit profile, Invite a friend)
 - Training Mechanics (logging a set, Gym vs Travel, week lock, miss the week, bonus & optionals)
-- Program & Belts (48-week shape)
+- Program & Belts (48-week shape; days-per-week setting and that a locked week stays locked)
 - Glossary (History, Avg Effective, Best, Volume, Effort, Noise Control)
 
 ## Menu (home + You pages + admin)
@@ -181,7 +181,7 @@ Kevin only.
 
 ## `/admin/mail` — Mail
 
-- Template picker (welcome, invite, PIN reset, nudges, recap, week, program, badge, diploma, scoreboard, What's new)
+- Template picker (welcome, invite, PIN reset, nudges, recap, week, program, badge, diploma, scoreboard, days-per-week check-in, What's new)
 - Preview
 - Sample send
 - Run nudges / force scoreboard
@@ -189,5 +189,5 @@ Kevin only.
 ## Shared overlays (any logged-in page)
 
 - Talk to me
-- Edit profile (coach, sound, extra rest minutes)
+- Edit profile (coach, sound, extra rest minutes, days per week)
 - Invite a friend

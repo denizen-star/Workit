@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { lockedWeekCount } from '@/lib/belts';
 import { hyroxEligible } from '@/lib/hyroxEligibility';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
 import { hyroxWeeksElapsed, resumeNormalWeek, type HyroxStateRow } from '@/lib/hyroxState';
 import { findNextProgramDay, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { workoutProgram } from '@/lib/workoutData';
+import { daysForWeekFn } from '@/lib/scheduleDays';
+import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
 
 type SessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
   program_track?: string | null;
@@ -65,7 +66,7 @@ export async function GET() {
   const resumeFloor = state && !active ? Number(state.normal_week_at_start) : 1;
 
   return NextResponse.json({
-    eligible: hyroxEligible(mainSessions),
+    eligible: hyroxEligible(await lockedWeekCountFromTable(user.id)),
     active,
     resumeFloor,
     state: state
@@ -109,11 +110,16 @@ export async function POST(request: NextRequest) {
 
     const allSessions = await loadSessions(user.id);
     const mainSessions = allSessions.filter((row) => (row.program_track || 'main') === 'main');
-    if (!hyroxEligible(mainSessions)) {
+    if (!hyroxEligible(await lockedWeekCountFromTable(user.id))) {
       return NextResponse.json({ error: 'Not eligible yet' }, { status: 403 });
     }
 
-    const position = findNextProgramDay(mainSessions as WorkoutSessionRow[], workoutProgram);
+    const position = findNextProgramDay(
+      mainSessions as WorkoutSessionRow[],
+      workoutProgram,
+      1,
+      daysForWeekFn(user.scheduleDaysPerWeek)
+    );
     const normalWeek = position?.week.weekNumber ?? 1;
     const normalDay = position?.day.dayNumber ?? 1;
 

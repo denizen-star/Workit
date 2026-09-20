@@ -301,8 +301,8 @@ export async function countUserClosedWeekWorkouts(userId: number, monday: string
   return Number((result.rows[0] as { n: number } | undefined)?.n || 0);
 }
 
-export function missedTheWeek(workouts: number) {
-  return workouts < REQUIRED_DAYS_TO_LOCK;
+export function missedTheWeek(workouts: number, requiredCount = REQUIRED_DAYS_TO_LOCK) {
+  return workouts < requiredCount;
 }
 
 /**

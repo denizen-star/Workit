@@ -15,6 +15,7 @@ import {
 import { parsePhotoDataUrl } from '@/lib/photo';
 import { WAIVER_TEXT } from '@/lib/waiver';
 import { queueJoinWelcome } from '@/lib/emails/lifecycle';
+import { clampScheduleDays } from '@/lib/scheduleDays';
 
 export async function GET(request: NextRequest) {
   try {
@@ -57,6 +58,7 @@ export async function POST(request: NextRequest) {
       body.bodyWeightLb == null || body.bodyWeightLb === ''
         ? null
         : Number(body.bodyWeightLb);
+    const scheduleDaysPerWeek = clampScheduleDays(body.scheduleDaysPerWeek);
     const pin = typeof body.pin === 'string' ? body.pin : '';
     const confirmPin = typeof body.confirmPin === 'string' ? body.confirmPin : '';
     const accepted = body.acceptedWaiver === true;
@@ -102,12 +104,13 @@ export async function POST(request: NextRequest) {
         `UPDATE users SET
            name = ?, first_name = ?, last_name = ?, display_name = ?, email = ?, phone = ?,
            body_weight_lb = ?, pin_hash = ?, invite_token = NULL, coach_tone = COALESCE(coach_tone, 'eli'),
+           schedule_days_per_week = ?,
            waiver_text = ?, waiver_accepted_at = UTC_TIMESTAMP(), email_verified_at = UTC_TIMESTAMP()
            ${photo ? ', photo = ?' : ''}
          WHERE id = ?`,
         photo
-          ? [name, firstName, lastName, displayName, email, phone, weight, hashPin(pin), WAIVER_TEXT, photo, waiting.id]
-          : [name, firstName, lastName, displayName, email, phone, weight, hashPin(pin), WAIVER_TEXT, waiting.id]
+          ? [name, firstName, lastName, displayName, email, phone, weight, hashPin(pin), scheduleDaysPerWeek, WAIVER_TEXT, photo, waiting.id]
+          : [name, firstName, lastName, displayName, email, phone, weight, hashPin(pin), scheduleDaysPerWeek, WAIVER_TEXT, waiting.id]
       );
       await addHouseholdMember(house.id, waiting.id);
       await query('UPDATE users SET last_household_id = ? WHERE id = ?', [house.id, waiting.id]);
@@ -145,13 +148,14 @@ export async function POST(request: NextRequest) {
     const name = composeFullName(firstName, lastName);
     const result = await query(
       `INSERT INTO users (
-         name, email, pin_hash, coach_tone, first_name, last_name, display_name, phone,
+         name, email, pin_hash, coach_tone, schedule_days_per_week, first_name, last_name, display_name, phone,
          body_weight_lb, photo, waiver_text, waiver_accepted_at, email_verified_at, last_household_id
-       ) VALUES (?, ?, ?, 'eli', ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, ?)`,
+       ) VALUES (?, ?, ?, 'eli', ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, ?)`,
       [
         name,
         email,
         hashPin(pin),
+        scheduleDaysPerWeek,
         firstName,
         lastName,
         displayName,

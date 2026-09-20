@@ -62,6 +62,12 @@ export type PinResetEmailInput = {
   resetUrl: string;
 };
 
+export type ScheduleDaysAskEmailInput = {
+  name: string;
+  scheduleDaysPerWeek: number;
+  loginUrl: string;
+};
+
 export type NudgeEmailInput = {
   name: string;
   mode: 'start' | 'resume';
@@ -585,6 +591,45 @@ export function buildPinResetEmail(input: PinResetEmailInput): BuiltEmail {
   return {
     from: fromFor('master'),
     subject: 'New PIN. Work-It.',
+    html,
+    text,
+  };
+}
+
+/** Every 6 program weeks, in step with the Home takeover, asks whether the
+ * athlete's chosen training frequency still fits. */
+export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): BuiltEmail {
+  const name = firstName(input.name);
+  const days = input.scheduleDaysPerWeek;
+  const html = wrapEmailHtml({
+    eyebrow: 'six weeks in',
+    title: 'Still the right pace?',
+    subtitle: '- Work-It',
+    signer: voiceDisplayName('master'),
+    childrenHtml: [
+      coachPersonaArt('master', 'ok'),
+      address(name),
+      p(
+        `You're set to train ${days} day${days === 1 ? '' : 's'} a week. That is still the plan unless you change it.`
+      ),
+      p('Open Edit profile from the menu to change it anytime.'),
+      cta(input.loginUrl, 'OPEN WORK-IT'),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader('six weeks in', 'Still the right pace?\n- Work-It'),
+    name + '.',
+    '',
+    `You're set to train ${days} day${days === 1 ? '' : 's'} a week. That is still the plan unless you change it.`,
+    'Open Edit profile from the menu to change it anytime.',
+    '',
+    input.loginUrl,
+    '',
+    emailTextSignOff(voiceDisplayName('master')),
+  ].join('\n');
+  return {
+    from: fromFor('master'),
+    subject: 'Still training ' + days + ' days a week? Work-It.',
     html,
     text,
   };
@@ -1233,6 +1278,13 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
     return buildPinResetEmail({
       name: 'Kevin',
       resetUrl: resetUrl('preview'),
+    });
+  }
+  if (template === 'schedule_days_ask') {
+    return buildScheduleDaysAskEmail({
+      name: 'Kevin',
+      scheduleDaysPerWeek: 4,
+      loginUrl: loginUrl(),
     });
   }
   if (template === 'nudge') {

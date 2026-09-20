@@ -156,23 +156,6 @@ export function beltChest(lockedWeeks: number) {
   return { earned, aiming, after };
 }
 
-export function lockedWeekCount(
-  sessions: Array<{ week_number?: number; is_completed?: unknown }>
-) {
-  const byWeek = new Map<number, number>();
-  for (const session of sessions) {
-    if (!Boolean(Number(session.is_completed))) continue;
-    const week = Number(session.week_number);
-    if (!week) continue;
-    byWeek.set(week, (byWeek.get(week) || 0) + 1);
-  }
-  let count = 0;
-  for (const days of byWeek.values()) {
-    if (days >= 4) count += 1;
-  }
-  return count;
-}
-
 /** Earned if locked, aiming if this is the next belt, else not started. */
 export function beltState(lockedWeeks: number, belt: Belt): BeltState {
   if (lockedWeeks >= belt.weeks) return 'after';

@@ -5,6 +5,7 @@ import { sqlSetEffortVolume, sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import { lockedWeekStreak } from '@/lib/bonusDay';
 import { householdHomeStats } from '@/lib/statsHousehold';
+import { lockedWeekNumbers } from '@/lib/lockedWeeks';
 
 export async function GET(request: NextRequest) {
   try {
@@ -54,21 +55,7 @@ export async function GET(request: NextRequest) {
       [userId]
     );
 
-    const weekCounts = await query(
-      `SELECT week_number, COUNT(CASE WHEN is_completed THEN 1 END) as completed_days
-       FROM workout_sessions
-       WHERE user_id = ?
-       GROUP BY week_number`,
-      [userId]
-    );
-    const currentStreak = lockedWeekStreak(
-      new Map(
-        (weekCounts.rows as { week_number: number; completed_days: number }[]).map((row) => [
-          Number(row.week_number),
-          Number(row.completed_days || 0),
-        ])
-      )
-    );
+    const currentStreak = lockedWeekStreak(await lockedWeekNumbers(userId));
 
     const durationStats = home
       ? { rows: [{}] }

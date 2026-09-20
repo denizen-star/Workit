@@ -24,6 +24,14 @@ import {
   type WorkoutSessionRow,
 } from '@/lib/nextWorkout';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import {
+  athleteRequiredDays,
+  athleteWeekDays,
+  clampScheduleDays,
+  daysForWeekFn,
+  DEFAULT_SCHEDULE_DAYS,
+  resolveFullBodyDay,
+} from '@/lib/scheduleDays';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import { usePortraitLock } from '@/lib/usePortraitLock';
@@ -48,7 +56,7 @@ import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref'
 import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
-import { beltWashStyle, displayBelt, lockedWeekCount } from '@/lib/belts';
+import { beltWashStyle, displayBelt } from '@/lib/belts';
 import { bonusActivityType } from '@/lib/bonusActivity';
 import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
 import { recapExerciseRows, type CompareRow } from '@/lib/compareTable';
@@ -67,6 +75,9 @@ function WorkoutPageInner() {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [completedWorkouts, setCompletedWorkouts] = useState<Set<string>>(new Set());
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
+  const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
+    Map<number, { requiredCount: number; completedCount: number }>
+  >(new Map());
   const [startedAt, setStartedAt] = useState<number | null>(null);
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
@@ -114,6 +125,10 @@ function WorkoutPageInner() {
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [athleteName, setAthleteName] = useState('');
   const [soundOn, setSoundOn] = useState(true);
+  const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  // Persisted count from `locked_weeks` (server), not recomputed locally — see
+  // lib/lockedWeeks.ts.
+  const [lockedWeeks, setLockedWeeks] = useState(0);
   const [restExtraMinutes, setRestExtraMinutes] = useState(0);
   const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>('set');
   const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>('set');
@@ -181,6 +196,7 @@ function WorkoutPageInner() {
           setNoiseTakeover(normalizeNoiseLevel(data.user.noiseTakeover));
           setNoiseEffort(normalizeNoiseLevel(data.user.noiseEffort));
           setShowPrs(normalizeShowPrs(data.user.showPrs));
+          setScheduleDays(clampScheduleDays(data.user.scheduleDaysPerWeek));
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
@@ -343,6 +359,17 @@ function WorkoutPageInner() {
         const data = await response.json();
         const rows: WorkoutSessionRow[] = data.sessions || [];
         setSessions(rows);
+        setLockedWeeks(Number(data.lockedWeeks || 0));
+        setLockedWeeksDetail(
+          new Map(
+            (data.lockedWeeksDetail || []).map(
+              (row: { weekNumber: number; requiredCount: number; completedCount: number }) => [
+                row.weekNumber,
+                { requiredCount: row.requiredCount, completedCount: row.completedCount },
+              ]
+            )
+          )
+        );
         setCompletedWorkouts(
           new Set(
             rows
@@ -352,7 +379,7 @@ function WorkoutPageInner() {
         );
         if (!selectWeekInit.current) {
           selectWeekInit.current = true;
-          setExpandedWeek(defaultSelectWeek(rows));
+          setExpandedWeek(defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays)));
         }
         if (historyRes.ok) {
           const historyData = await historyRes.json();
@@ -389,7 +416,11 @@ function WorkoutPageInner() {
   ) => {
     try {
       const week = program.find((item) => item.weekNumber === weekNumber);
-      const day = week?.days.find((item) => item.dayNumber === dayNumber);
+      // Full-body days (2-3 day/week athletes, dayNumber 6+) aren't in the static
+      // program array — they're synthesized per-athlete (lib/scheduleDays.ts) —
+      // so a plain array lookup always misses them. Without this fallback, this
+      // silently no-ops: the athlete clicks Start and nothing happens.
+      const day = week?.days.find((item) => item.dayNumber === dayNumber) ?? resolveFullBodyDay(weekNumber, dayNumber);
       if (!day) return;
 
       if (!options?.forceNew) {
@@ -694,7 +725,11 @@ function WorkoutPageInner() {
 
   const getCurrentWorkout = () => {
     const week = program.find((item) => item.weekNumber === selectedWeek);
-    return week?.days.find((item) => item.dayNumber === selectedDay);
+    const found = week?.days.find((item) => item.dayNumber === selectedDay);
+    // Same full-body fallback as startWorkout() above — without it, the live
+    // session for a full-body day renders blank (`if (!workout) return null`
+    // below reads as a dead page, not an error).
+    return found ?? (selectedDay != null ? resolveFullBodyDay(selectedWeek, selectedDay) : undefined);
   };
 
   const pickedMode = (weekNumber: number, dayNumber: number, incomplete?: WorkoutSessionRow | null) => {
@@ -711,7 +746,7 @@ function WorkoutPageInner() {
     const workout = getCurrentWorkout();
     if (!workout) return null;
 
-    const wash = beltWashStyle(displayBelt(lockedWeekCount(sessions)));
+    const wash = beltWashStyle(displayBelt(lockedWeeks));
     return (
       <div
         className={hyroxMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
@@ -918,7 +953,7 @@ function WorkoutPageInner() {
           open={showAwards}
           belt={earnedBelt}
           badges={awardedBadges}
-          accent={displayBelt(lockedWeekCount(sessions))}
+          accent={displayBelt(lockedWeeks)}
           tone={coachTone}
           step={4}
           totalSteps={finishTotalSteps}
@@ -1011,7 +1046,15 @@ function WorkoutPageInner() {
                     Week {hyroxMode ? hyroxDisplayWeek(week.weekNumber) : week.weekNumber}
                   </h2>
                   <span className="text-sm text-[#f6f1e3]/65">
-                    {weekProgressLabel(weekProgress(sessions, week))}
+                    {weekProgressLabel(
+                      weekProgress(
+                        sessions,
+                        week,
+                        undefined,
+                        daysForWeekFn(scheduleDays)(week),
+                        lockedWeeksDetail.get(week.weekNumber)
+                      )
+                    )}
                   </span>
                 </div>
                 {expandedWeek === week.weekNumber ? (
@@ -1026,7 +1069,7 @@ function WorkoutPageInner() {
                   <p className="mb-4 text-sm text-[#f6f1e3]/65">{week.description}</p>
 
                   <div className="grid gap-3">
-                    {week.days.map((day) => {
+                    {athleteWeekDays(week, scheduleDays).map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
                       const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
                       const dayHistory = historySessions.filter(
@@ -1112,7 +1155,14 @@ function WorkoutPageInner() {
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
                                 {isBonusDay(day) ? (
                                   <span className="rounded-full border border-[#e8c547]/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#e8c547]">
-                                    Bonus
+                                    {/* At 5 days/week this bonus day is folded into athleteRequiredDays and
+                                        counts toward the week lock — "Bonus" alone would misleadingly read
+                                        as skippable, so say so plainly instead. */}
+                                    {athleteRequiredDays(week, scheduleDays).some(
+                                      (required) => required.dayNumber === day.dayNumber
+                                    )
+                                      ? 'Bonus · Required'
+                                      : 'Bonus'}
                                   </span>
                                 ) : null}
                               </div>
@@ -1232,7 +1282,7 @@ function WorkoutPageInner() {
         open={showAwards}
         belt={earnedBelt}
         badges={awardedBadges}
-        accent={displayBelt(lockedWeekCount(sessions))}
+        accent={displayBelt(lockedWeeks)}
         tone={coachTone}
         step={4}
         totalSteps={finishTotalSteps}

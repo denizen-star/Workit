@@ -8,6 +8,7 @@ import WaiverSheet from '@/components/WaiverSheet';
 import { JOIN_INTRO_BULLETS, JOIN_INTRO_LEAD, JOIN_INTRO_TITLE } from '@/lib/joinCopy';
 import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
+import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 
 const DRAFT_KEY = 'workit_join_draft';
 
@@ -34,6 +35,7 @@ export default function JoinPage() {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [bodyWeightLb, setBodyWeightLb] = useState('');
+  const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
   const [waiverOpen, setWaiverOpen] = useState(false);
@@ -106,6 +108,7 @@ export default function JoinPage() {
         phone,
         bodyWeightLb,
         photo,
+        scheduleDaysPerWeek: scheduleDays,
         acceptedWaiver: accepted,
         pin,
         confirmPin: confirmPinValue,
@@ -182,6 +185,29 @@ export default function JoinPage() {
               hint="optional"
             />
             <Field label="Weight (lb)" value={bodyWeightLb} onChange={setBodyWeightLb} hint="optional" />
+            <div>
+              <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
+                Days per week · {scheduleDays}
+                {scheduleDays === DEFAULT_SCHEDULE_DAYS ? ' (recommended)' : ''}
+              </span>
+              <input
+                type="range"
+                min={MIN_SCHEDULE_DAYS}
+                max={MAX_SCHEDULE_DAYS}
+                step={1}
+                value={scheduleDays}
+                onChange={(event) => setScheduleDays(Number(event.target.value))}
+                className="mt-2 w-full accent-[#e8c547]"
+              />
+              <p className="mt-1 text-sm text-[#f6f1e3]/60">
+                {scheduleDays <= 3
+                  ? 'Full-body days so nothing gets skipped on a short week.'
+                  : scheduleDays === MAX_SCHEDULE_DAYS
+                    ? 'The bonus day becomes part of your required week.'
+                    : 'The program’s normal upper/lower split.'}
+                {' '}Change this anytime in Edit profile.
+              </p>
+            </div>
             <label className="flex items-start gap-3 text-sm text-[#f6f1e3]/80">
               <input
                 type="checkbox"

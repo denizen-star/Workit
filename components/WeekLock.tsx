@@ -4,11 +4,12 @@ import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { HelpTip } from '@/components/HelpSheet';
 import { HOME_WEEK_LOCK_HELP } from '@/lib/helpCopy';
-import { bonusCompletedInWeek, requiredDays, weekProgress } from '@/lib/bonusDay';
+import { bonusCompletedInWeek, isBonusDay, weekProgress } from '@/lib/bonusDay';
 import type { AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 import { optionalCountInWeek, sessionOptionalLbs } from '@/lib/optionals';
+import { athleteRequiredDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { dayPctLabel, dayVolumeStats, weekDoneVolume } from '@/lib/weekLockStats';
 import type { WeekPlan, WorkoutDay } from '@/lib/workoutData';
 
@@ -27,8 +28,11 @@ function isDayDone(day: WorkoutDay, week: WeekPlan, sessions: WorkoutSessionRow[
 
 const LEGEND = 'Gold = start here. Green = done. Dashed = still open.';
 
+function headerHelp(requiredCount: number) {
+  return `${requiredCount} required days this week. ${LEGEND} Lock the week when all ${requiredCount} are green.`;
+}
+
 const HELP: Record<string, string> = {
-  header: `Four required days this week. ${LEGEND} Lock the week when all four are green.`,
   done: 'Green. You finished this required day. Volume is this session. % is vs last time that day ran.',
   now: 'Gold. This is the next unpaid required day. Last is the last time you ran that day.',
   open: 'Dashed. You still owe this day before the week locks. Last is the last time you ran that day.',
@@ -37,9 +41,19 @@ const HELP: Record<string, string> = {
 export default function WeekLock({
   week,
   sessions,
+  scheduleDays = DEFAULT_SCHEDULE_DAYS,
+  lockedRecord,
 }: {
   week: WeekPlan | null;
   sessions: WorkoutSessionRow[];
+  /** Athlete's chosen `schedule_days_per_week` (2-5) — governs how many days this
+   * week requires and, for 2-3 day athletes, swaps in full-body content. */
+  scheduleDays?: number;
+  /** Persisted `locked_weeks` row for this week, if already locked (`lib/lockedWeeks.ts`).
+   * Only affects the header count / fill bar below — the per-day slot cards still
+   * reflect the athlete's *current* schedule, since there's no way to retroactively
+   * say which specific slot a since-changed day set was "done" under. */
+  lockedRecord?: { requiredCount: number; completedCount: number };
 }) {
   const [help, setHelp] = useState<string | null>(null);
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
@@ -63,8 +77,8 @@ export default function WeekLock({
 
   if (!week) return null;
 
-  const required = requiredDays(week);
-  const progress = weekProgress(sessions, week);
+  const required = athleteRequiredDays(week, scheduleDays);
+  const progress = weekProgress(sessions, week, undefined, required, lockedRecord);
   const nextUnpaid = required.find((day) => !isDayDone(day, week, sessions));
   const workouts = board?.workouts || [];
   const weekVolume = weekDoneVolume(
@@ -77,6 +91,10 @@ export default function WeekLock({
     .filter((session) => Number(session.week_number) === week.weekNumber)
     .reduce((sum, session) => sum + sessionOptionalLbs(session), 0);
   const bonusDone = bonusCompletedInWeek(sessions, week.weekNumber);
+  // At 5 days/week the bonus day is already folded into `required` above (its own
+  // tile, counted in the header/fill bar) — a separate "Bonus" line here would
+  // read as a second, still-optional thing when it's actually the same day.
+  const bonusIsSeparateFromRequired = !required.some((day) => isBonusDay(day));
   const slots = required.map((day) => ({
     day,
     state: isDayDone(day, week, sessions)
@@ -92,7 +110,7 @@ export default function WeekLock({
       <div className="mb-3 flex items-center gap-1 text-base">
         <button
           type="button"
-          onClick={() => setHelp(HELP.header)}
+          onClick={() => setHelp(headerHelp(required.length))}
           className="font-semibold text-white"
         >
           {progress.requiredDone} of {progress.requiredTotal} days
@@ -106,7 +124,7 @@ export default function WeekLock({
         />
         <button
           type="button"
-          onClick={() => setHelp(HELP.header)}
+          onClick={() => setHelp(headerHelp(required.length))}
           className="ml-auto text-[#f6f1e3]/60"
         >
           Lock the week
@@ -175,8 +193,8 @@ export default function WeekLock({
         })}
       </div>
       <p className="mt-3 text-sm text-[#f6f1e3]/70">
-        Optionals {optionals.total} / 8 · {optionalLbs ? `+${formatCompact(optionalLbs)}` : '0'} · Bonus{' '}
-        {bonusDone ? 1 : 0}
+        Optionals {optionals.total} / 8 · {optionalLbs ? `+${formatCompact(optionalLbs)}` : '0'}
+        {bonusIsSeparateFromRequired ? ` · Bonus ${bonusDone ? 1 : 0}` : ''}
       </p>
       <p className="mt-1 text-sm text-[#f6f1e3]/70">{help || LEGEND}</p>
     </div>

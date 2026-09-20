@@ -9,6 +9,7 @@ import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, NOISE_LEVELS, type NoiseLevel } from '@/lib/noisePref';
+import { clampScheduleDays, DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { trackAction } from '@/lib/analytics';
 import PhotoCropField from '@/components/PhotoCropField';
 import { photoSrc } from '@/lib/photo';
@@ -53,6 +54,7 @@ interface EditProfileModalProps {
   currentTone?: CoachTone | string | null;
   currentSoundOn?: boolean | null;
   currentRestExtraMinutes?: number | null;
+  currentScheduleDays?: number | null;
   currentNoiseTakeover?: NoiseLevel | string | null;
   currentNoiseEffort?: NoiseLevel | string | null;
   currentShowPrs?: boolean | null;
@@ -63,6 +65,7 @@ interface EditProfileModalProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    scheduleDaysPerWeek: number;
     noiseTakeover: NoiseLevel;
     noiseEffort: NoiseLevel;
     showPrs: boolean;
@@ -77,6 +80,7 @@ export default function EditProfileModal({
   currentTone = 'master',
   currentSoundOn = true,
   currentRestExtraMinutes = 0,
+  currentScheduleDays = DEFAULT_SCHEDULE_DAYS,
   currentNoiseTakeover = 'set',
   currentNoiseEffort = 'set',
   currentShowPrs = true,
@@ -97,6 +101,7 @@ export default function EditProfileModal({
   const [restExtraMinutes, setRestExtraMinutes] = useState(
     normalizeRestExtraMinutes(currentRestExtraMinutes)
   );
+  const [scheduleDays, setScheduleDays] = useState(clampScheduleDays(currentScheduleDays));
   const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseTakeover));
   const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseEffort));
   const [showPrs, setShowPrs] = useState(normalizeShowPrs(currentShowPrs));
@@ -141,6 +146,7 @@ export default function EditProfileModal({
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
       setRestExtraMinutes(normalizeRestExtraMinutes(currentRestExtraMinutes));
+      setScheduleDays(clampScheduleDays(currentScheduleDays));
       setNoiseTakeover(normalizeNoiseLevel(currentNoiseTakeover));
       setNoiseEffort(normalizeNoiseLevel(currentNoiseEffort));
       setShowPrs(normalizeShowPrs(currentShowPrs));
@@ -164,6 +170,7 @@ export default function EditProfileModal({
     currentTone,
     currentSoundOn,
     currentRestExtraMinutes,
+    currentScheduleDays,
     currentNoiseTakeover,
     currentNoiseEffort,
     currentShowPrs,
@@ -199,6 +206,7 @@ export default function EditProfileModal({
         coachTone: tone,
         soundOn,
         restExtraMinutes,
+        scheduleDaysPerWeek: scheduleDays,
         noiseTakeover,
         noiseEffort,
         showPrs,
@@ -227,6 +235,7 @@ export default function EditProfileModal({
         coachTone: normalizeCoachTone(data.user.coachTone),
         soundOn: nextSoundOn,
         restExtraMinutes: normalizeRestExtraMinutes(data.user.restExtraMinutes),
+        scheduleDaysPerWeek: clampScheduleDays(data.user.scheduleDaysPerWeek),
         noiseTakeover: normalizeNoiseLevel(data.user.noiseTakeover),
         noiseEffort: normalizeNoiseLevel(data.user.noiseEffort),
         showPrs: normalizeShowPrs(data.user.showPrs),
@@ -274,6 +283,27 @@ export default function EditProfileModal({
               <p className="mb-6 text-sm text-[#f6f1e3]/65">
                 Update your name, email, or PIN. Same four digits is allowed.
               </p>
+
+              <p className="mb-2 text-sm font-semibold text-[#f6f1e3]/65">
+                Days per week · {scheduleDays}
+                {scheduleDays === DEFAULT_SCHEDULE_DAYS ? ' (recommended)' : ''}
+              </p>
+              <p className="mb-2 text-xs text-[#f6f1e3]/55">
+                {scheduleDays <= 3
+                  ? 'Full-body days replace the split so a short week still hits every muscle group.'
+                  : scheduleDays === MAX_SCHEDULE_DAYS
+                    ? 'The bonus day becomes part of your required week.'
+                    : "The program's normal upper/lower split."}
+              </p>
+              <input
+                type="range"
+                min={MIN_SCHEDULE_DAYS}
+                max={MAX_SCHEDULE_DAYS}
+                step={1}
+                value={scheduleDays}
+                onChange={(event) => setScheduleDays(Number(event.target.value))}
+                className="mb-6 w-full accent-[#e8c547]"
+              />
 
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">First name</label>
               <input

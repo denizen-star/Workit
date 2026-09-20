@@ -5,6 +5,7 @@ import { normalizeCoachTone, TONE_COOKIE, type CoachTone } from '@/lib/coachTone
 import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
+import { clampScheduleDays, scheduleDaysForUser } from '@/lib/scheduleDays';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
 import { athleteCallName } from '@/lib/profile';
 import { getHouseholdById, householdIdForUser } from '@/lib/household';
@@ -21,6 +22,8 @@ export type SessionUser = {
   noiseTakeover: NoiseLevel;
   noiseEffort: NoiseLevel;
   showPrs: boolean;
+  scheduleDaysPerWeek: number;
+  scheduleDaysAskedWeek: number | null;
   firstName: string | null;
   lastName: string | null;
   displayName: string | null;
@@ -50,6 +53,8 @@ type UserRow = {
   noise_takeover?: string | null;
   noise_effort?: string | null;
   show_prs?: number | boolean | string | null;
+  schedule_days_per_week?: number | string | null;
+  schedule_days_asked_week?: number | string | null;
   first_name?: string | null;
   last_name?: string | null;
   display_name?: string | null;
@@ -65,7 +70,7 @@ type UserRow = {
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -114,6 +119,8 @@ function toSessionUser(
     noiseTakeover: normalizeNoiseLevel(row.noise_takeover),
     noiseEffort: normalizeNoiseLevel(row.noise_effort),
     showPrs: row.show_prs != null ? normalizeShowPrs(row.show_prs) : true,
+    scheduleDaysPerWeek: scheduleDaysForUser({ schedule_days_per_week: row.schedule_days_per_week }),
+    scheduleDaysAskedWeek: row.schedule_days_asked_week == null ? null : Number(row.schedule_days_asked_week),
     firstName: row.first_name ?? null,
     lastName: row.last_name ?? null,
     displayName: row.display_name ?? null,
@@ -162,6 +169,31 @@ export async function updateRestExtraMinutes(userId: number, minutes: number): P
       userId,
     ]);
     userSelectMode = 'rest';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateScheduleDaysPerWeek(userId: number, days: number): Promise<boolean> {
+  try {
+    await query('UPDATE users SET schedule_days_per_week = ? WHERE id = ?', [
+      clampScheduleDays(days),
+      userId,
+    ]);
+    userSelectMode = 'house';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/** Marks the 6-week re-ask as shown for `week` (the program week it appeared on),
+ * whether the athlete changed their count or just dismissed it. */
+export async function markScheduleDaysAsked(userId: number, week: number): Promise<boolean> {
+  try {
+    await query('UPDATE users SET schedule_days_asked_week = ? WHERE id = ?', [week, userId]);
+    userSelectMode = 'house';
     return true;
   } catch {
     return false;

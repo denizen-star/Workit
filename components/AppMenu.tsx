@@ -18,6 +18,7 @@ interface AppMenuProps {
   userTone?: CoachTone | string | null;
   userSoundOn?: boolean | null;
   userRestExtraMinutes?: number | null;
+  userScheduleDays?: number | null;
   userNoiseTakeover?: NoiseLevel | string | null;
   userNoiseEffort?: NoiseLevel | string | null;
   userShowPrs?: boolean | null;
@@ -37,6 +38,7 @@ interface AppMenuProps {
     coachTone: CoachTone;
     soundOn: boolean;
     restExtraMinutes: number;
+    scheduleDaysPerWeek: number;
     noiseTakeover: NoiseLevel;
     noiseEffort: NoiseLevel;
     showPrs: boolean;
@@ -50,6 +52,7 @@ export default function AppMenu({
   userTone = 'master',
   userSoundOn = true,
   userRestExtraMinutes = 0,
+  userScheduleDays = 4,
   userNoiseTakeover = 'set',
   userNoiseEffort = 'set',
   userShowPrs = true,
@@ -390,6 +393,7 @@ export default function AppMenu({
         currentTone={normalizeCoachTone(userTone)}
         currentSoundOn={userSoundOn}
         currentRestExtraMinutes={userRestExtraMinutes}
+        currentScheduleDays={userScheduleDays}
         currentNoiseTakeover={userNoiseTakeover}
         currentNoiseEffort={userNoiseEffort}
         currentShowPrs={userShowPrs}

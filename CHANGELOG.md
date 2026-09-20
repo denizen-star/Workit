@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 7.18.0 - 2026-09-20
+
+### Added
+- Choose your own training frequency, 2 to 5 days a week, instead of everyone training the same fixed schedule. Set it at sign-up, change it anytime in Edit profile — Home checks in every 6 weeks in case your pace changed. 2-3 day plans swap the split for full-body days so a short week never skips a muscle group; 5 days folds the Saturday bonus into your required week. A week you've already locked stays locked, belt and all, even if you change your pace later
+
+### Fixed
+- 2-3 day/week athletes couldn't start their Full Body workouts at all — tapping Start did nothing
+- Select Workout and Home could show an already-finished week as "0 done" right after you changed your training-days setting, even though the week genuinely counted for your belt. The completion count now trusts the locked record instead of re-checking against your new day count
+- Completed log always checked weeks against 4 days regardless of your actual setting — a 2-3 day week could sit unchecked forever, a 5-day week's bonus day wasn't counted
+
 ## 7.17.0 - 2026-09-19
 
 ### Changed

@@ -1,6 +1,7 @@
 import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
-import { isBonusDay, requiredDays, weekLocked } from "@/lib/bonusDay";
+import { requiredDays, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
+import { resolveFullBodyDay } from "@/lib/scheduleDays";
 
 export interface WorkoutSessionRow {
   id: number;
@@ -114,7 +115,13 @@ export function findNextProgramDay(
   program: WeekPlan[] = workoutProgram,
   /** Weeks below this are skipped outright, even if never completed. Used to resume
    * the 48-week program past weeks "spent" on a completed/abandoned Hyrox track. */
-  minWeek = 1
+  minWeek = 1,
+  /** Which days count toward this week for this athlete, and how many are required
+   * to lock it. Defaults to the program's own non-bonus days (today's fixed-4
+   * behavior, and what Hyrox's 5-required weeks already rely on). The normal
+   * program passes `athleteRequiredDays` here to honor the athlete's chosen
+   * `schedule_days_per_week` (see `lib/scheduleDays.ts`) instead. */
+  daysForWeek: (week: WeekPlan) => WorkoutDay[] = requiredDays
 ): { week: WeekPlan; day: WorkoutDay } | null {
   const completed = new Set(
     sessions
@@ -124,11 +131,9 @@ export function findNextProgramDay(
 
   for (const week of program) {
     if (week.weekNumber < minWeek) continue;
-    // Week-specific required count — always 4 for the normal program's weeks,
-    // but Hyrox weeks have 5 required (non-bonus) days.
-    if (weekLocked(sessions, week.weekNumber, requiredDays(week).length)) continue;
-    for (const day of week.days) {
-      if (isBonusDay(day)) continue;
+    const days = daysForWeek(week);
+    if (weekLocked(sessions, week.weekNumber, days.length)) continue;
+    for (const day of days) {
       if (!completed.has(`${week.weekNumber}-${day.dayNumber}`)) {
         return { week, day };
       }
@@ -142,31 +147,46 @@ export function findNextProgramDay(
 export function defaultSelectWeek(
   sessions: WorkoutSessionRow[],
   program: WeekPlan[] = workoutProgram,
-  minWeek = 1
+  minWeek = 1,
+  daysForWeek?: (week: WeekPlan) => WorkoutDay[]
 ): number | null {
   const resume = findIncompleteSession(sessions);
   if (resume) return Number(resume.week_number);
-  return findNextProgramDay(sessions, program, minWeek)?.week.weekNumber ?? null;
+  return findNextProgramDay(sessions, program, minWeek, daysForWeek)?.week.weekNumber ?? null;
 }
 
-/** minWeek resumes the 48-week program past weeks "spent" on a Hyrox track (see findNextProgramDay). */
-export function getTodayTarget(sessions: WorkoutSessionRow[], minWeek = 1) {
+/** minWeek resumes the 48-week program past weeks "spent" on a Hyrox track (see findNextProgramDay).
+ * daysForWeek threads the athlete's `schedule_days_per_week` into the week-lock/next-day decision;
+ * defaults to the program's fixed non-bonus days when omitted. */
+export function getTodayTarget(
+  sessions: WorkoutSessionRow[],
+  minWeek = 1,
+  daysForWeek: (week: WeekPlan) => WorkoutDay[] = requiredDays
+) {
   const resume = findIncompleteSession(sessions);
   if (resume) {
     const week = workoutProgram.find((item) => item.weekNumber === Number(resume.week_number));
-    const day = week?.days.find((item) => item.dayNumber === Number(resume.day_number));
+    // Full-body days (2-3 day/week athletes, dayNumber 6+) aren't in the static
+    // program array — resolve them the same way app/workout/page.tsx does, or an
+    // open full-body session silently falls through to a fresh "start" target
+    // instead of "resume" here (Select Workout still finds it fine on its own,
+    // since it doesn't go through this lookup — this is specifically about what
+    // Home shows).
+    const day =
+      week?.days.find((item) => item.dayNumber === Number(resume.day_number)) ??
+      (week ? resolveFullBodyDay(Number(resume.week_number), Number(resume.day_number)) : undefined);
     if (week && day) {
       return { type: "resume" as const, session: resume, week, day };
     }
   }
 
-  const next = findNextProgramDay(sessions, workoutProgram, minWeek);
+  const next = findNextProgramDay(sessions, workoutProgram, minWeek, daysForWeek);
   if (next && isEasternWeekend()) {
     const prior = workoutProgram.find((item) => item.weekNumber === next.week.weekNumber - 1);
     const nextTouched = sessions.some(
       (session) => Number(session.week_number) === next.week.weekNumber
     );
-    if (prior && weekLocked(sessions, prior.weekNumber) && !nextTouched) {
+    if (prior && weekLocked(sessions, prior.weekNumber, daysForWeek(prior).length) && !nextTouched) {
       return { type: "hold" as const, session: null, week: prior, day: null };
     }
   }

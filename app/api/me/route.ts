@@ -11,11 +11,14 @@ import {
   updateSoundOn,
   updateRestExtraMinutes,
   updateNoisePrefs,
+  updateScheduleDaysPerWeek,
+  markScheduleDaysAsked,
 } from '@/lib/auth';
 import { asCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs } from '@/lib/noisePref';
+import { clampScheduleDays } from '@/lib/scheduleDays';
 import {
   composeFullName,
   formatUsPhone,
@@ -82,6 +85,31 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ success: true });
     }
 
+    // Dismissing the 6-week re-ask (Home takeover) — records the checkpoint whether or
+    // not the athlete actually changed their count in the same request, so it doesn't
+    // resurface until the next boundary.
+    if (typeof body.scheduleDaysAskedWeek === 'number') {
+      await markScheduleDaysAsked(user.id, body.scheduleDaysAskedWeek);
+      let scheduleDaysPerWeek = user.scheduleDaysPerWeek;
+      if (body.scheduleDaysPerWeek !== undefined) {
+        scheduleDaysPerWeek = clampScheduleDays(body.scheduleDaysPerWeek);
+        await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
+      }
+      return NextResponse.json({ success: true, user: { ...user, scheduleDaysPerWeek } });
+    }
+
+    // Edit profile's day-count control can update this alone, same as sound-only.
+    const scheduleDaysOnly =
+      body.scheduleDaysPerWeek !== undefined && body.name == null && body.firstName == null;
+    if (scheduleDaysOnly) {
+      const scheduleDaysPerWeek = clampScheduleDays(body.scheduleDaysPerWeek);
+      await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
+      return NextResponse.json({
+        success: true,
+        user: { ...user, scheduleDaysPerWeek },
+      });
+    }
+
     const soundOnly = typeof body.soundOn === 'boolean' && body.name == null && body.firstName == null;
     if (soundOnly) {
       const soundOn = normalizeSoundOn(body.soundOn);
@@ -114,6 +142,10 @@ export async function PATCH(request: NextRequest) {
       body.restExtraMinutes === undefined
         ? user.restExtraMinutes
         : normalizeRestExtraMinutes(body.restExtraMinutes);
+    const scheduleDaysPerWeek =
+      body.scheduleDaysPerWeek === undefined
+        ? user.scheduleDaysPerWeek
+        : clampScheduleDays(body.scheduleDaysPerWeek);
     const noiseTakeover =
       body.noiseTakeover === undefined ? user.noiseTakeover : normalizeNoiseLevel(body.noiseTakeover);
     const noiseEffort =
@@ -171,6 +203,7 @@ export async function PATCH(request: NextRequest) {
     await updateCoachTone(user.id, coachTone);
     await updateSoundOn(user.id, soundOn);
     await updateRestExtraMinutes(user.id, restExtraMinutes);
+    await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
     await updateNoisePrefs(user.id, { noiseTakeover, noiseEffort, showPrs });
     const cookieStore = await cookies();
     const toneCookie = toneCookieOptions(coachTone);
@@ -189,6 +222,7 @@ export async function PATCH(request: NextRequest) {
         coachTone,
         soundOn,
         restExtraMinutes,
+        scheduleDaysPerWeek,
         noiseTakeover,
         noiseEffort,
         showPrs,

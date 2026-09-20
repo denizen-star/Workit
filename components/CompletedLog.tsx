@@ -7,6 +7,7 @@ import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { formatDuration } from '@/lib/formatDuration';
 import { workoutProgram } from '@/lib/workoutData';
+import { athleteRequiredDays, clampScheduleDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { setVolume } from '@/lib/exerciseKind';
 import CompletedSessionCard, {
   weekHistoryTotals,
@@ -26,6 +27,10 @@ export default function CompletedLog({
   const [loading, setLoading] = useState(true);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(focusWeek);
   const [openSessionId, setOpenSessionId] = useState<number | null>(null);
+  const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
+    Map<number, { requiredCount: number; completedCount: number }>
+  >(new Map());
 
   useEffect(() => {
     let cancelled = false;
@@ -35,6 +40,17 @@ export default function CompletedLog({
         if (cancelled) return;
         const rows = Array.isArray(data?.sessions) ? (data.sessions as HistorySession[]) : [];
         setSessions(rows);
+        setScheduleDays(clampScheduleDays(data?.scheduleDays));
+        setLockedWeeksDetail(
+          new Map(
+            (data?.lockedWeeksDetail || []).map(
+              (row: { weekNumber: number; requiredCount: number; completedCount: number }) => [
+                row.weekNumber,
+                { requiredCount: row.requiredCount, completedCount: row.completedCount },
+              ]
+            )
+          )
+        );
       })
       .catch(() => {
         if (!cancelled) setSessions([]);
@@ -107,9 +123,13 @@ export default function CompletedLog({
       {!loading &&
         workoutProgram.map((week) => {
           const weekSessions = byWeek.get(week.weekNumber) || [];
+          const required = athleteRequiredDays(week, scheduleDays);
           const progress = weekProgress(
             weekSessions.map((session) => ({ ...session, is_completed: 1 })),
-            week
+            week,
+            undefined,
+            required,
+            lockedWeeksDetail.get(week.weekNumber)
           );
           const open = expandedWeek === week.weekNumber;
           const totals = weekHistoryTotals(weekSessions);

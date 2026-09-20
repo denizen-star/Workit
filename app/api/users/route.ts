@@ -11,7 +11,7 @@ import {
 import { isDuplicateEmailError, isNameTaken, NAME_TAKEN_MESSAGE, normalizeEmail, normalizeName } from '@/lib/profile';
 import { queueWelcomeEmail } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
-import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 import { whoBelt } from '@/lib/belts';
 import { loadWhoRoster } from '@/lib/whoRoster';
 
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       }
     }
     const roster = await loadWhoRoster(wantAll);
-    const locked = await lockedWeeksByUser();
+    const locked = await lockedWeeksByUserFromTable();
     const users = roster.map((row) => {
       const belt = whoBelt(locked.get(Number(row.id)) || 0);
       return {

@@ -13,6 +13,13 @@ import YouVsLeader from '@/components/YouVsLeader';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
 import { getTodayTarget, homePerformanceFocus, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import {
+  clampScheduleDays,
+  daysForWeekFn,
+  DEFAULT_SCHEDULE_DAYS,
+  isScheduleDaysAskWeek,
+} from '@/lib/scheduleDays';
+import ScheduleDaysAskTakeover from '@/components/ScheduleDaysAskTakeover';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
@@ -41,7 +48,6 @@ import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine } from '@/lib/coachLines';
-import { lockedWeekCount } from '@/lib/belts';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
 
 function shortDayName(name: string) {
@@ -73,6 +79,15 @@ export default function Home() {
   const [userTone, setUserTone] = useState<CoachTone>('master');
   const [userSoundOn, setUserSoundOn] = useState(true);
   const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
+  const [userScheduleDays, setUserScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  // Persisted count from `locked_weeks` (server), not recomputed locally — a week
+  // that already locked stays locked even if the athlete later changes their day
+  // count. See lib/lockedWeeks.ts.
+  const [lockedWeeks, setLockedWeeks] = useState(0);
+  const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
+    Map<number, { requiredCount: number; completedCount: number }>
+  >(new Map());
+  const [scheduleDaysAskedWeek, setScheduleDaysAskedWeek] = useState<number | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [inviteOpen, setInviteOpen] = useState(false);
@@ -80,6 +95,7 @@ export default function Home() {
   const [weekMiss, setWeekMiss] = useState<(WeekMissYou & { seen: boolean }) | null>(null);
   const [weekTakeover, setWeekTakeover] = useState(false);
   const [weekMissTakeover, setWeekMissTakeover] = useState(false);
+  const [showScheduleDaysAsk, setShowScheduleDaysAsk] = useState(false);
   const [resumeLine, setResumeLine] = useState('');
   const [holdLine, setHoldLine] = useState('');
   const [needsWaiver, setNeedsWaiver] = useState(false);
@@ -118,6 +134,10 @@ export default function Home() {
           setUserSoundOn(soundOn);
           setSoundEnabled(soundOn);
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
+          setUserScheduleDays(clampScheduleDays(meData.user?.scheduleDaysPerWeek));
+          setScheduleDaysAskedWeek(
+            meData.user?.scheduleDaysAskedWeek == null ? null : Number(meData.user.scheduleDaysAskedWeek)
+          );
           setIsAdmin(!!meData.user?.isAdmin);
           setNeedsWaiver(meData.user?.waiverAccepted === false);
           setShowQuickstartTakeover(meData.user?.quickstartSeen === false);
@@ -127,6 +147,17 @@ export default function Home() {
         if (sessionsRes.ok) {
           const sessionData = await sessionsRes.json();
           setSessions(sessionData.sessions || []);
+          setLockedWeeks(Number(sessionData.lockedWeeks || 0));
+          setLockedWeeksDetail(
+            new Map(
+              (sessionData.lockedWeeksDetail || []).map(
+                (row: { weekNumber: number; requiredCount: number; completedCount: number }) => [
+                  row.weekNumber,
+                  { requiredCount: row.requiredCount, completedCount: row.completedCount },
+                ]
+              )
+            )
+          );
         }
 
         if (catalogRes.ok) {
@@ -198,15 +229,15 @@ export default function Home() {
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
-    if (getTodayTarget(sessions, hyroxResumeFloor).type !== 'resume') {
+    if (getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays)).type !== 'resume') {
       setResumeLine('');
       return;
     }
     setResumeLine(pickResumeLine(userTone, userName));
-  }, [sessions, userTone, userName, hyroxResumeFloor]);
+  }, [sessions, userTone, userName, hyroxResumeFloor, userScheduleDays]);
 
   useEffect(() => {
-    const target = getTodayTarget(sessions, hyroxResumeFloor);
+    const target = getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays));
     const typeName = target.day?.name;
     if (!typeName || target.type === 'hold' || target.type === 'done') {
       setHoldLine('');
@@ -224,9 +255,19 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [sessions, hyroxResumeFloor]);
+  }, [sessions, hyroxResumeFloor, userScheduleDays]);
 
-  const today = getTodayTarget(sessions, hyroxResumeFloor);
+  const today = getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays));
+  const todayWeekNumber = today.week?.weekNumber ?? null;
+
+  useEffect(() => {
+    if (userId == null || todayWeekNumber == null || hyroxActive) return;
+    if (weekTakeover || weekMissTakeover) return;
+    if (!isScheduleDaysAskWeek(todayWeekNumber)) return;
+    if (scheduleDaysAskedWeek === todayWeekNumber) return;
+    setShowScheduleDaysAsk(true);
+  }, [userId, todayWeekNumber, hyroxActive, weekTakeover, weekMissTakeover, scheduleDaysAskedWeek]);
+
   const homeFocus = homePerformanceFocus(today, sessions);
   const todayHref =
     today.type === 'resume' && today.session
@@ -246,7 +287,6 @@ export default function Home() {
       ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
       : null;
 
-  const lockedWeeks = lockedWeekCount(sessions);
   const canInvite = !isTestUserName(userName);
   const inviteLinkClass =
     'inline-flex min-h-12 shrink-0 items-center gap-1.5 px-2 text-sm font-black text-[#e8c547] sm:min-h-14 sm:px-3 sm:text-base';
@@ -320,6 +360,7 @@ export default function Home() {
               userTone={userTone}
               userSoundOn={userSoundOn}
               userRestExtraMinutes={userRestExtraMinutes}
+              userScheduleDays={userScheduleDays}
               isAdmin={isAdmin}
               hyroxAvailable={hyroxEligibleFlag}
               onHyroxClick={() => setShowHyroxIntro(true)}
@@ -330,6 +371,7 @@ export default function Home() {
                 setUserSoundOn(profile.soundOn);
                 setSoundEnabled(profile.soundOn);
                 setUserRestExtraMinutes(profile.restExtraMinutes);
+                setUserScheduleDays(profile.scheduleDaysPerWeek);
               }}
             />
           </div>
@@ -509,7 +551,12 @@ export default function Home() {
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <WeekLock week={today.week} sessions={sessions} />
+            <WeekLock
+              week={today.week}
+              sessions={sessions}
+              scheduleDays={userScheduleDays}
+              lockedRecord={today.week ? lockedWeeksDetail.get(today.week.weekNumber) : undefined}
+            />
             <WeekPerformance week={today.week} />
             {stats?.daily && stats.daily.length > 0 ? (
               <div className="mt-6">
@@ -572,6 +619,23 @@ export default function Home() {
           onClose={() => setWeekMissTakeover(false)}
         />
       ) : null}
+      <ScheduleDaysAskTakeover
+        open={showScheduleDaysAsk}
+        currentDays={userScheduleDays}
+        onDone={(days) => {
+          setShowScheduleDaysAsk(false);
+          setUserScheduleDays(days);
+          if (todayWeekNumber != null) setScheduleDaysAskedWeek(todayWeekNumber);
+          fetch('/api/me', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              scheduleDaysAskedWeek: todayWeekNumber,
+              scheduleDaysPerWeek: days,
+            }),
+          }).catch(() => {});
+        }}
+      />
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { householdExerciseCompare, rankingSummary, standingSummary } from '@/lib
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { isTestUserName } from '@/lib/householdUsers';
 import { householdOptionalHonor, sqlUserOptionalVolume } from '@/lib/optionals';
-import { lockedWeeksByUser } from '@/lib/beltHousehold';
+import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 import { displayBelt } from '@/lib/belts';
 import { householdBonusHonor } from '@/lib/scoreboard';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
@@ -25,7 +25,7 @@ async function loadScoreboardBoard() {
   );
   const compareById = new Map(compare.rows.map((row) => [row.userId, row]));
   const rows: ScoreboardRow[] = [];
-  const lockedByUser = await lockedWeeksByUser();
+  const lockedByUser = await lockedWeeksByUserFromTable();
 
   for (const user of roster) {
     const weekStats = await query(

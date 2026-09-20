@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { BELTS, lockedWeekCount, serializeBelt } from '@/lib/belts';
+import { BELTS, serializeBelt } from '@/lib/belts';
 import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -11,8 +11,10 @@ import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
 import { applyExerciseMode, getWorkoutDay } from '@/lib/workoutData';
-import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import { requiredCountForWeek, resolveFullBodyDay } from '@/lib/scheduleDays';
+import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
 import { HYROX_WEEK_OFFSET } from '@/lib/hyroxProgram';
+import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 
 export async function POST(request: NextRequest) {
   try {
@@ -42,11 +44,18 @@ export async function POST(request: NextRequest) {
         'SELECT week_number, is_completed FROM workout_sessions WHERE user_id = ?',
         [user.id]
       );
-      const locked = lockedWeekCount(all.rows as Array<{ week_number: number; is_completed: unknown }>);
-      const thisWeekLocked =
-        (all.rows as Array<{ week_number: number; is_completed: unknown }>).filter(
-          (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
-        ).length >= 4;
+      const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
+      const completedThisWeek = (all.rows as Array<{ week_number: number; is_completed: unknown }>).filter(
+        (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
+      ).length;
+      // Hyrox weeks (101+) have their own required-5 eligibility mechanism
+      // (lib/hyroxState.ts) — never persist them into the normal program's
+      // locked-weeks table, or they'd inflate the belt count.
+      if (track === 'main') {
+        await recordWeekLockIfNeeded(user.id, Number(weekNumber), completedThisWeek, requiredForWeek(Number(weekNumber)));
+      }
+      const locked = await lockedWeekCountFromTable(user.id);
+      const thisWeekLocked = completedThisWeek >= requiredForWeek(Number(weekNumber));
       const earnedBelt = thisWeekLocked
         ? serializeBelt(BELTS.find((item) => item.weeks === locked) || null, user.coachTone, user.name)
         : null;
@@ -116,8 +125,13 @@ export async function GET(request: NextRequest) {
         optional_kicker_lbs?: number | null;
       }[];
 
+      // The completed log's week-fold check (components/CompletedLog.tsx) needs the
+      // same athlete-aware required-days + persisted-lock data WeekLock already gets
+      // from the non-history branch below, or it always assumes the flat historical 4.
+      const lockedWeeksDetail = await lockedWeekRecords(user.id);
+
       if (sessions.length === 0) {
-        return NextResponse.json({ sessions: [] });
+        return NextResponse.json({ sessions: [], scheduleDays: user.scheduleDaysPerWeek, lockedWeeksDetail });
       }
 
       const ids = sessions.map((row) => row.id);
@@ -149,6 +163,8 @@ export async function GET(request: NextRequest) {
           ...session,
           sets: setsBySession.get(Number(session.id)) || [],
         })),
+        scheduleDays: user.scheduleDaysPerWeek,
+        lockedWeeksDetail,
       });
     }
 
@@ -181,7 +197,11 @@ export async function GET(request: NextRequest) {
     sql += ' ORDER BY week_number, day_number';
 
     const result = await query(sql, params);
-    return NextResponse.json({ sessions: result.rows });
+    const [lockedWeeks, lockedWeeksDetail] = await Promise.all([
+      lockedWeekCountFromTable(user.id),
+      lockedWeekRecords(user.id),
+    ]);
+    return NextResponse.json({ sessions: result.rows, lockedWeeks, lockedWeeksDetail });
   } catch (error) {
     console.error('Error getting workout sessions:', error);
     return NextResponse.json({ error: 'Failed to get workout sessions' }, { status: 500 });
@@ -281,9 +301,22 @@ export async function PUT(request: NextRequest) {
         is_completed: number | boolean;
       }>;
       uniqueBonusWeeks = bonusCount(rows);
-      const locked = lockedWeekCount(rows);
-      const thisWeekLocked = rows.filter((row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))).length >= 4;
+      const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
+      const completedThisWeek = rows.filter(
+        (row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))
+      ).length;
+      const thisWeekLocked = completedThisWeek >= requiredForWeek(Number(session.week_number));
+      // Same Hyrox exclusion as the POST path above.
+      if (Number(session.week_number) <= HYROX_WEEK_OFFSET) {
+        await recordWeekLockIfNeeded(
+          user.id,
+          Number(session.week_number),
+          completedThisWeek,
+          requiredForWeek(Number(session.week_number))
+        );
+      }
       if (!alreadyComplete && thisWeekLocked) {
+        const locked = await lockedWeekCountFromTable(user.id);
         const belt = BELTS.find((item) => item.weeks === locked);
         earnedBelt = serializeBelt(belt || null, user.coachTone, user.name);
       }
@@ -350,7 +383,9 @@ export async function PATCH(request: NextRequest) {
       user.id,
     ]);
 
-    const day = getWorkoutDay(Number(session.week_number), Number(session.day_number));
+    const day =
+      getWorkoutDay(Number(session.week_number), Number(session.day_number)) ??
+      resolveFullBodyDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);
 
     for (const exercise of day?.exercises || []) {

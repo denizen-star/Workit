@@ -27,6 +27,7 @@ const LABELS: Record<MailTemplateId, string> = {
   belt: 'Diploma',
   scoreboard: 'Scoreboard',
   release: "What's new",
+  schedule_days_ask: 'Days per week check-in',
 };
 
 export default function AdminMailPage() {

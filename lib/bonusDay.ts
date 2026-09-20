@@ -67,22 +67,17 @@ export function weekLocked(
   return completedInWeek(sessions, weekNumber).length >= requiredCount;
 }
 
-/** Locked weeks in a row, counting back from the latest week that exists. Rest days do not break it. */
-export function lockedWeekStreak(completedDaysByWeek: Map<number, number> | Record<number, number>): number {
-  const get =
-    completedDaysByWeek instanceof Map
-      ? (week: number) => completedDaysByWeek.get(week) || 0
-      : (week: number) => Number(completedDaysByWeek[week] || 0);
-  const latest = Math.max(
-    1,
-    ...workoutProgram.map((week) => week.weekNumber),
-    ...(completedDaysByWeek instanceof Map
-      ? [...completedDaysByWeek.keys()]
-      : Object.keys(completedDaysByWeek).map(Number))
-  );
+/** Locked weeks in a row, counting back from the latest week that exists. Rest days
+ * do not break it. Takes the athlete's persisted locked week numbers (see
+ * `lockedWeekNumbers` in `lib/lockedWeeks.ts`) rather than raw completed-day counts
+ * — a week either locked (permanently, once) or it didn't, so this never needs to
+ * re-evaluate against a required-day threshold itself. */
+export function lockedWeekStreak(lockedWeekNumbers: Iterable<number>): number {
+  const locked = new Set(lockedWeekNumbers);
+  const latest = Math.max(1, ...workoutProgram.map((week) => week.weekNumber));
   let streak = 0;
   for (let week = latest; week >= 1; week--) {
-    if (get(week) >= REQUIRED_DAYS_TO_LOCK) streak += 1;
+    if (locked.has(week)) streak += 1;
     else if (streak > 0) break;
   }
   return streak;
@@ -109,14 +104,31 @@ export function bonusCount(sessions: SessionLike[], program: WeekPlan[] = workou
 export function weekProgress(
   sessions: SessionLike[],
   week: WeekPlan,
-  program: WeekPlan[] = workoutProgram
+  program: WeekPlan[] = workoutProgram,
+  /** Which days count as required for this athlete's week. Defaults to the
+   * program's own non-bonus days; pass `athleteRequiredDays(week, scheduleDays)`
+   * (`lib/scheduleDays.ts`) to honor a chosen day count instead. */
+  required: WorkoutDay[] = requiredDays(week),
+  /** Persisted `locked_weeks` row for this week, if any (`lib/lockedWeeks.ts`).
+   * A week that already locked did so under whatever day count was required at
+   * the time — if `schedule_days_per_week` changes later, `required` above no
+   * longer matches the day numbers those old completed sessions were logged
+   * under, so live-matching against `sessions` would wrongly read back as 0
+   * done. When a locked record is passed, trust it instead of recomputing. */
+  lockedRecord?: { requiredCount: number; completedCount: number } | null
 ): { requiredDone: number; requiredTotal: number; bonusDone: boolean } {
+  if (lockedRecord) {
+    return {
+      requiredDone: Math.min(lockedRecord.completedCount, lockedRecord.requiredCount),
+      requiredTotal: lockedRecord.requiredCount,
+      bonusDone: bonusCompletedInWeek(sessions, week.weekNumber, program),
+    };
+  }
   const completed = new Set(
     sessions
       .filter(isComplete)
       .map((session) => `${session.week_number}-${session.day_number}`)
   );
-  const required = requiredDays(week);
   return {
     requiredDone: required.filter((day) => completed.has(`${week.weekNumber}-${day.dayNumber}`)).length,
     requiredTotal: required.length,
