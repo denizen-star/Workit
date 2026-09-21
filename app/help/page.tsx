@@ -7,6 +7,7 @@ import {
   ClipboardList,
   GraduationCap,
   Award,
+  Dumbbell,
   UserRound,
   UserPlus,
   type LucideIcon,
@@ -160,6 +161,19 @@ const APP_PAGES: AppPageGuide[] = [
     ],
     image: '/help/page-medals.png',
     Icon: Award,
+  },
+  {
+    title: 'The Library',
+    tag: 'Every movement',
+    description:
+      'A catalog of every distinct lift and hold in Work-It — the main program (gym and travel), Hyrox Training, and the optional warmup/cooldown circuits — grouped by the muscle it trains, with a start and end form photo for each.',
+    bullets: [
+      'Search by name, or filter by program and gym / travel / bodyweight',
+      'Jump between paired “or” lifts (the two halves of a combined program line)',
+      'Open it from the menu anytime — nothing to log, just look',
+    ],
+    image: '/help/page-library.png',
+    Icon: Dumbbell,
   },
   {
     title: 'Edit profile',

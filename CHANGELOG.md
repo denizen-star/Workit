@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 8.1.0 - 2026-09-21
+
+### Added
+- **The Library** — a browsable catalog of every distinct movement in Work-It (main program gym and travel, Hyrox Training, and optional warmup/cooldown circuits), grouped by muscle, with start and end form photos. Search, filter by program or gym/travel/bodyweight, and jump between paired “or” lifts. Lives in the athlete menu.
+
 ## 8.0.0 - 2026-09-21
 
 ### Added

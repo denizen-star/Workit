@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -273,6 +273,7 @@ export default function AppMenu({
                   ...(hyroxAvailable
                     ? [{ href: '/home?hyrox=1', label: 'Hyrox Training', Icon: Flame, isHyrox: true }]
                     : []),
+                  { href: '/library', label: 'The Library', Icon: Dumbbell },
                   { href: '/help', label: 'Help', Icon: CircleHelp },
                   { href: '/faq', label: 'Why Work-It', Icon: Sparkles },
                 ].map(({ href, label, Icon, isHyrox }) => {
