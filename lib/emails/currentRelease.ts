@@ -36,24 +36,25 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.15.0',
-  title: 'Every doubt, answered.',
-  subject: 'Every doubt, answered.',
+  version: '7.19.0',
+  title: 'One day is still a day.',
+  subject: 'One day is still a day.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
+  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    "Man, doubt is quiet. It sits in the back of your head and asks if this whole thing is worth the trouble. I do not like leaving it there unanswered.",
-  mid: "So it has an answer now. Straight, no dodge: why the sets fill themselves in, why you are not crossing the floor for equipment, why none of this costs you a cent. Quit needs a reason to stick around. I took it away.",
-  close: "Read it once, man. Then get back to work.",
+    'Man, two days a week was already thin. For some of you even that was too many to find. That excuse is gone too now.',
+  mid: 'One day a week is on the table. Set it in Edit profile and the whole week folds into a single full-body session — no split, nothing skipped. Change your mind later and nothing you already locked gets touched.',
+  close: 'One day is still a day. Show up for it. Quit does not get to hide behind a schedule that never fit.',
   lead: '',
   groups: [
     {
-      heading: 'Added',
+      heading: 'Changed',
       wins: [
-        'A new Why Work-It page — nine straight answers on why the app logs itself, keeps you off crowded equipment, and never nickel-and-dimes your training. Find it from Join, Login, Help, or the menu',
+        'Training days — goes as low as 1 a week now, not 2. One day, one full-body session, everything covered',
       ],
     },
   ],
