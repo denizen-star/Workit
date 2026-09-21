@@ -1,6 +1,6 @@
 {
   "name": "workout-tracker",
-  "version": "7.19.0",
+  "version": "8.0.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@planetscale/database": "^1.19.0",
+    "body-muscles": "^1.0.0",
     "date-fns": "^4.1.0",
     "jose": "^6.2.9",
     "lucide-react": "^0.468.0",

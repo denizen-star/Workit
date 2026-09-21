@@ -4,8 +4,9 @@ import { getCurrentUser } from '@/lib/auth';
 import { updateDailyStats } from '@/lib/dailyStats';
 import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { parseExerciseModes } from '@/lib/exerciseModes';
+import { parseExerciseAlts } from '@/lib/exerciseAlts';
 import { parseHardness } from '@/lib/hardness';
-import { foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
+import { betterSet, foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
@@ -220,11 +221,15 @@ export async function GET(request: NextRequest) {
         string,
         Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null; hardness: number | null }>
       > = {};
+      // All-time record for this exercise, by volume (weight × reps — see lib/setHistory.ts's
+      // betterSet, docs/plans/PLAN_PR_VOLUME.md) — the weight/reps of the single best-volume set
+      // ever logged, not two independently-tracked maxes. Drives the live "NEW PR" flash
+      // threshold in components/ExerciseTracker.tsx. Same underlying rule as `bestSets` below;
+      // kept as its own field since the two serve different UI moments (flash vs. KPI tile).
       const personalRecords: Record<string, { weight: number; reps: number }> = {};
       const lastWeekMax: Record<string, number> = {};
-      // Heaviest single set ever logged for this exercise (weight+reps as one pair, not two
-      // independent maxes like personalRecords) — same tie-break as bestLoggedSet: more reps wins ties.
-      // This is the true all-time max the "Best" KPI tile shows, at any set position (not just
+      // Best single set ever logged for this exercise (weight × reps, betterSet's tie-break).
+      // This is the true all-time record the "Best" KPI tile shows, at any set position (not just
       // the same slot from the last session) — set_number/done_at let the client caption which
       // set/session it came from. `done_at: null` means it was set in the session in progress.
       const bestSets: Record<
@@ -242,14 +247,9 @@ export async function GET(request: NextRequest) {
         setNumber: number | null,
         doneAt: string | null
       ) => {
-        const weight = weightLbs ?? 0;
-        const reps = actualReps ?? 0;
+        const candidate = { weight_lbs: weightLbs, actual_reps: actualReps, set_number: setNumber, done_at: doneAt };
         const current = bestSets[name];
-        const currentWeight = current?.weight_lbs ?? 0;
-        const currentReps = current?.actual_reps ?? 0;
-        if (!current || weight > currentWeight || (weight === currentWeight && reps > currentReps)) {
-          bestSets[name] = { weight_lbs: weightLbs, actual_reps: actualReps, set_number: setNumber, done_at: doneAt };
-        }
+        bestSets[name] = current ? betterSet(current, candidate) : candidate;
       };
 
       for (const row of result.rows as any[]) {
@@ -261,11 +261,6 @@ export async function GET(request: NextRequest) {
         const weight = row.weight_lbs == null ? 0 : Number(row.weight_lbs);
         const reps = row.actual_reps == null ? 0 : Number(row.actual_reps);
 
-        if (!personalRecords[name]) {
-          personalRecords[name] = { weight: 0, reps: 0 };
-        }
-        personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
-        personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
         trackBestSet(
           name,
           row.weight_lbs == null ? null : weight,
@@ -302,11 +297,6 @@ export async function GET(request: NextRequest) {
           const name = exerciseHistoryKey(row.exercise_name);
           const weight = row.weight_lbs == null ? 0 : Number(row.weight_lbs);
           const reps = row.actual_reps == null ? 0 : Number(row.actual_reps);
-          if (!personalRecords[name]) {
-            personalRecords[name] = { weight: 0, reps: 0 };
-          }
-          personalRecords[name].weight = Math.max(personalRecords[name].weight, weight);
-          personalRecords[name].reps = Math.max(personalRecords[name].reps, reps);
           // `done_at: null` signals "this session" to the client — the session
           // hasn't been marked complete yet, so there's no meaningful past date.
           trackBestSet(
@@ -317,6 +307,14 @@ export async function GET(request: NextRequest) {
             null
           );
         }
+      }
+
+      // personalRecords is bestSets' weight/reps, read through a different name — same
+      // betterSet rule, same rows, just serving a different UI moment (the live PR-flash
+      // threshold vs. the "Best" KPI tile). Deriving it here instead of tracking it in
+      // parallel above keeps the two from ever drifting out of sync.
+      for (const [name, best] of Object.entries(bestSets)) {
+        personalRecords[name] = { weight: best.weight_lbs ?? 0, reps: best.actual_reps ?? 0 };
       }
 
       for (const row of result.rows as any[]) {
@@ -344,19 +342,19 @@ export async function GET(request: NextRequest) {
     }
 
     const sessionResult = await query(
-      'SELECT exercise_modes FROM workout_sessions WHERE id = ? AND user_id = ?',
+      'SELECT exercise_modes, exercise_alts FROM workout_sessions WHERE id = ? AND user_id = ?',
       [sessionId, user.id]
     );
-    const exerciseModes = parseExerciseModes(
-      (sessionResult.rows[0] as { exercise_modes?: unknown } | undefined)?.exercise_modes
-    );
+    const sessionRow = sessionResult.rows[0] as { exercise_modes?: unknown; exercise_alts?: unknown } | undefined;
+    const exerciseModes = parseExerciseModes(sessionRow?.exercise_modes);
+    const exerciseAlts = parseExerciseAlts(sessionRow?.exercise_alts);
 
     const result = await query(
       'SELECT * FROM exercise_sets WHERE workout_session_id = ? ORDER BY exercise_name, set_number',
       [sessionId]
     );
 
-    return NextResponse.json({ sets: result.rows, exerciseModes });
+    return NextResponse.json({ sets: result.rows, exerciseModes, exerciseAlts });
   } catch (error) {
     console.error('Error getting exercise sets:', error);
     return NextResponse.json({ error: 'Failed to get exercise sets' }, { status: 500 });

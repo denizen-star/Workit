@@ -4,6 +4,23 @@ const IMAGE_MAP: Record<string, { start: string; end: string }> = {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
     end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg",
   },
+  // Bare-equipment atomic names below have no fuzzy match against the combo entries above
+  // (getExerciseImages()'s substring check needs the query and entry to share a run of text,
+  // and e.g. "Barbell Bench Press" isn't a substring of "Barbell or Dumbbell Bench Press").
+  // Added for lib/altExercises.ts (docs/plans/PLAN_ALT_EXERCISES.md), where these show up as
+  // swap-in alternatives on their own, not just as half of a combo name.
+  "Barbell Bench Press": {
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Barbell_Bench_Press_-_Medium_Grip/1.jpg",
+  },
+  "Barbell Rows": {
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent_Over_Barbell_Row/1.jpg",
+  },
+  "Seated Cable Row": {
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elevated_Cable_Rows/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Elevated_Cable_Rows/1.jpg",
+  },
   "Single-Arm Dumbbell Rows": {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/0.jpg",
     end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Dumbbell_Row/1.jpg",
@@ -129,8 +146,8 @@ const IMAGE_MAP: Record<string, { start: string; end: string }> = {
     end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Shrug/1.jpg",
   },
   "Floor Pullovers or Towel Straight-Arm Pulls": {
-    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Pullover/0.jpg",
-    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Pullover/1.jpg",
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Arm_Dumbbell_Pullover/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bent-Arm_Dumbbell_Pullover/1.jpg",
   },
   "Close-Grip Push-Ups or Backpack Skull Crushers": {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pushups/0.jpg",

@@ -24,7 +24,7 @@ const gym = {
     unsplash("photo-1576678927484-cc907957088c"),
   ],
   squat: [
-    unsplash("photo-1434682881343-57358bfd7d92"),
+    unsplash("photo-1541534741688-6078c6bfb5c5"),
     unsplash("photo-1534438327276-14e5300c3a48"),
     unsplash("photo-1517960413843-0aee8e2b3285"),
   ],
@@ -34,7 +34,7 @@ const gym = {
     unsplash("photo-1605296867304-46d5465a13f1"),
   ],
   pull: [
-    unsplash("photo-1599058917765-a78070457def"),
+    unsplash("photo-1571731956672-f2b94d7dd0cb"),
     unsplash("photo-1534438327276-14e5300c3a48"),
     unsplash("photo-1571019613454-1cb2f99b2d8b"),
   ],
@@ -45,7 +45,7 @@ const gym = {
   ],
   hotel: [
     unsplash("photo-1576678927484-cc907957088c"),
-    unsplash("photo-1599058945522-28d584b6d14e"),
+    unsplash("photo-1544367567-0f2fcb009e0b"),
     unsplash("photo-1571019614242-c5c5dee9f50b"),
   ],
 };

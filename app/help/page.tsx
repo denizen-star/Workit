@@ -208,8 +208,13 @@ const MECHANICS: MechanicsRow[] = [
   },
   {
     label: 'Gym vs. Travel',
+    description: 'No equipment? Flip the whole day to Travel mode for bodyweight swaps. Locks once you log a set.',
+    tone: 'gold',
+  },
+  {
+    label: 'Alt Exercise',
     description:
-      'No equipment? Flip a day — or a single exercise — to Travel mode for a bodyweight swap. Locks once you log a set.',
+      "Don't like a movement, or your gym doesn't have it? Tap Alt on that exercise to swap it for one of a few picks that hit the same muscle — a plane icon marks the ones that need no equipment at all. Swaps for today only; History and PRs track the new exercise on its own.",
     tone: 'gold',
   },
   {
@@ -256,7 +261,7 @@ const GLOSSARY: GlossaryTerm[] = [
     term: 'Best',
     tag: 'your record',
     definition:
-      "The heaviest set you've ever logged for this exercise, period. Beat it today and it updates instantly with a New PR tag.",
+      "Your best-ever set for this exercise, weight × reps — a lighter set with more reps can beat a heavier one. Beat it today and it updates instantly with a New PR tag.",
   },
   {
     term: 'Volume',
@@ -295,7 +300,7 @@ const SUMMARY: { id: string; title: string; description: string }[] = [
   {
     id: 'mechanics',
     title: 'Training Mechanics',
-    description: 'The rules of the program: logging sets, Gym vs Travel, week lock, bonus & optionals.',
+    description: 'The rules of the program: logging sets, Gym vs Travel, Alt Exercise, week lock, bonus & optionals.',
   },
   { id: 'program', title: 'Program & Belts', description: 'The shape of the 48-week program, and what each belt means.' },
   { id: 'glossary', title: 'Glossary', description: 'Plain-English definitions for the stats and labels you’ll see while training.' },

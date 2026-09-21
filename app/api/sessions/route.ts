@@ -9,11 +9,12 @@ import { updateDailyStats } from '@/lib/dailyStats';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
+import { parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
 import { applyExerciseMode, getWorkoutDay } from '@/lib/workoutData';
 import { requiredCountForWeek, resolveFullBodyDay } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
-import { HYROX_WEEK_OFFSET } from '@/lib/hyroxProgram';
+import { HYROX_WEEK_OFFSET, getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 
 export async function POST(request: NextRequest) {
@@ -346,14 +347,15 @@ export async function PATCH(request: NextRequest) {
 
     const body = await request.json();
     const sessionId = Number(body.sessionId);
-    const incoming = parseExerciseModes(body.exerciseModes ?? body.exercise_modes);
+    const incomingModes = parseExerciseModes(body.exerciseModes ?? body.exercise_modes);
+    const incomingAlts = parseExerciseAlts(body.exerciseAlts ?? body.exercise_alts);
 
     if (!Number.isFinite(sessionId) || sessionId <= 0) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
     const existing = await query(
-      `SELECT id, week_number, day_number, workout_mode, is_completed, exercise_modes
+      `SELECT id, week_number, day_number, workout_mode, is_completed, exercise_modes, exercise_alts
        FROM workout_sessions WHERE id = ? AND user_id = ?`,
       [sessionId, user.id]
     );
@@ -369,29 +371,42 @@ export async function PATCH(request: NextRequest) {
       workout_mode: string | null;
       is_completed: number | boolean;
       exercise_modes?: unknown;
+      exercise_alts?: unknown;
     };
 
     if (Boolean(Number(session.is_completed))) {
       return NextResponse.json({ error: 'Finished sessions cannot change exercise mode' }, { status: 400 });
     }
 
-    const nextModes = { ...parseExerciseModes(session.exercise_modes), ...incoming };
+    const previousAlts = parseExerciseAlts(session.exercise_alts);
+    const nextModes = { ...parseExerciseModes(session.exercise_modes), ...incomingModes };
+    const nextAlts = { ...previousAlts, ...incomingAlts };
 
-    await query('UPDATE workout_sessions SET exercise_modes = ? WHERE id = ? AND user_id = ?', [
+    await query('UPDATE workout_sessions SET exercise_modes = ?, exercise_alts = ? WHERE id = ? AND user_id = ?', [
       serializeExerciseModes(nextModes),
+      serializeExerciseAlts(nextAlts),
       sessionId,
       user.id,
     ]);
 
+    // Hyrox weeks (101+, see lib/hyroxProgram.ts) aren't in the normal program's static
+    // array, so they need their own day lookup — same namespacing rule POST already uses.
     const day =
-      getWorkoutDay(Number(session.week_number), Number(session.day_number)) ??
-      resolveFullBodyDay(Number(session.week_number), Number(session.day_number));
+      Number(session.week_number) > HYROX_WEEK_OFFSET
+        ? getHyroxWorkoutDay(Number(session.week_number), Number(session.day_number))
+        : getWorkoutDay(Number(session.week_number), Number(session.day_number)) ??
+          resolveFullBodyDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);
 
     for (const exercise of day?.exercises || []) {
+      // An Alt swap replaces the whole movement — it wins over Gym/Travel mode entirely.
+      const altName = nextAlts[exercise.name];
       const mode = (nextModes[exercise.name] || fallback) as WorkoutMode;
-      const displayName = applyExerciseMode(exercise, mode).name;
-      const aliases = Array.from(new Set([...exerciseGroupNames(exercise.name), displayName, exercise.name]));
+      const displayName = altName || applyExerciseMode(exercise, mode).name;
+      const previousAlt = previousAlts[exercise.name];
+      const aliases = Array.from(
+        new Set([...exerciseGroupNames(exercise.name), displayName, exercise.name, ...(previousAlt ? [previousAlt] : [])])
+      );
       const placeholders = aliases.map(() => '?').join(', ');
       await query(
         `UPDATE exercise_sets
@@ -403,7 +418,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    return NextResponse.json({ success: true, exerciseModes: nextModes });
+    return NextResponse.json({ success: true, exerciseModes: nextModes, exerciseAlts: nextAlts });
   } catch (error) {
     console.error('Error updating exercise modes:', error);
     return NextResponse.json({ error: 'Failed to update exercise modes' }, { status: 500 });

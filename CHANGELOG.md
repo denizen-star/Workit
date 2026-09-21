@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 8.0.0 - 2026-09-21
+
+### Added
+- **Alt Exercise** — swap any exercise on a live card for one of a few picks that hit the same muscle, when your gym doesn't have it or you just don't like the movement. Each pick shows a real muscle diagram, and a plane icon marks the ones that need no equipment at all. Lasts for today only — the original comes back next time, and the swapped-in exercise tracks its own history and PRs separately
+
+### Changed
+- Personal records and your "Best" set for each exercise are now based on weight × reps, not weight alone — a lighter set with more reps can beat a heavier, lower-rep one. Same rule now carries into what prefills your next workout and what shows on your Last Time chip
+- The per-exercise Gym/Travel toggle on a live card is gone, replaced by Alt Exercise (see above) — travel-friendly swaps now show up there instead, marked with a plane icon. Starting a whole day in Travel mode from Select Workout is unchanged
+
 ## 7.19.0 - 2026-09-21
 
 ### Changed

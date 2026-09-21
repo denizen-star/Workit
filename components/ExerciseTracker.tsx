@@ -5,12 +5,18 @@ import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
-import ModeToggle from './ModeToggle';
 import UnitToggle from './UnitToggle';
+import AltButton from './AltButton';
+import AltExerciseTakeover from './AltExerciseTakeover';
+import PlaneIcon from './PlaneIcon';
 import { pickCoachLine, setProgressCopy, hardnessCopy } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
+import { parseExerciseAlts, type ExerciseAltMap } from '@/lib/exerciseAlts';
+import { altsForExercise } from '@/lib/altExercises';
+import { muscleGroupForExercise } from '@/lib/muscleGroups';
+import { isTravelFriendly } from '@/lib/travelFriendly';
 import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
@@ -229,6 +235,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const defaultMode = normalizeWorkoutMode(sessionMode);
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [modes, setModes] = useState<ExerciseModeMap>({});
+  const [alts, setAlts] = useState<ExerciseAltMap>({});
+  // Which card's gym.name currently has the Alt Exercise takeover open, if any.
+  const [altTakeoverFor, setAltTakeoverFor] = useState<string | null>(null);
   const [setsReady, setSetsReady] = useState(false);
   const [editingSet, setEditingSet] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<{
@@ -348,10 +357,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
       let saved: any[] = [];
       let storedModes: ExerciseModeMap = {};
+      let storedAlts: ExerciseAltMap = {};
       if (existingRes.ok) {
         const data = await existingRes.json();
         saved = data.sets || [];
         storedModes = parseExerciseModes(data.exerciseModes ?? data.exercise_modes);
+        storedAlts = parseExerciseAlts(data.exerciseAlts ?? data.exercise_alts);
       }
 
       let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} };
@@ -367,10 +378,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         nextModes[gym.name] = inferExerciseMode(gym, saved, storedModes, defaultMode);
       }
       setModes(nextModes);
+      setAlts(storedAlts);
 
       const template: ExerciseSet[] = [];
       exercises.forEach((gym) => {
-        const exercise = applyExerciseMode(gym, nextModes[gym.name] || defaultMode);
+        // An Alt swap replaces the whole movement, so it wins over Gym/Travel mode.
+        const exercise = storedAlts[gym.name]
+          ? { ...gym, name: storedAlts[gym.name] }
+          : applyExerciseMode(gym, nextModes[gym.name] || defaultMode);
         for (let i = 1; i <= gym.sets; i++) {
           template.push({
             exercise_name: exercise.name,
@@ -614,7 +629,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       history.personalRecords[exerciseHistoryKey(exercise.name)] ||
       history.personalRecords[exercise.name] ||
       { weight: 0, reps: 0 };
-    const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight > record.weight;
+    // Weight PR is now by volume (weight × reps — docs/plans/PLAN_PR_VOLUME.md), not weight
+    // alone: a lighter, higher-rep set can beat a heavier, lower-rep one. Timed/distance PRs
+    // are untouched — there's no weight to multiply, so they still compare on duration/distance.
+    const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight * reps > record.weight * record.reps;
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
     const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
@@ -636,7 +654,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // the time the last set completes.
     if (isWeightPr || isTimedPr) {
       pendingPrRef.current[exercise.name] = {
-        valueLabel: isWeightPr ? `${weight} lbs` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
+        // Weight PRs now show both numbers — the record can be a rep increase at the same
+        // or lower weight, so "just the weight" would misrepresent what actually improved.
+        valueLabel: isWeightPr ? `${weight} lb × ${reps}` : `${reps} ${kind === 'timed' ? 'sec' : 'm'}`,
       };
     }
 
@@ -696,14 +716,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     }
 
     if (isWeightPr || isTimedPr) {
+      // Store this set's own weight/reps together, not an independent max of each field —
+      // Math.max-ing them separately could stitch together a weight/reps combination that
+      // was never actually logged, inflating the record beyond what was really lifted.
       setHistory((current) => ({
         ...current,
         personalRecords: {
           ...current.personalRecords,
-          [exerciseHistoryKey(exercise.name)]: {
-            weight: Math.max(record.weight, weight),
-            reps: Math.max(record.reps, reps),
-          },
+          [exerciseHistoryKey(exercise.name)]: { weight, reps },
         },
       }));
     }
@@ -826,47 +846,75 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     });
   };
 
-  const changeExerciseMode = async (gym: Exercise, next: WorkoutMode) => {
-    const display = applyExerciseMode(gym, next);
-    const nextModes = { ...modes, [gym.name]: next };
-    setModes(nextModes);
+  /** Alt Exercise swap (docs/plans/PLAN_ALT_EXERCISES.md) — replaces the whole movement, not
+   * just its gym/travel variant, so it takes over `exercise_name` directly and clears any
+   * Gym/Travel choice on this card (that toggle has nothing to apply to anymore). `altName`
+   * null reverts to the original program exercise. */
+  const changeExerciseAlt = async (gym: Exercise, altName: string | null) => {
+    const nextAlts = { ...alts };
+    if (altName) {
+      nextAlts[gym.name] = altName;
+    } else {
+      delete nextAlts[gym.name];
+    }
+    setAlts(nextAlts);
+    setModes((current) => {
+      if (!(gym.name in current)) return current;
+      const next = { ...current };
+      delete next[gym.name];
+      return next;
+    });
     setEditingSet(null);
+    setAltTakeoverFor(null);
+    const displayName = altName || gym.name;
     setExerciseSets((current) =>
       current.map((item) => {
         if (!sameExerciseMovement(item.exercise_name, gym.name) || item.is_completed) return item;
-        return { ...item, exercise_name: display.name };
+        return { ...item, exercise_name: displayName };
       })
     );
     try {
       const response = await fetch('/api/sessions', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ sessionId, exerciseModes: nextModes }),
+        body: JSON.stringify({ sessionId, exerciseAlts: nextAlts }),
       });
       if (!response.ok) {
-        console.error('Error saving exercise mode:', await response.text());
+        console.error('Error saving exercise alt:', await response.text());
       }
     } catch (error) {
-      console.error('Error saving exercise mode:', error);
+      console.error('Error saving exercise alt:', error);
     }
   };
 
   const groupedSets = exercises.map((gym) => {
+    const altName = alts[gym.name];
     const mode = modes[gym.name] || defaultMode;
-    const exercise = applyExerciseMode(gym, mode);
-    const sets = setsForMovement(exerciseSets, gym.name);
+    const exercise = altName ? { ...gym, name: altName } : applyExerciseMode(gym, mode);
+    // Union of the original identity (and its gym/travel aliases) with the current alt name —
+    // a plain setsForMovement(exerciseSets, gym.name) lookup would miss sets already renamed
+    // to the alt, since an alt is deliberately NOT in exerciseKey.ts's alias groups (separate
+    // history bucket by design).
+    const sets = exerciseSets.filter(
+      (item) => sameExerciseMovement(item.exercise_name, gym.name) || (altName != null && item.exercise_name === altName)
+    );
     return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
   const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
   const totalSetCount = exerciseSets.length;
   const allSetsComplete = totalSetCount > 0 && completedSetCount === totalSetCount;
 
+  // Which card the Alt Exercise takeover is open for, if any — resolved once here rather
+  // than inside the per-card map below, since the takeover itself renders once, outside it.
+  const altTakeoverTarget = altTakeoverFor ? groupedSets.find((item) => item.gym.name === altTakeoverFor) : null;
+  const altTakeoverGroup = altTakeoverTarget ? muscleGroupForExercise(altTakeoverTarget.gym.name) : null;
+
   return (
     <div className="space-y-6">
       {!setsReady ? (
         <p className="text-center text-lg font-black text-[#e8c547]">Loading...</p>
       ) : (
-        groupedSets.map(({ gym, exercise, mode, sets, locked }) => {
+        groupedSets.map(({ gym, exercise, sets, locked }) => {
         const media = getExerciseMedia(exercise.name);
         const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
@@ -887,6 +935,11 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         // hide them so the finished card reads as sets + KPIs, not leftover setup chrome.
         const plannedSets = sets.filter((item) => item.set_number <= exercise.sets);
         const exerciseFullyDone = plannedSets.length > 0 && plannedSets.every((item) => item.is_completed);
+
+        // Alt Exercise (docs/plans/PLAN_ALT_EXERCISES.md): no control shown at all when there's
+        // nothing to swap to — Cardio/Mobility/AMRAP entries have no curated shortlist.
+        const altMuscleGroup = muscleGroupForExercise(gym.name);
+        const altOptions = altsForExercise(gym.name);
 
         const celebrating = celebrateExercise === exercise.name;
 
@@ -932,6 +985,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
               <div className="min-w-0">
                 <div className="flex items-start gap-1">
                   <h3 className="text-2xl font-black tracking-tight text-white">{exercise.name}</h3>
+                  {isTravelFriendly(exercise.name) && (
+                    <PlaneIcon className="mt-1.5 h-3.5 w-3.5 shrink-0 text-[#e8c547]" />
+                  )}
                   {celebrating && (
                     <span className="exercise-title-stamp flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#e8c547] bg-[#e8c547]/20 text-[#e8c547]">
                       <Check className="h-3.5 w-3.5" />
@@ -945,12 +1001,13 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                     <span className="min-w-0 shrink truncate text-xs font-bold text-[#f6f1e3]/70">
                       {exercise.sets}×{exercise.reps}
                     </span>
-                    <ModeToggle
-                      mode={mode}
-                      locked={locked}
-                      context={gym.name}
-                      onChange={(next) => changeExerciseMode(gym, next)}
-                    />
+                    {altMuscleGroup && altOptions.length > 0 && (
+                      <AltButton
+                        active={Boolean(alts[gym.name])}
+                        locked={locked}
+                        onClick={() => setAltTakeoverFor(gym.name)}
+                      />
+                    )}
                     <UnitToggle
                       unit={unitForExercise(gym.name, weightUnits)}
                       context={gym.name}
@@ -1455,6 +1512,17 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         how={activeVideo ? howForExercise(activeVideo.title) : null}
         onClose={() => setActiveVideo(null)}
       />
+
+      {altTakeoverTarget && altTakeoverGroup && (
+        <AltExerciseTakeover
+          open
+          exerciseName={altTakeoverTarget.exercise.name}
+          muscleGroup={altTakeoverGroup}
+          alternatives={altsForExercise(altTakeoverTarget.gym.name)}
+          onSelect={(name) => changeExerciseAlt(altTakeoverTarget.gym, name)}
+          onClose={() => setAltTakeoverFor(null)}
+        />
+      )}
 
     </div>
   );

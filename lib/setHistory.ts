@@ -5,17 +5,28 @@ export type LoggedLoad = {
   actual_reps: number | null;
 };
 
-/** Heaviest set; ties go to the set with more reps / seconds / meters. */
+/**
+ * The "record" set between two logged sets, by volume (weight × reps) — docs/plans/PLAN_PR_VOLUME.md.
+ * Ties go to the heavier weight, then to more reps. Timed/distance sets have no weight (it's
+ * always 0), so weight × reps is always 0 for them too — the comparison falls straight through
+ * to the reps tie-break, i.e. purely by duration/distance, same as before this change.
+ */
+export function betterSet<T extends LoggedLoad>(a: T, b: T): T {
+  const weightA = a.weight_lbs ?? 0;
+  const repsA = a.actual_reps ?? 0;
+  const weightB = b.weight_lbs ?? 0;
+  const repsB = b.actual_reps ?? 0;
+  const volumeA = weightA * repsA;
+  const volumeB = weightB * repsB;
+  if (volumeA !== volumeB) return volumeA > volumeB ? a : b;
+  if (weightA !== weightB) return weightA > weightB ? a : b;
+  return repsA >= repsB ? a : b;
+}
+
+/** Best logged set of a group, by `betterSet`. */
 export function bestLoggedSet<T extends LoggedLoad>(sets: T[]): T | null {
   if (!sets.length) return null;
-  return sets.reduce((best, set) => {
-    const weight = set.weight_lbs ?? 0;
-    const reps = set.actual_reps ?? 0;
-    const bestWeight = best.weight_lbs ?? 0;
-    const bestReps = best.actual_reps ?? 0;
-    if (weight > bestWeight || (weight === bestWeight && reps > bestReps)) return set;
-    return best;
-  });
+  return sets.reduce((best, set) => betterSet(best, set));
 }
 
 /**
