@@ -140,8 +140,16 @@ function asNumber(value: unknown): number | null {
   return Number.isNaN(parsed) ? null : parsed;
 }
 
-function setsForMovement(sets: ExerciseSet[], name: string) {
-  return sets.filter((item) => sameExerciseMovement(item.exercise_name, name));
+/** Sets that belong on one live card. Alt names are deliberately outside
+ * `lib/exerciseKey.ts` groups (own history bucket), so a gym/travel alias
+ * lookup misses rows already renamed to the alt — union the original
+ * identity with the name currently on the card. */
+function setOnCard(itemName: string, gymName: string, displayName: string) {
+  return sameExerciseMovement(itemName, gymName) || itemName === displayName;
+}
+
+function setsForCard(sets: ExerciseSet[], gymName: string, displayName: string) {
+  return sets.filter((item) => setOnCard(item.exercise_name, gymName, displayName));
 }
 
 /** Exercise-level "How hard?" score: mean of that exercise's set votes, unset sets default to Fair (3) same as a skipped vote. */
@@ -174,6 +182,7 @@ function inferExerciseMode(
 }
 
 function priorSetFor(
+  gymName: string,
   exerciseName: string,
   setNumber: number,
   currentSets: ExerciseSet[],
@@ -185,7 +194,7 @@ function priorSetFor(
 
   const previous = currentSets.find(
     (item) =>
-      sameExerciseMovement(item.exercise_name, exerciseName) &&
+      setOnCard(item.exercise_name, gymName, exerciseName) &&
       item.set_number === setNumber - 1 &&
       item.is_completed
   );
@@ -250,7 +259,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const [restSeconds, setRestSeconds] = useState(restClock);
   const [restLine, setRestLine] = useState('Finish it. Make me proud.');
   const [weightUnits, setWeightUnits] = useState<Record<string, WeightUnit>>({});
-  const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; exercise: Exercise } | null>(
+  const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; gym: Exercise; exercise: Exercise } | null>(
     null
   );
   const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} });
@@ -380,7 +389,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       setModes(nextModes);
       setAlts(storedAlts);
 
-      const template: ExerciseSet[] = [];
+      const template: Array<ExerciseSet & { gymName: string }> = [];
       exercises.forEach((gym) => {
         // An Alt swap replaces the whole movement, so it wins over Gym/Travel mode.
         const exercise = storedAlts[gym.name]
@@ -388,6 +397,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           : applyExerciseMode(gym, nextModes[gym.name] || defaultMode);
         for (let i = 1; i <= gym.sets; i++) {
           template.push({
+            gymName: gym.name,
             exercise_name: exercise.name,
             set_number: i,
             target_reps: gym.reps,
@@ -401,7 +411,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       const merged = template.map((slot) => {
         const found = saved.find(
           (row: any) =>
-            sameExerciseMovement(row.exercise_name, slot.exercise_name) &&
+            setOnCard(row.exercise_name, slot.gymName, slot.exercise_name) &&
             Number(row.set_number) === slot.set_number
         );
 
@@ -416,9 +426,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             if (weight_lbs == null || weight_lbs === 0) weight_lbs = lastBest.weight_lbs;
           }
           return {
-            ...slot,
-            id: found.id,
             exercise_name: completed ? found.exercise_name : slot.exercise_name,
+            set_number: slot.set_number,
+            target_reps: slot.target_reps,
+            id: found.id,
             actual_reps,
             weight_lbs,
             is_completed: completed,
@@ -429,21 +440,34 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
         if (slot.set_number === 1 && lastBest) {
           return {
-            ...slot,
+            exercise_name: slot.exercise_name,
+            set_number: slot.set_number,
+            target_reps: slot.target_reps,
             actual_reps: lastBest.actual_reps,
             weight_lbs: lastBest.weight_lbs,
+            is_completed: false,
           };
         }
 
-        return slot;
+        return {
+          exercise_name: slot.exercise_name,
+          set_number: slot.set_number,
+          target_reps: slot.target_reps,
+          actual_reps: null,
+          weight_lbs: null,
+          is_completed: false,
+        };
       });
 
       const extras: ExerciseSet[] = [];
       for (const gym of exercises) {
+        const displayName = storedAlts[gym.name]
+          ? storedAlts[gym.name]
+          : applyExerciseMode(gym, nextModes[gym.name] || defaultMode).name;
         const extraRows = saved
           .filter(
             (row: any) =>
-              sameExerciseMovement(row.exercise_name, gym.name) && Number(row.set_number) > gym.sets
+              setOnCard(row.exercise_name, gym.name, displayName) && Number(row.set_number) > gym.sets
           )
           .sort((a: any, b: any) => Number(a.set_number) - Number(b.set_number));
 
@@ -545,14 +569,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     newSets[index] = updatedSet;
 
     if (options?.copyForward && updatedSet.is_completed) {
-      const nextIndex = newSets.findIndex(
-        (item, itemIndex) =>
-          itemIndex > index &&
-          sameExerciseMovement(item.exercise_name, updatedSet.exercise_name) &&
-          !item.is_completed &&
-          item.actual_reps == null &&
-          item.weight_lbs == null
-      );
+      const gym = exercises.find((item) => {
+        const display = alts[item.name] || applyExerciseMode(item, modes[item.name] || defaultMode).name;
+        return setOnCard(updatedSet.exercise_name, item.name, display);
+      });
+      const nextIndex = newSets.findIndex((item, itemIndex) => {
+        if (itemIndex <= index || item.is_completed || item.actual_reps != null || item.weight_lbs != null) {
+          return false;
+        }
+        if (gym) {
+          const display = alts[gym.name] || applyExerciseMode(gym, modes[gym.name] || defaultMode).name;
+          return setOnCard(item.exercise_name, gym.name, display);
+        }
+        return sameExerciseMovement(item.exercise_name, updatedSet.exercise_name);
+      });
       if (nextIndex >= 0) {
         newSets[nextIndex] = {
           ...newSets[nextIndex],
@@ -605,7 +635,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // `overrideReps` lets the timed-set timer's Stop button complete a set in one
   // action (held seconds stand in for actual_reps) instead of requiring a
   // separate manual Complete Set tap after the clock closes.
-  const completeSet = (index: number, exercise: Exercise, overrideReps?: number) => {
+  const completeSet = (index: number, gym: Exercise, exercise: Exercise, overrideReps?: number) => {
     const set = exerciseSets[index];
     const actualReps = overrideReps ?? set.actual_reps;
     const kind = kindFor(exercise);
@@ -635,7 +665,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight * reps > record.weight * record.reps;
     const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
-    const prior = priorSetFor(exercise.name, set.set_number, exerciseSets, history);
+    const prior = priorSetFor(gym.name, exercise.name, set.set_number, exerciseSets, history);
     const direction = setDirection({ ...set, actual_reps: actualReps }, prior);
 
     // This exercise's planned (non-extra) sets, as they stand right before this
@@ -643,7 +673,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // numbers above `exercise.sets`), and a set can only go incomplete -> complete,
     // so "one more completion reaches the planned total" can only be true once
     // per exercise — no extra "already flashed" bookkeeping needed.
-    const plannedSets = setsForMovement(exerciseSets, exercise.name).filter(
+    const plannedSets = setsForCard(exerciseSets, gym.name, exercise.name).filter(
       (item) => item.set_number <= exercise.sets
     );
     const completedPlannedCount = plannedSets.filter((item) => item.is_completed).length + 1;
@@ -694,7 +724,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           // Read hardness fresh here, not from the `plannedSets` snapshot taken when
           // this exercise's last set completed — the athlete rates that set's effort
           // AFTER completing it, so the snapshot never had the real vote on it.
-          const freshPlanned = setsForMovement(exerciseSetsRef.current, exerciseName).filter(
+          const freshPlanned = setsForCard(exerciseSetsRef.current, gym.name, exerciseName).filter(
             (item) => item.set_number <= exerciseSetCount
           );
           const score = averageHardness(freshPlanned);
@@ -788,8 +818,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     }
   };
 
-  const addSet = async (exercise: Exercise) => {
-    const current = setsForMovement(exerciseSets, exercise.name);
+  const addSet = async (gym: Exercise, exercise: Exercise) => {
+    const current = setsForCard(exerciseSets, gym.name, exercise.name);
     if (current.length >= exercise.sets + EXTRA_SET_CAP) return;
 
     const lastCompleted = [...current].reverse().find((item) => item.is_completed);
@@ -805,7 +835,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     };
 
     const lastIndex = exerciseSets.reduce(
-      (found, item, index) => (sameExerciseMovement(item.exercise_name, exercise.name) ? index : found),
+      (found, item, index) => (setOnCard(item.exercise_name, gym.name, exercise.name) ? index : found),
       -1
     );
     const insertAt = lastIndex >= 0 ? lastIndex + 1 : exerciseSets.length;
@@ -814,12 +844,17 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     setExerciseSets(nextSets);
   };
 
-  const removeSet = async (exercise: Exercise, set: ExerciseSet) => {
+  const removeSet = async (gym: Exercise, exercise: Exercise, set: ExerciseSet) => {
     if (set.is_completed || set.set_number <= exercise.sets) return;
+    if (!setOnCard(set.exercise_name, gym.name, exercise.name)) return;
 
     setExerciseSets((currentSets) =>
       currentSets.filter(
-        (item) => !(item.exercise_name === set.exercise_name && item.set_number === set.set_number)
+        (item) =>
+          !(
+            setOnCard(item.exercise_name, gym.name, exercise.name) &&
+            item.set_number === set.set_number
+          )
       )
     );
     setEditingSet((current) =>
@@ -866,10 +901,15 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     });
     setEditingSet(null);
     setAltTakeoverFor(null);
+    const previousAlt = alts[gym.name];
     const displayName = altName || gym.name;
     setExerciseSets((current) =>
       current.map((item) => {
-        if (!sameExerciseMovement(item.exercise_name, gym.name) || item.is_completed) return item;
+        if (item.is_completed) return item;
+        const onThisCard =
+          setOnCard(item.exercise_name, gym.name, displayName) ||
+          (previousAlt != null && item.exercise_name === previousAlt);
+        if (!onThisCard) return item;
         return { ...item, exercise_name: displayName };
       })
     );
@@ -891,13 +931,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const altName = alts[gym.name];
     const mode = modes[gym.name] || defaultMode;
     const exercise = altName ? { ...gym, name: altName } : applyExerciseMode(gym, mode);
-    // Union of the original identity (and its gym/travel aliases) with the current alt name —
-    // a plain setsForMovement(exerciseSets, gym.name) lookup would miss sets already renamed
-    // to the alt, since an alt is deliberately NOT in exerciseKey.ts's alias groups (separate
-    // history bucket by design).
-    const sets = exerciseSets.filter(
-      (item) => sameExerciseMovement(item.exercise_name, gym.name) || (altName != null && item.exercise_name === altName)
-    );
+    const sets = setsForCard(exerciseSets, gym.name, exercise.name);
     return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
   const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
@@ -1237,7 +1271,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           {isExtra && !set.is_completed && (
                             <button
                               type="button"
-                              onClick={() => removeSet(exercise, set)}
+                              onClick={() => removeSet(gym, exercise, set)}
                               className="inline-flex min-h-11 items-center gap-1.5 rounded-xl px-2 text-xs font-semibold text-white/45 hover:text-white"
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1321,6 +1355,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                               setTimedTimer({
                                 index: globalIndex,
                                 target: parseTimedTarget(exercise.reps),
+                                gym,
                                 exercise,
                               })
                             }
@@ -1338,7 +1373,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                             if (set.is_completed) {
                               setEditingSet(isEditing ? null : `${set.exercise_name}-${set.set_number}`);
                             } else {
-                              completeSet(globalIndex, exercise);
+                              completeSet(globalIndex, gym, exercise);
                             }
                           }}
                           disabled={!set.is_completed && !ready}
@@ -1449,7 +1484,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
               {sets.length < exercise.sets + EXTRA_SET_CAP && (
                 <button
                   type="button"
-                  onClick={() => addSet(exercise)}
+                  onClick={() => addSet(gym, exercise)}
                   className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-white/20 text-sm font-bold text-white/70 hover:border-[#e8c547]/40 hover:text-[#e8c547]"
                 >
                   <Plus className="h-4 w-4" />
@@ -1498,7 +1533,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         onStop={(heldSeconds) => {
           if (timedTimer) {
             // Stop both records the hold and completes the set in one action.
-            completeSet(timedTimer.index, timedTimer.exercise, heldSeconds);
+            completeSet(timedTimer.index, timedTimer.gym, timedTimer.exercise, heldSeconds);
           }
           setTimedTimer(null);
         }}

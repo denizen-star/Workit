@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 8.1.1 - 2026-09-21
+
+### Fixed
+- After swapping a lift with Alt Exercise, extra sets would not add or remove correctly — the card now keeps those extras with the swapped movement
+
 ## 8.1.0 - 2026-09-21
 
 ### Added

@@ -36,31 +36,25 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '8.0.0',
-  title: 'This one is for Peter and Christine.',
-  subject: 'This one is for Peter and Christine.',
+  version: '8.1.1',
+  title: 'Alt extras are back on the card.',
+  subject: 'Alt extras are back on the card.',
   signer: 'Master Tom Iron',
   tone: 'master',
-  onlyAthletesWithWorkouts: false,
-  onlyAthletes: ['Kevin', 'Peter', 'Christine', 'Mike'],
+  onlyAthletesWithWorkouts: true,
+  activeInDays: 14,
+  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Man, no machine for the lift, or a movement you have gone cold on — that used to mean skip it or force it. Not anymore.',
-  mid: 'Alt sits right on the card now. Tap it, pick from a short list that hits the same muscle, and see the body diagram so there is no guessing what it works. No equipment where you are — the plane icon marks the picks that need nothing but you. The swap holds for the day, then the original is back, and whatever you swap in keeps its own record from the first set. Your record itself got smarter too — it is weight times reps now, not just the number on the bar. Bring more reps at a fair weight and it counts the same as adding plates.',
-  close: 'Growth does not care which version of the lift moved it. Pick what fits, do the work, log it. Quit is still the only thing not welcome in here.',
+    'Man, you swapped the lift and the extra-set work went quiet. That was a miss. It is not quiet now.',
+  mid: 'Alt still holds for the day. Add a set, take one off — the card still knows it is your work, swapped name and all.',
+  close: 'Growth does not care which name is on the bar. Log the work. Quit is still the only thing not welcome in here.',
   lead: '',
   groups: [
     {
-      heading: 'Added',
+      heading: 'Fixed',
       wins: [
-        'Alt Exercise — swap any lift for one of a few picks that hit the same muscle, right from the card. Plane icon marks the ones that need no equipment at all',
-      ],
-    },
-    {
-      heading: 'Changed',
-      wins: [
-        'Personal records — now weight × reps, not weight alone. More reps at a solid weight can beat a heavier, lower-rep set',
-        'Per-lift Gym/Travel toggle is gone — Travel-friendly swaps now live inside Alt Exercise instead',
+        'Alt Exercise — extra sets add and remove after a swap, the way they should',
       ],
     },
   ],
