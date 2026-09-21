@@ -1,12 +1,12 @@
 import { isBonusDay, requiredDays, weekHasBonus } from '@/lib/bonusDay';
 import { workoutProgram, type Exercise, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 
-export const MIN_SCHEDULE_DAYS = 2;
+export const MIN_SCHEDULE_DAYS = 1;
 export const MAX_SCHEDULE_DAYS = 5;
 /** Matches `REQUIRED_DAYS_TO_LOCK` in `lib/bonusDay.ts` — the program's original fixed cadence. */
 export const DEFAULT_SCHEDULE_DAYS = 4;
 
-/** Clamp any stored/incoming value into the supported 2-5 range, falling back to the
+/** Clamp any stored/incoming value into the supported 1-5 range, falling back to the
  * default for anything missing or unparseable (including `null`/`undefined` — not
  * just NaN, since `Number(null)` is 0 and would otherwise clamp to the minimum). */
 export function clampScheduleDays(value: unknown): number {
@@ -20,7 +20,7 @@ export function scheduleDaysForUser(user: { schedule_days_per_week?: unknown } |
   return clampScheduleDays(user?.schedule_days_per_week);
 }
 
-/** 2-3 day/week athletes train full-body instead of a split, so a short week never
+/** 1-3 day/week athletes train full-body instead of a split, so a short week never
  * leaves a muscle group untouched. Built from exercises already in the catalog. */
 const FULL_BODY_PACKS: Exercise[][] = [
   [
@@ -66,12 +66,12 @@ function fullBodyDay(week: WeekPlan, index: number): WorkoutDay {
 
 /** The days that count toward this athlete's week — what `weekLocked`/`findNextProgramDay`
  * require and what Select Workout should offer as the week's plan. Does not touch the
- * optional bonus day, which stays available to everyone at 2-4 days regardless.
+ * optional bonus day, which stays available to everyone at 1-4 days regardless.
  *
  * - 4 days (default): unchanged, the program's normal 4 split days.
  * - 5 days: the 4 split days plus the week's bonus day, now required rather than optional.
  *   Weeks 1-2 have no bonus day, so this naturally falls back to 4 there.
- * - 2-3 days: that many full-body days, replacing the split entirely so a short week
+ * - 1-3 days: that many full-body days, replacing the split entirely so a short week
  *   still hits every muscle group instead of risking e.g. two upper days with no legs.
  */
 export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {

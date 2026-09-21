@@ -1,4 +1,4 @@
--- Select Days Per Week: athlete-chosen weekly training frequency (2-5, default 4).
+-- Select Days Per Week: athlete-chosen weekly training frequency (1-5, default 4).
 -- Apply on PlanetScale by hand. Re-run = duplicate column errors (safe to ignore).
 
 ALTER TABLE users

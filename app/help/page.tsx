@@ -487,7 +487,7 @@ export default function HelpPage() {
             <span className="font-black text-[#e8c547]">Belts</span> page.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
-            Training fewer or more days a week? Set your own pace (2 to 5 days) in{' '}
+            Training fewer or more days a week? Set your own pace (1 to 5 days) in{' '}
             <span className="font-black text-[#e8c547]">Edit profile</span> — 2 and 3 day plans swap the split for
             full-body days so nothing gets skipped. A week you&apos;ve already locked stays locked even if you
             change your pace later.

@@ -46,8 +46,8 @@ export default function WeekLock({
 }: {
   week: WeekPlan | null;
   sessions: WorkoutSessionRow[];
-  /** Athlete's chosen `schedule_days_per_week` (2-5) — governs how many days this
-   * week requires and, for 2-3 day athletes, swaps in full-body content. */
+  /** Athlete's chosen `schedule_days_per_week` (1-5) — governs how many days this
+   * week requires and, for 1-3 day athletes, swaps in full-body content. */
   scheduleDays?: number;
   /** Persisted `locked_weeks` row for this week, if already locked (`lib/lockedWeeks.ts`).
    * Only affects the header count / fill bar below — the per-day slot cards still

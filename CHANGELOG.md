@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 7.19.0 - 2026-09-21
+
+### Changed
+- Training-days setting now goes down to 1 day a week (was 2) for athletes who only have time for one full-body session
+
 ## 7.18.0 - 2026-09-20
 
 ### Added

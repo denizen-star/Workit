@@ -22,7 +22,7 @@ Redirect to `/login`. Old `?claim=` → `/join?claim=`. Old `?reset=` → `/logi
 ## `/join`
 
 - No query or `h=og` without claim → `/login`
-- `h=gowanus`: intro → form (first, last, alias, email, optional phone/weight/photo, days-per-week slider 2-5 default 4) + waiver checkbox/sheet → PIN
+- `h=gowanus`: intro → form (first, last, alias, email, optional phone/weight/photo, days-per-week slider 1-5 default 4) + waiver checkbox/sheet → PIN
 - `h=` + `claim=`: same steps for that house; no verify mail; session on finish
 - New Gowanus: account after PIN; Home after verify mail
 - Draft on the phone until PIN
@@ -44,7 +44,7 @@ Public waiver text.
   - Restart (open session)
   - Last-week medal in the header row if you placed (not over the whole card)
   - Four window KPIs (last 15 days vs last time those lifts ran). Totals abbreviate (`12k`) app-wide; logged set load stays exact. Effort under Effective is How hard · factor (`4.3 · 1.13`), not a percent.
-- Week lock (2-5 required days per your own setting; volume + % vs last time on tiles; an already-locked week's count stays fixed even after you change your setting; optionals n/8 under the row)
+- Week lock (1-5 required days per your own setting; volume + % vs last time on tiles; an already-locked week's count stays fixed even after you change your setting; optionals n/8 under the row)
 - Week performance (More load / More reps / Less drop / Less cut; count / compared + %)
 - Daily weight lifted (`?` helper)
 - **Your performance** (folded): next workout, or last workout the day after a finish / when the week is locked. Card deep-links to `/performance?tab=analytics` with period, that day, grain=workout
@@ -62,7 +62,7 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login 
 
 - Header: back + title + menu
 - Week list (locked weeks start folded; open session opens that week)
-- Day cards: Gym/Travel pill on unstarted or in-progress days. 2-3 day/week athletes see Full Body days instead of the split; 5-day athletes see the bonus day badged "Bonus · Required" instead of plain "Bonus"
+- Day cards: Gym/Travel pill on unstarted or in-progress days. 1-3 day/week athletes see Full Body days instead of the split; 5-day athletes see the bonus day badged "Bonus · Required" instead of plain "Bonus"
 - Finished days: `CompletedSessionCard` + Do Again
 - Bonus Extra credit copy + rest-between-uppers hint (when relevant)
 
