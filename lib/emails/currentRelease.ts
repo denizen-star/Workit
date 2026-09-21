@@ -36,25 +36,31 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '7.19.0',
-  title: 'One day is still a day.',
-  subject: 'One day is still a day.',
+  version: '8.0.0',
+  title: 'This one is for Peter and Christine.',
+  subject: 'This one is for Peter and Christine.',
   signer: 'Master Tom Iron',
   tone: 'master',
-  onlyAthletesWithWorkouts: true,
-  activeInDays: 14,
-  onlyAthletes: ['Kevin'],
+  onlyAthletesWithWorkouts: false,
+  onlyAthletes: ['Kevin', 'Peter', 'Christine', 'Mike'],
   includeNewAthletes: false,
   intro:
-    'Man, two days a week was already thin. For some of you even that was too many to find. That excuse is gone too now.',
-  mid: 'One day a week is on the table. Set it in Edit profile and the whole week folds into a single full-body session — no split, nothing skipped. Change your mind later and nothing you already locked gets touched.',
-  close: 'One day is still a day. Show up for it. Quit does not get to hide behind a schedule that never fit.',
+    'Man, no machine for the lift, or a movement you have gone cold on — that used to mean skip it or force it. Not anymore.',
+  mid: 'Alt sits right on the card now. Tap it, pick from a short list that hits the same muscle, and see the body diagram so there is no guessing what it works. No equipment where you are — the plane icon marks the picks that need nothing but you. The swap holds for the day, then the original is back, and whatever you swap in keeps its own record from the first set. Your record itself got smarter too — it is weight times reps now, not just the number on the bar. Bring more reps at a fair weight and it counts the same as adding plates.',
+  close: 'Growth does not care which version of the lift moved it. Pick what fits, do the work, log it. Quit is still the only thing not welcome in here.',
   lead: '',
   groups: [
     {
+      heading: 'Added',
+      wins: [
+        'Alt Exercise — swap any lift for one of a few picks that hit the same muscle, right from the card. Plane icon marks the ones that need no equipment at all',
+      ],
+    },
+    {
       heading: 'Changed',
       wins: [
-        'Training days — goes as low as 1 a week now, not 2. One day, one full-body session, everything covered',
+        'Personal records — now weight × reps, not weight alone. More reps at a solid weight can beat a heavier, lower-rep set',
+        'Per-lift Gym/Travel toggle is gone — Travel-friendly swaps now live inside Alt Exercise instead',
       ],
     },
   ],
