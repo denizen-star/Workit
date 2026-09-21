@@ -20,6 +20,7 @@ export default function TimedSetTimer({
   onStop,
   onCancel,
 }: TimedSetTimerProps) {
+  const holdFor = Math.max(1, Math.round(Number(targetSeconds) || 45));
   const [phase, setPhase] = useState<Phase>("ready");
   const [display, setDisplay] = useState(READY_SECONDS);
   const startedAtRef = useRef(0);
@@ -32,7 +33,7 @@ export default function TimedSetTimer({
     if (!open) return;
 
     unlockAudio();
-    armSetAlarm(READY_SECONDS + targetSeconds);
+    armSetAlarm(READY_SECONDS + holdFor);
     startedAtRef.current = Date.now();
     phaseRef.current = "ready";
     displayRef.current = READY_SECONDS;
@@ -40,10 +41,16 @@ export default function TimedSetTimer({
     setDisplay(READY_SECONDS);
 
     const interval = window.setInterval(() => {
-      const elapsed = (Date.now() - startedAtRef.current) / 1000;
+      const now = Date.now();
+      const readyUntil = startedAtRef.current + READY_SECONDS * 1000;
+      const holdUntil = readyUntil + holdFor * 1000;
 
-      if (elapsed < READY_SECONDS) {
-        const next = Math.max(1, Math.ceil(READY_SECONDS - elapsed));
+      if (now < readyUntil) {
+        const next = Math.max(1, Math.ceil((readyUntil - now) / 1000));
+        if (phaseRef.current !== "ready") {
+          phaseRef.current = "ready";
+          setPhase("ready");
+        }
         if (displayRef.current !== next) {
           displayRef.current = next;
           setDisplay(next);
@@ -51,25 +58,20 @@ export default function TimedSetTimer({
         return;
       }
 
-      if (phaseRef.current === "ready") {
-        phaseRef.current = "down";
-        setPhase("down");
-        playSetChime();
-        try {
-          navigator.vibrate?.(80);
-        } catch {
-          // Vibration is not available on every phone.
+      if (now < holdUntil) {
+        if (phaseRef.current === "ready") {
+          playSetChime();
+          try {
+            navigator.vibrate?.(80);
+          } catch {
+            // Vibration is not available on every phone.
+          }
         }
-      }
-
-      const held = elapsed - READY_SECONDS;
-
-      if (held < targetSeconds) {
-        const remaining = Math.max(0, Math.ceil(targetSeconds - held));
         if (phaseRef.current !== "down") {
           phaseRef.current = "down";
           setPhase("down");
         }
+        const remaining = Math.max(1, Math.ceil((holdUntil - now) / 1000));
         if (displayRef.current !== remaining) {
           displayRef.current = remaining;
           setDisplay(remaining);
@@ -84,11 +86,10 @@ export default function TimedSetTimer({
         playSetChime();
       }
 
-      const overtime = Math.floor(held - targetSeconds);
-      const shown = overtime;
-      if (displayRef.current !== shown) {
-        displayRef.current = shown;
-        setDisplay(shown);
+      const overtime = Math.floor((now - holdUntil) / 1000);
+      if (displayRef.current !== overtime) {
+        displayRef.current = overtime;
+        setDisplay(overtime);
       }
     }, 50);
 
@@ -96,7 +97,7 @@ export default function TimedSetTimer({
       window.clearInterval(interval);
       cancelSetAlarm();
     };
-  }, [open, targetSeconds]);
+  }, [open, holdFor]);
 
   if (!open) return null;
 
@@ -118,7 +119,7 @@ export default function TimedSetTimer({
         {label}
       </p>
       <div className="relative flex flex-1 items-center justify-center">
-        <p className="get-to-it-text text-[22vw] font-black leading-none tabular-nums text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.35)] sm:text-9xl">
+        <p className="whitespace-nowrap text-[clamp(4.5rem,18vw,8rem)] font-black leading-none tabular-nums text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.35)]">
           {phase === "up" ? `+${display}` : display}
         </p>
       </div>

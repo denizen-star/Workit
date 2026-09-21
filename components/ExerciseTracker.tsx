@@ -17,7 +17,7 @@ import { parseExerciseAlts, type ExerciseAltMap } from '@/lib/exerciseAlts';
 import { altsForExercise } from '@/lib/altExercises';
 import { muscleGroupForExercise } from '@/lib/muscleGroups';
 import { isTravelFriendly } from '@/lib/travelFriendly';
-import { applyExerciseMode, type Exercise as ProgramExercise } from '@/lib/workoutData';
+import { applyExerciseMode, canonicalProgramExercise, type Exercise as ProgramExercise } from '@/lib/workoutData';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
@@ -739,10 +739,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         }
       };
       delete pendingPrRef.current[exercise.name];
-      // Effort is rated before the set completes now, so there's nothing left to wait
-      // on — the celebration/flash for this exercise can start right away instead of
-      // waiting for a later rating tap or for the athlete to start the next exercise.
-      resolveFinish(exercise.name);
+      // Weighted sets rate effort before Complete, so the finish can start right away.
+      // Timed holds rate after the clock (optional) — wait for that vote or for the
+      // athlete to move on, so the hardness flash still sees the real score.
+      if (kind !== 'timed' || parseHardness(set.hardness) != null) {
+        resolveFinish(exercise.name);
+      }
     }
 
     if (isWeightPr || isTimedPr) {
@@ -910,7 +912,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           setOnCard(item.exercise_name, gym.name, displayName) ||
           (previousAlt != null && item.exercise_name === previousAlt);
         if (!onThisCard) return item;
-        return { ...item, exercise_name: displayName };
+        // Drop copied weight/reps from the previous movement — a plank must not
+        // keep Dead Bugs' "8" in the seconds field (or as the timer target).
+        return { ...item, exercise_name: displayName, actual_reps: null, weight_lbs: null };
       })
     );
     try {
@@ -930,7 +934,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const groupedSets = exercises.map((gym) => {
     const altName = alts[gym.name];
     const mode = modes[gym.name] || defaultMode;
-    const exercise = altName ? { ...gym, name: altName } : applyExerciseMode(gym, mode);
+    const exercise = altName
+      ? (() => {
+          const template = canonicalProgramExercise(altName);
+          return { ...gym, name: altName, reps: template?.reps ?? gym.reps };
+        })()
+      : applyExerciseMode(gym, mode);
     const sets = setsForCard(exerciseSets, gym.name, exercise.name);
     return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
@@ -1159,9 +1168,11 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 );
                 const isEditing = editingSet === `${set.exercise_name}-${set.set_number}`;
                 const isActive = !set.is_completed && set.set_number === activeSetNumber;
-                // Effort is rated before the set completes now, not after — so completing
-                // (or, for a timed set, starting the clock) requires a pick first.
-                const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs) && set.hardness != null;
+                // Weighted sets rate effort before Complete. Timed holds start the clock
+                // first; How hard stays optional there (skip = Fair after the row folds).
+                const ready =
+                  canCompleteSet(kind, set.actual_reps, set.weight_lbs) &&
+                  (kind === 'timed' || set.hardness != null);
                 const isExtra = set.set_number > exercise.sets;
                 const folded = set.is_completed && !isEditing;
                 const completeButtonClass = set.is_completed
@@ -1330,42 +1341,38 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           </div>
                         </div>
 
-                        {/* Effort is rated here, before the set completes — not after, on the
-                            folded row. Completing (or, for a timed set, starting the clock)
-                            requires a pick first, so the coach message that fires when the
-                            exercise finishes always has the real, just-given score, not a
-                            pre-rating snapshot. Reopening a finished set via "Editing" reuses
-                            this same widget to change the vote (still allowed, doesn't re-fire
-                            the exercise-complete celebration). */}
-                        <SetHardness
-                          value={hardnessScore}
-                          forceEditable
-                          highlight={!set.is_completed && hardnessScore == null}
-                          onPick={(score) =>
-                            set.is_completed
-                              ? saveHardness(set, score, exercise.sets)
-                              : updateSet(globalIndex, { hardness: score })
-                          }
-                        />
-
                         {kind === 'timed' && !set.is_completed && (
                           <button
                             type="button"
                             onClick={() =>
                               setTimedTimer({
                                 index: globalIndex,
-                                target: parseTimedTarget(exercise.reps),
+                                target: parseTimedTarget(exercise.reps, exercise.name),
                                 gym,
                                 exercise,
                               })
                             }
-                            disabled={set.hardness == null}
-                            className="mt-3 mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-base font-black text-white disabled:opacity-40"
+                            className="mt-3 mb-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-white/25 bg-white/10 text-base font-black text-white"
                           >
                             <Play className="h-5 w-5" />
                             Start timer
                           </button>
                         )}
+
+                        {/* Weighted sets rate effort here before Complete. Timed holds put
+                            the clock above this slider and leave the vote optional — after
+                            Stop folds the row, an unrated set still gets the skippable
+                            folded prompt. Reopening via "Editing" reuses this widget. */}
+                        <SetHardness
+                          value={hardnessScore}
+                          forceEditable
+                          highlight={kind !== 'timed' && !set.is_completed && hardnessScore == null}
+                          onPick={(score) =>
+                            set.is_completed
+                              ? saveHardness(set, score, exercise.sets)
+                              : updateSet(globalIndex, { hardness: score })
+                          }
+                        />
 
                         <button
                           type="button"

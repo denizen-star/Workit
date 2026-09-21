@@ -40,15 +40,24 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
   return "weighted";
 }
 
-export function parseTimedTarget(reps: string): number {
+/** Hold length in seconds. Only duration copy counts ("45 seconds", "10 min", or a
+ * bare number). Rep schemes like "8 per side" must not become an 8-second clock —
+ * that happens when Alt Exercise swaps onto a plank and keeps the old reps string. */
+export function parseTimedTarget(reps: string, name = ''): number {
   const lower = reps.toLowerCase();
   const secondsMatch = lower.match(/(\d+(?:\.\d+)?)\s*seconds?/);
   if (secondsMatch) return Math.max(1, Math.round(Number(secondsMatch[1])));
-  const minutesMatch = lower.match(/(\d+(?:\.\d+)?)\s*min/);
+  const minutesMatch = lower.match(/(\d+(?:\.\d+)?)\s*min(?:ute)?s?\b/);
   if (minutesMatch) return Math.max(1, Math.round(Number(minutesMatch[1]) * 60));
-  const match = reps.match(/(\d+)/);
-  const value = match ? Number(match[1]) : 45;
-  return Number.isFinite(value) && value > 0 ? value : 45;
+  const bare = lower.trim().match(/^(\d+(?:\.\d+)?)$/);
+  if (bare) {
+    const value = Number(bare[1]);
+    if (Number.isFinite(value) && value > 0) return Math.max(1, Math.round(value));
+  }
+  const n = name.toLowerCase();
+  if (n.includes('side plank')) return 45;
+  if (n.includes('plank')) return 60;
+  return 45;
 }
 
 export function primaryFieldLabel(kind: ExerciseKind): string {

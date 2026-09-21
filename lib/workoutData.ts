@@ -1,6 +1,6 @@
 // Complete 6-week workout program data structure
 
-import { applyAbCoreRotation } from '@/lib/abCoreRotation';
+import { AB_CORE_POOL, applyAbCoreRotation } from '@/lib/abCoreRotation';
 import { toTravelExercise } from '@/lib/travelExercises';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { buildYearWeeks } from '@/lib/yearProgram';
@@ -441,6 +441,21 @@ const FIRST_SIX: WeekPlan[] = [
 ];
 
 export const workoutProgram: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)]);
+
+/** First program (or ab-core pool) definition for a movement name — used when Alt
+ * Exercise swaps onto a different lift so the card keeps that lift's own reps
+ * ("60 seconds") instead of the original's ("8 per side"). */
+export function canonicalProgramExercise(name: string): Exercise | undefined {
+  const poolHit = AB_CORE_POOL.find((item) => item.name === name);
+  if (poolHit) return poolHit;
+  for (const week of workoutProgram) {
+    for (const day of week.days) {
+      const found = day.exercises.find((item) => item.name === name);
+      if (found) return found;
+    }
+  }
+  return undefined;
+}
 
 export function getWeekPlan(weekNumber: number): WeekPlan | undefined {
   return workoutProgram.find(week => week.weekNumber === weekNumber);
