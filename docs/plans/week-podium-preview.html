@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Week podium — look</title>
+    <style>
+      :root {
+        --bg: #07070a;
+        --cream: #f6f1e3;
+        --gold: #e8c547;
+        --silver: #c5c5c5;
+        --bronze: #c08457;
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 500px at 50% -10%, rgba(232, 197, 71, 0.14), transparent 55%),
+          var(--bg);
+        color: var(--cream);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      h1, h2, p { margin: 0; }
+      .page { max-width: 420px; margin: 0 auto; padding: 20px 16px 64px; }
+      .label {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 227, 0.45);
+        margin: 28px 0 10px;
+      }
+      .medal {
+        border-radius: 999px;
+        display: grid;
+        place-items: center;
+        font-weight: 900;
+        color: #1a1404;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35);
+      }
+      .gold { background: radial-gradient(circle at 30% 25%, #f6e27a, var(--gold) 62%, #b8942a); }
+      .silver { background: radial-gradient(circle at 30% 25%, #f2f2f2, var(--silver) 62%, #8d8d8d); }
+      .bronze { background: radial-gradient(circle at 30% 25%, #e2b48a, var(--bronze) 62%, #8a5a38); color: #1a1404; }
+
+      /* Takeover */
+      .takeover {
+        position: relative;
+        overflow: hidden;
+        min-height: 520px;
+        border-radius: 1.5rem;
+        background: #07070a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: 32px 24px;
+      }
+      .takeover .glow {
+        position: absolute;
+        left: 50%;
+        top: 22%;
+        width: 220px;
+        height: 220px;
+        transform: translateX(-50%);
+        border-radius: 999px;
+        background: var(--gold);
+        opacity: 0.28;
+        filter: blur(48px);
+      }
+      .eyebrow {
+        position: relative;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.45em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 20px;
+      }
+      .takeover .medal { width: 112px; height: 112px; margin: 0 auto 24px; font-size: 28px; position: relative; }
+      .takeover h2 {
+        position: relative;
+        font-size: 32px;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1.15;
+        color: #fff;
+        text-shadow: 0 0 28px rgba(255, 255, 255, 0.45);
+      }
+      .takeover .body {
+        position: relative;
+        margin-top: 20px;
+        font-size: 18px;
+        line-height: 1.45;
+        color: rgba(246, 241, 227, 0.85);
+      }
+      .tap {
+        position: relative;
+        margin-top: 40px;
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.25em;
+        text-transform: uppercase;
+        color: rgba(255, 255, 255, 0.7);
+      }
+
+      /* Home hero */
+      .hero {
+        background: linear-gradient(135deg, rgba(232, 197, 71, 0.18), rgba(255, 255, 255, 0.04) 45%, rgba(7, 7, 10, 0.4));
+        border: 1px solid rgba(232, 197, 71, 0.35);
+        border-radius: 2rem;
+        padding: 24px;
+      }
+      .hero-top { font-size: 13px; font-weight: 700; letter-spacing: 0.35em; text-transform: uppercase; color: var(--gold); }
+      .hero-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-top: 12px; }
+      .hero h2 { font-size: 34px; font-weight: 900; letter-spacing: -0.03em; color: #fff; line-height: 1.05; }
+      .hero .focus { margin-top: 10px; font-size: 17px; color: rgba(246, 241, 227, 0.75); }
+      .hero-medal { text-align: center; flex-shrink: 0; }
+      .hero-medal .medal { width: 56px; height: 56px; font-size: 16px; margin: 0 auto; }
+      .hero-medal span { display: block; margin-top: 6px; font-size: 11px; font-weight: 800; color: var(--gold); }
+      .btns { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
+      .btn {
+        display: inline-flex;
+        min-height: 52px;
+        align-items: center;
+        padding: 0 20px;
+        border-radius: 16px;
+        font-size: 17px;
+        font-weight: 900;
+        text-decoration: none;
+      }
+      .btn-gold { background: var(--gold); color: #1a1404; }
+      .btn-ghost { border: 1px solid rgba(232, 197, 71, 0.5); color: var(--gold); }
+
+      /* Empty hero note */
+      .hero-empty .hero-row { display: block; }
+
+      /* Medals */
+      .card {
+        background: linear-gradient(180deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+        border: 1px solid rgba(232, 197, 71, 0.16);
+        border-radius: 1.5rem;
+        padding: 22px;
+      }
+      .card h2 { font-size: 22px; font-weight: 900; color: #fff; }
+      .weeks { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 16px; }
+      .week {
+        border: 1px solid rgba(232, 197, 71, 0.35);
+        background: rgba(232, 197, 71, 0.1);
+        border-radius: 16px;
+        padding: 14px 10px;
+        text-align: center;
+      }
+      .week .medal { width: 56px; height: 56px; margin: 0 auto 8px; font-size: 15px; }
+      .week strong { display: block; font-size: 14px; color: #fff; }
+      .week em { display: block; margin-top: 4px; font-style: normal; font-size: 12px; color: rgba(246, 241, 227, 0.65); }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <p class="label">1. First open after Monday (placers only)</p>
+      <div class="takeover">
+        <div class="glow"></div>
+        <div>
+          <p class="eyebrow">Last week · 1st</p>
+          <div class="medal gold">1st</div>
+          <h2>You owned the week.</h2>
+          <p class="body">Good man. Days and iron. The house saw it.</p>
+          <p class="tap">Tap anywhere to continue</p>
+        </div>
+      </div>
+
+      <p class="label">2. Home hero if you placed</p>
+      <div class="hero">
+        <p class="hero-top">Today</p>
+        <div class="hero-row">
+          <div>
+            <h2>Week 3 · Upper A</h2>
+            <p class="focus">Chest · shoulders · triceps</p>
+          </div>
+          <div class="hero-medal">
+            <div class="medal gold">1st</div>
+            <span>Last week</span>
+          </div>
+        </div>
+        <div class="btns">
+          <span class="btn btn-gold">Start Workout</span>
+          <span class="btn btn-ghost">Select Workout</span>
+        </div>
+      </div>
+
+      <p class="label">2b. Home hero if you did not place</p>
+      <div class="hero hero-empty">
+        <p class="hero-top">Today</p>
+        <div class="hero-row">
+          <h2>Week 3 · Upper A</h2>
+          <p class="focus">Chest · shoulders · triceps</p>
+        </div>
+        <div class="btns">
+          <span class="btn btn-gold">Start Workout</span>
+          <span class="btn btn-ghost">Select Workout</span>
+        </div>
+      </div>
+
+      <p class="label">3. Medals · your weekly places</p>
+      <div class="card">
+        <h2>Last weeks</h2>
+        <div class="weeks">
+          <div class="week">
+            <div class="medal gold">1st</div>
+            <strong>Gold</strong>
+            <em>Aug 18</em>
+          </div>
+          <div class="week">
+            <div class="medal silver">2nd</div>
+            <strong>Silver</strong>
+            <em>Aug 11</em>
+          </div>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

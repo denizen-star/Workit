@@ -1,9 +1,15 @@
 import { medalLabel, placeWord, type WeekPlace } from '@/lib/weekPodium';
 
-const FILL: Record<WeekPlace, string> = {
-  1: 'radial-gradient(circle at 30% 25%, #f6e27a, #e8c547 62%, #b8942a)',
-  2: 'radial-gradient(circle at 30% 25%, #f2f2f2, #c5c5c5 62%, #8d8d8d)',
-  3: 'radial-gradient(circle at 30% 25%, #e2b48a, #c08457 62%, #8a5a38)',
+const BORDER: Record<WeekPlace, string> = {
+  1: '#e8c547',
+  2: '#c5c5c5',
+  3: '#c08457',
+};
+
+const GLOW: Record<WeekPlace, string> = {
+  1: 'rgba(232, 197, 71, 0.15)',
+  2: 'rgba(197, 197, 197, 0.15)',
+  3: 'rgba(192, 132, 87, 0.15)',
 };
 
 export default function WeekMedal({
@@ -20,14 +26,19 @@ export default function WeekMedal({
   return (
     <div className="text-center">
       <div
-        className={`mx-auto grid ${px} place-items-center rounded-full font-black text-[#1a1404] shadow-[inset_0_1px_0_rgba(255,255,255,0.35)]`}
-        style={{ background: FILL[place] }}
+        className={`mx-auto grid ${px} place-items-center rounded-full font-black shadow-lg`}
+        style={{ 
+          background: `radial-gradient(circle at center, ${GLOW[place]} 0%, transparent 70%), linear-gradient(135deg, #242428 0%, #0a0a0c 100%)`,
+          border: `2px solid ${BORDER[place]}`,
+          color: BORDER[place],
+          textShadow: `0 0 10px ${GLOW[place]}`
+        }}
         aria-label={`${medalLabel(place)} · ${placeWord(place)}`}
       >
         {placeWord(place)}
       </div>
       {caption ? (
-        <p className="mt-1.5 text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">{caption}</p>
+        <p className="mt-2 text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">{caption}</p>
       ) : null}
     </div>
   );

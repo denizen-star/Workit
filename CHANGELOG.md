@@ -2,6 +2,9 @@
 
 ## Unreleased
 
+### Changed
+- **Redesigned Medals** — Badges, belts, and week podium medals have been completely redesigned with a sleek, dark premium UI aesthetic. They now feature deep metallic backgrounds, crisp colored borders, glowing line-art icons, and glassmorphic highlights to match the app's dark mode design language.
+
 ## 8.1.1 - 2026-09-21
 
 ### Fixed

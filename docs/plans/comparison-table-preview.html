@@ -1,0 +1,1354 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>From / to tables — look</title>
+    <style>
+      :root {
+        --bg: #07070a;
+        --cream: #f6f1e3;
+        --gold: #e8c547;
+        --copper: #c08457;
+        --green: #6d8b6e;
+        --red: #a35d52;
+        --you-wash: rgba(246, 241, 227, 0.1);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background:
+          radial-gradient(1200px 500px at 50% -10%, rgba(232, 197, 71, 0.12), transparent 55%),
+          var(--bg);
+        color: var(--cream);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      h1, p { margin: 0; }
+      .page { max-width: 980px; margin: 0 auto; padding: 24px 16px 80px; }
+      h1 { font-size: 28px; font-weight: 900; }
+      .lede { margin-top: 10px; font-size: 15px; line-height: 1.5; color: rgba(246, 241, 227, 0.62); max-width: 46rem; }
+      .label {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 227, 0.45);
+        margin: 40px 0 8px;
+      }
+      .note {
+        font-size: 13px;
+        line-height: 1.45;
+        color: rgba(246, 241, 227, 0.55);
+        margin: 0 0 14px;
+        max-width: 46rem;
+      }
+      .pair { display: grid; gap: 16px; }
+      @media (min-width: 840px) {
+        .pair { grid-template-columns: 1fr 1fr; align-items: start; }
+      }
+      .trio { display: grid; gap: 16px; }
+      @media (min-width: 900px) {
+        .trio { grid-template-columns: 1fr 1fr 1fr; }
+      }
+      .card {
+        border: 1px solid rgba(246, 241, 227, 0.12);
+        background: rgba(255, 255, 255, 0.04);
+        border-radius: 20px;
+        padding: 18px 16px 16px;
+      }
+      .from-card { border-style: dashed; background: rgba(0, 0, 0, 0.2); }
+      .tag {
+        display: inline-block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold);
+        margin-bottom: 8px;
+      }
+      .from-card .tag { color: rgba(246, 241, 227, 0.45); }
+      .eyebrow {
+        font-size: 13px;
+        font-weight: 700;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--copper);
+      }
+      .title { margin-top: 4px; font-size: 20px; font-weight: 900; }
+      .sub { margin: 6px 0 12px; font-size: 13px; color: rgba(246, 241, 227, 0.55); }
+
+      .vs-col { display: flex; justify-content: center; gap: 28px; align-items: flex-end; margin: 8px 0 12px; }
+      .stack { width: 72px; text-align: center; }
+      .stack b { display: block; margin-top: 6px; font-size: 13px; }
+      .stack p { font-size: 12px; color: rgba(246, 241, 227, 0.55); }
+      .bar { width: 100%; border-radius: 8px 8px 2px 2px; }
+      .bar.you { background: var(--cream); }
+      .bar.rival { background: var(--copper); }
+      .bar.last-bar { background: rgba(246, 241, 227, 0.35); }
+      .screens { display: grid; gap: 20px; }
+      @media (min-width: 840px) {
+        .screens { grid-template-columns: 1fr 1fr; align-items: start; }
+      }
+      .phone {
+        max-width: 390px;
+        margin: 0 auto;
+        border: 1px solid rgba(246, 241, 227, 0.16);
+        border-radius: 28px;
+        padding: 14px 12px 22px;
+        background: #07070a;
+      }
+      .phone-top {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 14px;
+        font-size: 13px;
+        font-weight: 900;
+      }
+      .hero {
+        border: 1px solid rgba(232, 197, 71, 0.35);
+        background: rgba(232, 197, 71, 0.08);
+        border-radius: 20px;
+        padding: 14px 14px 12px;
+        margin-bottom: 18px;
+      }
+      .fold-h {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.18em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 227, 0.45);
+        margin: 18px 0 8px;
+      }
+      .overlay {
+        background: rgba(0,0,0,0.45);
+        border-radius: 20px;
+        padding: 12px;
+      }
+      .overlay .card { background: #121018; }
+      .chips { display: flex; flex-wrap: wrap; gap: 8px 12px; font-size: 13px; color: rgba(246, 241, 227, 0.55); }
+      .compare { display: grid; grid-template-columns: 3.25rem minmax(0,1fr) auto; gap: 8px; align-items: center; font-size: 14px; font-weight: 800; }
+      .row-block { border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 12px; margin-bottom: 12px; }
+      .row-block:last-child { border: 0; margin: 0; padding: 0; }
+      .kpi-name { font-size: 11px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; margin-bottom: 6px; }
+
+      .kpi-row {
+        display: grid;
+        grid-template-columns: 4.5rem minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+        min-height: 40px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        font-size: 14px;
+      }
+      .kpi-row:last-child { border: 0; }
+      .kpi-row b { font-size: 15px; font-weight: 900; }
+      .kpi-row .d { font-weight: 800; font-size: 13px; }
+
+      .tiles { display: flex; gap: 6px; }
+      .tile {
+        flex: 1;
+        border-radius: 16px;
+        padding: 12px 4px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 700;
+      }
+      .tile small { display: block; margin-top: 4px; font-size: 12px; font-weight: 900; }
+      .tile.done { background: var(--green); color: #1a1404; border: 1px solid var(--green); }
+      .tile.now { border: 2px solid var(--gold); background: rgba(232,197,71,0.1); color: #fff; }
+      .tile.now small { color: var(--gold); }
+      .tile.open { border: 1px dashed rgba(255,255,255,0.15); color: rgba(246,241,227,0.4); }
+      .tile.good { background: var(--green); color: #1a1404; border: 1px solid var(--green); }
+      .tile.bad { border: 2px solid var(--red); background: rgba(163,93,82,0.18); color: var(--red); }
+
+      .honor {
+        border: 1px solid rgba(232,197,71,0.4);
+        background: rgba(232,197,71,0.1);
+        border-radius: 16px;
+        padding: 12px 14px;
+        margin-bottom: 8px;
+      }
+      .honor .line { display: flex; justify-content: space-between; gap: 8px; margin-top: 6px; font-weight: 800; }
+      .rank {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 8px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.2);
+        border-radius: 12px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+      }
+      .rank.you { border-color: rgba(246,241,227,0.45); background: rgba(255,255,255,0.06); }
+      .pills { display: flex; gap: 6px; margin-bottom: 10px; }
+      .pill {
+        flex: 1;
+        min-height: 36px;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.1);
+        font-size: 12px;
+        font-weight: 700;
+        display: grid;
+        place-items: center;
+        color: rgba(246,241,227,0.7);
+      }
+      .pill.on { border-color: var(--gold); background: rgba(232,197,71,0.15); color: var(--gold); }
+      .switch {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 6px;
+        margin: 8px 0 14px;
+      }
+      table.matrix.three th, table.matrix.three td { padding: 11px 5px; }
+      table.matrix .last {
+        background: rgba(192, 132, 87, 0.08);
+      }
+      table.matrix thead .last { border-radius: 14px 14px 0 0; }
+      table.matrix tbody tr:last-child .last { border-radius: 0 0 14px 14px; }
+      .head-last {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 227, 0.55);
+      }
+      .scroll { overflow-x: auto; }
+      .tile .stat { display: block; margin-top: 6px; font-size: 15px; font-weight: 900; }
+      .tile .pct { display: block; margin-top: 2px; font-size: 11px; font-weight: 800; }
+      .switch .pill {
+        min-height: 44px;
+        cursor: pointer;
+        background: rgba(0,0,0,0.25);
+        font-family: inherit;
+        color: rgba(246,241,227,0.75);
+      }
+      .who td { font-size: 13px; }
+      .who .feat { font-size: 13px; }
+      .story {
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.25);
+        border-radius: 16px;
+        padding: 10px 12px;
+        margin-bottom: 8px;
+      }
+      .sticky {
+        border-top: 1px solid rgba(255,255,255,0.1);
+        background: rgba(0,0,0,0.35);
+        padding: 10px 8px;
+        text-align: center;
+        font-size: 13px;
+        border-radius: 12px;
+        line-height: 1.55;
+      }
+      .ex { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; border-bottom: 1px solid rgba(255,255,255,0.08); }
+      .ex:last-child { border: 0; }
+      .mode {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        border-radius: 999px;
+        padding: 4px 8px;
+      }
+      .mode.gym { border: 1px solid var(--gold); color: var(--gold); }
+      .mode.travel { border: 1px solid rgba(246,241,227,0.3); color: rgba(246,241,227,0.55); }
+      .opt {
+        border: 1px dashed rgba(255,255,255,0.2);
+        border-radius: 16px;
+        padding: 12px;
+        margin-bottom: 8px;
+      }
+
+      table.matrix { width: 100%; border-collapse: collapse; }
+      table.matrix th, table.matrix td {
+        padding: 13px 8px;
+        border-bottom: 1px solid rgba(246, 241, 227, 0.18);
+        vertical-align: middle;
+      }
+      table.matrix thead th { border-bottom: 1px solid rgba(246, 241, 227, 0.28); }
+      table.matrix tr:last-child td { border-bottom: 0; }
+      table.matrix .feat { text-align: left; font-size: 14px; font-weight: 700; color: rgba(246, 241, 227, 0.88); }
+      table.matrix .col { text-align: center; }
+      table.matrix .you {
+        background: var(--you-wash);
+        box-shadow: inset 0 0 0 1px rgba(246, 241, 227, 0.12);
+      }
+      table.matrix thead .you { border-radius: 14px 14px 0 0; }
+      table.matrix tbody tr:last-child .you { border-radius: 0 0 14px 14px; }
+      .head-you { font-size: 12px; font-weight: 900; letter-spacing: 0.14em; text-transform: uppercase; color: var(--cream); }
+      .head-them { font-size: 12px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--copper); }
+      .val { font-size: 15px; font-weight: 900; }
+      .pct-up { color: var(--green); font-size: 12px; font-weight: 800; display: block; margin-top: 2px; }
+      .pct-down { color: var(--red); font-size: 12px; font-weight: 800; display: block; margin-top: 2px; }
+      .pct-held { color: rgba(246, 241, 227, 0.5); font-size: 12px; font-weight: 800; display: block; margin-top: 2px; }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <h1>Final screens</h1>
+      <p class="lede">
+        Integrated look only. You vs is 3 columns + B bars. J honor is rows in that table.
+        Week lock and week performance keep their tiles, with stats on them. Recap is G (This | Last).
+        Dropped: E, F-as-table. Stay: Today KpiList, sparks, daily/pack charts, household cards, medal, gym/travel pills, OptionalCard.
+        Your performance page stays as it is except an optional Last line on the lift card. No 3-column switch there.
+      </p>
+
+      <p class="label">The four screens</p>
+      <p class="note">Home · The house · Recap overlay · Lift card. Same data as the workshop below.</p>
+      <div class="screens">
+        <div>
+          <p class="label" style="margin-top:0">Home</p>
+          <div class="phone">
+            <div class="phone-top"><span>Work-It</span><span style="color:rgba(246,241,227,0.4)">menu</span></div>
+            <div class="hero">
+              <p class="eyebrow">Today</p>
+              <p class="title">W12 · Lower B</p>
+              <p class="sub">Focus · Est. 54m</p>
+              <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>12.4k</b><span class="d" style="color:var(--green)">+8%</span></div>
+              <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>842</b><span class="d" style="color:var(--green)">+4%</span></div>
+              <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Volume</span><b>48k</b><span class="d" style="color:var(--red)">−2%</span></div>
+              <div class="kpi-row"><span class="kpi-name" style="color:#c45d7a">Effective</span><b>41k</b><span class="d">0%</span></div>
+            </div>
+            <p style="font-weight:700;margin-bottom:8px">2 of 4 days · 17.3k</p>
+            <div class="tiles">
+              <div class="tile done">Upper A<small>Done</small><span class="stat">8.2k</span><span class="pct" style="color:#1a1404">+2%</span></div>
+              <div class="tile done">Lower A<small>Done</small><span class="stat">9.1k</span><span class="pct" style="color:#1a1404">+1%</span></div>
+              <div class="tile now">Extra Upper<small>Now</small><span class="stat">—</span><span class="pct">last 11k</span></div>
+              <div class="tile open">Lower B<small>—</small><span class="stat">—</span><span class="pct">last 12.6k</span></div>
+            </div>
+            <p class="sub" style="margin-top:10px">Optionals 2 / 8 · +1.0k · Bonus 1</p>
+            <p class="sub" style="margin-bottom:8px">12 lifts vs last time</p>
+            <div class="tiles">
+              <div class="tile good">More load<small>5 / 12</small><span class="pct" style="color:#1a1404">42%</span></div>
+              <div class="tile good">More reps<small>3 / 12</small><span class="pct" style="color:#1a1404">25%</span></div>
+              <div class="tile good">Less drop<small>0 / 12</small><span class="pct" style="color:#1a1404">0%</span></div>
+              <div class="tile bad">Less cut<small>2 / 12</small><span class="pct">17%</span></div>
+            </div>
+            <p class="fold-h">You vs</p>
+            <p class="eyebrow">Last 7 days</p>
+            <p class="title" style="font-size:18px">You vs Grey</p>
+            <p class="sub">2nd of 5. Last stays.</p>
+            <div class="switch">
+              <div class="pill on">Next up</div>
+              <div class="pill">Next down</div>
+              <div class="pill">House</div>
+            </div>
+            <div class="vs-col">
+              <div class="stack"><div class="bar you" style="height:52px"></div><b>You</b><p>48k</p></div>
+              <div class="stack"><div class="bar last-bar" style="height:48px"></div><b>Last</b><p>46k</p></div>
+              <div class="stack"><div class="bar rival" style="height:56px"></div><b>Grey</b><p>51k</p></div>
+            </div>
+            <div class="scroll">
+              <table class="matrix three">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th class="col you"><span class="head-you">You</span></th>
+                    <th class="col last"><span class="head-last">Last</span></th>
+                    <th class="col"><span class="head-them">Grey</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="feat">Volume</td>
+                    <td class="col you"><span class="val">48k</span><span class="pct-up">+4%</span></td>
+                    <td class="col last"><span class="val">46k</span></td>
+                    <td class="col"><span class="val">51k</span><span class="pct-down">−6%</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Days</td>
+                    <td class="col you"><span class="val">3</span></td>
+                    <td class="col last"><span class="val">3</span></td>
+                    <td class="col"><span class="val">4</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Effort</td>
+                    <td class="col you"><span class="val">4.1</span></td>
+                    <td class="col last"><span class="val">3.9</span></td>
+                    <td class="col"><span class="val">3.8</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Optionals</td>
+                    <td class="col you"><span class="val">2 / 8</span></td>
+                    <td class="col last"><span class="val">1 / 8</span></td>
+                    <td class="col"><span class="val">0 / 8</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Bonus</td>
+                    <td class="col you"><span class="val">1</span></td>
+                    <td class="col last"><span class="val">0</span></td>
+                    <td class="col"><span class="val">0</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <p class="label" style="margin-top:0">The house</p>
+          <div class="phone">
+            <div class="phone-top"><span>The house</span><span style="color:rgba(246,241,227,0.4)">menu</span></div>
+            <div class="pills">
+              <div class="pill on">7 days</div>
+              <div class="pill">30 days</div>
+              <div class="pill">All</div>
+            </div>
+            <p class="eyebrow">Last 7 days</p>
+            <p class="title" style="font-size:18px">You vs Grey</p>
+            <p class="sub">Honor rolls live in these rows. No gold Bonus / Optionals cards.</p>
+            <div class="switch">
+              <div class="pill on">Next up</div>
+              <div class="pill">Next down</div>
+              <div class="pill">House</div>
+            </div>
+            <div class="vs-col">
+              <div class="stack"><div class="bar you" style="height:52px"></div><b>You</b><p>48k</p></div>
+              <div class="stack"><div class="bar last-bar" style="height:48px"></div><b>Last</b><p>46k</p></div>
+              <div class="stack"><div class="bar rival" style="height:56px"></div><b>Grey</b><p>51k</p></div>
+            </div>
+            <div class="scroll">
+              <table class="matrix three">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th class="col you"><span class="head-you">You</span></th>
+                    <th class="col last"><span class="head-last">Last</span></th>
+                    <th class="col"><span class="head-them">Grey</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="feat">Volume</td>
+                    <td class="col you"><span class="val">48k</span><span class="pct-up">+4%</span></td>
+                    <td class="col last"><span class="val">46k</span></td>
+                    <td class="col"><span class="val">51k</span><span class="pct-down">−6%</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Optionals</td>
+                    <td class="col you"><span class="val">2 / 8</span></td>
+                    <td class="col last"><span class="val">1 / 8</span></td>
+                    <td class="col"><span class="val">0 / 8</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Optional lbs</td>
+                    <td class="col you"><span class="val">+1.0k</span></td>
+                    <td class="col last"><span class="val">+1.0k</span></td>
+                    <td class="col"><span class="val">0</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Bonus</td>
+                    <td class="col you"><span class="val">1</span></td>
+                    <td class="col last"><span class="val">0</span></td>
+                    <td class="col"><span class="val">0</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Run + bike</td>
+                    <td class="col you"><span class="val">42m</span></td>
+                    <td class="col last"><span class="val">50m</span></td>
+                    <td class="col"><span class="val">1h 10m</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p class="fold-h">Pack</p>
+            <div class="rank you"><p>2nd You</p><p>48k</p></div>
+            <div class="rank"><p>1st Grey</p><p>51k</p></div>
+          </div>
+        </div>
+
+        <div>
+          <p class="label" style="margin-top:0">Recap · after finish</p>
+          <div class="phone overlay">
+            <div class="card">
+              <span class="tag">G · This | Last</span>
+              <p class="eyebrow">This session</p>
+              <p class="title">This vs last time · same exercise</p>
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th></th>
+                    <th class="col you"><span class="head-you">This</span></th>
+                    <th class="col last"><span class="head-last">Last</span></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr>
+                    <td class="feat">Hip Thrusts</td>
+                    <td class="col you"><span class="val">2.2k</span><span class="pct-up">+8%</span></td>
+                    <td class="col last"><span class="val">2.0k</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">RDLs</td>
+                    <td class="col you"><span class="val">1.8k</span><span class="pct-up">+3%</span></td>
+                    <td class="col last"><span class="val">1.75k</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Farmer's</td>
+                    <td class="col you"><span class="val">1.6k</span><span class="pct-held">0%</span></td>
+                    <td class="col last"><span class="val">1.6k</span></td>
+                  </tr>
+                  <tr>
+                    <td class="feat">Optional lbs</td>
+                    <td class="col you"><span class="val">+500</span></td>
+                    <td class="col last"><span class="val">+1.0k</span></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+          <p class="label">Lift card · Your performance</p>
+          <div class="phone">
+            <div class="card" style="border:0;padding:8px 4px">
+              <p style="color:var(--green);font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase">Up · +8%</p>
+              <p class="title" style="font-size:16px">Hip Thrusts</p>
+              <p class="sub">185 lb · 12 reps · total 2.2k</p>
+              <p class="sub">Last 170 · 12 · 2.0k</p>
+              <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>185</b><span class="d" style="color:var(--green)">+8%</span></div>
+              <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>12</b><span class="d">0%</span></div>
+              <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Total</span><b>2.2k</b><span class="d" style="color:var(--green)">+8%</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p class="label">Workshop · pieces</p>
+      <p class="lede" style="margin-bottom:8px">
+        Left is how it looks in the app today. Right is the piece. Dashed = from. The screens above are those pieces stacked.
+      </p>
+
+      <p class="label">Compare switch</p>
+      <p class="note">
+        Three columns: You · Last (always) · a person you pick. Switch is only Next up / Next down / House.
+        Last is the last time you posted those numbers — not a 7-day week. % under You is vs last. % under them is you vs them.
+      </p>
+      <div class="pair">
+        <div class="card">
+          <span class="tag">Demo · You vs · 3 columns</span>
+          <p class="eyebrow">Last 7 days</p>
+          <p class="title" id="vs-title">You vs Grey</p>
+          <p class="sub" id="vs-sub">You are 2nd of 5. Last stays. Third column is next up.</p>
+          <div class="switch" role="tablist">
+            <button type="button" class="pill on" data-vs="up">Next up</button>
+            <button type="button" class="pill" data-vs="down">Next down</button>
+            <button type="button" class="pill" data-vs="house">House</button>
+          </div>
+          <div class="scroll">
+          <table class="matrix three">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">You</span></th>
+                <th class="col last"><span class="head-last">Last</span></th>
+                <th class="col"><span class="head-them" id="vs-them">Grey</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Weight</td>
+                <td class="col you"><span class="val">12.4k</span><span class="pct-up">+5%</span></td>
+                <td class="col last"><span class="val">11.8k</span></td>
+                <td class="col"><span class="val" id="v-w">13.1k</span><span id="p-w" class="pct-down">−5%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Volume</td>
+                <td class="col you"><span class="val">48k</span><span class="pct-up">+4%</span></td>
+                <td class="col last"><span class="val">46k</span></td>
+                <td class="col"><span class="val" id="v-v">51k</span><span id="p-v" class="pct-down">−6%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effective</td>
+                <td class="col you"><span class="val">41k</span><span class="pct-up">+5%</span></td>
+                <td class="col last"><span class="val">39k</span></td>
+                <td class="col"><span class="val" id="v-e">44k</span><span id="p-e" class="pct-down">−7%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Days</td>
+                <td class="col you"><span class="val">3</span></td>
+                <td class="col last"><span class="val">3</span></td>
+                <td class="col"><span class="val" id="v-d">4</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Optionals</td>
+                <td class="col you"><span class="val">2 / 8</span><span class="pct-up">+100%</span></td>
+                <td class="col last"><span class="val">1 / 8</span></td>
+                <td class="col"><span class="val" id="v-o">0 / 8</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Optional lbs</td>
+                <td class="col you"><span class="val">+1.0k</span></td>
+                <td class="col last"><span class="val">+1.0k</span></td>
+                <td class="col"><span class="val" id="v-ol">0</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Bonus</td>
+                <td class="col you"><span class="val">1</span></td>
+                <td class="col last"><span class="val">0</span></td>
+                <td class="col"><span class="val" id="v-b">0</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Run + bike</td>
+                <td class="col you"><span class="val">42m</span><span class="pct-down">−16%</span></td>
+                <td class="col last"><span class="val">50m</span></td>
+                <td class="col"><span class="val" id="v-c">1h 10m</span><span id="p-c" class="pct-down">−40%</span></td>
+              </tr>
+            </tbody>
+          </table>
+          </div>
+          <p class="sub" style="margin-top:12px;margin-bottom:0">
+            1st: Next up off. Last place: Next down off. Alone: hide the third column, keep You · Last.
+          </p>
+        </div>
+        <div class="card">
+          <span class="tag">Keep / drop / fold</span>
+          <table class="matrix who">
+            <thead>
+              <tr>
+                <th class="feat">Letter</th>
+                <th class="col">Call</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">You vs</td>
+                <td class="col"><span class="val" style="font-size:12px;color:var(--gold)">Keep · 3 col + switch</span></td>
+              </tr>
+              <tr>
+                <td class="feat">H · I · D</td>
+                <td class="col"><span class="val" style="font-size:12px;color:var(--gold)">Keep tiles · stats on the cards</span></td>
+              </tr>
+              <tr>
+                <td class="feat">E · F</td>
+                <td class="col"><span class="val" style="font-size:12px;color:var(--copper)">Drop</span></td>
+              </tr>
+              <tr>
+                <td class="feat">J honor · R optionals</td>
+                <td class="col"><span class="val" style="font-size:12px;color:var(--gold)">Fold into You vs + week lock</span></td>
+              </tr>
+              <tr>
+                <td class="feat">G recap · L lift</td>
+                <td class="col"><span class="val" style="font-size:12px;color:var(--gold)">Same chrome · This | Last</span></td>
+              </tr>
+              <tr>
+                <td class="feat">P medal · Q gym/travel</td>
+                <td class="col"><span class="val" style="font-size:12px">Stay · no extra table</span></td>
+              </tr>
+            </tbody>
+          </table>
+          <p class="sub" style="margin-top:12px;margin-bottom:0">
+            E is the House pill. F is already the Today KpiList. Last on You vs is last time those numbers posted, not a week window.
+          </p>
+        </div>
+      </div>
+      <p class="note">
+        E and F are not needed. Honor (J) and optionals (R) are rows on You vs. Recap (G) and one lift (L) reuse This | Last, no third person. Medal (P) and Gym/Travel (Q) stay as they are.
+      </p>
+
+      <p class="label">You vs · Home fold + The house</p>
+      <p class="note">Stacked You then Grey per KPI. Right is C (table only). A and B keep the volume bars if you still want them.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · YouVsLeader</span>
+          <p class="eyebrow">Last 7 days</p>
+          <p class="title">You vs Grey</p>
+          <p class="sub">You are 2nd of 5. Next in line up.</p>
+          <div class="vs-col">
+            <div class="stack">
+              <div class="bar you" style="height:68px"></div>
+              <b>You</b>
+              <p>48k</p>
+            </div>
+            <div class="stack">
+              <div class="bar rival" style="height:72px"></div>
+              <b>Grey</b>
+              <p>51k</p>
+            </div>
+          </div>
+          <div class="chips" style="margin-bottom:12px">
+            <span>Days You 3</span>
+            <span>Grey 4</span>
+            <span>Effort You 4.1 · 82%</span>
+            <span>Grey 3.8 · 76%</span>
+          </div>
+          <div class="row-block">
+            <p class="kpi-name" style="color:#5b7c99">Weight</p>
+            <div class="compare"><span>You</span><span>12.4k</span><span style="color:var(--green)">+8%</span></div>
+            <div class="compare" style="color:var(--copper)"><span>Grey</span><span>13.1k</span><span style="color:var(--red)">−3%</span></div>
+          </div>
+          <div class="row-block">
+            <p class="kpi-name" style="color:#8b7aad">Reps</p>
+            <div class="compare"><span>You</span><span>842</span><span style="color:var(--green)">+4%</span></div>
+            <div class="compare" style="color:var(--copper)"><span>Grey</span><span>790</span><span style="color:var(--green)">+2%</span></div>
+          </div>
+          <div class="row-block">
+            <p class="kpi-name" style="color:#2f8f8a">Volume</p>
+            <div class="compare"><span>You</span><span>48k</span><span style="color:var(--red)">−2%</span></div>
+            <div class="compare" style="color:var(--copper)"><span>Grey</span><span>51k</span><span style="color:var(--green)">+6%</span></div>
+          </div>
+          <div class="row-block">
+            <p class="kpi-name" style="color:#c45d7a">Effective</p>
+            <div class="compare"><span>You</span><span>41k</span><span>0%</span></div>
+            <div class="compare" style="color:var(--copper)"><span>Grey</span><span>44k</span><span style="color:var(--green)">+5%</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · C table only</span>
+          <p class="eyebrow">Last 7 days</p>
+          <p class="title">You vs Grey</p>
+          <p class="sub">Same place line. Bars and chips gone. Days and Effort are rows.</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">You</span></th>
+                <th class="col"><span class="head-them">Grey</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Weight</td>
+                <td class="col you"><span class="val">12.4k</span><span class="pct-up">+8%</span></td>
+                <td class="col"><span class="val">13.1k</span><span class="pct-down">−3%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Reps</td>
+                <td class="col you"><span class="val">842</span><span class="pct-up">+4%</span></td>
+                <td class="col"><span class="val">790</span><span class="pct-up">+2%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Volume</td>
+                <td class="col you"><span class="val">48k</span><span class="pct-down">−2%</span></td>
+                <td class="col"><span class="val">51k</span><span class="pct-up">+6%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effective</td>
+                <td class="col you"><span class="val">41k</span><span class="pct-held">0%</span></td>
+                <td class="col"><span class="val">44k</span><span class="pct-up">+5%</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Days</td>
+                <td class="col you"><span class="val">3</span></td>
+                <td class="col"><span class="val">4</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effort</td>
+                <td class="col you"><span class="val">4.1 · 82%</span></td>
+                <td class="col"><span class="val">3.8 · 76%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+      <p class="note" style="margin-top:14px">Or keep the bars: A chips under bars · B Days/Effort in the table.</p>
+      <div class="trio">
+        <div class="card">
+          <span class="tag">To · A bars + chips</span>
+          <div class="vs-col">
+            <div class="stack"><div class="bar you" style="height:40px"></div><b>You</b></div>
+            <div class="stack"><div class="bar rival" style="height:44px"></div><b>Grey</b></div>
+          </div>
+          <p class="chips">Days · Effort stay chips. Four KPI rows in the table.</p>
+        </div>
+        <div class="card">
+          <span class="tag">To · B bars + rows</span>
+          <div class="vs-col">
+            <div class="stack"><div class="bar you" style="height:40px"></div><b>You</b></div>
+            <div class="stack"><div class="bar rival" style="height:44px"></div><b>Grey</b></div>
+          </div>
+          <p class="chips">Bars stay. Days and Effort join the table.</p>
+        </div>
+        <div class="card">
+          <span class="tag">To · C shown above</span>
+          <p class="sub" style="margin:0">No bars. Full table.</p>
+        </div>
+      </div>
+
+      <p class="label">D + I · Week lock tiles with stats</p>
+      <p class="note">
+        Same four day tiles. To adds volume, % vs last time that day ran, and optionals under the row.
+        D’s vs-Grey table is gone — Grey lives in You vs. I’s per-day table is gone — numbers sit on the tiles.
+      </p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · Week lock</span>
+          <p style="font-weight:700;margin-bottom:8px">2 of 4 days</p>
+          <div class="tiles">
+            <div class="tile done">Upper A<small>Done</small></div>
+            <div class="tile done">Lower A<small>Done</small></div>
+            <div class="tile now">Extra Upper<small>Now</small></div>
+            <div class="tile open">Lower B<small>—</small></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · stats on the tiles</span>
+          <p style="font-weight:700;margin-bottom:8px">2 of 4 days · 17.3k</p>
+          <div class="tiles">
+            <div class="tile done">Upper A<small>Done</small><span class="stat">8.2k</span><span class="pct" style="color:#1a1404">+2% vs last</span></div>
+            <div class="tile done">Lower A<small>Done</small><span class="stat">9.1k</span><span class="pct" style="color:#1a1404">+1% vs last</span></div>
+            <div class="tile now">Extra Upper<small>Now</small><span class="stat">—</span><span class="pct">last 11k</span></div>
+            <div class="tile open">Lower B<small>—</small><span class="stat">—</span><span class="pct">last 12.6k</span></div>
+          </div>
+          <p class="sub" style="margin-top:12px;margin-bottom:0">Optionals 2 / 8 · +1.0k · Bonus 1 · Run 42m. Same numbers as You vs rows, this program week.</p>
+        </div>
+      </div>
+
+      <p class="label">E · drop</p>
+      <p class="note">House avg is the House pill on You vs. Keep the household cards on The house. No extra matrix.</p>
+
+      <p class="label">F · drop as a table</p>
+      <p class="note">
+        Leave KpiList. Do not add a second Now | Last table.
+      </p>
+      <div class="card from-card" style="max-width:28rem">
+        <span class="tag">This stays</span>
+        <p class="sub">Last 15 days vs last time those lifts ran.</p>
+        <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>12.4k</b><span class="d" style="color:var(--green)">+8%</span></div>
+        <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>842</b><span class="d" style="color:var(--green)">+4%</span></div>
+        <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Volume</span><b>48k</b><span class="d" style="color:var(--red)">−2%</span></div>
+        <div class="kpi-row"><span class="kpi-name" style="color:#c45d7a">Effective</span><b>41k</b><span class="d">0%</span></div>
+      </div>
+
+      <p class="label">G · Recap · integrate This | Last</p>
+      <p class="note">Keep the overlay. Rows are each lift vs the last time that lift ran — not last Lower B as a day. Two columns only. Sparks on performance stay.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · recap overlay</span>
+          <p class="eyebrow">Lower B</p>
+          <p class="title">Vs last Lower B</p>
+          <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>6.2k</b><span class="d" style="color:var(--green)">+5%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>186</b><span class="d" style="color:var(--green)">+3%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Volume</span><b>18k</b><span class="d" style="color:var(--green)">+6%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#c45d7a">Effective</span><b>15k</b><span class="d" style="color:var(--green)">+4%</span></div>
+          <p class="sub" style="margin-top:10px">Time 54m · last was 58m</p>
+        </div>
+        <div class="card">
+          <span class="tag">To · G</span>
+          <p class="eyebrow">This session</p>
+          <p class="title">This vs last time · same exercise</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">This</span></th>
+                <th class="col last"><span class="head-last">Last</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Hip Thrusts</td>
+                <td class="col you"><span class="val">2.2k</span><span class="pct-up">+8%</span></td>
+                <td class="col last"><span class="val">2.0k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">RDLs</td>
+                <td class="col you"><span class="val">1.8k</span><span class="pct-up">+3%</span></td>
+                <td class="col last"><span class="val">1.75k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Farmer's</td>
+                <td class="col you"><span class="val">1.6k</span><span class="pct-held">0%</span></td>
+                <td class="col last"><span class="val">1.6k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">H · Week performance tiles with stats</p>
+      <p class="note">Keep the four Home tiles. Add /12 and % on the tile. No replacement table. Week volume stays in You vs.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · Home tiles</span>
+          <p class="sub">12 lifts vs last time</p>
+          <div class="tiles">
+            <div class="tile good">More load<small>5</small></div>
+            <div class="tile good">More reps<small>3</small></div>
+            <div class="tile good">Less drop<small>0</small></div>
+            <div class="tile bad">Less cut<small>2</small></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · same tiles</span>
+          <p class="sub">12 lifts vs last time</p>
+          <div class="tiles">
+            <div class="tile good">More load<small>5 / 12</small><span class="pct" style="color:#1a1404">42%</span></div>
+            <div class="tile good">More reps<small>3 / 12</small><span class="pct" style="color:#1a1404">25%</span></div>
+            <div class="tile good">Less drop<small>0 / 12</small><span class="pct" style="color:#1a1404">0%</span></div>
+            <div class="tile bad">Less cut<small>2 / 12</small><span class="pct">17%</span></div>
+          </div>
+        </div>
+      </div>
+
+      <p class="label">I · folded into week lock</p>
+      <p class="note">Required-day volumes are on the week lock tiles above. No second matrix vs Grey.</p>
+
+      <p class="label">J · Honor · fold into You vs</p>
+      <p class="note">Bonus, optionals, run+bike are already rows on the 3-column You vs demo. Honor gold cards on The house can stay for the whole pack, or go if You vs is enough.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · The house</span>
+          <div class="honor">
+            <p class="eyebrow" style="color:var(--gold)">Bonus work</p>
+            <div class="line"><span>You</span><span>2 bonus weeks</span></div>
+            <div class="line"><span>Grey</span><span>1 bonus week</span></div>
+          </div>
+          <div class="honor">
+            <p class="eyebrow" style="color:var(--gold)">Optionals</p>
+            <div class="line"><span>Grey</span><span>1 optional week</span></div>
+          </div>
+          <div class="honor">
+            <p class="eyebrow" style="color:var(--gold)">Running &amp; cycling</p>
+            <div class="line"><span>You</span><span>42m</span></div>
+            <div class="line"><span>Grey</span><span>1h 10m</span></div>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · J</span>
+          <p class="eyebrow">Last 7 days</p>
+          <p class="title">Extra work vs Grey</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">You</span></th>
+                <th class="col"><span class="head-them">Grey</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Bonus weeks</td>
+                <td class="col you"><span class="val">2</span><span class="pct-up">+100%</span></td>
+                <td class="col"><span class="val">1</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Optionals weeks</td>
+                <td class="col you"><span class="val">0</span></td>
+                <td class="col"><span class="val">1</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Optional lbs</td>
+                <td class="col you"><span class="val">1.0k</span><span class="pct-down">−50%</span></td>
+                <td class="col"><span class="val">2.0k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Run + bike</td>
+                <td class="col you"><span class="val">42m</span><span class="pct-down">−40%</span></td>
+                <td class="col"><span class="val">1h 10m</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">K · Vs the house ranking</p>
+      <p class="note">From is Best day / Total weight rows (WeightRanking). You get a cream border.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · WeightRanking</span>
+          <p class="eyebrow" style="color:var(--gold);margin-bottom:8px">Best day / Total weight</p>
+          <div class="rank">
+            <p><span style="color:var(--gold)">1st</span> Grey</p>
+            <p style="text-align:right;font-size:12px;color:rgba(246,241,227,0.5)">Best 19k<br>Total 51k</p>
+          </div>
+          <div class="rank you">
+            <p><span style="color:var(--gold)">2nd</span> You</p>
+            <p style="text-align:right;font-size:12px;color:rgba(246,241,227,0.5)">Best 18k<br>Total 48k</p>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · K</span>
+          <p class="eyebrow">Last 7 days</p>
+          <p class="title">You vs Grey</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">You</span></th>
+                <th class="col"><span class="head-them">Grey</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Place</td>
+                <td class="col you"><span class="val">2nd</span></td>
+                <td class="col"><span class="val">1st</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Best day</td>
+                <td class="col you"><span class="val">18k</span><span class="pct-down">−5%</span></td>
+                <td class="col"><span class="val">19k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Total weight</td>
+                <td class="col you"><span class="val">48k</span><span class="pct-down">−6%</span></td>
+                <td class="col"><span class="val">51k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effective</td>
+                <td class="col you"><span class="val">41k</span><span class="pct-down">−7%</span></td>
+                <td class="col"><span class="val">44k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">L · One lift · stats on the card</p>
+      <p class="note">Keep LiftCard. Put last time on the card like H. Recap-style This | Last table is optional; default is the card.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · LiftCard</span>
+          <p style="color:var(--green);font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase">Up · +8%</p>
+          <p class="title" style="font-size:16px">Hip Thrusts</p>
+          <p class="sub">185 lb · 12 reps · total 2.2k</p>
+          <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>185</b><span class="d" style="color:var(--green)">+8%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>12</b><span class="d">0%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Total</span><b>2.2k</b><span class="d" style="color:var(--green)">+8%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#c45d7a">Effort</span><b>4.3 · 86%</b><span></span></div>
+        </div>
+        <div class="card">
+          <span class="tag">To · last on the card</span>
+          <p style="color:var(--green);font-size:11px;font-weight:800;letter-spacing:0.16em;text-transform:uppercase">Up · +8%</p>
+          <p class="title" style="font-size:16px">Hip Thrusts</p>
+          <p class="sub">185 lb · 12 reps · total 2.2k</p>
+          <p class="sub">Last 170 · 12 · 2.0k</p>
+          <div class="kpi-row"><span class="kpi-name" style="color:#5b7c99">Weight</span><b>185</b><span class="d" style="color:var(--green)">+8%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#8b7aad">Reps</span><b>12</b><span class="d">0%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Total</span><b>2.2k</b><span class="d" style="color:var(--green)">+8%</span></div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#c45d7a">Effort</span><b>4.3 · 86%</b><span></span></div>
+        </div>
+      </div>
+
+      <p class="label">M · Period pills</p>
+      <p class="note">From is T / T-1 / T-7 / T-15 / T-30 / All. You only see one window at a time.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · PeriodPills</span>
+          <div class="pills">
+            <div class="pill on">T</div>
+            <div class="pill">T-15</div>
+            <div class="pill">T-30</div>
+          </div>
+          <div class="kpi-row"><span class="kpi-name" style="color:#2f8f8a">Volume</span><b>6.8k</b><span></span></div>
+          <p class="sub" style="margin-top:10px">Tap T-15 to replace these numbers. You cannot see T and T-15 together.</p>
+        </div>
+        <div class="card">
+          <span class="tag">To · M</span>
+          <p class="title">T vs T-15 vs T-30</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">T</span></th>
+                <th class="col"><span class="head-them">T-15</span></th>
+                <th class="col"><span class="head-them">T-30</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Volume</td>
+                <td class="col you"><span class="val">6.8k</span><span class="pct-held">14%</span></td>
+                <td class="col"><span class="val">48k</span></td>
+                <td class="col"><span class="val">96k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effective</td>
+                <td class="col you"><span class="val">5.9k</span><span class="pct-held">14%</span></td>
+                <td class="col"><span class="val">41k</span></td>
+                <td class="col"><span class="val">82k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">N · Session stories</p>
+      <p class="note">From is the folded Home stack: Last session, Best lift, Did not improve, Week vs last time — four cards.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · Home fold</span>
+          <div class="story">
+            <p class="eyebrow" style="color:var(--gold)">Last session · Lower B</p>
+            <p style="font-weight:900;margin-top:4px">18k volume</p>
+          </div>
+          <div class="story">
+            <p class="eyebrow" style="color:var(--green)">Best lift · +8%</p>
+            <p style="font-weight:900;margin-top:4px">Hip Thrusts · 2.2k</p>
+          </div>
+          <div class="story">
+            <p class="eyebrow" style="color:var(--red)">Did not improve</p>
+            <p style="font-weight:900;margin-top:4px">2 lifts down</p>
+          </div>
+          <div class="story">
+            <p class="eyebrow" style="color:var(--gold)">Week vs last time</p>
+            <p style="font-weight:900;margin-top:4px">28k · −4%</p>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · N</span>
+          <p class="title">What moved</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">This</span></th>
+                <th class="col"><span class="head-them">Last</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Last session volume</td>
+                <td class="col you"><span class="val">18k</span><span class="pct-up">+6%</span></td>
+                <td class="col"><span class="val">17k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Best lift total</td>
+                <td class="col you"><span class="val">2.2k</span><span class="pct-up">+8%</span></td>
+                <td class="col"><span class="val">2.0k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Lifts down</td>
+                <td class="col you"><span class="val">2 / 12</span><span class="pct-down">17%</span></td>
+                <td class="col"><span class="val">3 / 12</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Week volume</td>
+                <td class="col you"><span class="val">28k</span><span class="pct-down">−4%</span></td>
+                <td class="col"><span class="val">29k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">O · Live sticky bar</p>
+      <p class="note">From is the compact Today / All-time strip under the live header.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · SessionTotalsBar</span>
+          <div class="sticky">
+            <p><span style="color:rgba(246,241,227,0.55)">Today</span> <span style="color:#2f8f8a">Volume</span> <b>9.4k</b> <span style="color:#c45d7a">Effective</span> <b>8.1k</b></p>
+            <p><span style="color:rgba(246,241,227,0.55)">All-time</span> Volume <b>412k</b> Effective <b>348k</b></p>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · O</span>
+          <p class="title">Today vs all-time</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">Today</span></th>
+                <th class="col"><span class="head-them">All-time</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Volume</td>
+                <td class="col you"><span class="val">9.4k</span><span class="pct-held">2.3%</span></td>
+                <td class="col"><span class="val">412k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Effective</td>
+                <td class="col you"><span class="val">8.1k</span><span class="pct-held">2.3%</span></td>
+                <td class="col"><span class="val">348k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">P · medal stays</p>
+      <p class="note">Keep the silver in the Today header. Kevin’s week medals table stays. No vs table on Home.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · medal in Today</span>
+          <p class="title">W12 · Lower B</p>
+          <p class="sub">Silver disc floats in the header. No Grey numbers on this card.</p>
+          <p style="font-size:42px;font-weight:900;color:#c5c5c5">2</p>
+        </div>
+        <div class="card">
+          <span class="tag">To · P</span>
+          <p class="title">You · 2nd vs Grey · 1st</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">You</span></th>
+                <th class="col"><span class="head-them">Grey</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Days</td>
+                <td class="col you"><span class="val">4 / 4</span></td>
+                <td class="col"><span class="val">4 / 4</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Volume</td>
+                <td class="col you"><span class="val">48k</span><span class="pct-down">−6%</span></td>
+                <td class="col"><span class="val">51k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Best day</td>
+                <td class="col you"><span class="val">18k</span><span class="pct-down">−5%</span></td>
+                <td class="col"><span class="val">19k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">Q · pills stay</p>
+      <p class="note">Gym/Travel stays a pill on each live card. Do not make a mode matrix.</p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · live cards</span>
+          <div class="ex"><span>Hip Thrusts</span><span class="mode gym">Gym</span></div>
+          <div class="ex"><span>RDLs</span><span class="mode travel">Travel</span></div>
+          <div class="ex"><span>Farmer's</span><span class="mode gym">Gym</span></div>
+        </div>
+        <div class="card">
+          <span class="tag">To · Q</span>
+          <p class="title">Where the work happened</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">Gym</span></th>
+                <th class="col"><span class="head-them">Travel</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Hip Thrusts</td>
+                <td class="col you"><span class="val">2.2k</span></td>
+                <td class="col"><span class="val">—</span></td>
+              </tr>
+              <tr>
+                <td class="feat">RDLs</td>
+                <td class="col you"><span class="val">—</span></td>
+                <td class="col"><span class="val">1.4k</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Farmer's</td>
+                <td class="col you"><span class="val">1.8k</span></td>
+                <td class="col"><span class="val">—</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Session total</td>
+                <td class="col you"><span class="val">4.0k</span><span class="pct-held">74%</span></td>
+                <td class="col"><span class="val">1.4k</span><span class="pct-held">26%</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <p class="label">R · Optionals · fold</p>
+      <p class="note">
+        Live OptionalCard stays (clock + Done +500). The counts also sit on You vs (Optionals / Optional lbs) and under week lock.
+        Recap (G) can add an Optional lbs row. No new vs table on the live session.
+      </p>
+      <div class="pair">
+        <div class="card from-card">
+          <span class="tag">From · OptionalCard</span>
+          <div class="opt">
+            <p style="font-weight:900">Warmup · Easy run</p>
+            <p class="sub" style="margin:4px 0 0">12:04 · Done · +500</p>
+          </div>
+          <div class="opt">
+            <p style="font-weight:900">Cooldown</p>
+            <p class="sub" style="margin:4px 0 0">Not started</p>
+          </div>
+        </div>
+        <div class="card">
+          <span class="tag">To · R</span>
+          <p class="title">This vs last Lower B</p>
+          <table class="matrix">
+            <thead>
+              <tr>
+                <th></th>
+                <th class="col you"><span class="head-you">This</span></th>
+                <th class="col"><span class="head-them">Last</span></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="feat">Warmup</td>
+                <td class="col you"><span class="val">12m</span><span class="pct-up">+20%</span></td>
+                <td class="col"><span class="val">10m</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Cooldown</td>
+                <td class="col you"><span class="val">—</span></td>
+                <td class="col"><span class="val">11m</span></td>
+              </tr>
+              <tr>
+                <td class="feat">Optional lbs</td>
+                <td class="col you"><span class="val">+500</span><span class="pct-down">−50%</span></td>
+                <td class="col"><span class="val">+1.0k</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <script>
+      const modes = {
+        up: {
+          title: 'You vs Grey',
+          sub: 'You are 2nd of 5. Last stays. Third column is next up.',
+          them: 'Grey',
+          w: '13.1k', v: '51k', e: '44k', d: '4', o: '0 / 8', ol: '0', b: '0', c: '1h 10m',
+          pw: '−5%', pv: '−6%', pe: '−7%', pc: '−40%',
+          wt: 'down', vt: 'down', et: 'down', ct: 'down',
+        },
+        down: {
+          title: 'You vs Nicole',
+          sub: 'You are 2nd of 5. Last stays. Third column is next down.',
+          them: 'Nicole',
+          w: '10.1k', v: '39k', e: '33k', d: '3', o: '4 / 8', ol: '+2.0k', b: '0', c: '28m',
+          pw: '+23%', pv: '+23%', pe: '+24%', pc: '+50%',
+          wt: 'up', vt: 'up', et: 'up', ct: 'up',
+        },
+        house: {
+          title: 'You vs the house',
+          sub: 'Pack avg, you in. Test out. Last stays.',
+          them: 'House',
+          w: '11.9k', v: '42k', e: '36k', d: '3.2', o: '1.2 / 8', ol: '+0.8k', b: '0.4', c: '38m',
+          pw: '+4%', pv: '+14%', pe: '+14%', pc: '+11%',
+          wt: 'up', vt: 'up', et: 'up', ct: 'up',
+        },
+      };
+      function tone(el, kind, text) {
+        el.textContent = text;
+        el.className = kind === 'up' ? 'pct-up' : kind === 'down' ? 'pct-down' : 'pct-held';
+      }
+      document.querySelectorAll('.switch .pill').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          document.querySelectorAll('.switch .pill').forEach((b) => b.classList.remove('on'));
+          btn.classList.add('on');
+          const m = modes[btn.getAttribute('data-vs')];
+          document.getElementById('vs-title').textContent = m.title;
+          document.getElementById('vs-sub').textContent = m.sub;
+          document.getElementById('vs-them').textContent = m.them;
+          document.getElementById('v-w').textContent = m.w;
+          document.getElementById('v-v').textContent = m.v;
+          document.getElementById('v-e').textContent = m.e;
+          document.getElementById('v-d').textContent = m.d;
+          document.getElementById('v-o').textContent = m.o;
+          document.getElementById('v-ol').textContent = m.ol;
+          document.getElementById('v-b').textContent = m.b;
+          document.getElementById('v-c').textContent = m.c;
+          tone(document.getElementById('p-w'), m.wt, m.pw);
+          tone(document.getElementById('p-v'), m.vt, m.pv);
+          tone(document.getElementById('p-e'), m.et, m.pe);
+          tone(document.getElementById('p-c'), m.ct, m.pc);
+        });
+      });
+    </script>
+  </body>
+</html>

@@ -36,9 +36,9 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '8.1.1',
-  title: 'Alt extras are back on the card.',
-  subject: 'Alt extras are back on the card.',
+  version: '8.2.0',
+  title: 'Dark Premium Medals.',
+  subject: 'Dark Premium Medals.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
@@ -46,15 +46,15 @@ export const CURRENT_RELEASE: {
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Man, you swapped the lift and the extra-set work went quiet. That was a miss. It is not quiet now.',
-  mid: 'Alt still holds for the day. Add a set, take one off — the card still knows it is your work, swapped name and all.',
-  close: 'Growth does not care which name is on the bar. Log the work. Quit is still the only thing not welcome in here.',
+    'Man, the old cartoons were fine for a minute, but they did not match the house. We fixed that.',
+  mid: 'Badges, belts, and week medals now look like they belong here. Dark metal, crisp borders, and a glow that actually looks like a prize. Your chest is upgraded.',
+  close: 'The metal looks better. Now go earn more of it. Quit is still the only thing not welcome in here.',
   lead: '',
   groups: [
     {
-      heading: 'Fixed',
+      heading: 'Changed',
       wins: [
-        'Alt Exercise — extra sets add and remove after a swap, the way they should',
+        'Redesigned Medals — Badges, belts, and week podium medals have been completely redesigned with a sleek, dark premium UI aesthetic. They now feature deep metallic backgrounds, crisp colored borders, glowing line-art icons, and glassmorphic highlights.',
       ],
     },
   ],

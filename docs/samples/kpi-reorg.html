@@ -1,0 +1,1449 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Work-It — four KPI sample (Kevin, last 15 days)</title>
+    <style>
+      :root {
+        --bg: #07070a;
+        --cream: #f6f1e3;
+        --gold: #e8c547;
+        --ink: #1a1404;
+        --green: #6d8b6e;
+        --red: #a35d52;
+        --copper: #c08457;
+        --kpi-w: #5b7c99;
+        --kpi-r: #8b7aad;
+        --kpi-v: #2f8f8a;
+        --kpi-e: #c45d7a;
+        --card: rgba(255, 255, 255, 0.04);
+        --line: rgba(255, 255, 255, 0.1);
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--cream);
+        font-family: Arial, Helvetica, sans-serif;
+      }
+      h1, h2, h3, p { margin: 0; }
+      .wrap { max-width: 980px; margin: 0 auto; padding: 24px 16px 80px; }
+      .note {
+        max-width: 980px;
+        margin: 0 auto 20px;
+        padding: 14px 16px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        color: rgba(246, 241, 227, 0.7);
+        font-size: 14px;
+        line-height: 1.45;
+      }
+      .note strong { color: var(--gold); font-weight: 800; }
+      .tabs {
+        display: flex;
+        gap: 6px;
+        flex-wrap: wrap;
+        margin-bottom: 16px;
+      }
+      .tabs button {
+        min-height: 40px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        background: transparent;
+        color: rgba(246, 241, 227, 0.75);
+        font-weight: 800;
+        padding: 0 14px;
+        cursor: pointer;
+      }
+      .tabs button.on {
+        border-color: var(--gold);
+        background: rgba(232, 197, 71, 0.15);
+        color: var(--gold);
+      }
+      .switch {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px;
+        margin: 12px 0 4px;
+      }
+      .switch.three { grid-template-columns: 1fr 1fr 1fr; }
+      .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+      .pills button {
+        min-height: 36px;
+        border-radius: 12px;
+        border: 1px solid var(--line);
+        background: rgba(0,0,0,0.25);
+        color: rgba(246,241,227,0.75);
+        font-weight: 800;
+        font-size: 13px;
+        padding: 0 10px;
+        cursor: pointer;
+      }
+      .pills button.on {
+        border-color: var(--gold);
+        background: rgba(232,197,71,0.15);
+        color: var(--gold);
+      }
+      .switch button {
+        min-height: 44px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.25);
+        color: rgba(246, 241, 227, 0.7);
+        font-weight: 800;
+        font-size: 15px;
+        cursor: pointer;
+      }
+      .switch button.on {
+        border-color: var(--gold);
+        background: rgba(232, 197, 71, 0.15);
+        color: var(--gold);
+      }
+      .pane { display: none; }
+      .pane.on { display: block; }
+      .phone {
+        max-width: 420px;
+        margin: 0 auto;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        padding: 18px 16px 28px;
+        background: #0c0c10;
+      }
+      .kicker {
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.2em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      .hero h1 { font-size: 34px; font-weight: 900; margin: 8px 0 6px; }
+      .muted { color: rgba(246, 241, 227, 0.6); font-size: 14px; line-height: 1.4; }
+      .hold { margin-top: 10px; font-size: 16px; line-height: 1.4; }
+      .row4 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 16px;
+      }
+      .kpi {
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: var(--card);
+      }
+      .kpi.lead { border-color: rgba(232, 197, 71, 0.45); }
+      .kpi.w { border-color: var(--kpi-w); }
+      .kpi.w .big { color: var(--kpi-w); }
+      .kpi.r { border-color: var(--kpi-r); }
+      .kpi.r .big { color: var(--kpi-r); }
+      .kpi.v { border-color: var(--kpi-v); }
+      .kpi.v .big { color: var(--kpi-v); }
+      .kpi.e { border-color: var(--kpi-e); }
+      .kpi.e .big { color: var(--kpi-e); }
+      .swatch { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 5px; }
+      #spike-hit line, #kpi-spike line { pointer-events: none; }
+      #spike-hit circle, #kpi-spike circle { pointer-events: none; }
+      #spike-hit rect { cursor: pointer; }
+      .kpi label {
+        display: block;
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: rgba(246, 241, 227, 0.5);
+      }
+      .kpi .big { font-size: 22px; font-weight: 900; margin-top: 2px; line-height: 1.1; }
+      .kpi .sub { font-size: 11px; color: rgba(246, 241, 227, 0.55); margin-top: 4px; }
+      .kpi-list { margin-top: 16px; padding: 2px 12px; }
+      .kpi-row {
+        display: grid;
+        grid-template-columns: 70px minmax(78px, 0.9fr) minmax(70px, 1.2fr) 46px;
+        gap: 8px;
+        align-items: center;
+        padding: 11px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .kpi-row:last-child { border-bottom: 0; }
+      .kpi-name {
+        font-size: 10px;
+        font-weight: 800;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+      }
+      .kpi-name.w { color: var(--kpi-w); }
+      .kpi-name.r { color: var(--kpi-r); }
+      .kpi-name.v { color: var(--kpi-v); }
+      .kpi-name.e { color: var(--kpi-e); }
+      .kpi-val b { display: block; font-size: 16px; font-weight: 900; line-height: 1.15; }
+      .kpi-val span { display: block; font-size: 11px; color: rgba(246, 241, 227, 0.55); margin-top: 2px; }
+      .kpi-spark { display: block; width: 100%; height: 18px; }
+      .kpi-delta { font-size: 12px; font-weight: 900; text-align: right; }
+      .pack-bars { display: grid; gap: 8px; margin-top: 10px; }
+      .pack-bars .row { display: grid; grid-template-columns: 72px 1fr 52px; gap: 8px; align-items: center; font-size: 12px; }
+      .pack-bars .track { height: 8px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
+      .pack-bars .track i { display: block; height: 100%; border-radius: 99px; }
+      .pack-bars .you i { background: #f6f1e3; }
+      .pack-bars .house i { background: #c08457; }
+      .vs-col { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; align-items: end; }
+      .vs-col .stack { text-align: center; }
+      .vs-col .bar { margin: 0 auto 6px; width: 36px; border-radius: 8px 8px 2px 2px; }
+      .vs-col .bar.you { background: #f6f1e3; }
+      .vs-col .bar.rival { background: #c08457; }
+      .fold-head {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: var(--card);
+        color: var(--cream);
+        text-align: left;
+        cursor: pointer;
+      }
+      .fold-head b { display: block; font-size: 14px; margin-top: 4px; }
+      .fold-head .chev { color: var(--gold); font-weight: 900; font-size: 18px; line-height: 1; }
+      .fold-body { margin-top: 10px; }
+      .section { margin-top: 22px; }
+      .section h2 {
+        font-size: 11px;
+        letter-spacing: 0.16em;
+        text-transform: uppercase;
+        color: var(--gold);
+      }
+      .card {
+        margin-top: 10px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        padding: 12px;
+        background: var(--card);
+      }
+      .card h3 { font-size: 16px; font-weight: 900; }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 6px 10px;
+        margin-top: 10px;
+        font-size: 13px;
+      }
+      .metrics span { color: rgba(246, 241, 227, 0.5); }
+      .metrics b { font-weight: 800; }
+      .bar {
+        height: 8px;
+        border-radius: 99px;
+        background: rgba(255, 255, 255, 0.08);
+        overflow: hidden;
+        margin-top: 8px;
+      }
+      .bar i {
+        display: block;
+        height: 100%;
+        background: var(--gold);
+      }
+      .bar i.copper { background: var(--copper); }
+      .legend { display: flex; gap: 14px; margin-top: 8px; font-size: 12px; color: rgba(246, 241, 227, 0.6); }
+      .dot { display: inline-block; width: 8px; height: 8px; border-radius: 99px; margin-right: 6px; }
+      .gold { background: var(--gold); }
+      .cop { background: var(--copper); }
+      .muscle { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--line); font-size: 14px; }
+      .muscle:last-child { border-bottom: 0; }
+      .gone { text-decoration: line-through; color: rgba(246, 241, 227, 0.35); }
+      .up { color: var(--green); }
+      .down { color: var(--red); }
+      .held { color: rgba(246, 241, 227, 0.7); }
+      .chip {
+        display: inline-block;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        margin-right: 6px;
+      }
+      .wide { max-width: 980px; }
+      table { width: 100%; border-collapse: collapse; font-size: 13px; }
+      th, td { text-align: left; padding: 8px 6px; border-bottom: 1px solid var(--line); }
+      th { font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(246, 241, 227, 0.45); }
+      .screen { display: none; }
+      .screen.on { display: block; }
+      .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+      @media (max-width: 800px) { .pair { grid-template-columns: 1fr; } }
+      .slots { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 10px; }
+      .slot {
+        min-height: 92px;
+        border-radius: 14px;
+        border: 1px solid var(--line);
+        padding: 8px;
+        background: var(--card);
+      }
+      .slot label { font-size: 10px; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(246,241,227,0.45); }
+      .slot b { display: block; margin-top: 8px; font-size: 13px; }
+      .slot.yours { background: #f6f1e3; color: #1a1404; }
+      .slot.yours label { color: rgba(26,20,4,0.55); }
+      .lockrow { display: flex; gap: 6px; margin-top: 10px; }
+      .lock {
+        flex: 1;
+        min-height: 64px;
+        border-radius: 14px;
+        border: 1px dashed rgba(255,255,255,0.2);
+        text-align: center;
+        padding: 10px 4px;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .lock.done { border: 1px solid var(--green); background: var(--green); color: #1a1404; }
+      .kpis4 { display: flex; gap: 6px; margin-top: 10px; }
+      .ktile {
+        flex: 1;
+        border-radius: 14px;
+        padding: 10px 4px;
+        text-align: center;
+        font-size: 12px;
+        font-weight: 800;
+      }
+      .ktile.good { background: var(--green); color: #1a1404; }
+      .ktile.bad { background: rgba(163,93,82,0.2); border: 2px solid var(--red); color: #fff; }
+      .chartbox { height: 88px; margin-top: 10px; border-radius: 12px; position: relative; overflow: hidden; background: linear-gradient(180deg, rgba(232,197,71,0.18), transparent 55%); }
+      .chartbox::after {
+        content: "";
+        position: absolute; left: 8%; right: 8%; bottom: 28%;
+        height: 2px;
+        background: var(--copper);
+        opacity: 0.7;
+      }
+      .yourow { border: 1px solid rgba(246,241,227,0.35); }
+      .lift {
+        display: grid;
+        grid-template-columns: minmax(0,1fr) 76px 56px;
+        gap: 8px;
+        align-items: center;
+        padding: 10px 0;
+        border-bottom: 1px solid var(--line);
+      }
+      .lift:last-child { border-bottom: 0; }
+      .lift b { display: block; font-size: 14px; }
+      .pct { font-weight: 900; text-align: right; font-size: 14px; }
+      .mini { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 4px; margin-top: 4px; font-size: 10px; font-weight: 800; }
+      .chart-card svg { display: block; width: 100%; }
+      .hbar-row { display: flex; align-items: center; gap: 8px; margin-top: 6px; font-size: 12px; }
+      .hbar-row span { width: 72px; flex-shrink: 0; }
+      .hbar { flex: 1; height: 8px; border-radius: 99px; background: rgba(255,255,255,0.08); overflow: hidden; }
+      .hbar i { display: block; height: 100%; background: var(--gold); }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <p class="kicker">Local sample · app unchanged</p>
+      <h1 style="font-size: 28px; font-weight: 900; margin: 8px 0 8px">Four KPIs, one language</h1>
+      <p class="note">
+        Kevin · user 1 · mechanical sets only (weight × reps). Window:
+        <strong>last 15 days</strong> · 11 sessions · 172 sets.
+        Timed / carry / distance sets are out of these four numbers.
+        This file is a look, not a route. Open it in a browser. Nothing in
+        <code>app/</code> was edited.
+      </p>
+      <div class="tabs" id="tabs">
+        <button class="on" data-tab="home">Home</button>
+        <button data-tab="you">Your performance</button>
+        <button data-tab="live">Live session</button>
+        <button data-tab="house">The house</button>
+        <button data-tab="words">Words</button>
+      </div>
+
+      <div id="home" class="screen on">
+        <div class="pair">
+          <div class="phone">
+            <p class="kicker">Today</p>
+            <div class="hero">
+              <h1>W3 - Lower B</h1>
+              <p class="muted">Glutes / hamstrings · Est. 55 min</p>
+              <p class="hold">Hold 110 lb × 10 at Effort 4.0 · 80%. Beat Volume Load or keep Effective Load from rising on the same work.</p>
+            </div>
+
+            <div class="card kpi-list">
+              <div class="kpi-row">
+                <span class="kpi-name w">Weight</span>
+                <div class="kpi-val"><b>14,444</b><span>sum · avg/set 84 lb</span></div>
+                <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,9.6 25.6,15.1 37.9,7.2 50.1,12.2 62.4,4.0 74.7,15.4 87.0,7.5" /></svg>
+                <b class="kpi-delta up">+41%</b>
+              </div>
+              <div class="kpi-row">
+                <span class="kpi-name r">Reps</span>
+                <div class="kpi-val"><b>2,012</b><span>sum · avg/set 11.7</span></div>
+                <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#a35d52" stroke-width="1.8" points="1.0,12.3 13.3,8.0 25.6,12.0 37.9,16.0 50.1,13.8 62.4,4.0 74.7,12.3 87.0,13.8" /></svg>
+                <b class="kpi-delta down">−4%</b>
+              </div>
+              <div class="kpi-row">
+                <span class="kpi-name v">Volume</span>
+                <div class="kpi-val"><b>174,758</b><span>reps × weight · lb</span></div>
+                <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.5 25.6,14.2 37.9,15.8 50.1,15.2 62.4,4.0 74.7,14.2 87.0,15.3" /></svg>
+                <b class="kpi-delta up">+10%</b>
+              </div>
+              <div class="kpi-row">
+                <span class="kpi-name e">Effective</span>
+                <div class="kpi-val"><b>124,419</b><span>volume × Effort 4.1 · 82%</span></div>
+                <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.9 25.6,12.5 37.9,13.3 50.1,13.4 62.4,4.0 74.7,11.5 87.0,13.9" /></svg>
+                <b class="kpi-delta up">+40%</b>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Last session · Lower B</h2>
+              <div class="card">
+                <h3>Sep 5 · 58 min · sRPE 291</h3>
+                <p class="muted">Vs Aug 29. Session stars 5 × minutes.</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row">
+                    <span class="kpi-name w">Weight</span>
+                    <div class="kpi-val"><b>1,190</b><span>avg 99 lb</span></div>
+                    <svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="43" y2="7" stroke="#f6f1e3" stroke-width="3" stroke-linecap="round" /><circle cx="43" cy="7" r="3" fill="#f6f1e3" /></svg>
+                    <b class="kpi-delta held">0%</b>
+                  </div>
+                  <div class="kpi-row">
+                    <span class="kpi-name r">Reps</span>
+                    <div class="kpi-val"><b>129</b><span>avg 10.8</span></div>
+                    <svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg>
+                    <b class="kpi-delta up">+7%</b>
+                  </div>
+                  <div class="kpi-row">
+                    <span class="kpi-name v">Volume</span>
+                    <div class="kpi-val"><b>13,005</b><span>reps × weight</span></div>
+                    <svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg>
+                    <b class="kpi-delta up">+7%</b>
+                  </div>
+                  <div class="kpi-row">
+                    <span class="kpi-name e">Effective</span>
+                    <div class="kpi-val"><b>9,901</b><span>× Effort</span></div>
+                    <svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg>
+                    <b class="kpi-delta down">−8%</b>
+                  </div>
+                </div>
+              </div>
+              <div class="card">
+                <span class="chip up">Best progress</span>
+                <h3>Hip Thrusts</h3>
+                <p class="muted">Why: Volume Load almost doubled. Weight and reps both rose. Effective Load rose with the work, not just the vote.</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>95 → 132</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="72" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="72" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+39%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>8.7 → 12</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="72" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="72" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+39%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,470 → 4,740</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="80" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="80" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+92%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>1,938 → 3,564</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="78" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="78" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+84%</b></div>
+                </div>
+              </div>
+              <div class="card">
+                <span class="chip held">Did not improve</span>
+                <h3>Trap Bar Deadlifts</h3>
+                <p class="muted">No underperformer this session. Nothing lost Volume Load. This lift held every number vs last time.</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>95 → 95</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>10.3 → 10.3</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,945 → 2,945</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>2,565 → 2,565</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Week vs last time</h2>
+              <div class="card">
+                <p class="muted">Same four numbers on this week’s lifts vs the last time those lifts ran.</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−8%</b></div>
+                </div>
+                <p class="muted" style="margin-top:10px">Last Lower B vs Aug 29. Stronger = Volume Load up while Effective Load holds or drops.</p>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Your trophies</h2>
+              <div class="slots">
+                <div class="slot yours"><label>Yours</label><b>Dipping your toes</b><p class="muted">2 locked. Earned.</p></div>
+                <div class="slot"><label>Aiming</label><b>Got back in the saddle</b><p class="muted">3 of 6 weeks</p></div>
+                <div class="slot"><label>Next</label><b>I see you getting stronger</b><p class="muted">10 weeks</p></div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>4 of 4 days · Lock the week</h2>
+              <div class="lockrow">
+                <div class="lock done">Upper A</div>
+                <div class="lock done">Lower A</div>
+                <div class="lock done">Upper B</div>
+                <div class="lock done">Lower B</div>
+              </div>
+              <p class="muted" style="margin-top:8px">Gold = start here. Green = done. Dashed = still open.</p>
+            </div>
+
+            <div class="section">
+              <h2>More load. Fewer drops.</h2>
+              <p class="muted">This program week vs last time those lifts ran. Green = good. Red = still a problem.</p>
+              <div class="kpis4">
+                <div class="ktile good">More load<br />3</div>
+                <div class="ktile good">More reps<br />5</div>
+                <div class="ktile good">Less drop<br />0</div>
+                <div class="ktile bad">Less cut<br />2</div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Daily weight lifted</h2>
+              <p class="muted">Cream is your Volume Load that day. Copper is the house average. Wash is Effort 1–5.</p>
+              <div class="card chart-card">
+                <svg viewBox="0 0 320 88" aria-label="Daily Volume Load">
+                  <polyline fill="none" stroke="#c08457" stroke-width="2" points="12,52 56,48 100,54 144,46 188,50 232,44 276,48 308,46" />
+                  <polyline fill="none" stroke="#f6f1e3" stroke-width="2.4" points="12,58 56,42 100,50 144,62 188,38 232,18 276,46 308,52" />
+                </svg>
+              </div>
+              <div class="legend">
+                <span><i class="dot gold"></i>You · Volume Load</span>
+                <span><i class="dot cop"></i>House avg</span>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Last 7 days · You vs Mike</h2>
+              <div class="card yourow">
+                <p class="muted">You are 1st of 4 on finished days, then Volume Load. The lb is Volume Load, not Effective.</p>
+                <div class="vs-col">
+                  <div class="stack">
+                    <div class="bar you" style="height:72px"></div>
+                    <b>You</b>
+                    <p class="muted">87,465</p>
+                  </div>
+                  <div class="stack">
+                    <div class="bar rival" style="height:69px"></div>
+                    <b>Mike</b>
+                    <p class="muted">84,517</p>
+                  </div>
+                </div>
+                <div class="metrics">
+                  <div><span>Days</span><br /><b>You 4</b> · Mike 4</div>
+                  <div><span>Best session</span><br /><b>You 32,600</b> · Mike —</div>
+                  <div><span>Effort</span><br /><b>You 4.2 · 84%</b> · Mike 4.0 · 80%</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="section">
+              <h2>Your performance</h2>
+              <div class="card">
+                <p class="muted">Same two tabs as the page. Home only shows the read. Open the page for lifts.</p>
+                <div class="switch" id="home-you-switch">
+                  <button type="button" class="on" data-pane="h-current">Current</button>
+                  <button type="button" data-pane="h-progress">Progress</button>
+                </div>
+                <div id="pane-h-current" class="pane on">
+                  <div class="kpi-list" style="padding:0">
+                    <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>14,444</b><span>avg 84</span></div><svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,9.6 25.6,15.1 37.9,7.2 50.1,12.2 62.4,4.0 74.7,15.4 87.0,7.5" /></svg><b class="kpi-delta up">+41%</b></div>
+                    <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>2,012</b><span>avg 11.7</span></div><svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#a35d52" stroke-width="1.8" points="1.0,12.3 13.3,8.0 25.6,12.0 37.9,16.0 50.1,13.8 62.4,4.0 74.7,12.3 87.0,13.8" /></svg><b class="kpi-delta down">−4%</b></div>
+                    <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>174,758</b><span>T-15</span></div><svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.5 25.6,14.2 37.9,15.8 50.1,15.2 62.4,4.0 74.7,14.2 87.0,15.3" /></svg><b class="kpi-delta up">+10%</b></div>
+                    <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>124,419</b><span>4.1 · 82%</span></div><svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.9 25.6,12.5 37.9,13.3 50.1,13.4 62.4,4.0 74.7,11.5 87.0,13.9" /></svg><b class="kpi-delta up">+40%</b></div>
+                  </div>
+                </div>
+                <div id="pane-h-progress" class="pane">
+                  <h3 style="margin-top:10px">10 up · 6 down</h3>
+                  <p class="muted" style="margin-top:6px">Last Lower B: Volume <span class="up">+7.3%</span>, Effective <span class="down">−8%</span>. Weight held. Reps <span class="up">+6.6%</span>.</p>
+                  <div class="kpi-list" style="margin-top:8px;padding:0">
+                    <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                    <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                    <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−8%</b></div>
+                  </div>
+                </div>
+                <p class="muted" style="margin-top:12px;color:#e8c547;font-weight:800">Open Your performance</p>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="kicker">Order</p>
+            <div class="card">
+              <p class="muted">The new Home first: four KPIs, last session, week vs last time, then the Current / Progress fold.</p>
+              <p class="muted" style="margin-top:10px">Then the sections you already like, stacked under that: trophies, week lock, More load / fewer drops, Daily weight, You vs Mike.</p>
+              <p class="muted" style="margin-top:10px">Nothing from the first pass was removed. The old blocks were added after it.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="you" class="screen">
+        <div class="pair">
+          <div class="phone">
+            <p class="kicker">Your performance</p>
+            <h1 style="font-size: 28px; font-weight: 900; margin: 8px 0 4px">Kevin</h1>
+            <div class="switch three" id="you-switch">
+              <button type="button" class="on" data-pane="current">Current</button>
+              <button type="button" data-pane="progress">Progress</button>
+              <button type="button" data-pane="filter">Filter</button>
+            </div>
+            <div id="pane-current" class="pane on">
+              <p class="muted">Last 15 days. What you did. No vs last time.</p>
+              <div class="card kpi-list">
+                <div class="kpi-row">
+                  <span class="kpi-name w">Weight</span>
+                  <div class="kpi-val"><b>14,444</b><span>sum · avg/set 84 lb</span></div>
+                  <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,9.6 25.6,15.1 37.9,7.2 50.1,12.2 62.4,4.0 74.7,15.4 87.0,7.5" /></svg>
+                  <b class="kpi-delta up">+41%</b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name r">Reps</span>
+                  <div class="kpi-val"><b>2,012</b><span>sum · avg/set 11.7</span></div>
+                  <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#a35d52" stroke-width="1.8" points="1.0,12.3 13.3,8.0 25.6,12.0 37.9,16.0 50.1,13.8 62.4,4.0 74.7,12.3 87.0,13.8" /></svg>
+                  <b class="kpi-delta down">−4%</b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name v">Volume</span>
+                  <div class="kpi-val"><b>174,758</b><span>reps × weight · lb</span></div>
+                  <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.5 25.6,14.2 37.9,15.8 50.1,15.2 62.4,4.0 74.7,14.2 87.0,15.3" /></svg>
+                  <b class="kpi-delta up">+10%</b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name e">Effective</span>
+                  <div class="kpi-val"><b>124,419</b><span>volume × Effort 4.1 · 82%</span></div>
+                  <svg class="kpi-spark" viewBox="0 0 88 18"><polyline fill="none" stroke="#6d8b6e" stroke-width="1.8" points="1.0,16.0 13.3,12.9 25.6,12.5 37.9,13.3 50.1,13.4 62.4,4.0 74.7,11.5 87.0,13.9" /></svg>
+                  <b class="kpi-delta up">+40%</b>
+                </div>
+              </div>
+              <div class="section">
+                <h2>Last session · Lower B</h2>
+                <div class="card">
+                  <h3>Sep 5 · 58 min · sRPE 291</h3>
+                  <div class="kpi-list" style="margin-top:8px;padding:0">
+                    <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>1,190</b><span>avg 99 lb</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                    <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>129</b><span>avg 10.8</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                    <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>13,005</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                    <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>9,901</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−8%</b></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <span class="chip up">Best progress</span>
+                  <h3>Hip Thrusts</h3>
+                  <p class="muted">Why: Volume Load almost doubled. Weight and reps both rose. Effective Load rose with the work.</p>
+                  <div class="kpi-list" style="margin-top:8px;padding:0">
+                    <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>95 → 132</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="72" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="72" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+39%</b></div>
+                    <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>8.7 → 12</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="72" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="72" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+39%</b></div>
+                    <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,470 → 4,740</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="80" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="80" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+92%</b></div>
+                    <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>1,938 → 3,564</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="78" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="78" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+84%</b></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <span class="chip held">Did not improve</span>
+                  <h3>Trap Bar Deadlifts</h3>
+                  <p class="muted">No underperformer. Nothing lost Volume Load. This lift held every number.</p>
+                  <div class="kpi-list" style="margin-top:8px;padding:0">
+                    <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>95 → 95</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                    <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>10.3 → 10.3</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                    <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,945 → 2,945</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                    <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>2,565 → 2,565</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  </div>
+                </div>
+              </div>
+              <div class="section">
+                <h2>This window · lifts</h2>
+                <div class="card">
+                  <h3>Standing Calf Raises</h3>
+                  <div class="hbar-row" style="margin-top:10px"><span>Volume</span><div class="hbar"><i style="width:100%;background:#2f8f8a"></i></div><b>29,750</b></div>
+                  <div class="hbar-row"><span>Effective</span><div class="hbar"><i style="width:68%;background:#c45d7a"></i></div><b>20,370</b></div>
+                  <div class="metrics">
+                    <div><span>Weight</span><br /><b>1,320 · 132</b></div>
+                    <div><span>Reps</span><br /><b>220 · 22.0</b></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h3>Face Pulls</h3>
+                  <div class="hbar-row" style="margin-top:10px"><span>Volume</span><div class="hbar"><i style="width:36%;background:#2f8f8a"></i></div><b>10,860</b></div>
+                  <div class="hbar-row"><span>Effective</span><div class="hbar"><i style="width:27%;background:#c45d7a"></i></div><b>7,922</b></div>
+                  <div class="metrics">
+                    <div><span>Weight</span><br /><b>760 · 84</b></div>
+                    <div><span>Reps</span><br /><b>128 · 14.2</b></div>
+                  </div>
+                </div>
+                <div class="card">
+                  <h3>Back Squats</h3>
+                  <div class="hbar-row" style="margin-top:10px"><span>Volume</span><div class="hbar"><i style="width:35%;background:#2f8f8a"></i></div><b>10,300</b></div>
+                  <div class="hbar-row"><span>Effective</span><div class="hbar"><i style="width:22%;background:#c45d7a"></i></div><b>6,580</b></div>
+                  <div class="metrics">
+                    <div><span>Weight</span><br /><b>990 · 110</b></div>
+                    <div><span>Reps</span><br /><b>94 · 10.4</b></div>
+                  </div>
+                </div>
+              </div>
+              <div class="section">
+                <h2>Secondary</h2>
+                <div class="card">
+                  <h3>Hard sets / muscle</h3>
+                  <p class="muted">How hard 4–5 in this window.</p>
+                  <div class="hbar-row"><span>Back</span><div class="hbar"><i style="width:100%"></i></div><b>19</b></div>
+                  <div class="hbar-row"><span>Quads</span><div class="hbar"><i style="width:79%"></i></div><b>15</b></div>
+                  <div class="hbar-row"><span>Hamstrings</span><div class="hbar"><i style="width:53%"></i></div><b>10</b></div>
+                  <div class="hbar-row"><span>Chest</span><div class="hbar"><i style="width:42%"></i></div><b>8</b></div>
+                </div>
+              </div>
+            </div>
+            <div id="pane-progress" class="pane">
+              <p class="muted">20 lifts with a prior session. This side is the change, not the pile.</p>
+              <h2 style="font-size: 26px; font-weight: 900; margin: 10px 0 0">10 up · 6 down</h2>
+            <div class="section">
+              <h2>Summary</h2>
+              <div class="card">
+                <h3>Volume Load is moving. Effective Load is mixed.</h3>
+                <p class="muted" style="margin-top:8px">
+                  Last Lower B: Volume <span class="up">+7.3%</span>, Effective <span class="down">−8%</span>,
+                  weight held, reps <span class="up">+6.6%</span>. Same bar, more reps, less grind.
+                  Lower A jumped because the prior day was lighter. Read the lift cards, not that one spike.
+                </p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−8%</b></div>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <h2>By workout vs last same day</h2>
+              <div class="card">
+                <h3>Lower B</h3>
+                <p class="muted">Sep 5 vs Aug 29</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>13,005</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="53" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="53" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>9,901</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="34" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="34" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−8%</b></div>
+                </div>
+              </div>
+              <div class="card">
+                <h3>Upper B</h3>
+                <p class="muted">Sep 4 vs Aug 28</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>14,870</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">−1%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>13,176</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+12%</b></div>
+                </div>
+                <p class="muted" style="margin-top:8px">Same iron. Harder votes. That is fatigue, not progress.</p>
+              </div>
+              <div class="card">
+                <h3>Upper A</h3>
+                <p class="muted">Aug 31 vs Aug 25</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="62" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="62" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+19%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="38" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="38" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−5%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+11%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="76" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="76" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+50%</b></div>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <h2>Moving up · Volume Load</h2>
+              <div class="card">
+                <span class="chip up">Up · +13%</span>
+                <h3>Back Squats</h3>
+                <p class="muted">100 lb held · reps 10.0 → 11.3 · Volume 3,000 → 3,400</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+13%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>3,000 → 3,400</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+13%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+12%</b></div>
+                </div>
+              </div>
+              <div class="card">
+                <span class="chip up">Up · +7%</span>
+                <h3>Bulgarian Split Squats</h3>
+                <p class="muted">110 lb held · reps 10.0 → 10.7 · Volume 3,300 → 3,520</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Held</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>3,300 → 3,520</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="28" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="28" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−18%</b></div>
+                </div>
+                <p class="muted" style="margin-top:8px">More work, easier vote. That is the good Effective story.</p>
+              </div>
+              <div class="card">
+                <span class="chip up">Up · +8%</span>
+                <h3>Incline Dumbbell Bench</h3>
+                <p class="muted">70 → 80 lb · reps 11.3 → 10.7</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="58" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="58" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+14%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="38" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="38" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−6%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="52" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="52" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+8%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="62" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="62" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+20%</b></div>
+                </div>
+              </div>
+            </div>
+            <div class="section">
+              <h2>Moving down · Volume Load</h2>
+              <div class="card">
+                <span class="chip down">Down · −34%</span>
+                <h3>Bench Press</h3>
+                <p class="muted">Volume 2,940 → 1,930 · reps −29%</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="40" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="40" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−4%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="22" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="22" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−29%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,940 → 1,930</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="18" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="18" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−34%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="38" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="38" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−6%</b></div>
+                </div>
+              </div>
+              <div class="card">
+                <span class="chip down">Down · −23%</span>
+                <h3>Walking Lunges</h3>
+                <p class="muted">Volume 2,400 → 1,840</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="30" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="30" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−17%</b></div>
+                  <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="36" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="36" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−7%</b></div>
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>2,400 → 1,840</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="26" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="26" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−23%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="20" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="20" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−33%</b></div>
+                </div>
+              </div>
+              <div class="card">
+                <span class="chip down">Down · −5%</span>
+                <h3>Leg Extension / Step-Ups</h3>
+                <p class="muted">Volume down. Effective <span class="up">+57%</span> — same load, much harder votes.</p>
+                <div class="kpi-list" style="margin-top:8px;padding:0">
+                  <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>Down</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="38" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="38" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−5%</b></div>
+                  <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>Up</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="80" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="80" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+57%</b></div>
+                </div>
+              </div>
+            </div>
+            </div>
+            <div id="pane-filter" class="pane">
+              <div class="section">
+                <button type="button" class="fold-head" id="f-cut-toggle" aria-expanded="false">
+                  <span>
+                    <span class="kicker">Cut</span>
+                    <b id="f-label">T-15 · All days · Exercise</b>
+                  </span>
+                  <span class="chev" id="f-cut-chevron">+</span>
+                </button>
+                <div class="fold-body" id="f-cut-body" hidden>
+                  <h2>Period</h2>
+                  <div class="pills" id="f-period">
+                    <button type="button" data-period="t">T</button>
+                    <button type="button" data-period="t-1">T-1</button>
+                    <button type="button" data-period="t-7">T-7</button>
+                    <button type="button" class="on" data-period="t-15">T-15</button>
+                    <button type="button" data-period="t-30">T-30</button>
+                    <button type="button" data-period="all">All</button>
+                  </div>
+                  <h2 style="margin-top:14px">Workout</h2>
+                  <div class="pills" id="f-workout">
+                    <button type="button" class="on" data-wo="all">All</button>
+                    <button type="button" data-wo="ua">Upper A</button>
+                    <button type="button" data-wo="la">Lower A</button>
+                    <button type="button" data-wo="ub">Upper B</button>
+                    <button type="button" data-wo="lb">Lower B</button>
+                  </div>
+                  <h2 style="margin-top:14px">Grain</h2>
+                  <div class="pills" id="f-grain">
+                    <button type="button" data-grain="workout">Workout</button>
+                    <button type="button" class="on" data-grain="exercise">Exercise</button>
+                    <button type="button" data-grain="set">Set</button>
+                  </div>
+                </div>
+              </div>
+              <div class="card kpi-list">
+                <div class="kpi-row">
+                  <span class="kpi-name w">Weight</span>
+                  <div class="kpi-val"><b id="f-w">14,444</b><span id="f-wsub">sum · avg 84</span></div>
+                  <svg class="kpi-spark" id="f-w-spark" viewBox="0 0 88 18" aria-hidden="true"></svg>
+                  <b class="kpi-delta held" id="f-w-pct"></b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name r">Reps</span>
+                  <div class="kpi-val"><b id="f-r">2,012</b><span id="f-rsub">sum · avg 11.7</span></div>
+                  <svg class="kpi-spark" id="f-r-spark" viewBox="0 0 88 18" aria-hidden="true"></svg>
+                  <b class="kpi-delta held" id="f-r-pct"></b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name v">Volume</span>
+                  <div class="kpi-val"><b id="f-v">174,758</b><span id="f-vsub">reps × weight</span></div>
+                  <svg class="kpi-spark" id="f-v-spark" viewBox="0 0 88 18" aria-hidden="true"></svg>
+                  <b class="kpi-delta held" id="f-v-pct"></b>
+                </div>
+                <div class="kpi-row">
+                  <span class="kpi-name e">Effective</span>
+                  <div class="kpi-val"><b id="f-e">124,419</b><span id="f-esub">× Effort</span></div>
+                  <svg class="kpi-spark" id="f-e-spark" viewBox="0 0 88 18" aria-hidden="true"></svg>
+                  <b class="kpi-delta held" id="f-e-pct"></b>
+                </div>
+              </div>
+              <div class="section" id="f-list"></div>
+
+              <div class="section" id="f-kpi-sec">
+                <h2>This cut vs last time</h2>
+                <div class="card chart-card">
+                  <svg id="kpi-spike" viewBox="0 0 320 112" aria-label="This cut vs last time"></svg>
+                </div>
+              </div>
+
+              <div class="section" id="f-sum-sec">
+                <h2>Summary</h2>
+                <div class="card">
+                  <div class="lift" style="border:0;padding:0">
+                    <div>
+                      <b id="f-sum-title">—</b>
+                      <p class="muted" id="f-sum-sub">This cut only.</p>
+                    </div>
+                    <div class="pct held" id="f-sum-pct">—</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section" id="f-spike-sec">
+                <h2>Spike · Volume %</h2>
+                <div class="card chart-card">
+                  <svg id="spike-hit" viewBox="0 0 320 140" aria-label="Volume percent spikes"></svg>
+                  <div id="spike-read" class="metrics" style="margin-top:10px"></div>
+                </div>
+              </div>
+
+              <div class="section" id="f-up-sec">
+                <h2 id="f-up-title">Moving up</h2>
+                <div class="card" id="f-up"></div>
+              </div>
+              <div class="section" id="f-down-sec">
+                <h2 id="f-down-title">Moving down</h2>
+                <div class="card" id="f-down"></div>
+              </div>
+              <div class="section" id="f-held-sec">
+                <h2 id="f-held-title">Held / first</h2>
+                <div class="card" id="f-held"></div>
+              </div>
+
+              <div id="f-cross-wo">
+              <div class="section">
+                <h2>Every lift · Effort 1–5</h2>
+                <div class="card">
+                  <div class="hbar-row"><span>Hanging knees</span><div class="hbar"><i style="width:100%"></i></div><b>5.0</b></div>
+                  <div class="hbar-row"><span>RDLs</span><div class="hbar"><i style="width:95%"></i></div><b>4.8</b></div>
+                  <div class="hbar-row"><span>Upper B</span><div class="hbar"><i style="width:90%"></i></div><b>4.5</b></div>
+                  <div class="hbar-row"><span>Hip Thrusts</span><div class="hbar"><i style="width:85%"></i></div><b>4.3</b></div>
+                  <div class="hbar-row"><span>Lower B</span><div class="hbar"><i style="width:80%"></i></div><b>4.0</b></div>
+                  <div class="hbar-row"><span>Calves</span><div class="hbar"><i style="width:68%"></i></div><b>3.4</b></div>
+                </div>
+              </div>
+
+              <div class="section">
+                <h2>By workout</h2>
+                <div class="card">
+                  <div class="lift">
+                    <div><b>Lower B</b><div class="mini"><span class="held">W 0</span><span class="up">R +7</span><span class="up">V +7</span><span class="down">E −8</span></div></div>
+                    <svg viewBox="0 0 76 28" height="28"><polyline fill="none" stroke="#e8c547" stroke-width="2" points="2,16 38,14 74,10" /></svg>
+                    <div class="pct up">+7%</div>
+                  </div>
+                  <div class="lift">
+                    <div><b>Upper B</b><div class="mini"><span class="held">W 0</span><span class="held">R 0</span><span class="held">V 0</span><span class="up">E +12</span></div></div>
+                    <svg viewBox="0 0 76 28" height="28"><polyline fill="none" stroke="#f6f1e3" stroke-width="2" points="2,14 74,14" /></svg>
+                    <div class="pct held">0%</div>
+                  </div>
+                  <div class="lift">
+                    <div><b>Upper A</b><div class="mini"><span class="up">W +19</span><span class="down">R −5</span><span class="up">V +11</span><span class="up">E +50</span></div></div>
+                    <svg viewBox="0 0 76 28" height="28"><polyline fill="none" stroke="#6d8b6e" stroke-width="2" points="2,18 38,14 74,10" /></svg>
+                    <div class="pct up">+11%</div>
+                  </div>
+                  <div class="lift">
+                    <div><b>Lower A</b><div class="mini"><span class="up">W +20</span><span class="up">R +10</span><span class="up">V +83</span><span class="up">E +105</span></div></div>
+                    <svg viewBox="0 0 76 28" height="28"><polyline fill="none" stroke="#e8c547" stroke-width="2" points="2,22 38,8 74,4" /></svg>
+                    <div class="pct up">+83%</div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="section">
+                <h2>Effort by workout</h2>
+                <div class="card chart-card">
+                  <svg viewBox="0 0 320 110" aria-label="Effort by workout">
+                    <rect x="36" y="28" width="40" height="62" fill="#e8c547" />
+                    <rect x="108" y="18" width="40" height="72" fill="#e8c547" />
+                    <rect x="180" y="36" width="40" height="54" fill="#e8c547" />
+                    <rect x="252" y="26" width="40" height="64" fill="#e8c547" />
+                    <line x1="20" y1="90" x2="300" y2="90" stroke="rgba(255,255,255,0.15)" />
+                    <text x="42" y="106" fill="#f6f1e3" font-size="10">UA 4.1</text>
+                    <text x="114" y="106" fill="#f6f1e3" font-size="10">UB 4.5</text>
+                    <text x="186" y="106" fill="#f6f1e3" font-size="10">LA 3.8</text>
+                    <text x="258" y="106" fill="#f6f1e3" font-size="10">LB 4.0</text>
+                  </svg>
+                </div>
+              </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <p class="kicker">Three tabs, one page</p>
+            <div class="card">
+              <p class="muted"><b>Current</b> is the window: four KPIs, last session, lift totals.</p>
+              <p class="muted" style="margin-top:10px"><b>Progress</b> is vs last time.</p>
+              <p class="muted" style="margin-top:10px"><b>Filter</b> uses Kevin’s real cuts. Four KPI spikes sit under the tiles. Volume % is one horizontal row per item. Press a row for the four numbers. Green or red wins on any +/−.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="live" class="screen">
+        <div class="phone">
+          <p class="kicker">Live · after a set</p>
+          <h1 style="font-size: 26px; font-weight: 900; margin: 8px 0">Bulgarian Split Squats</h1>
+          <p class="muted">Set 3 · 110 lb × 10</p>
+          <div class="row4">
+            <div class="kpi"><label>Set Volume</label><div class="big">1,100</div><div class="sub">110 × 10</div></div>
+            <div class="kpi lead"><label>Set Effective</label><div class="big">880</div><div class="sub">× Effort 4 · 80%</div></div>
+            <div class="kpi"><label>Exercise Volume</label><div class="big">3,300</div><div class="sub">3 sets today</div></div>
+            <div class="kpi"><label>Session Volume</label><div class="big">13,005</div><div class="sub">Effective 9,901</div></div>
+          </div>
+          <div class="section">
+            <h2>Sticky bar</h2>
+            <div class="card">
+              <p><b>Today</b> Volume 13,005 · Effective 9,901</p>
+              <p class="muted" style="margin-top:6px"><b>All-time</b> Volume 185,518 · Effective 130,875 (Kevin, all mechanical sets)</p>
+              <p class="muted" style="margin-top:10px">Today is no longer raw “lb” that ignores Effort while Home shows Effort lb. Both bars speak Volume and Effective.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="house" class="screen">
+        <div class="wide">
+          <p class="kicker">The house · last 7 days</p>
+          <p class="muted" style="margin-bottom:12px">
+            Rank is finished days, then Volume Load. Each card speaks the four KPIs:
+            Weight sum / avg, Reps sum / avg, Volume Load, Effective Load.
+            Workouts stay for place. Tracking is a line on the card plus You vs Mike.
+          </p>
+          <div class="card">
+            <p class="muted">Pack Volume Load this week. Cream you. Copper the house. Kevin 87,465 · Mike 84,517 · Christine 15,164 · Peter 4,450.</p>
+            <div class="pack-bars">
+              <div class="row you"><span>Kevin</span><div class="track"><i style="width:100%"></i></div><b>87,465</b></div>
+              <div class="row house"><span>Mike</span><div class="track"><i style="width:97%"></i></div><b>84,517</b></div>
+              <div class="row house"><span>Christine</span><div class="track"><i style="width:17%"></i></div><b>15,164</b></div>
+              <div class="row house"><span>Peter</span><div class="track"><i style="width:5%"></i></div><b>4,450</b></div>
+            </div>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <p style="font-weight:900;color:#e8c547">Bonus work</p>
+            <p class="muted">Mike · 1 bonus week</p>
+            <p style="font-weight:900;color:#e8c547;margin-top:10px">Optionals</p>
+            <p class="muted">Four warmups. Four cooldowns. Sample honor stays.</p>
+          </div>
+
+          <div class="card yourow" style="margin-top:12px">
+            <p class="kicker">1st</p>
+            <h3>Kevin</h3>
+            <p style="font-size:28px;font-weight:900;margin:4px 0">87,465 Volume</p>
+            <p class="muted">Last: Lower B · Sep 5 · Effective 73,026</p>
+            <div class="kpi-list" style="margin-top:8px;padding:0">
+              <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>6,545</b><span>avg 94</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+14%</b></div>
+              <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>1,064</b><span>avg 15.2</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="50" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="50" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+7%</b></div>
+              <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>87,465</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="56" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="56" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+14%</b></div>
+              <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>73,026</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="72" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="72" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+39%</b></div>
+            </div>
+            <div class="metrics">
+              <div><span>Workouts</span><br /><b>4</b></div>
+              <div><span>Effort</span><br /><b>4.2 · 84%</b></div>
+              <div><span>Belt</span><br /><b>Dipping your toes</b></div>
+              <div><span>Heaviest</span><br /><b>200 lb</b></div>
+            </div>
+            <p class="muted" style="margin-top:10px">Tracking · Volume <span class="up">10 up</span> / <span class="down">6 down</span> · avg Volume <span class="up">+14%</span> · avg Effective <span class="up">+39%</span>. You own the pile. Mike owns the slope.</p>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <p class="kicker">2nd</p>
+            <h3>Mike</h3>
+            <p style="font-size:28px;font-weight:900;margin:4px 0">84,517 Volume</p>
+            <p class="muted">Last: this week · Effective 67,614</p>
+            <div class="kpi-list" style="margin-top:8px;padding:0">
+              <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>7,112</b><span>avg 100</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="62" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="62" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+22%</b></div>
+              <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>1,014</b><span>avg 14.3</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="54" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="54" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+10%</b></div>
+              <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>84,517</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="68" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="68" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+30%</b></div>
+              <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>67,614</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="60" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="60" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+18%</b></div>
+            </div>
+            <div class="metrics">
+              <div><span>Workouts</span><br /><b>4</b></div>
+              <div><span>Effort</span><br /><b>4.0 · 80%</b></div>
+              <div><span>Heaviest</span><br /><b>225 lb</b></div>
+              <div><span>Sets</span><br /><b>71</b></div>
+            </div>
+            <p class="muted" style="margin-top:10px">Tracking · Volume <span class="up">15 up</span> / <span class="down">2 down</span> · avg Volume <span class="up">+30%</span>.</p>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <p class="kicker">3rd</p>
+            <h3>Christine</h3>
+            <p style="font-size:28px;font-weight:900;margin:4px 0">15,164 Volume</p>
+            <div class="kpi-list" style="margin-top:8px;padding:0">
+              <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>1,376</b><span>avg 28</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="40" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="40" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−4%</b></div>
+              <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>566</b><span>avg 11.3</span></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><circle cx="44" cy="7" r="3" fill="#f6f1e3" /></svg><b class="kpi-delta held">0%</b></div>
+              <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>15,164</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="48" y2="7" stroke="#6d8b6e" stroke-width="3" stroke-linecap="round" /><circle cx="48" cy="7" r="3" fill="#6d8b6e" /></svg><b class="kpi-delta up">+3%</b></div>
+              <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>9,098</b></div><svg class="kpi-spark" viewBox="0 0 88 14"><line x1="44" y1="1" x2="44" y2="13" stroke="rgba(255,255,255,0.2)" /><line x1="44" y1="7" x2="38" y2="7" stroke="#a35d52" stroke-width="3" stroke-linecap="round" /><circle cx="38" cy="7" r="3" fill="#a35d52" /></svg><b class="kpi-delta down">−6%</b></div>
+            </div>
+            <div class="metrics">
+              <div><span>Workouts</span><br /><b>3</b></div>
+              <div><span>Heaviest</span><br /><b>120 lb</b></div>
+            </div>
+            <p class="muted" style="margin-top:10px">Tracking · Volume 3 up / 5 down · avg Volume +3%.</p>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <p class="kicker">4th</p>
+            <h3>Peter</h3>
+            <p style="font-size:28px;font-weight:900;margin:4px 0">4,450 Volume</p>
+            <div class="kpi-list" style="margin-top:8px;padding:0">
+              <div class="kpi-row"><span class="kpi-name w">Weight</span><div class="kpi-val"><b>420</b><span>avg 53</span></div></div>
+              <div class="kpi-row"><span class="kpi-name r">Reps</span><div class="kpi-val"><b>85</b><span>avg 10.6</span></div></div>
+              <div class="kpi-row"><span class="kpi-name v">Volume</span><div class="kpi-val"><b>4,450</b></div></div>
+              <div class="kpi-row"><span class="kpi-name e">Effective</span><div class="kpi-val"><b>2,670</b></div></div>
+            </div>
+            <div class="metrics">
+              <div><span>Workouts</span><br /><b>1</b></div>
+              <div><span>Heaviest</span><br /><b>90 lb</b></div>
+            </div>
+            <p class="muted" style="margin-top:10px">Tracking · no second session on these lifts yet.</p>
+          </div>
+
+          <div class="card" style="margin-top:16px">
+            <h3>Best day / Total Volume Load</h3>
+            <div class="pack-bars">
+              <div class="row you"><span>Kevin</span><div class="track"><i style="width:100%"></i></div><b>87,465</b></div>
+              <div class="row house"><span>Mike</span><div class="track"><i style="width:97%"></i></div><b>84,517</b></div>
+              <div class="row house"><span>Christine</span><div class="track"><i style="width:17%"></i></div><b>15,164</b></div>
+              <div class="row house"><span>Peter</span><div class="track"><i style="width:5%"></i></div><b>4,450</b></div>
+            </div>
+            <p class="muted" style="margin-top:8px">1st Kevin · Best day 32,600 · Total 87,465</p>
+            <p class="muted" style="margin-top:8px">Vs the house by lift stays: one you lead, one you trail, one closest — Weight avg, then Rep avg, then Volume Load.</p>
+          </div>
+
+          <div class="pair" style="margin-top:16px">
+            <div class="phone">
+              <p class="kicker">How you are tracking</p>
+              <h1 style="font-size: 26px; font-weight: 900; margin: 8px 0 6px">You vs Mike</h1>
+              <p class="muted">You are 1st on the pile (87k vs 85k). He is 1st on Progress (15 lifts up vs your 10).</p>
+              <div class="vs-col">
+                <div class="stack">
+                  <div class="bar you" style="height:72px"></div>
+                  <b>You</b>
+                  <p class="muted">87,465</p>
+                </div>
+                <div class="stack">
+                  <div class="bar rival" style="height:69px"></div>
+                  <b>Mike</b>
+                  <p class="muted">84,517</p>
+                </div>
+              </div>
+              <div class="metrics">
+                <div><span>Weight avg</span><br /><b>You 94</b> · Mike 100</div>
+                <div><span>Rep avg</span><br /><b>You 15.2</b> · 14.3</div>
+                <div><span>Volume Load</span><br /><b>You 87,465</b> · 84,517</div>
+                <div><span>Effective Load</span><br /><b>You 73,026</b> · 67,614</div>
+                <div><span>Volume lifts up</span><br /><b>10</b> · 15</div>
+                <div><span>Avg Volume %</span><br /><b>+14%</b> · +30%</div>
+                <div><span>Avg Effective %</span><br /><b>+39%</b> · +29%</div>
+                <div><span>Days</span><br /><b>4</b> · 4</div>
+              </div>
+              <p class="muted" style="margin-top:10px">You moved more iron this week. He added load on more lifts. Your Effective Load is rising faster — same work is costing more Effort.</p>
+            </div>
+            <div class="card">
+              <h3>What this page answers</h3>
+              <p class="muted" style="margin-top:8px">Who showed up. Who moved the most Volume Load. Who is getting stronger vs last time. Who is grinding harder for the same bar.</p>
+              <p class="muted" style="margin-top:10px">Week medals stay Kevin-only honor. They do not replace this board.</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="words" class="screen">
+        <div class="wide">
+          <div class="card">
+            <h3>Primary</h3>
+            <p class="muted" style="margin-top:8px"><b>Weight sum</b> — add the load on each completed set (Kevin T-15: 14,444 lb). <b>Weight avg</b> — sum ÷ sets (84 lb). Avg per rep is Volume ÷ reps (87 lb) when you want intensity by rep, not by set.</p>
+            <p class="muted" style="margin-top:8px"><b>Rep sum / avg</b> — 2,012 reps · 11.7 per set.</p>
+            <p class="muted" style="margin-top:8px"><b>Volume Load</b> — Σ (reps × weight). Set / exercise / session / window. Kevin T-15: 174,758 lb. This is the old “raw iron” without optional +500.</p>
+            <p class="muted" style="margin-top:8px"><b>Effective Load</b> — Volume Load × Effort %. Skip How hard = Fair = 60%. Kevin T-15: 124,419 lb. This is today’s Effort-scaled board, named.</p>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <h3>Grain</h3>
+            <p class="muted" style="margin-top:8px">Set Volume Load · Exercise Volume Load · Session Volume Load. Relative Volume Load (vs 1RM) is not in the data yet. Hard sets / muscle uses How hard 4–5. sRPE uses session stars × minutes (Kevin’s last Lower B: 5 × 58 = 291). RPE / RIR is How hard until we store RIR.</p>
+          </div>
+          <div class="card" style="margin-top:12px">
+            <h3>Optional +500 and rank</h3>
+            <p class="muted" style="margin-top:8px">Home keeps trophies, week lock, More load / fewer drops, Daily weight, You vs leader, and a folded Your performance (Current / Progress). The house keeps today’s board and adds a tracking line plus You vs the person you have to beat. Rank stays days, then Volume Load.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script id="kpi-board" type="application/json">{"t|all":{"totals":{"sets":12,"weightSum":1190,"weightAvg":99,"repSum":129,"repAvg":10.8,"volume":13005,"effective":9901},"session":[{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t|ua":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t|la":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t|ub":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t|lb":{"totals":{"sets":12,"weightSum":1190,"weightAvg":99,"repSum":129,"repAvg":10.8,"volume":13005,"effective":9901},"session":[{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-1|all":{"totals":{"sets":18,"weightSum":1300,"weightAvg":72,"repSum":204,"repAvg":11.3,"volume":14870,"effective":13176},"session":[{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"t-1|ua":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t-1|la":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t-1|ub":{"totals":{"sets":18,"weightSum":1300,"weightAvg":72,"repSum":204,"repAvg":11.3,"volume":14870,"effective":13176},"session":[{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"t-1|lb":{"totals":{"sets":0,"weightSum":0,"weightAvg":0,"repSum":0,"repAvg":0,"volume":0,"effective":0},"session":[],"exercise":[],"set":[]},"t-7|all":{"totals":{"sets":64,"weightSum":5835,"weightAvg":91,"repSum":761,"repAvg":11.9,"volume":73615,"effective":56855},"session":[{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e118-Barbell or D","label":"Bench","w":83,"r":8,"v":1930,"e":1658,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Triceps Cabl","label":"Triceps Cable Pushdowns","w":70,"r":10,"v":2060,"e":1776,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Romanian Dea","label":"Romanian Deadlifts","w":100,"r":10.7,"v":3200,"e":3200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Walking Lung","label":"Lunges","w":67,"r":9.3,"v":1840,"e":1600,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Lying Hamstr","label":"Lying Hamstring Floor Slides","w":133,"r":15,"v":6000,"e":1800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-7|ua":{"totals":{"sets":15,"weightSum":1245,"weightAvg":83,"repSum":162,"repAvg":10.8,"volume":13140,"effective":10602},"session":[{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e118-Barbell or D","label":"Bench","w":83,"r":8,"v":1930,"e":1658,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e118-Triceps Cabl","label":"Triceps Cable Pushdowns","w":70,"r":10,"v":2060,"e":1776,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set118-0","label":"Bench s1","w":95,"r":8,"v":760,"e":608,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-1","label":"Bench s2","w":95,"r":6,"v":570,"e":570,"wPct":0,"rPct":-25,"vPct":-25,"ePct":-6.2},{"id":"set118-2","label":"Bench s3","w":60,"r":10,"v":600,"e":480,"wPct":-36.8,"rPct":66.7,"vPct":5.3,"ePct":-15.8},{"id":"set118-3","label":"DB Rows s1","w":45,"r":10,"v":450,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-4","label":"DB Rows s2","w":45,"r":12,"v":540,"e":432,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set118-5","label":"DB Rows s3","w":45,"r":12,"v":540,"e":540,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set118-6","label":"OHP s1","w":40,"r":15,"v":600,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-7","label":"OHP s2","w":50,"r":12,"v":600,"e":360,"wPct":25,"rPct":-20,"vPct":0,"ePct":0},{"id":"set118-8","label":"OHP s3","w":60,"r":12,"v":720,"e":576,"wPct":20,"rPct":0,"vPct":20,"ePct":60},{"id":"set118-9","label":"Pulldowns s1","w":140,"r":15,"v":2100,"e":1260,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-10","label":"Pulldowns s2","w":200,"r":10,"v":2000,"e":2000,"wPct":42.9,"rPct":-33.3,"vPct":-4.8,"ePct":58.7},{"id":"set118-11","label":"Pulldowns s3","w":160,"r":10,"v":1600,"e":1280,"wPct":-20,"rPct":0,"vPct":-20,"ePct":-36}]},"t-7|la":{"totals":{"sets":19,"weightSum":2100,"weightAvg":111,"repSum":266,"repAvg":14,"volume":32600,"effective":23176},"session":[{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Romanian Dea","label":"Romanian Deadlifts","w":100,"r":10.7,"v":3200,"e":3200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Walking Lung","label":"Lunges","w":67,"r":9.3,"v":1840,"e":1600,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Lying Hamstr","label":"Lying Hamstring Floor Slides","w":133,"r":15,"v":6000,"e":1800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Pallof Press","label":"Pallof Press","w":80,"r":10.7,"v":2560,"e":1856,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set121-0","label":"Barbell Back Squats s1","w":100,"r":10,"v":1000,"e":800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-1","label":"Barbell Back Squats s2","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":20,"vPct":20,"ePct":-10},{"id":"set121-2","label":"Barbell Back Squats s3","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-3","label":"Romanian Deadlifts s1","w":100,"r":12,"v":1200,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-4","label":"Romanian Deadlifts s2","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set121-5","label":"Romanian Deadlifts s3","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-6","label":"Lunges s1","w":80,"r":8,"v":640,"e":640,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-7","label":"Lunges s2","w":60,"r":10,"v":600,"e":480,"wPct":-25,"rPct":25,"vPct":-6.2,"ePct":-25},{"id":"set121-8","label":"Lunges s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-9","label":"Lying Hamstring Floor Slides s1","w":100,"r":15,"v":1500,"e":900,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-10","label":"Lying Hamstring Floor Slides s2","w":140,"r":15,"v":2100,"e":420,"wPct":40,"rPct":0,"vPct":40,"ePct":-53.3},{"id":"set121-11","label":"Lying Hamstring Floor Slides s3","w":160,"r":15,"v":2400,"e":480,"wPct":14.3,"rPct":0,"vPct":14.3,"ePct":14.3}]},"t-7|ub":{"totals":{"sets":18,"weightSum":1300,"weightAvg":72,"repSum":204,"repAvg":11.3,"volume":14870,"effective":13176},"session":[{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"t-7|lb":{"totals":{"sets":12,"weightSum":1190,"weightAvg":99,"repSum":129,"repAvg":10.8,"volume":13005,"effective":9901},"session":[{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"exercise":[{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-15|all":{"totals":{"sets":154,"weightSum":12880,"weightAvg":84,"repSum":1782,"repAvg":11.6,"volume":153480,"effective":111652},"session":[{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-15|ua":{"totals":{"sets":30,"weightSum":2290,"weightAvg":76,"repSum":332,"repAvg":11.1,"volume":24950,"effective":17688},"session":[{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6}],"exercise":[{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e118-Triceps Cabl","label":"Triceps Cable Pushdowns","w":70,"r":10,"v":2060,"e":1776,"wPct":16.7,"rPct":-16.7,"vPct":-4.6,"ePct":37},{"id":"e118-Barbell or D","label":"Bench","w":83,"r":8,"v":1930,"e":1658,"wPct":-4.6,"rPct":-29.2,"vPct":-34.4,"ePct":-6}],"set":[{"id":"set118-0","label":"Bench s1","w":95,"r":8,"v":760,"e":608,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-1","label":"Bench s2","w":95,"r":6,"v":570,"e":570,"wPct":0,"rPct":-25,"vPct":-25,"ePct":-6.2},{"id":"set118-2","label":"Bench s3","w":60,"r":10,"v":600,"e":480,"wPct":-36.8,"rPct":66.7,"vPct":5.3,"ePct":-15.8},{"id":"set118-3","label":"DB Rows s1","w":45,"r":10,"v":450,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-4","label":"DB Rows s2","w":45,"r":12,"v":540,"e":432,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set118-5","label":"DB Rows s3","w":45,"r":12,"v":540,"e":540,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set118-6","label":"OHP s1","w":40,"r":15,"v":600,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-7","label":"OHP s2","w":50,"r":12,"v":600,"e":360,"wPct":25,"rPct":-20,"vPct":0,"ePct":0},{"id":"set118-8","label":"OHP s3","w":60,"r":12,"v":720,"e":576,"wPct":20,"rPct":0,"vPct":20,"ePct":60},{"id":"set118-9","label":"Pulldowns s1","w":140,"r":15,"v":2100,"e":1260,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-10","label":"Pulldowns s2","w":200,"r":10,"v":2000,"e":2000,"wPct":42.9,"rPct":-33.3,"vPct":-4.8,"ePct":58.7},{"id":"set118-11","label":"Pulldowns s3","w":160,"r":10,"v":1600,"e":1280,"wPct":-20,"rPct":0,"vPct":-20,"ePct":-36}]},"t-15|la":{"totals":{"sets":34,"weightSum":3480,"weightAvg":102,"repSum":457,"repAvg":13.4,"volume":50420,"effective":34468},"session":[{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e121-Romanian Dea","label":"Romanian Deadlifts","w":100,"r":10.7,"v":3200,"e":3200,"wPct":0,"rPct":0,"vPct":0,"ePct":50.9},{"id":"e121-Pallof Press","label":"Pallof Press","w":80,"r":10.7,"v":2560,"e":1856,"wPct":0,"rPct":-5.3,"vPct":-5.9,"ePct":26.1},{"id":"e121-Walking Lung","label":"Lunges","w":67,"r":9.3,"v":1840,"e":1600,"wPct":-16.2,"rPct":-7,"vPct":-23.3,"ePct":-33.3},{"id":"e121-Lying Hamstr","label":"Lying Hamstring Floor Slides","w":133,"r":15,"v":6000,"e":1800,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set121-0","label":"Barbell Back Squats s1","w":100,"r":10,"v":1000,"e":800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-1","label":"Barbell Back Squats s2","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":20,"vPct":20,"ePct":-10},{"id":"set121-2","label":"Barbell Back Squats s3","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-3","label":"Romanian Deadlifts s1","w":100,"r":12,"v":1200,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-4","label":"Romanian Deadlifts s2","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set121-5","label":"Romanian Deadlifts s3","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-6","label":"Lunges s1","w":80,"r":8,"v":640,"e":640,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-7","label":"Lunges s2","w":60,"r":10,"v":600,"e":480,"wPct":-25,"rPct":25,"vPct":-6.2,"ePct":-25},{"id":"set121-8","label":"Lunges s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-9","label":"Lying Hamstring Floor Slides s1","w":100,"r":15,"v":1500,"e":900,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-10","label":"Lying Hamstring Floor Slides s2","w":140,"r":15,"v":2100,"e":420,"wPct":40,"rPct":0,"vPct":40,"ePct":-53.3},{"id":"set121-11","label":"Lying Hamstring Floor Slides s3","w":160,"r":15,"v":2400,"e":480,"wPct":14.3,"rPct":0,"vPct":14.3,"ePct":14.3}]},"t-15|ub":{"totals":{"sets":54,"weightSum":3730,"weightAvg":69,"repSum":617,"repAvg":11.4,"volume":42770,"effective":32700},"session":[{"id":"s56","label":"Upper B 08-22","w":62,"r":11.6,"v":12940,"e":7764,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":0,"rPct":0,"vPct":0,"ePct":8.3},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":0,"rPct":0,"vPct":0,"ePct":16.7},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":-31,"rPct":13,"vPct":-21.5,"ePct":-9.7}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"t-15|lb":{"totals":{"sets":36,"weightSum":3380,"weightAvg":94,"repSum":376,"repAvg":10.4,"volume":35340,"effective":26796},"session":[{"id":"s69","label":"Lower B 08-23","w":83,"r":10.5,"v":10220,"e":6132,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"e112-Leg Extensio","label":"Leg Extension Machine","w":100,"r":11.3,"v":3400,"e":3400,"wPct":0,"rPct":-5.8,"vPct":-5.6,"ePct":57.4},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-30|all":{"totals":{"sets":187,"weightSum":15364,"weightAvg":82,"repSum":2188,"repAvg":11.7,"volume":185518,"effective":130875},"session":[{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":14.8,"rPct":-3.4,"vPct":9.8,"ePct":9.8},{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":5.7,"rPct":-0.8,"vPct":-16.3,"ePct":-11.6},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"t-30|ua":{"totals":{"sets":45,"weightSum":3210,"weightAvg":71,"repSum":508,"repAvg":11.3,"volume":35710,"effective":24144},"session":[{"id":"s22","label":"Upper A 08-20","w":61,"r":11.7,"v":10760,"e":6456,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":14.8,"rPct":-3.4,"vPct":9.8,"ePct":9.8},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6}],"exercise":[{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e118-Triceps Cabl","label":"Triceps Cable Pushdowns","w":70,"r":10,"v":2060,"e":1776,"wPct":16.7,"rPct":-16.7,"vPct":-4.6,"ePct":37},{"id":"e118-Barbell or D","label":"Bench","w":83,"r":8,"v":1930,"e":1658,"wPct":-4.6,"rPct":-29.2,"vPct":-34.4,"ePct":-6}],"set":[{"id":"set118-0","label":"Bench s1","w":95,"r":8,"v":760,"e":608,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-1","label":"Bench s2","w":95,"r":6,"v":570,"e":570,"wPct":0,"rPct":-25,"vPct":-25,"ePct":-6.2},{"id":"set118-2","label":"Bench s3","w":60,"r":10,"v":600,"e":480,"wPct":-36.8,"rPct":66.7,"vPct":5.3,"ePct":-15.8},{"id":"set118-3","label":"DB Rows s1","w":45,"r":10,"v":450,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-4","label":"DB Rows s2","w":45,"r":12,"v":540,"e":432,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set118-5","label":"DB Rows s3","w":45,"r":12,"v":540,"e":540,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set118-6","label":"OHP s1","w":40,"r":15,"v":600,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-7","label":"OHP s2","w":50,"r":12,"v":600,"e":360,"wPct":25,"rPct":-20,"vPct":0,"ePct":0},{"id":"set118-8","label":"OHP s3","w":60,"r":12,"v":720,"e":576,"wPct":20,"rPct":0,"vPct":20,"ePct":60},{"id":"set118-9","label":"Pulldowns s1","w":140,"r":15,"v":2100,"e":1260,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-10","label":"Pulldowns s2","w":200,"r":10,"v":2000,"e":2000,"wPct":42.9,"rPct":-33.3,"vPct":-4.8,"ePct":58.7},{"id":"set118-11","label":"Pulldowns s3","w":160,"r":10,"v":1600,"e":1280,"wPct":-20,"rPct":0,"vPct":-20,"ePct":-36}]},"t-30|la":{"totals":{"sets":52,"weightSum":5044,"weightAvg":97,"repSum":687,"repAvg":13.2,"volume":71698,"effective":47235},"session":[{"id":"s44","label":"Lower A 08-21","w":87,"r":12.8,"v":21278,"e":12767,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":5.7,"rPct":-0.8,"vPct":-16.3,"ePct":-11.6},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e121-Romanian Dea","label":"Romanian Deadlifts","w":100,"r":10.7,"v":3200,"e":3200,"wPct":0,"rPct":0,"vPct":0,"ePct":50.9},{"id":"e121-Pallof Press","label":"Pallof Press","w":80,"r":10.7,"v":2560,"e":1856,"wPct":0,"rPct":-5.3,"vPct":-5.9,"ePct":26.1},{"id":"e121-Walking Lung","label":"Lunges","w":67,"r":9.3,"v":1840,"e":1600,"wPct":-16.2,"rPct":-7,"vPct":-23.3,"ePct":-33.3},{"id":"e44-Leg Curl Mac","label":"Leg Curl Machine or Swiss Ball Hamstring Curls","w":100,"r":14,"v":4200,"e":2520,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Lying Hamstr","label":"Lying Hamstring Floor Slides","w":133,"r":15,"v":6000,"e":1800,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set121-0","label":"Barbell Back Squats s1","w":100,"r":10,"v":1000,"e":800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-1","label":"Barbell Back Squats s2","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":20,"vPct":20,"ePct":-10},{"id":"set121-2","label":"Barbell Back Squats s3","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-3","label":"Romanian Deadlifts s1","w":100,"r":12,"v":1200,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-4","label":"Romanian Deadlifts s2","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set121-5","label":"Romanian Deadlifts s3","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-6","label":"Lunges s1","w":80,"r":8,"v":640,"e":640,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-7","label":"Lunges s2","w":60,"r":10,"v":600,"e":480,"wPct":-25,"rPct":25,"vPct":-6.2,"ePct":-25},{"id":"set121-8","label":"Lunges s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-9","label":"Lying Hamstring Floor Slides s1","w":100,"r":15,"v":1500,"e":900,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-10","label":"Lying Hamstring Floor Slides s2","w":140,"r":15,"v":2100,"e":420,"wPct":40,"rPct":0,"vPct":40,"ePct":-53.3},{"id":"set121-11","label":"Lying Hamstring Floor Slides s3","w":160,"r":15,"v":2400,"e":480,"wPct":14.3,"rPct":0,"vPct":14.3,"ePct":14.3}]},"t-30|ub":{"totals":{"sets":54,"weightSum":3730,"weightAvg":69,"repSum":617,"repAvg":11.4,"volume":42770,"effective":32700},"session":[{"id":"s56","label":"Upper B 08-22","w":62,"r":11.6,"v":12940,"e":7764,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":0,"rPct":0,"vPct":0,"ePct":8.3},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":0,"rPct":0,"vPct":0,"ePct":16.7},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":-31,"rPct":13,"vPct":-21.5,"ePct":-9.7}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"t-30|lb":{"totals":{"sets":36,"weightSum":3380,"weightAvg":94,"repSum":376,"repAvg":10.4,"volume":35340,"effective":26796},"session":[{"id":"s69","label":"Lower B 08-23","w":83,"r":10.5,"v":10220,"e":6132,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"e112-Leg Extensio","label":"Leg Extension Machine","w":100,"r":11.3,"v":3400,"e":3400,"wPct":0,"rPct":-5.8,"vPct":-5.6,"ePct":57.4},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"all|all":{"totals":{"sets":187,"weightSum":15364,"weightAvg":82,"repSum":2188,"repAvg":11.7,"volume":185518,"effective":130875},"session":[{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":14.8,"rPct":-3.4,"vPct":9.8,"ePct":9.8},{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":5.7,"rPct":-0.8,"vPct":-16.3,"ePct":-11.6},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]},"all|ua":{"totals":{"sets":45,"weightSum":3210,"weightAvg":71,"repSum":508,"repAvg":11.3,"volume":35710,"effective":24144},"session":[{"id":"s22","label":"Upper A 08-20","w":61,"r":11.7,"v":10760,"e":6456,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s89","label":"Upper A 08-25","w":70,"r":11.3,"v":11810,"e":7086,"wPct":14.8,"rPct":-3.4,"vPct":9.8,"ePct":9.8},{"id":"s118","label":"Upper A 08-31","w":83,"r":10.8,"v":13140,"e":10602,"wPct":18.6,"rPct":-4.4,"vPct":11.3,"ePct":49.6}],"exercise":[{"id":"e118-Overhead Dum","label":"OHP","w":50,"r":13,"v":1920,"e":1296,"wPct":11.1,"rPct":30,"vPct":42.2,"ePct":60},{"id":"e118-Lat Pulldown","label":"Pulldowns","w":167,"r":11.7,"v":5700,"e":4540,"wPct":39.2,"rPct":3.5,"vPct":41.1,"ePct":87.3},{"id":"e118-Single-Arm D","label":"DB Rows","w":45,"r":11.3,"v":1530,"e":1332,"wPct":21.6,"rPct":-5.8,"vPct":15.9,"ePct":68.2},{"id":"e118-Triceps Cabl","label":"Triceps Cable Pushdowns","w":70,"r":10,"v":2060,"e":1776,"wPct":16.7,"rPct":-16.7,"vPct":-4.6,"ePct":37},{"id":"e118-Barbell or D","label":"Bench","w":83,"r":8,"v":1930,"e":1658,"wPct":-4.6,"rPct":-29.2,"vPct":-34.4,"ePct":-6}],"set":[{"id":"set118-0","label":"Bench s1","w":95,"r":8,"v":760,"e":608,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-1","label":"Bench s2","w":95,"r":6,"v":570,"e":570,"wPct":0,"rPct":-25,"vPct":-25,"ePct":-6.2},{"id":"set118-2","label":"Bench s3","w":60,"r":10,"v":600,"e":480,"wPct":-36.8,"rPct":66.7,"vPct":5.3,"ePct":-15.8},{"id":"set118-3","label":"DB Rows s1","w":45,"r":10,"v":450,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-4","label":"DB Rows s2","w":45,"r":12,"v":540,"e":432,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set118-5","label":"DB Rows s3","w":45,"r":12,"v":540,"e":540,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set118-6","label":"OHP s1","w":40,"r":15,"v":600,"e":360,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-7","label":"OHP s2","w":50,"r":12,"v":600,"e":360,"wPct":25,"rPct":-20,"vPct":0,"ePct":0},{"id":"set118-8","label":"OHP s3","w":60,"r":12,"v":720,"e":576,"wPct":20,"rPct":0,"vPct":20,"ePct":60},{"id":"set118-9","label":"Pulldowns s1","w":140,"r":15,"v":2100,"e":1260,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set118-10","label":"Pulldowns s2","w":200,"r":10,"v":2000,"e":2000,"wPct":42.9,"rPct":-33.3,"vPct":-4.8,"ePct":58.7},{"id":"set118-11","label":"Pulldowns s3","w":160,"r":10,"v":1600,"e":1280,"wPct":-20,"rPct":0,"vPct":-20,"ePct":-36}]},"all|la":{"totals":{"sets":52,"weightSum":5044,"weightAvg":97,"repSum":687,"repAvg":13.2,"volume":71698,"effective":47235},"session":[{"id":"s44","label":"Lower A 08-21","w":87,"r":12.8,"v":21278,"e":12767,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s107","label":"Lower A 08-27","w":92,"r":12.7,"v":17820,"e":11292,"wPct":5.7,"rPct":-0.8,"vPct":-16.3,"ePct":-11.6},{"id":"s121","label":"Lower A 09-02","w":111,"r":14,"v":32600,"e":23176,"wPct":20.7,"rPct":10.2,"vPct":82.9,"ePct":105.2}],"exercise":[{"id":"e121-Standing Cal","label":"Calves","w":165,"r":23.8,"v":15600,"e":12480,"wPct":65,"rPct":9.7,"vPct":140,"ePct":278.2},{"id":"e121-Barbell Back","label":"Barbell Back Squats","w":100,"r":11.3,"v":3400,"e":2240,"wPct":0,"rPct":13,"vPct":13.3,"ePct":12},{"id":"e121-Romanian Dea","label":"Romanian Deadlifts","w":100,"r":10.7,"v":3200,"e":3200,"wPct":0,"rPct":0,"vPct":0,"ePct":50.9},{"id":"e121-Pallof Press","label":"Pallof Press","w":80,"r":10.7,"v":2560,"e":1856,"wPct":0,"rPct":-5.3,"vPct":-5.9,"ePct":26.1},{"id":"e121-Walking Lung","label":"Lunges","w":67,"r":9.3,"v":1840,"e":1600,"wPct":-16.2,"rPct":-7,"vPct":-23.3,"ePct":-33.3},{"id":"e44-Leg Curl Mac","label":"Leg Curl Machine or Swiss Ball Hamstring Curls","w":100,"r":14,"v":4200,"e":2520,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"e121-Lying Hamstr","label":"Lying Hamstring Floor Slides","w":133,"r":15,"v":6000,"e":1800,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set121-0","label":"Barbell Back Squats s1","w":100,"r":10,"v":1000,"e":800,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-1","label":"Barbell Back Squats s2","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":20,"vPct":20,"ePct":-10},{"id":"set121-2","label":"Barbell Back Squats s3","w":100,"r":12,"v":1200,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-3","label":"Romanian Deadlifts s1","w":100,"r":12,"v":1200,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-4","label":"Romanian Deadlifts s2","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set121-5","label":"Romanian Deadlifts s3","w":100,"r":10,"v":1000,"e":1000,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-6","label":"Lunges s1","w":80,"r":8,"v":640,"e":640,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-7","label":"Lunges s2","w":60,"r":10,"v":600,"e":480,"wPct":-25,"rPct":25,"vPct":-6.2,"ePct":-25},{"id":"set121-8","label":"Lunges s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set121-9","label":"Lying Hamstring Floor Slides s1","w":100,"r":15,"v":1500,"e":900,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set121-10","label":"Lying Hamstring Floor Slides s2","w":140,"r":15,"v":2100,"e":420,"wPct":40,"rPct":0,"vPct":40,"ePct":-53.3},{"id":"set121-11","label":"Lying Hamstring Floor Slides s3","w":160,"r":15,"v":2400,"e":480,"wPct":14.3,"rPct":0,"vPct":14.3,"ePct":14.3}]},"all|ub":{"totals":{"sets":54,"weightSum":3730,"weightAvg":69,"repSum":617,"repAvg":11.4,"volume":42770,"effective":32700},"session":[{"id":"s56","label":"Upper B 08-22","w":62,"r":11.6,"v":12940,"e":7764,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s110","label":"Upper B 08-28","w":73,"r":11.4,"v":14960,"e":11760,"wPct":17.7,"rPct":-1.7,"vPct":15.6,"ePct":51.5},{"id":"s126","label":"Upper B 09-04","w":72,"r":11.3,"v":14870,"e":13176,"wPct":-1.4,"rPct":-0.9,"vPct":-0.6,"ePct":12}],"exercise":[{"id":"e126-Incline Dumb","label":"Incline DB","w":80,"r":10.7,"v":2560,"e":1888,"wPct":14.3,"rPct":-5.3,"vPct":8,"ePct":19.6},{"id":"e126-Face Pulls","label":"Face Pulls","w":103,"r":13.7,"v":4230,"e":3644,"wPct":14.4,"rPct":-8.7,"vPct":4.4,"ePct":33.5},{"id":"e126-Hanging Knee","label":"Hanging knees","w":100,"r":10.3,"v":3100,"e":3100,"wPct":0,"rPct":3,"vPct":3.3,"ePct":3.3},{"id":"e126-Dumbbell Lat","label":"Dumbbell Lateral Raises","w":40,"r":12,"v":1440,"e":1248,"wPct":0,"rPct":0,"vPct":0,"ePct":8.3},{"id":"e126-Dumbbell Bic","label":"Dumbbell Biceps Curls","w":50,"r":10,"v":1500,"e":1400,"wPct":0,"rPct":0,"vPct":0,"ePct":16.7},{"id":"e126-Barbell or C","label":"Barbell or Chest-Supported Rows","w":60,"r":11.3,"v":2040,"e":1896,"wPct":-31,"rPct":13,"vPct":-21.5,"ePct":-9.7}],"set":[{"id":"set126-0","label":"Incline DB s1","w":80,"r":10,"v":800,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-1","label":"Incline DB s2","w":80,"r":12,"v":960,"e":768,"wPct":0,"rPct":20,"vPct":20,"ePct":60},{"id":"set126-2","label":"Incline DB s3","w":80,"r":10,"v":800,"e":640,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-3","label":"Barbell or Chest-Supported Rows s1","w":60,"r":12,"v":720,"e":576,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-4","label":"Barbell or Chest-Supported Rows s2","w":60,"r":12,"v":720,"e":720,"wPct":0,"rPct":0,"vPct":0,"ePct":25},{"id":"set126-5","label":"Barbell or Chest-Supported Rows s3","w":60,"r":10,"v":600,"e":600,"wPct":0,"rPct":-16.7,"vPct":-16.7,"ePct":-16.7},{"id":"set126-6","label":"Dumbbell Lateral Raises s1","w":40,"r":12,"v":480,"e":288,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-7","label":"Dumbbell Lateral Raises s2","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":66.7},{"id":"set126-8","label":"Dumbbell Lateral Raises s3","w":40,"r":12,"v":480,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set126-9","label":"Face Pulls s1","w":100,"r":15,"v":1500,"e":1200,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set126-10","label":"Face Pulls s2","w":110,"r":13,"v":1430,"e":1144,"wPct":10,"rPct":-13.3,"vPct":-4.7,"ePct":-4.7},{"id":"set126-11","label":"Face Pulls s3","w":100,"r":13,"v":1300,"e":1300,"wPct":-9.1,"rPct":0,"vPct":-9.1,"ePct":13.6}]},"all|lb":{"totals":{"sets":36,"weightSum":3380,"weightAvg":94,"repSum":376,"repAvg":10.4,"volume":35340,"effective":26796},"session":[{"id":"s69","label":"Lower B 08-23","w":83,"r":10.5,"v":10220,"e":6132,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"s112","label":"Lower B 08-29","w":100,"r":10.1,"v":12115,"e":10763,"wPct":20.5,"rPct":-3.8,"vPct":18.5,"ePct":75.5},{"id":"s128","label":"Lower B 09-05","w":99,"r":10.8,"v":13005,"e":9901,"wPct":-1,"rPct":6.9,"vPct":7.3,"ePct":-8}],"exercise":[{"id":"e128-Barbell Hip ","label":"Hip Thrusts","w":132,"r":12,"v":4740,"e":3564,"wPct":38.9,"rPct":37.9,"vPct":91.9,"ePct":83.9},{"id":"e128-Bulgarian Sp","label":"Splits","w":110,"r":10.7,"v":3520,"e":2332,"wPct":0,"rPct":7,"vPct":6.7,"ePct":-18.5},{"id":"e128-Trap Bar Dea","label":"Trap Bar","w":95,"r":10.3,"v":2945,"e":2565,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"e112-Leg Extensio","label":"Leg Extension Machine","w":100,"r":11.3,"v":3400,"e":3400,"wPct":0,"rPct":-5.8,"vPct":-5.6,"ePct":57.4},{"id":"e128-Bodyweight S","label":"Bodyweight Step-Ups","w":60,"r":10,"v":1800,"e":1440,"wPct":null,"rPct":null,"vPct":null,"ePct":null}],"set":[{"id":"set128-0","label":"Trap Bar s1","w":95,"r":10,"v":950,"e":760,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-1","label":"Trap Bar s2","w":95,"r":10,"v":950,"e":760,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-2","label":"Trap Bar s3","w":95,"r":11,"v":1045,"e":1045,"wPct":0,"rPct":10,"vPct":10,"ePct":37.5},{"id":"set128-3","label":"Splits s1","w":110,"r":10,"v":1100,"e":880,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-4","label":"Splits s2","w":110,"r":10,"v":1100,"e":660,"wPct":0,"rPct":0,"vPct":0,"ePct":-25},{"id":"set128-5","label":"Splits s3","w":110,"r":12,"v":1320,"e":792,"wPct":0,"rPct":20,"vPct":20,"ePct":20},{"id":"set128-6","label":"Hip Thrusts s1","w":95,"r":12,"v":1140,"e":684,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-7","label":"Hip Thrusts s2","w":150,"r":12,"v":1800,"e":1800,"wPct":57.9,"rPct":0,"vPct":57.9,"ePct":163.2},{"id":"set128-8","label":"Hip Thrusts s3","w":150,"r":12,"v":1800,"e":1080,"wPct":0,"rPct":0,"vPct":0,"ePct":-40},{"id":"set128-9","label":"Bodyweight Step-Ups s1","w":60,"r":10,"v":600,"e":480,"wPct":null,"rPct":null,"vPct":null,"ePct":null},{"id":"set128-10","label":"Bodyweight Step-Ups s2","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0},{"id":"set128-11","label":"Bodyweight Step-Ups s3","w":60,"r":10,"v":600,"e":480,"wPct":0,"rPct":0,"vPct":0,"ePct":0}]}}</script>
+    <script>
+      const tabs = document.querySelectorAll('#tabs button');
+      tabs.forEach((btn) => {
+        btn.addEventListener('click', () => {
+          tabs.forEach((b) => b.classList.remove('on'));
+          btn.classList.add('on');
+          document.querySelectorAll('.screen').forEach((s) => s.classList.remove('on'));
+          document.getElementById(btn.dataset.tab).classList.add('on');
+        });
+      });
+      function bindSwitch(id, map) {
+        const buttons = document.querySelectorAll('#' + id + ' button');
+        buttons.forEach((btn) => {
+          btn.addEventListener('click', () => {
+            buttons.forEach((b) => b.classList.remove('on'));
+            btn.classList.add('on');
+            Object.entries(map).forEach(([pane, el]) => {
+              document.getElementById(el).classList.toggle('on', btn.dataset.pane === pane);
+            });
+          });
+        });
+      }
+      bindSwitch('you-switch', { current: 'pane-current', progress: 'pane-progress', filter: 'pane-filter' });
+      bindSwitch('home-you-switch', { 'h-current': 'pane-h-current', 'h-progress': 'pane-h-progress' });
+
+      const BOARD = JSON.parse(document.getElementById('kpi-board').textContent);
+      const fState = { period: 't-15', wo: 'all', grain: 'exercise', pick: 0 };
+      const periodLabel = { t: 'T', 't-1': 'T-1', 't-7': 'T-7', 't-15': 'T-15', 't-30': 'T-30', all: 'All' };
+      const woLabel = { all: 'All days', ua: 'Upper A', la: 'Lower A', ub: 'Upper B', lb: 'Lower B' };
+      const grainLabel = { workout: 'Workout', exercise: 'Exercise', set: 'Set' };
+      const ID_COLOR = { w: '#5b7c99', r: '#8b7aad', v: '#2f8f8a', e: '#c45d7a' };
+      function fmt(n) { return Math.round(Number(n || 0)).toLocaleString(); }
+      function fmtPct(n) {
+        if (n == null || !Number.isFinite(n)) return '—';
+        const s = n > 0 ? '+' : '';
+        return s + n + '%';
+      }
+      function deltaClass(n) {
+        if (n == null || !Number.isFinite(n) || Math.abs(n) < 0.05) return 'held';
+        return n > 0 ? 'up' : 'down';
+      }
+      function deltaStroke(n) {
+        const c = deltaClass(n);
+        if (c === 'up') return '#6d8b6e';
+        if (c === 'down') return '#a35d52';
+        return '#f6f1e3';
+      }
+      function spikeX(pct) {
+        const p = pct == null || !Number.isFinite(pct) ? 0 : Math.max(-90, Math.min(90, pct));
+        return 168 + (p / 90) * 100;
+      }
+      function meanPct(items, key) {
+        const nums = items.map((it) => it[key]).filter((n) => n != null && Number.isFinite(n));
+        if (!nums.length) return null;
+        return Math.round((nums.reduce((s, n) => s + n, 0) / nums.length) * 10) / 10;
+      }
+      function drawHSpikes(svg, rows) {
+        const rowH = 24;
+        const top = 14;
+        const h = Math.max(72, top + rows.length * rowH + 6);
+        svg.setAttribute('viewBox', '0 0 320 ' + h);
+        if (!rows.length) {
+          svg.innerHTML = '<text x="16" y="40" fill="#f6f1e3" font-size="12">Empty cut.</text>';
+          return;
+        }
+        let marks = '<line x1="168" y1="6" x2="168" y2="' + (h - 4) + '" stroke="rgba(255,255,255,0.2)" />';
+        marks += '<text x="168" y="10" text-anchor="middle" fill="rgba(246,241,227,0.4)" font-size="8">0</text>';
+        rows.forEach((row, i) => {
+          const y = top + i * rowH + 10;
+          const x = spikeX(row.pct);
+          const stroke = row.stroke || deltaStroke(row.pct);
+          marks += '<text x="8" y="' + (y + 4) + '" fill="' + (row.labelColor || '#f6f1e3') + '" font-size="10">' + row.label + '</text>';
+          marks += '<line x1="168" y1="' + y + '" x2="' + x + '" y2="' + y + '" stroke="' + stroke + '" stroke-width="4" stroke-linecap="round" />';
+          marks += '<circle cx="' + x + '" cy="' + y + '" r="4.5" fill="' + stroke + '" />';
+          marks += '<text x="278" y="' + (y + 4) + '" fill="' + stroke + '" font-size="10" font-weight="800">' + fmtPct(row.pct) + '</text>';
+          if (row.hit != null) {
+            marks += '<rect data-i="' + row.hit + '" x="0" y="' + (y - 11) + '" width="320" height="22" fill="transparent" />';
+          }
+        });
+        svg.innerHTML = marks;
+      }
+      function drawKpiSpikes(items) {
+        const svg = document.getElementById('kpi-spike');
+        const rows = [
+          { key: 'wPct', label: 'Weight', color: ID_COLOR.w },
+          { key: 'rPct', label: 'Reps', color: ID_COLOR.r },
+          { key: 'vPct', label: 'Volume', color: ID_COLOR.v },
+          { key: 'ePct', label: 'Effective', color: ID_COLOR.e }
+        ].map((row) => ({
+          label: row.label,
+          labelColor: row.color,
+          pct: meanPct(items, row.key)
+        })).filter((row) => row.pct != null);
+        document.getElementById('f-kpi-sec').style.display = rows.length ? '' : 'none';
+        if (rows.length) drawHSpikes(svg, rows);
+      }
+      function kpiCell(label, color, value, pct) {
+        return '<div><span style="color:' + color + '">' + label + '</span><br /><b>' +
+          value + ' <span class="' + deltaClass(pct) + '">' + fmtPct(pct) + '</span></b></div>';
+      }
+      function readSpike(item) {
+        if (!item) {
+          document.getElementById('spike-read').innerHTML = '<p class="muted">No finished work in this cut.</p>';
+          return;
+        }
+        document.getElementById('spike-read').innerHTML =
+          kpiCell('Weight', ID_COLOR.w, item.w + ' lb', item.wPct) +
+          kpiCell('Reps', ID_COLOR.r, String(item.r), item.rPct) +
+          kpiCell('Volume Load', ID_COLOR.v, fmt(item.v), item.vPct) +
+          kpiCell('Effective Load', ID_COLOR.e, fmt(item.e), item.ePct);
+      }
+      function drawSpikes(items) {
+        const svg = document.getElementById('spike-hit');
+        document.getElementById('f-spike-sec').style.display = items.length ? '' : 'none';
+        if (!items.length) {
+          readSpike(null);
+          return;
+        }
+        drawHSpikes(svg, items.map((item, i) => ({
+          label: String(item.label || '').slice(0, 12),
+          pct: item.vPct,
+          hit: i
+        })));
+        svg.querySelectorAll('rect[data-i]').forEach((rect) => {
+          rect.addEventListener('click', () => {
+            fState.pick = Number(rect.getAttribute('data-i'));
+            readSpike(items[fState.pick]);
+          });
+          rect.addEventListener('touchstart', (ev) => {
+            ev.preventDefault();
+            fState.pick = Number(rect.getAttribute('data-i'));
+            readSpike(items[fState.pick]);
+          }, { passive: false });
+        });
+        fState.pick = Math.min(fState.pick, items.length - 1);
+        readSpike(items[fState.pick]);
+      }
+      function mini(letter, pct) {
+        const n = pct == null || !Number.isFinite(pct) ? '—' : ((pct > 0 ? '+' : '') + Math.round(pct));
+        return '<span class="' + deltaClass(pct) + '">' + letter + ' ' + n + '</span>';
+      }
+      function spark(pct) {
+        const y = 14 - Math.max(-10, Math.min(10, Number(pct || 0) / 8));
+        return '<svg viewBox="0 0 76 28" height="28"><polyline fill="none" stroke="' +
+          deltaStroke(pct) + '" stroke-width="2" points="2,14 74,' + y + '" /></svg>';
+      }
+      function liftRow(item) {
+        return '<div class="lift"><div><b>' + item.label + '</b><div class="mini">' +
+          mini('W', item.wPct) + mini('R', item.rPct) + mini('V', item.vPct) + mini('E', item.ePct) +
+          '</div></div>' + spark(item.vPct) +
+          '<div class="pct ' + deltaClass(item.vPct) + '">' + fmtPct(item.vPct) + '</div></div>';
+      }
+      function fillBucket(secId, id, titleId, title, list) {
+        document.getElementById(secId).style.display = list.length ? '' : 'none';
+        if (!list.length) return;
+        document.getElementById(titleId).textContent = title + ' · ' + list.length;
+        document.getElementById(id).innerHTML = list.map(liftRow).join('');
+      }
+      function workoutItems(sessions) {
+        const byType = {};
+        (sessions || []).forEach((s) => {
+          const type = String(s.label || '').replace(/\s+\d{2}-\d{2}$/, '').trim();
+          if (!type) return;
+          (byType[type] = byType[type] || []).push(s);
+        });
+        return Object.keys(byType).map((type) => {
+          const last = byType[type][byType[type].length - 1];
+          return Object.assign({}, last, { id: 'wo-' + type, label: type });
+        }).sort((a, b) => (b.vPct == null ? -999 : b.vPct) - (a.vPct == null ? -999 : a.vPct));
+      }
+      function cutItems(cut) {
+        if (fState.grain === 'workout') return workoutItems(cut.session);
+        return cut[fState.grain] || [];
+      }
+      function paintTileSpark(sparkId, pctId, values, color) {
+        const svg = document.getElementById(sparkId);
+        const pctEl = document.getElementById(pctId);
+        const first = values && values[0];
+        const last = values && values[values.length - 1];
+        const pct = values && values.length >= 2 && first
+          ? Math.round(((last - first) / first) * 1000) / 10
+          : null;
+        if (!values || values.length < 2) {
+          svg.innerHTML = '';
+          svg.style.visibility = 'hidden';
+          pctEl.textContent = '';
+          return;
+        }
+        svg.style.visibility = '';
+        const min = Math.min.apply(null, values);
+        const max = Math.max.apply(null, values);
+        const span = max - min || 1;
+        const pts = values.map((v, i) => {
+          const x = (i / (values.length - 1)) * 86 + 1;
+          const y = 16 - ((v - min) / span) * 12;
+          return x + ',' + y;
+        }).join(' ');
+        const stroke = pct > 0 ? '#6d8b6e' : pct < 0 ? '#a35d52' : color;
+        svg.innerHTML = '<polyline fill="none" stroke="' + stroke + '" stroke-width="1.8" points="' + pts + '" />';
+        pctEl.textContent = fmtPct(pct);
+        pctEl.className = 'kpi-delta ' + deltaClass(pct);
+      }
+      function paintLists(items) {
+        const up = [];
+        const down = [];
+        const held = [];
+        items.forEach((it) => {
+          const p = it.vPct;
+          if (p == null || !Number.isFinite(p) || Math.abs(p) <= 1) held.push(it);
+          else if (p > 1) up.push(it);
+          else down.push(it);
+        });
+        fillBucket('f-up-sec', 'f-up', 'f-up-title', 'Moving up', up);
+        fillBucket('f-down-sec', 'f-down', 'f-down-title', 'Moving down', down);
+        fillBucket('f-held-sec', 'f-held', 'f-held-title', 'Held / first', held);
+        const compared = items.filter((it) => it.vPct != null && Number.isFinite(it.vPct));
+        document.getElementById('f-sum-sec').style.display = compared.length ? '' : 'none';
+        if (compared.length) {
+          const avg = compared.reduce((s, it) => s + it.vPct, 0) / compared.length;
+          document.getElementById('f-sum-title').textContent =
+            up.length + ' up · ' + down.length + ' down · ' + held.length + ' held';
+          document.getElementById('f-sum-sub').textContent =
+            woLabel[fState.wo] + ' · ' + grainLabel[fState.grain] + ' · this cut only';
+          const sumPct = document.getElementById('f-sum-pct');
+          sumPct.textContent = fmtPct(Math.round(avg * 10) / 10);
+          sumPct.className = 'pct ' + deltaClass(avg);
+        }
+        document.getElementById('f-cross-wo').style.display = fState.wo === 'all' ? '' : 'none';
+      }
+      function paintFilter() {
+        const cut = BOARD[fState.period + '|' + fState.wo] || BOARD['t-15|all'];
+        const t = cut.totals;
+        const items = cutItems(cut);
+        const series = cut.session || [];
+        document.getElementById('f-label').textContent =
+          periodLabel[fState.period] + ' · ' + woLabel[fState.wo] + ' · ' + grainLabel[fState.grain] +
+          (t.sets ? ' · ' + t.sets + ' sets' : '');
+        document.getElementById('f-w').textContent = fmt(t.weightSum);
+        document.getElementById('f-wsub').textContent = 'sum · avg ' + t.weightAvg;
+        document.getElementById('f-r').textContent = fmt(t.repSum);
+        document.getElementById('f-rsub').textContent = 'sum · avg ' + t.repAvg;
+        document.getElementById('f-v').textContent = fmt(t.volume);
+        document.getElementById('f-e').textContent = fmt(t.effective);
+        paintTileSpark('f-w-spark', 'f-w-pct', series.map((s) => s.w), ID_COLOR.w);
+        paintTileSpark('f-r-spark', 'f-r-pct', series.map((s) => s.r), ID_COLOR.r);
+        paintTileSpark('f-v-spark', 'f-v-pct', series.map((s) => s.v), ID_COLOR.v);
+        paintTileSpark('f-e-spark', 'f-e-pct', series.map((s) => s.e), ID_COLOR.e);
+        document.getElementById('f-list').innerHTML = '';
+        drawKpiSpikes(items);
+        drawSpikes(items);
+        paintLists(items);
+      }
+      function bindPills(id, key) {
+        document.querySelectorAll('#' + id + ' button').forEach((btn) => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('#' + id + ' button').forEach((b) => b.classList.remove('on'));
+            btn.classList.add('on');
+            fState[key] = btn.dataset[key === 'wo' ? 'wo' : key === 'grain' ? 'grain' : 'period'];
+            paintFilter();
+          });
+        });
+      }
+      bindPills('f-period', 'period');
+      bindPills('f-workout', 'wo');
+      bindPills('f-grain', 'grain');
+      document.getElementById('f-cut-toggle').addEventListener('click', () => {
+        const body = document.getElementById('f-cut-body');
+        const open = body.hidden;
+        body.hidden = !open;
+        document.getElementById('f-cut-toggle').setAttribute('aria-expanded', open ? 'true' : 'false');
+        document.getElementById('f-cut-chevron').textContent = open ? '–' : '+';
+      });
+      paintFilter();
+    </script>
+  </body>
+</html>
