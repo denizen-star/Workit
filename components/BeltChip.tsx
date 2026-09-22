@@ -6,6 +6,7 @@ export default function BeltChip({
   fill,
   earned,
   href,
+  gender,
 }: {
   lockedWeeks?: number;
   name?: string;
@@ -13,10 +14,11 @@ export default function BeltChip({
   /** Solid fill = locked that belt. Outline = still working toward it. */
   earned?: boolean;
   href?: string;
+  gender?: string | null;
 }) {
   const weeks = Number(lockedWeeks || 0);
-  const belt = name && fill ? { name, fill } : displayBelt(weeks);
-  const isEarned = earned ?? (name && fill ? true : currentBelt(weeks) != null);
+  const belt = name && fill ? { name, fill } : displayBelt(weeks, gender);
+  const isEarned = earned ?? (name && fill ? true : currentBelt(weeks, gender) != null);
   const light = fillIsLight(belt.fill);
   const inner = (
     <span

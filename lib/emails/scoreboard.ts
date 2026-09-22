@@ -17,8 +17,8 @@ function extraScoreboardTo() {
 }
 
 async function loadScoreboardBoard() {
-  const users = await query('SELECT id, name, email FROM users ORDER BY id ASC');
-  const roster = users.rows as RosterUser[];
+  const users = await query('SELECT id, name, email, gender FROM users ORDER BY id ASC');
+  const roster = users.rows as (RosterUser & { gender?: string | null })[];
   const compare = await householdExerciseCompare({ kind: 'scoreboard', period: '7' });
   const standingByName = new Map(
     compare.rows.map((row) => [row.name.trim().toLowerCase(), standingSummary(row, compare.ranking)])
@@ -79,7 +79,7 @@ async function loadScoreboardBoard() {
       standing: isTestUserName(user.name)
         ? undefined
         : standingByName.get(user.name.trim().toLowerCase()),
-      beltName: displayBelt(lockedByUser.get(Number(user.id)) || 0).name,
+      beltName: displayBelt(lockedByUser.get(Number(user.id)) || 0, user.gender).name,
     });
   }
 

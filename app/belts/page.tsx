@@ -5,7 +5,7 @@ import Link from 'next/link';
 import YouPageShell from '@/components/YouPageShell';
 import BeltDiploma from '@/components/BeltDiploma';
 import BeltChip from '@/components/BeltChip';
-import { BELTS, beltState, type BeltState } from '@/lib/belts';
+import { getBelts, beltState, type Belt, type BeltState } from '@/lib/belts';
 
 const STATES: BeltState[] = ['before', 'during', 'after'];
 
@@ -15,13 +15,16 @@ type HouseholdRow = {
   lockedWeeks: number;
   copy: { title: string; line: string };
   display: { name: string; fill: string } | null;
+  earned: { name: string; fill: string } | null;
 };
 
 export default function BeltsPage() {
   const [lockedWeeks, setLockedWeeks] = useState(0);
-  const [copy, setCopy] = useState({ title: 'Dipping your toes', line: '0 of 2 toward Dipping your toes.' });
+  const [copy, setCopy] = useState({ title: 'David: The Buy-In', line: '0 of 2 toward David: The Buy-In.' });
   const [household, setHousehold] = useState<HouseholdRow[]>([]);
   const [userId, setUserId] = useState<number | null>(null);
+  const [gender, setGender] = useState('male');
+  const [belts, setBelts] = useState<Belt[]>(getBelts('male'));
 
   useEffect(() => {
     Promise.all([fetch('/api/belts'), fetch('/api/me')])
@@ -33,7 +36,11 @@ export default function BeltsPage() {
           if (belts.copy) setCopy(belts.copy);
           setHousehold(Array.isArray(belts.household) ? belts.household : []);
         }
-        if (me?.user?.id != null) setUserId(Number(me.user.id));
+        if (me?.user?.id != null) {
+          setUserId(Number(me.user.id));
+          setGender(me.user.gender || 'male');
+          setBelts(getBelts(me.user.gender));
+        }
       })
       .catch(() => {});
   }, []);
@@ -65,7 +72,7 @@ export default function BeltsPage() {
                 <p className="font-black text-white">{row.name}</p>
                 <p className="text-xs text-[#f6f1e3]/55">{row.copy.line}</p>
               </div>
-              <BeltChip lockedWeeks={row.lockedWeeks} name={row.display?.name} fill={row.display?.fill} />
+              <BeltChip lockedWeeks={row.lockedWeeks} name={row.display?.name} fill={row.display?.fill} earned={row.earned != null} />
             </div>
           ))}
         </div>
@@ -79,7 +86,7 @@ export default function BeltsPage() {
           Before you start it. During, while sections fill in. After you earn it. Yours is marked on each belt.
         </p>
         <nav className="flex flex-wrap gap-2">
-          {BELTS.map((belt) => (
+          {belts.map((belt) => (
             <a
               key={belt.slug}
               href={`#${belt.slug}`}
@@ -93,16 +100,30 @@ export default function BeltsPage() {
       </div>
 
       <div className="mt-10 space-y-14">
-        {BELTS.map((belt) => {
-          const yours = beltState(lockedWeeks, belt);
+        {belts.map((belt) => {
+          const yours = beltState(lockedWeeks, belt, gender);
           return (
             <section key={belt.slug} id={belt.slug} className="scroll-mt-24">
-              <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/50">
-                    {belt.weeks} locked weeks
-                  </p>
-                  <h3 className="text-2xl font-black text-white">{belt.name}</h3>
+              <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-4">
+                  {gender !== 'non-binary' && belt.characterImage && (
+                    <div 
+                      className="h-14 w-14 shrink-0 overflow-hidden rounded-full border-2 shadow-lg"
+                      style={{ borderColor: belt.fill }}
+                    >
+                      <img 
+                        src={`/characters/${belt.characterImage}`} 
+                        alt={belt.name} 
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  )}
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/50">
+                      {belt.weeks} locked weeks
+                    </p>
+                    <h3 className="text-2xl font-black text-white">{belt.name}</h3>
+                  </div>
                 </div>
                 <p className="text-xs font-black uppercase tracking-[0.16em] text-[#f6f1e3]/55">
                   You: {yours === 'after' ? 'Earned' : yours === 'during' ? 'Aiming' : 'Not yet'}
@@ -118,6 +139,7 @@ export default function BeltsPage() {
                       belt={belt}
                       state={state}
                       lockedWeeks={state === 'during' && yours === 'during' ? lockedWeeks : undefined}
+                      gender={gender}
                     />
                   </div>
                 ))}

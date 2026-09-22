@@ -16,7 +16,7 @@ import {
   buildWorkoutCompleteEmail,
 } from '@/lib/emails/templates';
 import { createEmailVerifyToken } from '@/lib/emailVerify';
-import { BELTS } from '@/lib/belts';
+import { BELTS, getBelts } from '@/lib/belts';
 import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimUrl, resetUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
@@ -253,7 +253,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at FROM workout_sessions WHERE user_id = ?',
     [opts.userId]
   );
-  const userRow = await query('SELECT schedule_days_per_week FROM users WHERE id = ?', [opts.userId]);
+  const userRow = await query('SELECT schedule_days_per_week, gender FROM users WHERE id = ?', [opts.userId]);
 
   const totalRow = totals.rows[0] as {
     volume: number;
@@ -266,6 +266,7 @@ export async function sendWorkoutCompleteBundle(opts: {
   const scheduleDays = clampScheduleDays(
     (userRow.rows[0] as { schedule_days_per_week?: number | null } | undefined)?.schedule_days_per_week
   );
+  const userGender = (userRow.rows[0] as { gender?: string | null } | undefined)?.gender;
   // Persisted count from `locked_weeks` — by the time this async email builder
   // runs, app/api/sessions/route.ts has already recorded this completion's lock
   // (if it crossed the bar), so this reflects the true, permanent state rather
@@ -285,7 +286,7 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   // Belt and badge, if either was earned by this same session, roll into the one
   // recap email below instead of firing their own separate sends.
-  const earnedBelt = weekComplete ? BELTS.find((belt) => belt.weeks === lockedWeeks) : undefined;
+  const earnedBelt = weekComplete ? getBelts(userGender).find((belt) => belt.weeks === lockedWeeks) : undefined;
   const awarded = opts.awarded ?? (await checkAndAwardBadges(opts.userId));
   const emailBadges = awarded
     .filter((badge) => BADGE_EMAIL_TYPES.has(badge.requirement_type))

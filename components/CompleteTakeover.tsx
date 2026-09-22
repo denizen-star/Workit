@@ -21,6 +21,7 @@ export type TakeoverBelt = {
   saidBy: string;
   coachLine: string;
   paper?: 'light' | 'dark';
+  characterImage?: string;
 };
 
 interface CompleteTakeoverProps {

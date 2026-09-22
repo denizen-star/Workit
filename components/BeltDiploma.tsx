@@ -60,11 +60,13 @@ export default function BeltDiploma({
   state,
   lockedWeeks,
   showStateLabel = true,
+  gender = 'male',
 }: {
   belt: Belt;
   state: BeltState;
   lockedWeeks?: number;
   showStateLabel?: boolean;
+  gender?: string | null;
 }) {
   const filled =
     state === 'after'
@@ -114,13 +116,27 @@ export default function BeltDiploma({
         }}
       >
         <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-[10px] font-black tracking-[0.2em] uppercase" style={{ color: ink.faint }}>
-              Diploma · {belt.weeks} weeks
-            </p>
-            <h3 className="mt-1 text-xl font-black leading-tight" style={{ color: ink.text }}>
-              {belt.name}
-            </h3>
+          <div className="flex items-center gap-3">
+            {(state === 'during' || state === 'after') && gender !== 'non-binary' && belt.characterImage && (
+              <div 
+                className="h-10 w-10 shrink-0 overflow-hidden rounded-full border shadow-sm"
+                style={{ borderColor: ink.muted }}
+              >
+                <img 
+                  src={`/characters/${belt.characterImage}`} 
+                  alt={belt.name} 
+                  className="h-full w-full object-cover"
+                />
+              </div>
+            )}
+            <div>
+              <p className="text-[10px] font-black tracking-[0.2em] uppercase" style={{ color: ink.faint }}>
+                Diploma · {belt.weeks} weeks
+              </p>
+              <h3 className="mt-1 text-xl font-black leading-tight" style={{ color: ink.text }}>
+                {belt.name}
+              </h3>
+            </div>
           </div>
           <BeltMark belt={belt} state={state} className="h-12 w-24 shrink-0" />
         </div>

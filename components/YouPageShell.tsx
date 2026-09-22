@@ -21,6 +21,7 @@ export default function YouPageShell({
   const [userTone, setUserTone] = useState<CoachTone>('master');
   const [userSoundOn, setUserSoundOn] = useState(true);
   const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
+  const [userGender, setUserGender] = useState('male');
   const [isAdmin, setIsAdmin] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -33,6 +34,7 @@ export default function YouPageShell({
         setUserTone(normalizeCoachTone(data?.user?.coachTone));
         setUserSoundOn(normalizeSoundOn(data?.user?.soundOn));
         setUserRestExtraMinutes(normalizeRestExtraMinutes(data?.user?.restExtraMinutes));
+        setUserGender(data?.user?.gender || 'male');
         setIsAdmin(!!data?.user?.isAdmin);
         setReady(true);
       })
@@ -69,6 +71,7 @@ export default function YouPageShell({
                 userTone={userTone}
                 userSoundOn={userSoundOn}
                 userRestExtraMinutes={userRestExtraMinutes}
+                userGender={userGender}
                 isAdmin={isAdmin}
                 onProfileSaved={(profile) => {
                   setUserName(profile.name);
@@ -76,6 +79,7 @@ export default function YouPageShell({
                   setUserTone(profile.coachTone);
                   setUserSoundOn(profile.soundOn);
                   setUserRestExtraMinutes(profile.restExtraMinutes);
+                  setUserGender(profile.gender);
                 }}
               />
             </div>

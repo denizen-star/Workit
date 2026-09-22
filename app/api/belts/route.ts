@@ -17,7 +17,7 @@ export async function GET() {
     ]);
 
     return NextResponse.json({
-      ...progressFor(lockedWeeks, user.coachTone, user.callName),
+      ...progressFor(lockedWeeks, user.coachTone, user.callName, user.gender),
       household,
     });
   } catch (error) {

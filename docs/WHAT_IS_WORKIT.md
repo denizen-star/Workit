@@ -36,7 +36,7 @@ You can add an optional **warmup or cooldown** (easy run/bike, or a short stretc
 
 ## What you are chasing
 
-**Belts** are diplomas for locked weeks stacked over the year. You always see the one you are aiming for.
+**Belts** are diplomas for locked weeks stacked over the year. They unlock at weeks 2, 6, 12, 18, 24, 30, 36, 42, and 48. You always see the one you are aiming for. Belts feature character artwork based on your chosen gender track (Male, Female, Non-binary), which you can change in Edit profile.
 
 The house also has a **scoreboard** (who trained, how much iron moved) and **medals**. A coach voice (Tom, Grey, Luna, or Eli) talks to you in the app and in mail. Prize and punishment are the same six things: growth, lean, definition, power, stamina, mobility.
 

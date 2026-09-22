@@ -22,6 +22,7 @@ interface AppMenuProps {
   userNoiseTakeover?: NoiseLevel | string | null;
   userNoiseEffort?: NoiseLevel | string | null;
   userShowPrs?: boolean | null;
+  userGender?: string | null;
   isAdmin?: boolean;
   /** Shown once the athlete has 6 locked weeks — hidden otherwise, and while a run is active it routes to /home (which renders the Hyrox view). */
   hyroxAvailable?: boolean;
@@ -43,6 +44,7 @@ interface AppMenuProps {
     noiseEffort: NoiseLevel;
     showPrs: boolean;
     hasPhoto?: boolean;
+    gender: string;
   }) => void;
 }
 
@@ -56,6 +58,7 @@ export default function AppMenu({
   userNoiseTakeover = 'set',
   userNoiseEffort = 'set',
   userShowPrs = true,
+  userGender = 'male',
   isAdmin = false,
   hyroxAvailable = false,
   hyroxActive = false,
@@ -398,6 +401,7 @@ export default function AppMenu({
         currentNoiseTakeover={userNoiseTakeover}
         currentNoiseEffort={userNoiseEffort}
         currentShowPrs={userShowPrs}
+        currentGender={userGender}
         onClose={() => setShowEdit(false)}
         onSaved={(profile) => {
           if (profile.hasPhoto) {

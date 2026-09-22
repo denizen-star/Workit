@@ -14,6 +14,7 @@ export type WhoRosterUser = {
   has_pin: boolean;
   active: boolean;
   newToTraining: boolean;
+  gender?: string | null;
 };
 
 export function easternInclusiveStartUtc(daysInclusive: number, now = new Date()): Date {
@@ -31,8 +32,8 @@ export async function loadWhoRoster(includeAll: boolean): Promise<WhoRosterUser[
 
   const usersResult = await query(
     includeAll
-      ? 'SELECT id, name, email, pin_hash, invited_at FROM users ORDER BY id ASC'
-      : `SELECT id, name, email, pin_hash, invited_at FROM users
+      ? 'SELECT id, name, email, pin_hash, invited_at, gender FROM users ORDER BY id ASC'
+      : `SELECT id, name, email, pin_hash, invited_at, gender FROM users
          WHERE pin_hash IS NOT NULL
             OR (pin_hash IS NULL AND invited_at IS NOT NULL AND invited_at >= ?)
          ORDER BY name ASC, id ASC`,
@@ -45,6 +46,7 @@ export async function loadWhoRoster(includeAll: boolean): Promise<WhoRosterUser[
     email: string | null;
     pin_hash: string | null;
     invited_at: string | Date | null;
+    gender?: string | null;
   }[];
 
   if (users.length === 0) return [];
@@ -86,6 +88,7 @@ export async function loadWhoRoster(includeAll: boolean): Promise<WhoRosterUser[
       has_pin: hasPin,
       active,
       newToTraining,
+      gender: row.gender,
     };
   });
 }

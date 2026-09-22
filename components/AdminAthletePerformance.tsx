@@ -227,7 +227,7 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
   const [open, setOpen] = useState(false);
   const [period, setPeriod] = useState<PerformancePeriod>('t');
   const [rows, setRows] = useState<HouseholdRow[]>([]);
-  const [belts, setBelts] = useState<Array<{ id: number; name: string; lockedWeeks: number; display: { name: string; fill: string } | null }>>([]);
+  const [belts, setBelts] = useState<Array<{ id: number; name: string; lockedWeeks: number; display: { name: string; fill: string } | null; earned?: { name: string; fill: string } | null }>>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -293,7 +293,7 @@ export default function AdminAthletePerformance({ filterUserId }: { filterUserId
               {belts.map((row) => (
                 <div key={row.id} className="flex items-center justify-between gap-3">
                   <p className="text-sm font-black text-white">{row.name}</p>
-                  <BeltChip lockedWeeks={row.lockedWeeks} name={row.display?.name} fill={row.display?.fill} />
+                  <BeltChip lockedWeeks={row.lockedWeeks} name={row.display?.name} fill={row.display?.fill} earned={row.earned != null} />
                 </div>
               ))}
             </div>

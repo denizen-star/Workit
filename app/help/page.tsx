@@ -142,10 +142,11 @@ const APP_PAGES: AppPageGuide[] = [
     title: 'Belts',
     tag: 'Diplomas',
     description:
-      "Your diplomas for sticking with it. See which belts you've earned, which one you're working toward, and exactly what it takes to get there.",
+      "Your diplomas for sticking with it. See which belts you've earned, which one you're working toward, and exactly what it takes to get there. Belts unlock at weeks 2, 6, 12, 18, 24, 30, 36, 42, and 48. They feature character artwork from your chosen gender track.",
     bullets: [
       'Completing weeks is what moves you up a belt',
       'A full list of every belt in the program, in order',
+      'Change your character track (Male, Female, Non-binary) in Edit Profile'
     ],
     image: '/help/page-belts.png',
     Icon: GraduationCap,

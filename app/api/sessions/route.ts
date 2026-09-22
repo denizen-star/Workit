@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { BELTS, serializeBelt } from '@/lib/belts';
+import { BELTS, getBelts, serializeBelt } from '@/lib/belts';
 import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
       const locked = await lockedWeekCountFromTable(user.id);
       const thisWeekLocked = completedThisWeek >= requiredForWeek(Number(weekNumber));
       const earnedBelt = thisWeekLocked
-        ? serializeBelt(BELTS.find((item) => item.weeks === locked) || null, user.coachTone, user.name)
+        ? serializeBelt(getBelts(user.gender).find((item) => item.weeks === locked) || null, user.coachTone, user.name)
         : null;
       queueWorkoutCompleteEmails({
         userId: user.id,
@@ -318,7 +318,7 @@ export async function PUT(request: NextRequest) {
       }
       if (!alreadyComplete && thisWeekLocked) {
         const locked = await lockedWeekCountFromTable(user.id);
-        const belt = BELTS.find((item) => item.weeks === locked);
+        const belt = getBelts(user.gender).find((item) => item.weeks === locked);
         earnedBelt = serializeBelt(belt || null, user.coachTone, user.name);
       }
     }

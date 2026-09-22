@@ -80,6 +80,7 @@ export default function Home() {
   const [userSoundOn, setUserSoundOn] = useState(true);
   const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [userScheduleDays, setUserScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  const [userGender, setUserGender] = useState('male');
   // Persisted count from `locked_weeks` (server), not recomputed locally — a week
   // that already locked stays locked even if the athlete later changes their day
   // count. See lib/lockedWeeks.ts.
@@ -135,6 +136,7 @@ export default function Home() {
           setSoundEnabled(soundOn);
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setUserScheduleDays(clampScheduleDays(meData.user?.scheduleDaysPerWeek));
+          setUserGender(meData.user?.gender || 'male');
           setScheduleDaysAskedWeek(
             meData.user?.scheduleDaysAskedWeek == null ? null : Number(meData.user.scheduleDaysAskedWeek)
           );
@@ -361,6 +363,7 @@ export default function Home() {
               userSoundOn={userSoundOn}
               userRestExtraMinutes={userRestExtraMinutes}
               userScheduleDays={userScheduleDays}
+              userGender={userGender}
               isAdmin={isAdmin}
               hyroxAvailable={hyroxEligibleFlag}
               onHyroxClick={() => setShowHyroxIntro(true)}
@@ -372,6 +375,7 @@ export default function Home() {
                 setSoundEnabled(profile.soundOn);
                 setUserRestExtraMinutes(profile.restExtraMinutes);
                 setUserScheduleDays(profile.scheduleDaysPerWeek);
+                setUserGender(profile.gender);
               }}
             />
           </div>

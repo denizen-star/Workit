@@ -72,13 +72,14 @@ export default function PreviewFinishPage() {
         accent={{ fill: '#f6f1e3' }}
         belt={{
           weeks: 2,
-          name: 'Dipping your toes',
-          slug: 'dipping-your-toes',
+          name: 'David: The Buy-In',
+          slug: 'the-buy-in',
           fill: '#f6f1e3',
-          quote: 'Failure is an attitude, not an outcome.',
-          saidBy: 'Tom Platz',
+          quote: 'A masterpiece takes time.',
+          saidBy: 'David',
           coachLine: 'Two locked weeks. You showed up. That is stamina starting.',
           paper: 'light',
+          characterImage: 'david.png',
         }}
         badges={[
           { id: 1, name: 'Perfect Week', description: 'Four days. Week locked.', icon: null },

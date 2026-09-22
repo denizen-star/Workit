@@ -58,6 +58,7 @@ interface EditProfileModalProps {
   currentNoiseTakeover?: NoiseLevel | string | null;
   currentNoiseEffort?: NoiseLevel | string | null;
   currentShowPrs?: boolean | null;
+  currentGender?: string | null;
   onClose: () => void;
   onSaved: (profile: {
     name: string;
@@ -70,6 +71,7 @@ interface EditProfileModalProps {
     noiseEffort: NoiseLevel;
     showPrs: boolean;
     hasPhoto?: boolean;
+    gender: string;
   }) => void;
 }
 
@@ -84,6 +86,7 @@ export default function EditProfileModal({
   currentNoiseTakeover = 'set',
   currentNoiseEffort = 'set',
   currentShowPrs = true,
+  currentGender = 'male',
   onClose,
   onSaved,
 }: EditProfileModalProps) {
@@ -105,6 +108,7 @@ export default function EditProfileModal({
   const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseTakeover));
   const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseEffort));
   const [showPrs, setShowPrs] = useState(normalizeShowPrs(currentShowPrs));
+  const [gender, setGender] = useState(currentGender || 'male');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [changePin, setChangePin] = useState(false);
@@ -210,6 +214,7 @@ export default function EditProfileModal({
         noiseTakeover,
         noiseEffort,
         showPrs,
+        gender,
       };
       if (photo) payload.photo = photo;
       if (finalPin) payload.pin = finalPin;
@@ -240,6 +245,7 @@ export default function EditProfileModal({
         noiseEffort: normalizeNoiseLevel(data.user.noiseEffort),
         showPrs: normalizeShowPrs(data.user.showPrs),
         hasPhoto: Boolean(data.user.hasPhoto),
+        gender: data.user.gender ?? gender,
       });
       onClose();
     } catch {
@@ -364,6 +370,21 @@ export default function EditProfileModal({
                 onChange={(e) => setBodyWeightLb(e.target.value)}
                 className="glass-input mb-4 w-full"
               />
+              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Belt gender track</label>
+              <div className="mb-4 grid grid-cols-3 gap-2">
+                {(['male', 'female', 'non-binary']).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setGender(opt)}
+                    className={`rounded-2xl border px-2 py-3 text-center ${
+                      gender === opt ? 'border-[#e8c547] bg-[#e8c547]/15' : 'border-white/10 bg-black/25'
+                    }`}
+                  >
+                    <span className="block text-xs font-black text-white capitalize">{opt}</span>
+                  </button>
+                ))}
+              </div>
               <div className="mb-4">
                 <HomeFold
                   title="Coach voice"

@@ -5,13 +5,12 @@ import BadgeMark from '@/components/BadgeMark';
 import BeltDiploma from '@/components/BeltDiploma';
 import type { TakeoverBadge, TakeoverBelt } from '@/components/CompleteTakeover';
 import FinishStepper from '@/components/FinishStepper';
-import { BELTS, type Belt } from '@/lib/belts';
+import { getBelts, type Belt } from '@/lib/belts';
 import type { CoachTone } from '@/lib/coachTone';
 import { coachPersonaSrc } from '@/lib/coachPersonas';
 
-function diplomaBelt(earned: TakeoverBelt): Belt {
-  const catalog = BELTS.find((row) => row.slug === earned.slug || row.name === earned.name);
-  const base = catalog ?? BELTS[0];
+function diplomaBelt(earned: TakeoverBelt, gender?: string): Belt {
+  const base = getBelts(gender).find((row) => row.slug === earned.slug || row.name === earned.name) || getBelts(gender)[0];
   return {
     ...base,
     weeks: earned.weeks ?? base.weeks,
@@ -23,11 +22,12 @@ function diplomaBelt(earned: TakeoverBelt): Belt {
     saidBy: earned.saidBy || base.saidBy,
     coachLine: earned.coachLine || base.coachLine,
     paper: earned.paper || base.paper,
+    characterImage: earned.characterImage || base.characterImage,
   };
 }
 
-function nextDiplomaLine(earned: Belt) {
-  const next = BELTS.find((row) => row.weeks > earned.weeks);
+function nextDiplomaLine(earned: Belt, gender?: string) {
+  const next = getBelts(gender).find((row) => row.weeks > earned.weeks);
   if (!next) return 'Last diploma. You know how to keep it up.';
   return `Next diploma: ${next.name}. ${earned.weeks} of ${next.weeks} locked weeks.`;
 }
@@ -45,6 +45,7 @@ export default function AwardsTakeover({
   tone,
   step,
   totalSteps,
+  gender,
   onClose,
 }: {
   open: boolean;
@@ -55,6 +56,7 @@ export default function AwardsTakeover({
   /** This screen's position in the post-finish sequence, for the segmented stepper. */
   step?: number;
   totalSteps?: number;
+  gender?: string | null;
   onClose: () => void;
 }) {
   // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
@@ -62,7 +64,7 @@ export default function AwardsTakeover({
 
   if (!open || (!belt && badges.length === 0)) return null;
 
-  const earned = belt ? diplomaBelt(belt) : null;
+  const earned = belt ? diplomaBelt(belt, gender || undefined) : null;
   const titleBelt = accent || earned || { fill: '#e8c547' };
   const titleColor = beltTitleColor(titleBelt);
 
@@ -85,11 +87,28 @@ export default function AwardsTakeover({
       </div>
       <div className="relative w-full max-w-md">
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
-        <img
-          src={avatarSrc}
-          alt=""
-          className="mx-auto mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
-        />
+        
+        {earned && earned.characterImage && gender !== 'non-binary' ? (
+          <div className="relative mx-auto mb-6 h-48 w-48 sm:h-56 sm:w-56">
+            <div 
+              className="absolute inset-0 animate-pulse rounded-full blur-xl" 
+              style={{ backgroundColor: titleColor, opacity: 0.4 }} 
+            />
+            <img
+              src={`/characters/${earned.characterImage}`}
+              alt={earned.name}
+              className="relative h-full w-full rounded-full border-4 object-cover object-top shadow-[0_0_40px_rgba(255,255,255,0.15)]"
+              style={{ borderColor: titleColor }}
+            />
+          </div>
+        ) : (
+          <img
+            src={avatarSrc}
+            alt=""
+            className="mx-auto mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+          />
+        )}
+        
         <h2
           className="get-to-it-text mb-8 text-center text-4xl font-black leading-tight tracking-tight drop-shadow-[0_0_28px_rgba(255,255,255,0.35)] sm:text-6xl"
           style={{ color: titleColor }}
@@ -98,9 +117,9 @@ export default function AwardsTakeover({
         </h2>
         {earned ? (
           <div className="mb-10 text-left">
-            <BeltDiploma belt={earned} state="after" showStateLabel={false} />
+            <BeltDiploma belt={earned} state="after" showStateLabel={false} gender="non-binary" />
             <p className="mt-4 text-center text-sm font-medium leading-relaxed text-[#f6f1e3]/80">
-              {nextDiplomaLine(earned)}
+              {nextDiplomaLine(earned, gender || undefined)}
             </p>
           </div>
         ) : null}

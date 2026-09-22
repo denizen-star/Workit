@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     const roster = await loadWhoRoster(wantAll);
     const locked = await lockedWeeksByUserFromTable();
     const users = roster.map((row) => {
-      const belt = whoBelt(locked.get(Number(row.id)) || 0);
+      const belt = whoBelt(locked.get(Number(row.id)) || 0, row.gender);
       return {
         id: row.id,
         name: row.name,

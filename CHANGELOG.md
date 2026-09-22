@@ -2,8 +2,15 @@
 
 ## Unreleased
 
+### Added
+- **Belt character tracks** — belt diplomas now show full-color character portraits. In Edit profile, you can choose your belt character track: Male (Schwarzenegger, Stallone, etc.), Female (Ripley, Croft, Serena, etc.), or Non-binary (suppresses all character photos, leaving just the diploma).
+- **Belt celebration** — earning a belt now triggers a large, full-screen character reveal on the completion screen.
+
 ### Changed
-- **Redesigned Medals** — Badges, belts, and week podium medals have been completely redesigned with a sleek, dark premium UI aesthetic. They now feature deep metallic backgrounds, crisp colored borders, glowing line-art icons, and glassmorphic highlights to match the app's dark mode design language.
+- The belt progression ladder has been redesigned to sync directly with 6-week programs. Belts now unlock at weeks 2, 6, 12, 18, 24, 30, 36, 42, and 48 (previously 2, 6, 10, 20, 24, 48).
+
+### Fixed
+- Fixed an issue on The House scoreboard where athletes still working toward their next belt incorrectly displayed a solid "earned" badge. Now, only athletes who have actually secured the belt show a solid badge; those still working toward it show a distinct outline badge.
 
 ## 8.1.1 - 2026-09-21
 

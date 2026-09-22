@@ -38,6 +38,7 @@ export type SessionUser = {
   householdSlug: string | null;
   householdName: string | null;
   createdAt: string | Date | null;
+  gender: string;
 };
 
 let userSelectMode: 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
@@ -66,11 +67,12 @@ type UserRow = {
   quickstart_seen_at?: string | Date | null;
   last_household_id?: number | null;
   created_at?: string | Date | null;
+  gender?: string | null;
 };
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -139,6 +141,7 @@ function toSessionUser(
     householdSlug: house?.slug ?? null,
     householdName: house?.name ?? null,
     createdAt: row.created_at ?? null,
+    gender: row.gender ?? 'male',
   };
 }
 
@@ -179,6 +182,19 @@ export async function updateScheduleDaysPerWeek(userId: number, days: number): P
   try {
     await query('UPDATE users SET schedule_days_per_week = ? WHERE id = ?', [
       clampScheduleDays(days),
+      userId,
+    ]);
+    userSelectMode = 'house';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateGender(userId: number, gender: string): Promise<boolean> {
+  try {
+    await query('UPDATE users SET gender = ? WHERE id = ?', [
+      gender,
       userId,
     ]);
     userSelectMode = 'house';

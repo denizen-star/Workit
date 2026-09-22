@@ -13,6 +13,7 @@ import {
   updateNoisePrefs,
   updateScheduleDaysPerWeek,
   markScheduleDaysAsked,
+  updateGender,
 } from '@/lib/auth';
 import { asCoachTone } from '@/lib/coachTone';
 import { normalizeSoundOn } from '@/lib/soundPref';
@@ -71,6 +72,10 @@ export async function PATCH(request: NextRequest) {
       }
       await setLastHousehold(user.id, householdId);
       return NextResponse.json({ success: true });
+    }
+
+    if (body.gender !== undefined) {
+      await updateGender(user.id, body.gender);
     }
 
     if (body.acceptWaiver === true) {

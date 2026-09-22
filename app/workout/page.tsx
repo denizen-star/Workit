@@ -133,6 +133,7 @@ function WorkoutPageInner() {
   const [noiseTakeover, setNoiseTakeover] = useState<NoiseLevel>('set');
   const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>('set');
   const [showPrs, setShowPrs] = useState(true);
+  const [userGender, setUserGender] = useState<string | null>(null);
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
@@ -197,6 +198,7 @@ function WorkoutPageInner() {
           setNoiseEffort(normalizeNoiseLevel(data.user.noiseEffort));
           setShowPrs(normalizeShowPrs(data.user.showPrs));
           setScheduleDays(clampScheduleDays(data.user.scheduleDaysPerWeek));
+          setUserGender(data.user.gender);
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
@@ -746,7 +748,7 @@ function WorkoutPageInner() {
     const workout = getCurrentWorkout();
     if (!workout) return null;
 
-    const wash = beltWashStyle(displayBelt(lockedWeeks));
+    const wash = beltWashStyle(displayBelt(lockedWeeks, userGender));
     return (
       <div
         className={hyroxMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
@@ -953,10 +955,11 @@ function WorkoutPageInner() {
           open={showAwards}
           belt={earnedBelt}
           badges={awardedBadges}
-          accent={displayBelt(lockedWeeks)}
+          accent={displayBelt(lockedWeeks, userGender)}
           tone={coachTone}
           step={4}
           totalSteps={finishTotalSteps}
+          gender={userGender}
           onClose={leaveWorkout}
         />
 
