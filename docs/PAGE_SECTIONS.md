@@ -70,7 +70,7 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login 
 
 - Belt wash from last earned / aiming belt
 - Phone header: Exit / Restart / clock / sound, then week + focus
-- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`), starting a brand-new one fires a different Welcome bubble (`pickSessionStartCopy`). Those lines, the rest "get to it" call, and the last-set PR / gain-loss / effort calls play a stored clip when Coach voices and workout sound are both on. Finish, exit, week, and email lines stay text
+- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`), starting a brand-new one fires a different Welcome bubble (`pickSessionStartCopy`). Those lines, the rest "get to it" call, the last-set PR / gain-loss / effort calls, the finish line, and the quit line play a stored clip when Coach voices and workout sound are both on. The finish and quit screens show a large coach face. Week and email lines stay text
 - Optional warmup (`OptionalCard`)
 - Exercise cards: thumbs, How (`?`), Gym/Travel pill, sets, How hard 1–5, extra sets
 - Rest overlay (`SetRestTimer`) — coach dock lifts clear of it while open
@@ -128,7 +128,7 @@ Single-page user guide, replacing the old `/how` and `/about`. Linked from the m
 - Summary (jump-to index of the sections below)
 - Getting Started (3 numbered steps: home screen, login, first workout)
 - Running a Workout (5 numbered steps: start/resume, log a set, rest & rate, optional warmup/cooldown, finish it)
-- Your Coach (what the coach voices do, where they show up, that welcome / rest / PR / gain-loss / effort are spoken when Coach voices and Workout sound are both on, the 4 coach cards from `COACH_TONE_OPTIONS`)
+- Your Coach (what the coach voices do, where they show up, that welcome / rest / PR / gain-loss / effort / finish / quit are spoken when Coach voices and Workout sound are both on, the 4 coach cards from `COACH_TONE_OPTIONS`)
 - App Pages (one card per athlete-menu destination: Home, Your performance, The house, Completed log, Belts, Medals, Edit profile, Invite a friend)
 - Training Mechanics (logging a set, Gym vs Travel, week lock, miss the week, bonus & optionals)
 - Program & Belts (48-week shape; days-per-week setting and that a locked week stays locked)

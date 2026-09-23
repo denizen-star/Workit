@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 9.1.0 - 2026-09-22
+
+### Added
+- **The finish is spoken** — the workout-complete line and the quit line are read out loud, with a large coach face on each screen. Coach voices and Workout sound both have to be on.
+
 ## 9.0.0 - 2026-09-22
 
 ### Added

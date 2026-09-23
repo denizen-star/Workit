@@ -47,7 +47,7 @@ import ExitTakeover from '@/components/ExitTakeover';
 import CoachBubble, { type CoachBubbleHandle } from '@/components/CoachBubble';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeClip, pickSessionStartCopy } from '@/lib/coachLines';
+import { pickBonusCompleteClip, pickCompleteClip, pickExitClip, pickOptionalCompleteClip, pickReplenishLine, pickResumeClip, pickSessionStartCopy } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, playHorn, setCoachVoiceEnabled, setSoundEnabled, unlockAudio } from '@/lib/playChime';
@@ -82,6 +82,7 @@ function WorkoutPageInner() {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [exitLine, setExitLine] = useState('');
+  const [exitClip, setExitClip] = useState<string | undefined>();
   // True for one render after an existing session is opened — the effect below fires
   // the resume coach bubble once the live session (and its CoachBubble dock) is mounted.
   const [pendingResume, setPendingResume] = useState(false);
@@ -102,6 +103,7 @@ function WorkoutPageInner() {
   const [recapTitle, setRecapTitle] = useState('Workout');
   const [recapRows, setRecapRows] = useState<CompareRow[]>([]);
   const [completeLine, setCompleteLine] = useState('');
+  const [completeClip, setCompleteClip] = useState<string | undefined>();
   const [replenishLine, setReplenishLine] = useState('');
   const [bonusFinish, setBonusFinish] = useState(false);
   const [bonusFinishCount, setBonusFinishCount] = useState(0);
@@ -599,7 +601,9 @@ function WorkoutPageInner() {
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
       setEarnedBelt(data.earnedBelt || null);
       setBonusFinish(true);
-      setCompleteLine(pickBonusCompleteLine(coachTone, athleteName));
+      const bonusSpoken = pickBonusCompleteClip(coachTone, athleteName);
+      setCompleteLine(bonusSpoken.text);
+      setCompleteClip(bonusSpoken.clipTemplate);
       setReplenishLine(pickReplenishLine());
       await loadWorkoutRecap(bonusActivityType(label));
       setShowRecap(true);
@@ -712,13 +716,14 @@ function WorkoutPageInner() {
       setRecapWarmup(finished ? sessionWarmupDone(finished) : false);
       setRecapCooldown(finished ? sessionCooldownDone(finished) : false);
       setOptionalKickerLbs(kickerLbs);
-      setCompleteLine(
+      const spoken =
         optionalLbs > 0
-          ? pickOptionalCompleteLine(coachTone, athleteName)
+          ? pickOptionalCompleteClip(coachTone, athleteName)
           : finishedBonus
-            ? pickBonusCompleteLine(coachTone, athleteName)
-            : pickCompleteLine(coachTone, athleteName)
-      );
+            ? pickBonusCompleteClip(coachTone, athleteName)
+            : pickCompleteClip(coachTone, athleteName);
+      setCompleteLine(spoken.text);
+      setCompleteClip(spoken.clipTemplate);
       setReplenishLine(pickReplenishLine());
       await loadWorkoutRecap(getCurrentWorkout()?.name || null);
       setShowRecap(true);
@@ -766,7 +771,9 @@ function WorkoutPageInner() {
                   type="button"
                   aria-label="Exit"
                   onClick={() => {
-                    setExitLine(pickExitLine(coachTone, athleteName));
+                    const exit = pickExitClip(coachTone, athleteName);
+                    setExitLine(exit.text);
+                    setExitClip(exit.clipTemplate);
                     setConfirmExit(true);
                   }}
                   className="flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-[#f6f1e3]/75 hover:text-white sm:flex-none sm:justify-start sm:gap-2 sm:text-base sm:font-normal"
@@ -921,6 +928,7 @@ function WorkoutPageInner() {
         <ExitTakeover
           open={confirmExit}
           line={exitLine}
+          clipTemplate={exitClip}
           tone={coachTone}
           onStay={() => setConfirmExit(false)}
           onQuit={() => {
@@ -946,6 +954,8 @@ function WorkoutPageInner() {
         <CompleteTakeover
           open={showSuccess}
           line={completeLine}
+          clipTemplate={completeClip}
+          tone={coachTone}
           replenish={replenishLine}
           bonus={bonusFinish}
           bonusCount={bonusFinishCount}
@@ -1276,6 +1286,8 @@ function WorkoutPageInner() {
       <CompleteTakeover
         open={showSuccess}
         line={completeLine}
+        clipTemplate={completeClip}
+        tone={coachTone}
         replenish={replenishLine}
         bonus={bonusFinish}
         bonusCount={bonusFinishCount}

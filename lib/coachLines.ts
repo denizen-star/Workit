@@ -832,8 +832,16 @@ export function pickCoachLine(
   return pickCoachClip(completedSets, totalSets, tone, name).text;
 }
 
+export function pickExitClip(
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
+  const id = normalizeCoachTone(tone);
+  return takeLine(packFor(tone).exit, `exit:${id}`, name);
+}
+
 export function pickExitLine(tone?: CoachTone | null, name?: string | null): string {
-  return fillCoachName(pickFrom(packFor(tone).exit, `exit:${normalizeCoachTone(tone)}`), name);
+  return pickExitClip(tone, name).text;
 }
 
 function takeLine(
@@ -884,32 +892,54 @@ export function pickHyroxMilestoneLine(
   return fillCoachName(pickFrom(pool ?? [], `hyrox-milestone:${id}:${passed}`), name);
 }
 
+export function pickCompleteClip(
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
+  const id = normalizeCoachTone(tone);
+  return takeLine(packFor(tone).complete, `complete:${id}`, name);
+}
+
 export function pickCompleteLine(tone?: CoachTone | null, name?: string | null): string {
-  return fillCoachName(pickFrom(packFor(tone).complete, `complete:${normalizeCoachTone(tone)}`), name);
+  return pickCompleteClip(tone, name).text;
 }
 
 export function pickReplenishLine(): string {
   return pickFrom(REPLENISH_LINES, 'replenish');
 }
 
-export function pickBonusCompleteLine(tone?: CoachTone | null, name?: string | null): string {
+export function pickBonusCompleteClip(
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
   const live = getLinePack(id);
   const pool =
     live?.bonusComplete && live.bonusComplete.length
       ? live.bonusComplete
       : PACKS[id].bonusComplete;
-  return fillCoachName(pickFrom(pool, `bonus:${id}`), name);
+  return takeLine(pool, `bonus:${id}`, name);
 }
 
-export function pickOptionalCompleteLine(tone?: CoachTone | null, name?: string | null): string {
+export function pickBonusCompleteLine(tone?: CoachTone | null, name?: string | null): string {
+  return pickBonusCompleteClip(tone, name).text;
+}
+
+export function pickOptionalCompleteClip(
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
   const live = getLinePack(id);
   const pool =
     live?.optionalComplete && live.optionalComplete.length
       ? live.optionalComplete
       : PACKS[id].optionalComplete;
-  return fillCoachName(pickFrom(pool, `optional:${id}`), name);
+  return takeLine(pool, `optional:${id}`, name);
+}
+
+export function pickOptionalCompleteLine(tone?: CoachTone | null, name?: string | null): string {
+  return pickOptionalCompleteClip(tone, name).text;
 }
 
 export function pickMissedWeekLine(name: string, tone?: CoachTone | null): string {

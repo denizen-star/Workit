@@ -256,7 +256,7 @@ const COACH_MOMENTS: string[] = [
   'A welcome pop-up every time you start or resume a session, spoken out loud when Coach voices and Workout sound are both on',
   'The rest call between sets, spoken the same way',
   "New records, better or worse than last time, and how hard the exercise felt. Spoken the same way. When more than one applies, they play one after another. Turn each pop-up on or off in Noise Control",
-  'The finish screen, and any belt or badge you earn that session — words on screen, not spoken',
+  'The finish screen and the quit screen, spoken out loud, with a large coach face. Belts and badges stay on the next screen',
   "Emails — your welcome message, workout recaps, and a nudge if you haven't trained in a few days",
 ];
 
@@ -417,8 +417,8 @@ export default function HelpPage() {
         <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
           Every workout has someone in your corner. Your coach isn&apos;t another stat on the screen — they talk to
           you: welcoming you back, calling out a new record, and marking the day you earn a belt. On a live
-          workout the welcome, the rest call, a new record, better or worse than last time, and how hard it
-          felt are also spoken — when Coach voices and Workout sound are both on. Pick the voice, and turn
+          workout the welcome, the rest call, a new record, better or worse than last time, how hard it
+          felt, the finish line, and the quit line are also spoken — when Coach voices and Workout sound are both on. The finish and quit screens show a large coach face. Pick the voice, and turn
           the speech on or off, in Edit profile, any time. Turning Coach voices off leaves the chimes on.
         </p>
         <div className="glass-card mt-4 p-5">

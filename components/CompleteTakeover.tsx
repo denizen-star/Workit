@@ -3,6 +3,9 @@
 import { useEffect, useRef } from "react";
 import { formatCompact } from "@/lib/athletePerformanceTypes";
 import FinishStepper from "@/components/FinishStepper";
+import { playCoachClip, stopCoachClip } from "@/lib/playChime";
+import type { CoachTone } from "@/lib/coachTone";
+import { coachPersonaSrc } from "@/lib/coachPersonas";
 
 export type TakeoverBadge = {
   id: number;
@@ -27,6 +30,8 @@ export type TakeoverBelt = {
 interface CompleteTakeoverProps {
   open: boolean;
   line: string;
+  clipTemplate?: string;
+  tone?: CoachTone;
   replenish?: string;
   bonus?: boolean;
   bonusCount?: number;
@@ -48,6 +53,8 @@ function splitLine(line: string) {
 export default function CompleteTakeover({
   open,
   line,
+  clipTemplate,
+  tone = "master",
   replenish,
   bonus = false,
   bonusCount = 0,
@@ -59,6 +66,7 @@ export default function CompleteTakeover({
 }: CompleteTakeoverProps) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const avatarSrc = coachPersonaSrc(tone, "celebratory");
   const { title, body } = splitLine(line);
 
   useEffect(() => {
@@ -77,6 +85,12 @@ export default function CompleteTakeover({
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    playCoachClip(clipTemplate, tone);
+    return () => stopCoachClip();
+  }, [open, clipTemplate, tone]);
 
   if (!open) return null;
 
@@ -98,6 +112,11 @@ export default function CompleteTakeover({
       </div>
       <div className="relative max-w-xl text-center">
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
+        <img
+          src={avatarSrc}
+          alt=""
+          className="mx-auto mb-6 h-44 w-44 rounded-full border-4 border-[#e8c547]/70 object-cover object-top shadow-[0_0_40px_rgba(232,197,71,0.35)] sm:h-56 sm:w-56"
+        />
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-[#e8c547]">
           {bonus ? 'Bonus locked' : optionalLbs > 0 ? 'Optional locked' : 'Workout complete'}
         </p>

@@ -62,6 +62,7 @@ export default function PreviewFinishPage() {
       <CompleteTakeover
         open={step === 3}
         line="That is how you finish. The growth is in. I watched it land."
+        tone="master"
         replenish="Chug a big glass of water."
         onClose={next}
       />

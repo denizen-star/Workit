@@ -1,23 +1,23 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { playHorn } from "@/lib/playChime";
+import { playCoachClip, playHorn, stopCoachClip } from "@/lib/playChime";
 import type { CoachTone } from "@/lib/coachTone";
 import { coachPersonaSrc } from "@/lib/coachPersonas";
 
 interface ExitTakeoverProps {
   open: boolean;
   line: string;
+  clipTemplate?: string;
   tone: CoachTone;
   onStay: () => void;
   onQuit: () => void;
 }
 
-export default function ExitTakeover({ open, line, tone, onStay, onQuit }: ExitTakeoverProps) {
+export default function ExitTakeover({ open, line, clipTemplate, tone, onStay, onQuit }: ExitTakeoverProps) {
   const onStayRef = useRef(onStay);
   onStayRef.current = onStay;
-  // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
-  const avatarSrc = useRef(coachPersonaSrc(tone, 'close')).current;
+  const avatarSrc = coachPersonaSrc(tone, 'close');
 
   useEffect(() => {
     if (!open) return;
@@ -42,6 +42,12 @@ export default function ExitTakeover({ open, line, tone, onStay, onQuit }: ExitT
     };
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    playCoachClip(clipTemplate, tone);
+    return () => stopCoachClip();
+  }, [open, clipTemplate, tone]);
+
   if (!open) return null;
 
   return (
@@ -54,7 +60,7 @@ export default function ExitTakeover({ open, line, tone, onStay, onQuit }: ExitT
         <img
           src={avatarSrc}
           alt=""
-          className="mb-5 h-16 w-16 rounded-full border border-white/15 object-cover object-top shadow-[0_6px_20px_rgba(0,0,0,0.5)]"
+          className="mb-6 h-44 w-44 rounded-full border-4 border-white/30 object-cover object-top shadow-[0_0_40px_rgba(255,255,255,0.2)] sm:h-56 sm:w-56"
         />
         <p className="mb-4 text-sm font-semibold uppercase tracking-[0.45em] text-white/80">
           Attempting to exit early
