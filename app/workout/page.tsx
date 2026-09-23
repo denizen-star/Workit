@@ -47,10 +47,10 @@ import ExitTakeover from '@/components/ExitTakeover';
 import CoachBubble, { type CoachBubbleHandle } from '@/components/CoachBubble';
 import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
-import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeLine, pickSessionStartCopy } from '@/lib/coachLines';
+import { pickBonusCompleteLine, pickCompleteLine, pickExitLine, pickOptionalCompleteLine, pickReplenishLine, pickResumeClip, pickSessionStartCopy } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { playCompleteChime, playHorn, setSoundEnabled, unlockAudio } from '@/lib/playChime';
+import { playCompleteChime, playHorn, setCoachVoiceEnabled, setSoundEnabled, unlockAudio } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
@@ -193,6 +193,7 @@ function WorkoutPageInner() {
           const enabled = normalizeSoundOn(data.user.soundOn);
           setSoundOn(enabled);
           setSoundEnabled(enabled);
+          setCoachVoiceEnabled(normalizeSoundOn(data.user.coachVoiceOn));
           setRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
           setNoiseTakeover(normalizeNoiseLevel(data.user.noiseTakeover));
           setNoiseEffort(normalizeNoiseLevel(data.user.noiseEffort));
@@ -224,12 +225,14 @@ function WorkoutPageInner() {
       } catch {
         // Vibration is not available on every phone.
       }
+      const resume = pickResumeClip(coachTone, athleteName);
       coachBubbleRef.current?.announce({
         tone: coachTone,
         expression: 'welcome',
         kicker: 'Resume',
         title: 'Still open',
-        body: pickResumeLine(coachTone, athleteName),
+        body: resume.text,
+        clipTemplate: resume.clipTemplate,
       });
       setPendingResume(false);
     });
@@ -253,6 +256,7 @@ function WorkoutPageInner() {
         kicker: 'New session',
         title: copy.title,
         body: copy.body,
+        clipTemplate: copy.clipTemplate,
       });
       setPendingSessionStart(false);
     });

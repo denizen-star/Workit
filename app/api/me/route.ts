@@ -8,6 +8,7 @@ import {
   soundCookieOptions,
   toneCookieOptions,
   updateCoachTone,
+  updateCoachVoiceOn,
   updateSoundOn,
   updateRestExtraMinutes,
   updateNoisePrefs,
@@ -143,6 +144,8 @@ export async function PATCH(request: NextRequest) {
     const pin = typeof body.pin === 'string' && body.pin.length > 0 ? body.pin : null;
     const coachTone = asCoachTone(body.coachTone) ?? user.coachTone;
     const soundOn = body.soundOn === undefined ? user.soundOn : normalizeSoundOn(body.soundOn);
+    const coachVoiceOn =
+      body.coachVoiceOn === undefined ? user.coachVoiceOn : normalizeSoundOn(body.coachVoiceOn);
     const restExtraMinutes =
       body.restExtraMinutes === undefined
         ? user.restExtraMinutes
@@ -207,6 +210,7 @@ export async function PATCH(request: NextRequest) {
 
     await updateCoachTone(user.id, coachTone);
     await updateSoundOn(user.id, soundOn);
+    await updateCoachVoiceOn(user.id, coachVoiceOn);
     await updateRestExtraMinutes(user.id, restExtraMinutes);
     await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
     await updateNoisePrefs(user.id, { noiseTakeover, noiseEffort, showPrs });
@@ -226,6 +230,7 @@ export async function PATCH(request: NextRequest) {
         hasPhoto: Boolean(photo) || user.hasPhoto,
         coachTone,
         soundOn,
+        coachVoiceOn,
         restExtraMinutes,
         scheduleDaysPerWeek,
         noiseTakeover,

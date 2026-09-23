@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import { formatClock } from "@/lib/formatDuration";
+import type { CoachTone } from "@/lib/coachTone";
 import { armRestAlarm, cancelRestAlarm, unlockAudio } from "@/lib/playChime";
 import GetToItModal from "./GetToItModal";
 import { REST_SECONDS } from "@/lib/estimateDuration";
@@ -10,6 +11,8 @@ import { REST_SECONDS } from "@/lib/estimateDuration";
 interface SetRestTimerProps {
   startToken: number;
   line: string;
+  clipTemplate?: string;
+  tone?: CoachTone;
   cancelled?: boolean;
   completedSets?: number;
   totalSets?: number;
@@ -23,6 +26,8 @@ interface SetRestTimerProps {
 export default function SetRestTimer({
   startToken,
   line,
+  clipTemplate,
+  tone,
   cancelled = false,
   completedSets = 0,
   totalSets = 0,
@@ -205,7 +210,13 @@ export default function SetRestTimer({
           </div>
         </div>
       )}
-      <GetToItModal open={showGetToIt && !cancelled} line={line} onClose={closeGetToIt} />
+      <GetToItModal
+        open={showGetToIt && !cancelled}
+        line={line}
+        clipTemplate={clipTemplate}
+        tone={tone}
+        onClose={closeGetToIt}
+      />
     </>
   );
 }

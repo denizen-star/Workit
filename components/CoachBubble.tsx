@@ -3,6 +3,7 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 import type { CoachTone } from '@/lib/coachTone';
 import { coachPersonaSrc, type CoachExpression } from '@/lib/coachPersonas';
+import { playCoachClip, stopCoachClip } from '@/lib/playChime';
 
 export interface CoachMoment {
   tone: CoachTone;
@@ -10,6 +11,8 @@ export interface CoachMoment {
   kicker: string;
   title: string;
   body: string;
+  /** Unfilled coach template. Present when this moment has a stored voice clip. */
+  clipTemplate?: string;
 }
 
 type QueuedMoment = CoachMoment & { src: string };
@@ -60,6 +63,7 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
     setCurrent(next);
     setLast(next);
     setVisible(true);
+    playCoachClip(next.clipTemplate, next.tone);
     if (dismissTimer.current) clearTimeout(dismissTimer.current);
     dismissTimer.current = setTimeout(advance, DISMISS_MS);
   };
@@ -77,6 +81,7 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
   };
 
   const dismiss = () => {
+    stopCoachClip();
     if (dismissTimer.current) clearTimeout(dismissTimer.current);
     setVisible(false);
     // Let the fade/blur play before pulling the next moment off the queue.
@@ -112,6 +117,7 @@ const CoachBubble = forwardRef<CoachBubbleHandle, CoachBubbleProps>(function Coa
   useEffect(
     () => () => {
       if (dismissTimer.current) clearTimeout(dismissTimer.current);
+      stopCoachClip();
     },
     []
   );

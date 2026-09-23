@@ -21,7 +21,7 @@ import {
 } from '@/lib/scheduleDays';
 import ScheduleDaysAskTakeover from '@/components/ScheduleDaysAskTakeover';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { setSoundEnabled } from '@/lib/playChime';
+import { setCoachVoiceEnabled, setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
@@ -134,6 +134,7 @@ export default function Home() {
           const soundOn = normalizeSoundOn(meData.user?.soundOn);
           setUserSoundOn(soundOn);
           setSoundEnabled(soundOn);
+          setCoachVoiceEnabled(normalizeSoundOn(meData.user?.coachVoiceOn));
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setUserScheduleDays(clampScheduleDays(meData.user?.scheduleDaysPerWeek));
           setUserGender(meData.user?.gender || 'male');
@@ -373,6 +374,7 @@ export default function Home() {
                 setUserTone(profile.coachTone);
                 setUserSoundOn(profile.soundOn);
                 setSoundEnabled(profile.soundOn);
+                setCoachVoiceEnabled(profile.coachVoiceOn);
                 setUserRestExtraMinutes(profile.restExtraMinutes);
                 setUserScheduleDays(profile.scheduleDaysPerWeek);
                 setUserGender(profile.gender);

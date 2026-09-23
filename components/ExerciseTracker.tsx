@@ -9,7 +9,7 @@ import UnitToggle from './UnitToggle';
 import AltButton from './AltButton';
 import AltExerciseTakeover from './AltExerciseTakeover';
 import PlaneIcon from './PlaneIcon';
-import { pickCoachLine, setProgressCopy, hardnessCopy } from '@/lib/coachLines';
+import { pickCoachClip, setProgressCopy, hardnessCopy, PR_CLIPS } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
@@ -258,6 +258,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const [restToken, setRestToken] = useState(0);
   const [restSeconds, setRestSeconds] = useState(restClock);
   const [restLine, setRestLine] = useState('Finish it. Make me proud.');
+  const [restClip, setRestClip] = useState<string | undefined>();
   const [weightUnits, setWeightUnits] = useState<Record<string, WeightUnit>>({});
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; gym: Exercise; exercise: Exercise } | null>(
     null
@@ -617,7 +618,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         if (remaining > 0) {
           setRestSeconds(restClock);
           const completed = newSets.filter((item) => item.is_completed).length;
-          setRestLine(pickCoachLine(completed, newSets.length, tone, athleteName));
+          const coach = pickCoachClip(completed, newSets.length, tone, athleteName);
+          setRestLine(coach.text);
+          setRestClip(coach.clipTemplate);
           setRestToken((token) => token + 1);
         }
       }
@@ -690,12 +693,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       };
     }
 
-    // All three flashes now share one trigger — the exercise's last planned set —
-    // instead of popping mid-exercise on every set. Same priority as before:
-    // PR > gain/loss > hardness, single flash slot. The flash itself is no longer
-    // fired here directly — it's handed to `pendingFinishRef` and only shown once
-    // the exercise-complete celebration (triggered by rating that last set, or by
-    // moving on without rating it) has fully played, via `resolveFinish`.
+    // All three flashes share one trigger — the exercise's last planned set —
+    // instead of popping mid-exercise on every set. They queue in order
+    // (PR, then gain/loss, then effort) so a record does not swallow the others.
+    // The flash itself is no longer fired here directly — it's handed to
+    // `pendingFinishRef` and only shown once the exercise-complete celebration
+    // has fully played, via `resolveFinish`.
     if (exerciseJustFinished) {
       const pendingPr = pendingPrRef.current[exercise.name];
       const exerciseName = exercise.name;
@@ -708,8 +711,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             kicker: 'Personal record',
             title: 'NEW PR',
             body: `${exerciseName} · ${pendingPr.valueLabel}`,
+            clipTemplate: PR_CLIPS[tone],
           });
-        } else if (noiseTakeover === 'set' && direction) {
+        }
+        if (noiseTakeover === 'set' && direction) {
           const copy = setProgressCopy(direction, tone, athleteName);
           onCoachMoment?.({
             tone,
@@ -717,8 +722,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             kicker: direction === 'up' ? 'Set up' : 'Set down',
             title: copy.title,
             body: copy.body,
+            clipTemplate: copy.clipTemplate,
           });
-        } else if (noiseEffort === 'set') {
+        }
+        if (noiseEffort === 'set') {
           // The "How hard?" takeover fires once per exercise (on its last planned
           // set) instead of once per vote, since votes are optional and skippable.
           // Read hardness fresh here, not from the `plannedSets` snapshot taken when
@@ -735,6 +742,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             kicker: `Effort · ${score} of 5`,
             title: copy.title,
             body: copy.body,
+            clipTemplate: copy.clipTemplate,
           });
         }
       };
@@ -1526,6 +1534,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       <SetRestTimer
         startToken={restToken}
         line={restLine}
+        clipTemplate={restClip}
+        tone={tone}
         cancelled={allSetsComplete}
         completedSets={completedSetCount}
         totalSets={totalSetCount}

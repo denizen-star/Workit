@@ -33,7 +33,7 @@ Public waiver text.
 
 ## `/home` — Home Quiet
 
-- Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house switch if in more than one (The OG / Gowanus)
+- Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house dropdown if in more than one; one house is a text label
 - First visit without waiver: Update your profile (prefilled) + required waiver
 - How to use banner until 5 finished workouts (links to `/quickstart`)
 - Today card (`gold-hero`)
@@ -70,11 +70,11 @@ Overlays: Invite · week podium (1st–3rd) · missed-week roast · first-login 
 
 - Belt wash from last earned / aiming belt
 - Phone header: Exit / Restart / clock / sound, then week + focus
-- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`), starting a brand-new one fires a different Welcome bubble (`pickSessionStartCopy`)
+- Floating coach avatar dock (`CoachBubble`) bottom-right for the whole session; opening an existing session fires a Welcome bubble (`pickResumeLine`), starting a brand-new one fires a different Welcome bubble (`pickSessionStartCopy`). Those lines, the rest "get to it" call, and the finish calls below also play a stored clip when Coach voices and workout sound are both on
 - Optional warmup (`OptionalCard`)
 - Exercise cards: thumbs, How (`?`), Gym/Travel pill, sets, How hard 1–5, extra sets
 - Rest overlay (`SetRestTimer`) — coach dock lifts clear of it while open
-- Live KPIs after a completed set; PR / gain-loss / effort-call moments show in the coach bubble
+- Live KPIs after a completed set; on the last planned set, PR, gain/loss, and effort-call moments queue on the coach bubble in that order (each still follows its Noise Control switch)
 - Sticky Today / All-time bar (Volume · Effective)
 - Optional cooldown
 - Finish it
@@ -128,7 +128,7 @@ Single-page user guide, replacing the old `/how` and `/about`. Linked from the m
 - Summary (jump-to index of the sections below)
 - Getting Started (3 numbered steps: home screen, login, first workout)
 - Running a Workout (5 numbered steps: start/resume, log a set, rest & rate, optional warmup/cooldown, finish it)
-- Your Coach (what the coach voices do, where they show up, the 4 coach cards from `COACH_TONE_OPTIONS`)
+- Your Coach (what the coach voices do, where they show up, that live lines are spoken when Coach voices is on, the 4 coach cards from `COACH_TONE_OPTIONS`)
 - App Pages (one card per athlete-menu destination: Home, Your performance, The house, Completed log, Belts, Medals, Edit profile, Invite a friend)
 - Training Mechanics (logging a set, Gym vs Travel, week lock, miss the week, bonus & optionals)
 - Program & Belts (48-week shape; days-per-week setting and that a locked week stays locked)
@@ -189,5 +189,5 @@ Kevin only.
 ## Shared overlays (any logged-in page)
 
 - Talk to me
-- Edit profile (coach, sound, extra rest minutes, days per week)
+- Edit profile (which coach, Coach voices speech switch, Noise Control, workout sound, extra rest minutes, days per week)
 - Invite a friend

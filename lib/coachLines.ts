@@ -1,3 +1,4 @@
+import { coachClipTemplate } from '@/lib/coachClip';
 import { getLinePack, packIsUsable } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { firstName } from '@/lib/profile';
@@ -743,6 +744,19 @@ export const COACH_LINES = {
 export const EXIT_LINES = MASTER.exit;
 export const COMPLETE_LINES = MASTER.complete;
 
+/** Spoken on the New PR bubble. The lift and the numbers stay on screen; this line is the voice. */
+export const TOM_PR_CLIP = 'NEW PR\nThat record is power. It stays yours.';
+export const ELI_PR_CLIP = 'NEW PR\nThere it is. That record is yours. I knew you had it.';
+export const LUNA_PR_CLIP = 'NEW PR\nThat record is growth. You earned it. Stay with it.';
+export const JAMES_PR_CLIP = 'NEW PR\nI like this. That record is yours. Keep it.';
+
+export const PR_CLIPS: Partial<Record<CoachTone, string>> = {
+  master: TOM_PR_CLIP,
+  james: JAMES_PR_CLIP,
+  luna: LUNA_PR_CLIP,
+  eli: ELI_PR_CLIP,
+};
+
 export type WorkoutPhase = 'initial' | 'mid' | 'final';
 
 const lastByKey: Record<string, string> = {};
@@ -797,37 +811,66 @@ export function workoutPhase(completedSets: number, totalSets: number): WorkoutP
   return 'final';
 }
 
+export function pickCoachClip(
+  completedSets: number,
+  totalSets: number,
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
+  const id = normalizeCoachTone(tone);
+  const phase = workoutPhase(completedSets, totalSets);
+  const clipTemplate = pickFrom(packFor(tone)[phase], `coach:${id}:${phase}`);
+  return { text: fillCoachName(clipTemplate, name), clipTemplate };
+}
+
 export function pickCoachLine(
   completedSets: number,
   totalSets: number,
   tone?: CoachTone | null,
   name?: string | null
 ): string {
-  const phase = workoutPhase(completedSets, totalSets);
-  return fillCoachName(pickFrom(packFor(tone)[phase], `coach:${normalizeCoachTone(tone)}:${phase}`), name);
+  return pickCoachClip(completedSets, totalSets, tone, name).text;
 }
 
 export function pickExitLine(tone?: CoachTone | null, name?: string | null): string {
   return fillCoachName(pickFrom(packFor(tone).exit, `exit:${normalizeCoachTone(tone)}`), name);
 }
 
-export function pickResumeLine(tone?: CoachTone | null, name?: string | null): string {
+function takeLine(
+  pool: readonly string[],
+  key: string,
+  name?: string | null
+): { text: string; clipTemplate: string } {
+  const clipTemplate = pickFrom(pool, key);
+  return { text: fillCoachName(clipTemplate, name), clipTemplate };
+}
+
+/** Resume shout plus the unfilled template used to look up Tom's stored clip. */
+export function pickResumeClip(
+  tone?: CoachTone | null,
+  name?: string | null
+): { text: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
   const live = getLinePack(id);
   const pool = live?.resume && live.resume.length ? live.resume : PACKS[id].resume;
-  if (pool.length) return fillCoachName(pickFrom(pool, `resume:${id}`), name);
-  return pickExitLine(tone, name);
+  if (pool.length) return takeLine(pool, `resume:${id}`, name);
+  return takeLine(packFor(tone).exit, `exit:${id}`, name);
+}
+
+export function pickResumeLine(tone?: CoachTone | null, name?: string | null): string {
+  return pickResumeClip(tone, name).text;
 }
 
 /** Fires once, the moment a brand-new session starts (not a resume). Code bank only — no DB override. */
 export function pickSessionStartCopy(
   tone?: CoachTone | null,
   name?: string | null
-): { title: string; body: string } {
+): { title: string; body: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
-  const raw = fillCoachName(pickFrom(PACKS[id].sessionStart ?? [], `session-start:${id}`), name);
+  const clipTemplate = pickFrom(PACKS[id].sessionStart ?? [], `session-start:${id}`);
+  const raw = fillCoachName(clipTemplate, name);
   const [title, ...rest] = raw.split('\n');
-  return { title, body: rest.join('\n').trim() };
+  return { title, body: rest.join('\n').trim(), clipTemplate };
 }
 
 /** Hyrox milestone self-report result. Code bank only. */
@@ -896,23 +939,25 @@ export function setProgressCopy(
   direction: 'up' | 'down',
   tone?: CoachTone | null,
   name?: string | null
-): { title: string; body: string } {
+): { title: string; body: string; clipTemplate: string } {
   const pack = packFor(tone);
-  if (direction === 'up') {
-    return namedCopy({ title: pack.setUpTitle, body: pack.setUpBody }, name);
-  }
-  return namedCopy({ title: pack.setDownTitle, body: pack.setDownBody }, name);
+  const raw =
+    direction === 'up'
+      ? { title: pack.setUpTitle, body: pack.setUpBody }
+      : { title: pack.setDownTitle, body: pack.setDownBody };
+  return { ...namedCopy(raw, name), clipTemplate: coachClipTemplate(raw.title, raw.body) };
 }
 
 export function hardnessCopy(
   score: 1 | 2 | 3 | 4 | 5,
   tone?: CoachTone | null,
   name?: string | null
-): { title: string; body: string } {
+): { title: string; body: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
   const live = getLinePack(id)?.hardness?.[score];
-  if (live?.title || live?.body) {
-    return namedCopy({ title: live.title, body: live.body }, name);
-  }
-  return namedCopy(PACKS[id].hardness[score], name);
+  const raw =
+    live && (live.title || live.body)
+      ? { title: live.title || '', body: live.body || '' }
+      : PACKS[id].hardness[score];
+  return { ...namedCopy(raw, name), clipTemplate: coachClipTemplate(raw.title, raw.body) };
 }

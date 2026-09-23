@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 8.4.0 - 2026-09-22
+
+### Added
+- **Coach voices** — your coach speaks the live lines out loud: welcome, resume, the rest call, a new record, better or worse than last time, and how hard the exercise felt. The words on screen still include your name; the recording leaves it out. Turn speech off with Coach voices in Edit profile — workout chimes stay on their own switch. A line with no recording stays text only.
+
+### Changed
+- If you belong to more than one house, the menu switches houses with a dropdown.
+- Finishing an exercise can show a new record, a better-or-worse call, and the effort call one after another. Each still follows its own Noise Control switch.
+
+## 8.3.0 - 2026-09-21
+
 ### Added
 - **Belt character tracks** — belt diplomas now show full-color character portraits. In Edit profile, you can choose your belt character track: Male (Schwarzenegger, Stallone, etc.), Female (Ripley, Croft, Serena, etc.), or Non-binary (suppresses all character photos, leaving just the diploma).
 - **Belt celebration** — earning a belt now triggers a large, full-screen character reveal on the completion screen.

@@ -45,6 +45,7 @@ interface AppMenuProps {
     showPrs: boolean;
     hasPhoto?: boolean;
     gender: string;
+    coachVoiceOn: boolean;
   }) => void;
 }
 
@@ -199,31 +200,27 @@ export default function AppMenu({
                 </div>
               </div>
               {houses.length > 1 ? (
-                <div className="mt-3 flex gap-2">
+                <select
+                  value={houseId ?? ''}
+                  onChange={async (e) => {
+                    const householdId = Number(e.target.value);
+                    await fetch('/api/me', {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ householdId }),
+                    });
+                    setHouseId(householdId);
+                    setOpen(false);
+                    window.location.assign('/home');
+                  }}
+                  className="mt-3 w-full rounded-lg border border-white/15 bg-[#1a1404] px-3 py-2 text-xs font-black text-[#f6f1e3] focus:border-[#e8c547] focus:outline-none"
+                >
                   {houses.map((house) => (
-                    <button
-                      key={house.id}
-                      type="button"
-                      onClick={async () => {
-                        await fetch('/api/me', {
-                          method: 'PATCH',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ householdId: house.id }),
-                        });
-                        setHouseId(house.id);
-                        setOpen(false);
-                        window.location.assign('/home');
-                      }}
-                      className={`rounded-full px-3 py-1 text-xs font-black ${
-                        houseId === house.id
-                          ? 'bg-[#e8c547] text-[#1a1404]'
-                          : 'border border-white/15 text-[#f6f1e3]/70'
-                      }`}
-                    >
+                    <option key={house.id} value={house.id}>
                       {house.name}
-                    </button>
+                    </option>
                   ))}
-                </div>
+                </select>
               ) : houses[0] ? (
                 <p className="mt-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#c08457]">
                   {houses[0].name}

@@ -1,17 +1,20 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { cancelRestAlarm, playHorn } from "@/lib/playChime";
+import { cancelRestAlarm, playCoachClip, playHorn, stopCoachClip } from "@/lib/playChime";
+import type { CoachTone } from "@/lib/coachTone";
 
 interface GetToItModalProps {
   open: boolean;
   line: string;
+  clipTemplate?: string;
+  tone?: CoachTone;
   onClose: () => void;
 }
 
 const DISMISS_MS = 10000;
 
-export default function GetToItModal({ open, line, onClose }: GetToItModalProps) {
+export default function GetToItModal({ open, line, clipTemplate, tone = "master", onClose }: GetToItModalProps) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const openedAtRef = useRef<number | null>(null);
@@ -52,6 +55,12 @@ export default function GetToItModal({ open, line, onClose }: GetToItModalProps)
       window.removeEventListener("keydown", onKeyDown);
     };
   }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    playCoachClip(clipTemplate, tone);
+    return () => stopCoachClip();
+  }, [open, clipTemplate, tone]);
 
   if (!open) return null;
 

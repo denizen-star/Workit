@@ -2,10 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { Volume2, VolumeX } from 'lucide-react';
 import PinPad from '@/components/PinPad';
 import { getCoachToneOptions } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
-import { setSoundEnabled } from '@/lib/playChime';
+import { getCoachVoiceEnabled, setCoachVoiceEnabled, setSoundEnabled } from '@/lib/playChime';
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, NOISE_LEVELS, type NoiseLevel } from '@/lib/noisePref';
@@ -72,6 +73,7 @@ interface EditProfileModalProps {
     showPrs: boolean;
     hasPhoto?: boolean;
     gender: string;
+    coachVoiceOn: boolean;
   }) => void;
 }
 
@@ -109,6 +111,7 @@ export default function EditProfileModal({
   const [noiseEffort, setNoiseEffort] = useState<NoiseLevel>(normalizeNoiseLevel(currentNoiseEffort));
   const [showPrs, setShowPrs] = useState(normalizeShowPrs(currentShowPrs));
   const [gender, setGender] = useState(currentGender || 'male');
+  const [coachVoiceOn, setCoachVoiceOn] = useState(getCoachVoiceEnabled);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [changePin, setChangePin] = useState(false);
@@ -146,6 +149,7 @@ export default function EditProfileModal({
           setNoiseTakeover(normalizeNoiseLevel(user.noiseTakeover));
           setNoiseEffort(normalizeNoiseLevel(user.noiseEffort));
           setShowPrs(normalizeShowPrs(user.showPrs));
+          setCoachVoiceOn(normalizeSoundOn(user.coachVoiceOn));
         });
       setTone(normalizeCoachTone(currentTone));
       setSoundOn(normalizeSoundOn(currentSoundOn));
@@ -215,6 +219,7 @@ export default function EditProfileModal({
         noiseEffort,
         showPrs,
         gender,
+        coachVoiceOn,
       };
       if (photo) payload.photo = photo;
       if (finalPin) payload.pin = finalPin;
@@ -232,7 +237,9 @@ export default function EditProfileModal({
       }
 
       const nextSoundOn = normalizeSoundOn(data.user.soundOn);
+      const nextCoachVoiceOn = normalizeSoundOn(data.user.coachVoiceOn);
       setSoundEnabled(nextSoundOn);
+      setCoachVoiceEnabled(nextCoachVoiceOn);
       trackAction('profile_edit', { category: 'home' });
       onSaved({
         name: data.user.name,
@@ -246,6 +253,7 @@ export default function EditProfileModal({
         showPrs: normalizeShowPrs(data.user.showPrs),
         hasPhoto: Boolean(data.user.hasPhoto),
         gender: data.user.gender ?? gender,
+        coachVoiceOn: nextCoachVoiceOn,
       });
       onClose();
     } catch {
@@ -384,6 +392,32 @@ export default function EditProfileModal({
                     <span className="block text-xs font-black text-white capitalize">{opt}</span>
                   </button>
                 ))}
+              </div>
+              <div className="mb-4 flex items-center justify-between gap-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
+                <span className="flex items-center gap-2 text-sm font-black text-white">
+                  {coachVoiceOn ? (
+                    <Volume2 className="h-5 w-5 text-[#e8c547]" aria-hidden />
+                  ) : (
+                    <VolumeX className="h-5 w-5 text-[#f6f1e3]/45" aria-hidden />
+                  )}
+                  Coach voices
+                </span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={coachVoiceOn}
+                  aria-label="Coach voices"
+                  onClick={() => setCoachVoiceOn((on) => !on)}
+                  className={`relative h-7 w-12 shrink-0 rounded-full transition-colors ${
+                    coachVoiceOn ? 'bg-[#e8c547]' : 'bg-white/15'
+                  }`}
+                >
+                  <span
+                    className={`absolute top-0.5 left-0.5 h-6 w-6 rounded-full bg-[#1a1404] transition-transform ${
+                      coachVoiceOn ? 'translate-x-5' : 'translate-x-0'
+                    }`}
+                  />
+                </button>
               </div>
               <div className="mb-4">
                 <HomeFold

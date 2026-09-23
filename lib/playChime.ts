@@ -2,11 +2,15 @@ import { readStoredSoundOn, storeSoundOn } from '@/lib/soundPref';
 
 let soundEnabled = true;
 let soundHydrated = false;
+let coachVoiceEnabled = true;
+
+const COACH_VOICE_KEY = 'workit-coach-voice';
 
 export function setSoundEnabled(enabled: boolean) {
   soundEnabled = enabled;
   soundHydrated = true;
   storeSoundOn(enabled);
+  if (!enabled) stopCoachClip();
 }
 
 export function getSoundEnabled() {
@@ -22,6 +26,23 @@ export function getSoundEnabled() {
 
 function soundAllowed() {
   return getSoundEnabled();
+}
+
+/** Coach speech only. Workout chimes stay on sound_on. Defaults on. */
+export function setCoachVoiceEnabled(enabled: boolean) {
+  coachVoiceEnabled = enabled;
+  if (typeof window !== 'undefined') {
+    window.localStorage.setItem(COACH_VOICE_KEY, enabled ? '1' : '0');
+  }
+  if (!enabled) stopCoachClip();
+}
+
+export function getCoachVoiceEnabled() {
+  if (typeof window !== 'undefined') {
+    const stored = window.localStorage.getItem(COACH_VOICE_KEY);
+    if (stored === '0' || stored === '1') return stored === '1';
+  }
+  return coachVoiceEnabled;
 }
 
 let sharedContext: AudioContext | null = null;
@@ -228,6 +249,76 @@ function scheduleBuffer(
     source.start(when);
     source.stop(when + buffer.duration * 2);
   });
+}
+
+const clipBuffers = new Map<string, AudioBuffer>();
+let activeClip: AudioBufferSourceNode | null = null;
+let clipGen = 0;
+
+/** Stop Tom's bubble line. Also invalidates a clip that is still downloading. */
+export function stopCoachClip() {
+  clipGen += 1;
+  stopNode(activeClip);
+  activeClip = null;
+}
+
+/** Play the stored clip for this unfilled template. All four coaches have audio. */
+export function playCoachClip(template: string | undefined, tone: string) {
+  if (
+    (tone !== 'master' && tone !== 'james' && tone !== 'luna' && tone !== 'eli') ||
+    !template ||
+    !soundAllowed() ||
+    !getCoachVoiceEnabled()
+  ) {
+    return;
+  }
+  const gen = ++clipGen;
+  stopNode(activeClip);
+  activeClip = null;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+  if (ctx.state === 'suspended') void ctx.resume();
+
+  const start = (buffer: AudioBuffer) => {
+    if (gen !== clipGen) return;
+    const audioCtx = getAudioContext();
+    if (!audioCtx) return;
+    const source = audioCtx.createBufferSource();
+    const gain = audioCtx.createGain();
+    source.buffer = buffer;
+    gain.gain.value = 1;
+    source.connect(gain);
+    gain.connect(audioCtx.destination);
+    activeClip = source;
+    source.onended = () => {
+      if (activeClip === source) activeClip = null;
+    };
+    source.start();
+  };
+
+  const cacheKey = tone + '\n' + template;
+  const cached = clipBuffers.get(cacheKey);
+  if (cached) {
+    start(cached);
+    return;
+  }
+
+  void fetch('/api/coach-audio?voice=' + encodeURIComponent(tone) + '&t=' + encodeURIComponent(template))
+    .then((res) => (res.ok ? res.arrayBuffer() : null))
+    .then((data) => {
+      if (!data) return null;
+      const audioCtx = getAudioContext();
+      if (!audioCtx) return null;
+      return audioCtx.decodeAudioData(data.slice(0));
+    })
+    .then((buffer) => {
+      if (!buffer) return;
+      clipBuffers.set(cacheKey, buffer);
+      start(buffer);
+    })
+    .catch(() => {
+      // A missing clip or a decode failure stays silent. The bubble text still shows.
+    });
 }
 
 export function unlockAudio() {

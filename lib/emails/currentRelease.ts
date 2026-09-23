@@ -36,9 +36,9 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '8.2.0',
-  title: 'Dark Premium Medals.',
-  subject: 'Dark Premium Medals.',
+  version: '8.4.0',
+  title: 'Your coach speaks.',
+  subject: 'Your coach speaks.',
   signer: 'Master Tom Iron',
   tone: 'master',
   onlyAthletesWithWorkouts: true,
@@ -46,15 +46,22 @@ export const CURRENT_RELEASE: {
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Man, the old cartoons were fine for a minute, but they did not match the house. We fixed that.',
-  mid: 'Badges, belts, and week medals now look like they belong here. Dark metal, crisp borders, and a glow that actually looks like a prize. Your chest is upgraded.',
-  close: 'The metal looks better. Now go earn more of it. Quit is still the only thing not welcome in here.',
+    'The coach was words on a screen. Now the man in the session hears him.',
+  mid: 'Welcome, the rest between sets, a new record, and how hard the work felt — those lines are spoken. Your name stays on the screen. Coach voices in Edit profile shuts the speech off, and the chimes stay.',
+  close: 'Hear it. Then earn the next one. Quit is still the only thing not welcome in here.',
   lead: '',
   groups: [
     {
+      heading: 'Added',
+      wins: [
+        'Coach voices — the live lines are spoken. Welcome, resume, the rest call, a new record, better or worse than last time, and how hard the exercise felt. Turn the speech off in Edit profile. A line with no recording stays text.',
+      ],
+    },
+    {
       heading: 'Changed',
       wins: [
-        'Redesigned Medals — Badges, belts, and week podium medals have been completely redesigned with a sleek, dark premium UI aesthetic. They now feature deep metallic backgrounds, crisp colored borders, glowing line-art icons, and glassmorphic highlights.',
+        'House menu — more than one house switches from a dropdown in the menu.',
+        'Finish calls — a new record, a better-or-worse call, and the effort call show one after another.',
       ],
     },
   ],

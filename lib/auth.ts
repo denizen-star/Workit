@@ -39,6 +39,7 @@ export type SessionUser = {
   householdName: string | null;
   createdAt: string | Date | null;
   gender: string;
+  coachVoiceOn: boolean;
 };
 
 let userSelectMode: 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
@@ -68,11 +69,12 @@ type UserRow = {
   last_household_id?: number | null;
   created_at?: string | Date | null;
   gender?: string | null;
+  coach_voice_on?: number | boolean | string | null;
 };
 
 const USER_SELECTS = {
   house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender FROM users WHERE id = ? LIMIT 1',
+    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender, coach_voice_on FROM users WHERE id = ? LIMIT 1',
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -142,6 +144,7 @@ function toSessionUser(
     householdName: house?.name ?? null,
     createdAt: row.created_at ?? null,
     gender: row.gender ?? 'male',
+    coachVoiceOn: row.coach_voice_on != null ? normalizeSoundOn(row.coach_voice_on) : true,
   };
 }
 
@@ -149,6 +152,15 @@ export async function updateCoachTone(userId: number, tone: CoachTone): Promise<
   try {
     await query('UPDATE users SET coach_tone = ? WHERE id = ?', [tone, userId]);
     if (userSelectMode === 'base') userSelectMode = 'tone';
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function updateCoachVoiceOn(userId: number, coachVoiceOn: boolean): Promise<boolean> {
+  try {
+    await query('UPDATE users SET coach_voice_on = ? WHERE id = ?', [coachVoiceOn ? 1 : 0, userId]);
     return true;
   } catch {
     return false;
