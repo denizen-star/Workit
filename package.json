@@ -9,7 +9,8 @@
     "lint": "next lint",
     "generate-icons": "node scripts/generateIcons.js",
     "mail:release": "npx tsx --env-file=.env.local scripts/send-release-email.ts",
-    "mail:scoreboard": "npx tsx --env-file=.env.local scripts/send-scoreboard-email.ts"
+    "mail:scoreboard": "npx tsx --env-file=.env.local scripts/send-scoreboard-email.ts",
+    "report:set-timing": "npx tsx --env-file=.env.local scripts/set-timing-report.ts"
   },
   "dependencies": {
     "@planetscale/database": "^1.19.0",
