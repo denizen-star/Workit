@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 9.0.0 - 2026-09-22
+
+### Added
+- **The coach speaks** — on a live workout you hear the welcome, the rest call, a new record, better or worse than last time, and how hard it felt. Coach voices and Workout sound both have to be on. Your name stays on the screen. This one is for Jared.
+
 ## 8.4.0 - 2026-09-22
 
 ### Added

@@ -183,7 +183,7 @@ const APP_PAGES: AppPageGuide[] = [
       'Make Work-It yours. Pick which coach talks to you, choose whether they speak out loud, choose which pop-up celebrations you want to see, turn workout sound on or off, and add extra rest time between sets.',
     bullets: [
       'Choose your coach: Tom, Grey, Luna, or Eli — each has their own style',
-      'Coach voices speaks the live lines. Turn it off and the words stay; workout chimes use the separate sound switch',
+      'Coach voices speaks the live lines when Workout sound is also on. Turn Coach voices off and the words stay; the chimes stay on their own switch',
       'Turn on or off: new-record pop-ups, better/worse-than-last-time pop-ups, and how-it-felt check-ins. If more than one applies, they play one after another',
       'Add extra minutes on top of the standard rest timer',
     ],
@@ -253,10 +253,10 @@ const MECHANICS: MechanicsRow[] = [
 ];
 
 const COACH_MOMENTS: string[] = [
-  'A welcome pop-up every time you start or resume a session, spoken out loud when Coach voices is on',
+  'A welcome pop-up every time you start or resume a session, spoken out loud when Coach voices and Workout sound are both on',
   'The rest call between sets, spoken the same way',
-  "New records, and doing better or worse than last time you ran a lift (turn these on or off in Edit profile's Noise Control). When more than one applies, they play one after another",
-  'The finish screen, and any belt or badge you earn that session',
+  "New records, better or worse than last time, and how hard the exercise felt. Spoken the same way. When more than one applies, they play one after another. Turn each pop-up on or off in Noise Control",
+  'The finish screen, and any belt or badge you earn that session — words on screen, not spoken',
   "Emails — your welcome message, workout recaps, and a nudge if you haven't trained in a few days",
 ];
 
@@ -417,8 +417,9 @@ export default function HelpPage() {
         <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
           Every workout has someone in your corner. Your coach isn&apos;t another stat on the screen — they talk to
           you: welcoming you back, calling out a new record, and marking the day you earn a belt. On a live
-          workout those lines are also spoken. Pick the voice, and turn the speech on or off, in Edit profile,
-          any time. Workout chimes stay on their own switch.
+          workout the welcome, the rest call, a new record, better or worse than last time, and how hard it
+          felt are also spoken — when Coach voices and Workout sound are both on. Pick the voice, and turn
+          the speech on or off, in Edit profile, any time. Turning Coach voices off leaves the chimes on.
         </p>
         <div className="glass-card mt-4 p-5">
           <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">Where you&apos;ll hear from them</p>

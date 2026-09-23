@@ -301,30 +301,30 @@ function releaseVoice(tone?: CoachTone | null) {
   if (id === 'james') {
     return {
       intro:
-        'You will read this. I want you to understand it. Before, finish was a shout, then a pile of medals, then Home. Easy to miss a beat. Leave early still got a score. That is done.',
-      mid: 'Now the beats are set. Recap. Then I talk. Then you see what you earned. Then Home. The numbers have names. Effective is the work times how hard it sat. Fair is even. Place is still the iron. Do not tap past a screen. I noticed.',
+        'You will read this. I want you to. This one is for Jared, and you are in the room for it. The coach has been print on a screen. Print does not fill a gym. A voice does. Now you get the voice.',
+      mid: 'Start a session and I am already talking. Come back to one you left open and I am still there. Between sets I call the rest, then I tell you to get to it. Take a record and I name it. Climb past last time, or drop off it, and I say which. Finish the exercise and I tell you how hard it sat. If more than one of those is true, they come in order. Record. Then the climb or the drop. Then the effort. Your name stays on the screen. The recording leaves it out. I still know who walked in. Coach voices is in Edit profile. Turn it off and the words stay. The chimes live on Workout sound. Both on, or you get silence where the voice should be. You can still pick your coach. I want you to hear this one.',
       close:
-        'Hard-refresh. Open Home. When you owe a session, finish it. Walk every beat. I want that. The power is in the work, not the note.',
+        'Jared, this letter has your name on it. The rest of you open the session and listen. The power is in the bar. Go and take it. Quit is still the only thing not welcome in here.',
       eyebrow: 'a note · ',
     };
   }
   if (id === 'luna') {
     return {
       intro:
-        'Read this when you can. I want it to be clear. The end of a day used to rush. A shout. Medals. Home. Easy to miss. Leave early still scored. That is over.',
-      mid: 'Now the close is quiet and in order. Recap. Then a line. Then what you earned. Then Home. The numbers have names. Effective is the work times how hard it felt. Place is still the iron. Stay with each screen.',
+        'Read this when you can. I want it to land softly and stay. This one is for Jared, and the house gets to hear it with him. The coach has been words. Words you could look past. A voice you cannot.',
+      mid: 'When you start, I welcome you. When you come back to a session still open, I welcome you again. I call the rest. I tell you when rest is over. I name a new record. I tell you if you climbed past last time or fell off it. I tell you how hard the exercise felt. If more than one is true, they arrive in order, and none of them hides the others. Your name stays written down. The voice does not need to say it. Coach voices is in Edit profile if you want the room quiet. Workout sound keeps the chimes. Leave both on and I will be there. You can still choose who speaks. Stay with the work.',
       close:
-        'Hard-refresh. Open Home. When you owe a session, finish it. Walk the new close. The growth is in the work, not the note.',
+        'Jared, this one is yours. Everyone else, start when you are ready and listen. Growth is the prize. It is waiting in the session. Quit is still the only thing not welcome in here.',
       eyebrow: 'a note · ',
     };
   }
   if (id === 'eli') {
     return {
       intro:
-        "Hey, read this one, I want you to see it. The finish used to be one big shout, then a pile of medals, then Home. Easy to blur past. Leave early and it still counted the same. Not anymore.",
-      mid: "Now the finish has real steps: recap, then me, then what you earned, then Home. The numbers have names now too: Effective is the work times how hard it felt. Fair is honest. Place is still the iron. Take a second on each screen, you earned it.",
+        'Hey, do not skip this one. I am fired up and I want you fired up with me. This release is for Jared, and the whole house gets to hear what that means. Your coach has been text. Text is fine. A voice in the room is better. You have the voice now.',
+      mid: 'Start the workout and I welcome you like I have been waiting, because I have. Pick up a session you left open and I am still right there. I call the rest. I get you back to it when the rest is done. You take a record and I say it out loud. You beat last time or you slip off it and I tell you the truth, happy or mad, because I believe you can answer it. You finish the exercise and I tell you how hard it felt. If all three show up, they line up. Record, then the climb or the drop, then the effort. Your name stays on the screen where you can see it. The recording leaves it out so one voice fits every athlete, and I still know it is you. Coach voices is in Edit profile. Turn it off and the words stay. Workout sound is the chimes. Both on, and you get me at full volume. You can change your coach any time. I hope you keep the one who believes in you.',
       close:
-        'Hard-refresh, open Home, and when you owe a session, go finish it. Walk the whole new close, I want you to feel every bit of what you earned.',
+        'Jared, this one has your name on it because you earned a voice in the house. The rest of you, open a session and listen. I knew you had this. Growth, lean, definition, power, stamina, mobility. Go take them. Quit is still the only thing not welcome in here.',
       eyebrow: 'good news · ',
     };
   }
