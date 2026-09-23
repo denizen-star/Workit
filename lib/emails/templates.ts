@@ -1193,9 +1193,9 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   const voice = releaseVoice(tone);
   const signer =
     tone === 'master' ? input.signer || voiceDisplayName(tone) : voiceDisplayName(tone);
-  const intro = tone === 'master' ? input.intro || voice.intro : voice.intro;
-  const mid = tone === 'master' ? input.mid || voice.mid : voice.mid;
-  const close = tone === 'master' ? input.close || voice.close : voice.close;
+  const intro = input.intro || voice.intro;
+  const mid = input.mid || voice.mid;
+  const close = input.close || voice.close;
   const eyebrow = voice.eyebrow + input.version;
   const groups = releaseGroups(input);
   const first = groups[0] ? [groups[0]] : [];
@@ -1239,11 +1239,8 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   return {
     from: fromFor(tone),
     subject:
-      input.subject && tone === 'master'
-        ? input.subject
-        : tone === 'master'
-          ? 'New orders — ' + input.title
-          : 'A note — ' + input.title,
+      input.subject ||
+      (tone === 'master' ? 'New orders — ' + input.title : 'A note — ' + input.title),
     html,
     text,
   };

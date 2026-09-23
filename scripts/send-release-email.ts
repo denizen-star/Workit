@@ -103,13 +103,15 @@ async function main() {
   for (const user of recipients) {
     const tone = normalizeCoachTone(user.coach_tone);
     const forKevin = firstName(user.name).toLowerCase() === 'kevin' && CURRENT_RELEASE.kevin;
-    const copy = forKevin
+    const forLuna = tone === 'luna' && CURRENT_RELEASE.luna;
+    const voiced = forKevin ? CURRENT_RELEASE.kevin : forLuna ? CURRENT_RELEASE.luna : null;
+    const copy = voiced
       ? {
           ...CURRENT_RELEASE,
-          intro: CURRENT_RELEASE.kevin?.intro ?? CURRENT_RELEASE.intro,
-          mid: CURRENT_RELEASE.kevin?.mid ?? CURRENT_RELEASE.mid,
-          close: CURRENT_RELEASE.kevin?.close ?? CURRENT_RELEASE.close,
-          groups: CURRENT_RELEASE.kevin?.groups ?? CURRENT_RELEASE.groups,
+          intro: voiced.intro ?? CURRENT_RELEASE.intro,
+          mid: voiced.mid ?? CURRENT_RELEASE.mid,
+          close: voiced.close ?? CURRENT_RELEASE.close,
+          groups: voiced.groups ?? CURRENT_RELEASE.groups,
         }
       : CURRENT_RELEASE;
     const email = buildReleaseEmail({

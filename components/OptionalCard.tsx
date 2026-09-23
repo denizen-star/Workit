@@ -120,6 +120,7 @@ export default function OptionalCard({
   const [absPhase, setAbsPhase] = useState<'work' | 'rest'>('work');
   const [restStartedAt, setRestStartedAt] = useState<number | null>(null);
   const completing = useRef(false);
+  const levelReadyAt = useRef(0);
   const [slotReady, setSlotReady] = useState(false);
   const [mounted, setMounted] = useState(false);
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
@@ -357,6 +358,10 @@ export default function OptionalCard({
 
   const pickTrack = (track: OptionalTrack) => {
     if (needsLevelPicker(track)) {
+      // The track button is about to be replaced by Easy / Medium / Hard. A phone
+      // can deliver a second click on whatever sits under that finger. Ignore
+      // level taps until that leftover click has passed.
+      levelReadyAt.current = Date.now() + 450;
       setLevelFor(track);
       setError('');
       return;
@@ -382,6 +387,10 @@ export default function OptionalCard({
     setVideoStep(null);
   };
 
+  const startLevel = (level: OptionalLevel) => {
+    if (!levelFor || Date.now() < levelReadyAt.current) return;
+    void startTrack(levelFor, level);
+  };
   const label = optionalSlotLabel(slot);
   const trackTitle = state.track ? optionalTrackLevelLabel(state.track, state.level) : label;
   // Stretch/Core are always exactly 6 holds; Yoga is always 5 poses; Abs is always 10 intervals.
@@ -453,23 +462,11 @@ export default function OptionalCard({
               ))}
             </div>
           )}
-          {picking && levelFor && (
-            <div className="mt-3">
-              <p className="mb-2 text-sm font-black text-white">{optionalTrackLabel(levelFor)}</p>
-              <div className="grid grid-cols-3 gap-2">
-                {OPTIONAL_LEVELS.map((level) => (
-                  <button
-                    key={level}
-                    type="button"
-                    onClick={() => startTrack(levelFor, level)}
-                    className="min-h-12 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-3 text-sm font-black text-[#e8c547]"
-                  >
-                    {optionalLevelLabel(level)}
-                  </button>
-                ))}
-              </div>
-            </div>
-          )}
+          {picking && levelFor ? (
+            <p className="mt-3 text-sm font-semibold text-[#f6f1e3]/75">
+              {optionalTrackLabel(levelFor)} — pick Easy, Medium, or Hard.
+            </p>
+          ) : null}
           {error ? <p className="mt-2 text-sm text-[#e8c547]">{error}</p> : null}
         </div>
       )}
@@ -704,6 +701,41 @@ export default function OptionalCard({
           </div>,
           document.body
         )}
+
+      {mounted && picking && levelFor
+        ? createPortal(
+            <div
+              className="fixed inset-x-0 z-40 px-4"
+              style={{ bottom: 'calc(6.75rem + max(1rem, env(safe-area-inset-bottom)))' }}
+            >
+              <div className="mx-auto max-w-lg rounded-2xl border border-[#e8c547]/40 bg-[#14120c] p-3 shadow-[0_12px_40px_rgba(0,0,0,0.55)]">
+                <div className="mb-2 flex items-center justify-between gap-3">
+                  <p className="text-sm font-black text-white">{optionalTrackLabel(levelFor)}</p>
+                  <button
+                    type="button"
+                    onClick={() => setLevelFor(null)}
+                    className="min-h-11 rounded-xl px-3 text-sm font-black text-[#f6f1e3]/70"
+                  >
+                    Back
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {OPTIONAL_LEVELS.map((level) => (
+                    <button
+                      key={level}
+                      type="button"
+                      onClick={() => startLevel(level)}
+                      className="min-h-12 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-3 text-sm font-black text-[#e8c547]"
+                    >
+                      {optionalLevelLabel(level)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }

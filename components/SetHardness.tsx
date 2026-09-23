@@ -47,15 +47,15 @@ export default function SetHardness({
           value={sliderValue}
           onChange={(event) => {
             if (disabled) return;
-            setPending(Number(event.target.value) as HardnessScore);
+            const score = Number(event.target.value) as HardnessScore;
+            setPending(score);
+            // A phone drag often updates the thumb without ever firing click, so the
+            // label moved and Complete Set still saw no vote. Commit the value here.
+            onPick(score);
           }}
-          onClick={(event) => {
-            // Commit on click/tap, not just pointerup-after-a-value-changing-drag: a
-            // tap that lands on the slider's already-current position (e.g. tapping
-            // "Easy" when the thumb already sits at 1) never fires `onChange`, so
-            // `pending` would stay null and the pick would silently never register.
-            // Reading the DOM value directly here always reflects where the browser
-            // just placed the thumb, changed or not.
+          onPointerUp={(event) => {
+            // A tap on the thumb's current spot never fires onChange. pointerup still
+            // does, and it is a real press — a delayed ghost click is not.
             if (disabled) return;
             onPick(Number(event.currentTarget.value) as HardnessScore);
           }}

@@ -28,11 +28,11 @@ Weeks 3–6 also offer an optional **Bonus Upper**. You do not owe it, unless yo
 
 Gold means **do this**: Start, log the set, Finish it.
 
-Each movement has sets. You type **weight and reps** (or time / distance when that is the move). The app remembers last time and copies load forward so you are not guessing. The idea is **progressive overload**: start conservative (weeks 1–2), then add a little weight or a couple of reps (weeks 3–5), then try to match or beat an earlier week. After that, same big lifts; the notes change by block.
+Each movement has sets. You type **weight and reps** (or time / distance when that is the move), then tap Complete Set. **How hard** is optional; skip it and the set counts as Fair. The app remembers last time and copies load forward so you are not guessing. The idea is **progressive overload**: start conservative (weeks 1–2), then add a little weight or a couple of reps (weeks 3–5), then try to match or beat an earlier week. After that, same big lifts; the notes change by block.
 
 If you cannot get to a gym, flip the day to **Travel** — same session, no-equipment swaps.
 
-You can add an optional **warmup or cooldown** (easy run/bike, or a short stretch/core circuit). Nice extra, not required to lock the week.
+You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a short stretch/core circuit). Stretch and Core ask Easy, Medium, or Hard before they start. Nice extra, not required to lock the week. Starting a day that is already open resumes the session that has your sets.
 
 ## What you are chasing
 

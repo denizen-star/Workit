@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 9.1.1 - 2026-09-23
+
+### Changed
+- How hard is optional. Complete Set no longer waits for a score. Skip still counts as Fair. The slider stays under the set if you want to rate it.
+
+### Fixed
+- The How hard slider often needed several taps before the score stuck.
+- Stretch or Core could start a level on its own, and Easy / Medium / Hard sat under the coach. Those buttons now sit above the coach, and a level starts only when you tap it.
+- A double tap on Start could open two copies of the same day. Resume could land on the empty one. Start now reopens the session that already has your sets.
+
 ## 9.1.0 - 2026-09-22
 
 ### Added

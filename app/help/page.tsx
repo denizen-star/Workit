@@ -54,19 +54,19 @@ const RUNNING_A_WORKOUT: GuideStep[] = [
   {
     title: 'Log each set',
     description:
-      "Your weight and reps are already filled in from last time — change them if you need to, then tap Complete Set. Timed moves use Stop to record and finish in one tap.",
+      "Your weight and reps are already filled in from last time — change them if you need to, then tap Complete Set. How hard sits under the numbers if you want it; skip it and the set counts as Fair. Timed moves use Stop to record and finish in one tap.",
     image: '/help/workout-log-set.png',
   },
   {
     title: 'Rest, then say how it felt',
     description:
-      "A rest timer counts down on its own between sets — skip it early if you're ready. Once you've finished all the sets for a move, give it a quick 1–5 rating, or just move on and it's scored as Fair.",
+      "A rest timer counts down on its own between sets — skip it early if you're ready. How hard on each set is the 1–5 rating; leave it blank and that set counts as Fair.",
     image: '/help/workout-rest-rate.png',
   },
   {
     title: 'Add a warmup or cooldown (optional)',
     description:
-      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
+      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Stretch and Core ask Easy, Medium, or Hard in a bar above your coach. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
     image: '/help/workout-optional.png',
   },
   {
@@ -219,7 +219,8 @@ const TONE_DOT: Record<MechanicsRow['tone'], string> = {
 const MECHANICS: MechanicsRow[] = [
   {
     label: 'Logging a set',
-    description: 'Enter weight and reps, tap Complete Set. Timed lifts use Stop to record and complete in one tap.',
+    description:
+      'Enter weight and reps, tap Complete Set. How hard is optional — skip it and the set counts as Fair. Timed lifts use Stop to record and complete in one tap.',
     tone: 'gold',
   },
   {

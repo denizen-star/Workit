@@ -17,6 +17,51 @@ import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } f
 import { HYROX_WEEK_OFFSET, getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 
+type OpenSessionRow = {
+  id: number;
+  completed_sets: number;
+  optional_started: number;
+};
+
+/** Open copies of one day. The one with logged work comes first. */
+async function listOpenSessions(userId: number, weekNumber: number, dayNumber: number, track: string) {
+  const existing = await query(
+    `SELECT ws.id,
+            (SELECT COUNT(*) FROM exercise_sets es
+              WHERE es.workout_session_id = ws.id AND es.is_completed = 1) AS completed_sets,
+            (ws.warmup_started_at IS NOT NULL OR ws.cooldown_started_at IS NOT NULL) AS optional_started
+     FROM workout_sessions ws
+     WHERE ws.user_id = ?
+       AND ws.week_number = ?
+       AND ws.day_number = ?
+       AND ws.program_track = ?
+       AND (ws.is_completed = 0 OR ws.is_completed IS NULL)
+     ORDER BY completed_sets DESC, optional_started DESC, ws.id ASC`,
+    [userId, weekNumber, dayNumber, track]
+  );
+  return existing.rows as OpenSessionRow[];
+}
+
+async function reuseOpenSession(userId: number, weekNumber: number, dayNumber: number, track: string) {
+  const rows = await listOpenSessions(userId, weekNumber, dayNumber, track);
+  return rows.length > 0 ? Number(rows[0].id) : null;
+}
+
+/** Two creates in the same moment both insert. Keep the copy that has work and drop the blank twin. */
+async function collapseEmptyTwins(userId: number, weekNumber: number, dayNumber: number, track: string) {
+  const rows = await listOpenSessions(userId, weekNumber, dayNumber, track);
+  if (rows.length === 0) return null;
+  const keep = Number(rows[0].id);
+  for (const row of rows) {
+    const id = Number(row.id);
+    if (id === keep) continue;
+    if (Number(row.completed_sets) > 0 || Number(row.optional_started)) continue;
+    await query('DELETE FROM exercise_sets WHERE workout_session_id = ?', [id]);
+    await query('DELETE FROM workout_sessions WHERE id = ? AND user_id = ?', [id, userId]);
+  }
+  return keep;
+}
+
 export async function POST(request: NextRequest) {
   try {
     const user = await getCurrentUser();
@@ -30,6 +75,13 @@ export async function POST(request: NextRequest) {
     // namespaced at 101+ (see lib/hyroxProgram.ts) specifically so this is authoritative.
     const track = Number(weekNumber) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main';
     const markComplete = Boolean(complete);
+
+    const openSessionId = markComplete
+      ? null
+      : await reuseOpenSession(user.id, Number(weekNumber), Number(dayNumber), track);
+    if (openSessionId) {
+      return NextResponse.json({ success: true, sessionId: openSessionId, alreadyOpen: true });
+    }
 
     const result = await query(
       `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, program_track, scheduled_date, started_at, is_completed, completed_at, ended_at)
@@ -78,9 +130,13 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      sessionId: result.insertId 
+    const inserted = Number(result.insertId);
+    const kept =
+      (await collapseEmptyTwins(user.id, Number(weekNumber), Number(dayNumber), track)) || inserted;
+    return NextResponse.json({
+      success: true,
+      sessionId: kept,
+      alreadyOpen: kept !== inserted,
     });
   } catch (error) {
     console.error('Error creating workout session:', error);
@@ -187,15 +243,18 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ session: sessionResult.rows[0], exercises: exercises.rows });
     }
 
-    let sql = 'SELECT * FROM workout_sessions WHERE user_id = ?';
+    let sql = `SELECT ws.*,
+            (SELECT COUNT(*) FROM exercise_sets es
+              WHERE es.workout_session_id = ws.id AND es.is_completed = 1) AS completed_set_count
+         FROM workout_sessions ws WHERE ws.user_id = ?`;
     const params: any[] = [user.id];
 
     if (weekNumber) {
-      sql += ' AND week_number = ?';
+      sql += ' AND ws.week_number = ?';
       params.push(weekNumber);
     }
 
-    sql += ' ORDER BY week_number, day_number';
+    sql += ' ORDER BY ws.week_number, ws.day_number';
 
     const result = await query(sql, params);
     const [lockedWeeks, lockedWeeksDetail] = await Promise.all([

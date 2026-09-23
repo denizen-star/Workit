@@ -747,9 +747,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         }
       };
       delete pendingPrRef.current[exercise.name];
-      // Weighted sets rate effort before Complete, so the finish can start right away.
-      // Timed holds rate after the clock (optional) — wait for that vote or for the
-      // athlete to move on, so the hardness flash still sees the real score.
+      // A vote already on the set is used. A skip counts as Fair, so the finish
+      // does not wait on the slider. Timed holds that are still unrated keep the
+      // old wait, so a score picked on the folded row is the one the flash reads.
       if (kind !== 'timed' || parseHardness(set.hardness) != null) {
         resolveFinish(exercise.name);
       }
@@ -1176,11 +1176,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 );
                 const isEditing = editingSet === `${set.exercise_name}-${set.set_number}`;
                 const isActive = !set.is_completed && set.set_number === activeSetNumber;
-                // Weighted sets rate effort before Complete. Timed holds start the clock
-                // first; How hard stays optional there (skip = Fair after the row folds).
-                const ready =
-                  canCompleteSet(kind, set.actual_reps, set.weight_lbs) &&
-                  (kind === 'timed' || set.hardness != null);
+                // How hard is optional on every set. Skip still counts as Fair wherever
+                // effort is read. The slider stays so a vote can be made before or after.
+                const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs);
                 const isExtra = set.set_number > exercise.sets;
                 const folded = set.is_completed && !isEditing;
                 const completeButtonClass = set.is_completed
@@ -1367,14 +1365,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           </button>
                         )}
 
-                        {/* Weighted sets rate effort here before Complete. Timed holds put
-                            the clock above this slider and leave the vote optional — after
-                            Stop folds the row, an unrated set still gets the skippable
-                            folded prompt. Reopening via "Editing" reuses this widget. */}
+                        {/* Optional on every set. A vote here is saved with Complete; skipping
+                            counts as Fair. An unrated row still offers the slider once it
+                            folds. Reopening via "Editing" reuses this widget. */}
                         <SetHardness
                           value={hardnessScore}
                           forceEditable
-                          highlight={kind !== 'timed' && !set.is_completed && hardnessScore == null}
                           onPick={(score) =>
                             set.is_completed
                               ? saveHardness(set, score, exercise.sets)

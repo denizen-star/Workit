@@ -14,11 +14,15 @@ export interface WorkoutSessionRow {
   created_at?: string | null;
   completed_at?: string | null;
   ended_at?: string | null;
+  warmup_started_at?: string | null;
   warmup_completed_at?: string | null;
+  cooldown_started_at?: string | null;
   cooldown_completed_at?: string | null;
   warmup_lbs?: number | null;
   cooldown_lbs?: number | null;
   optional_kicker_lbs?: number | null;
+  /** Completed sets on this session. Used to resume the copy that has work. */
+  completed_set_count?: number | null;
 }
 
 export function isSessionComplete(session: { is_completed: unknown }): boolean {
@@ -33,22 +37,54 @@ export function findIncompleteSession(
   const open = sessions.filter((session) => !isSessionComplete(session));
 
   if (weekNumber != null && dayNumber != null) {
-    return (
-      open.find(
+    return pickRichestOpen(
+      open.filter(
         (session) =>
-          Number(session.week_number) === weekNumber &&
-          Number(session.day_number) === dayNumber
-      ) ?? null
+          Number(session.week_number) === weekNumber && Number(session.day_number) === dayNumber
+      )
     );
   }
 
+  const winners = richestPerDay(open);
   return (
-    [...open].sort((a, b) => {
-      const aTime = new Date(a.started_at || a.created_at || 0).getTime();
-      const bTime = new Date(b.started_at || b.created_at || 0).getTime();
-      return bTime - aTime;
-    })[0] ?? null
+    [...winners].sort(
+      (a, b) => sessionStarted(b) - sessionStarted(a) || Number(b.id) - Number(a.id)
+    )[0] ?? null
   );
+}
+
+/** Logged sets beat an empty twin of the same day, so a double start cannot resume the blank copy. */
+function sessionProgress(session: WorkoutSessionRow) {
+  return (
+    Number(session.completed_set_count || 0) +
+    (session.warmup_started_at ? 1 : 0) +
+    (session.cooldown_started_at ? 1 : 0)
+  );
+}
+
+function sessionStarted(session: WorkoutSessionRow) {
+  return new Date(session.started_at || session.created_at || 0).getTime();
+}
+
+function pickRichestOpen(rows: WorkoutSessionRow[]): WorkoutSessionRow | null {
+  if (rows.length === 0) return null;
+  return [...rows].sort((a, b) => {
+    const progress = sessionProgress(b) - sessionProgress(a);
+    if (progress !== 0) return progress;
+    return sessionStarted(b) - sessionStarted(a) || Number(b.id) - Number(a.id);
+  })[0];
+}
+
+/** One open session per day: the copy that already has work, when a duplicate exists. */
+function richestPerDay(open: WorkoutSessionRow[]) {
+  const byDay = new Map<string, WorkoutSessionRow[]>();
+  for (const session of open) {
+    const key = `${Number(session.week_number)}-${Number(session.day_number)}`;
+    const list = byDay.get(key) || [];
+    list.push(session);
+    byDay.set(key, list);
+  }
+  return [...byDay.values()].map((rows) => pickRichestOpen(rows)!);
 }
 
 export function findLatestCompletedSession(

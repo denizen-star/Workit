@@ -124,6 +124,7 @@ function WorkoutPageInner() {
   const [liftsDone, setLiftsDone] = useState(false);
   const autoOpened = useRef(false);
   const selectWeekInit = useRef(false);
+  const startInFlight = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [athleteName, setAthleteName] = useState('');
   const [soundOn, setSoundOn] = useState(true);
@@ -448,20 +449,32 @@ function WorkoutPageInner() {
         setBonusPick({ weekNumber, dayNumber, mode });
         return;
       }
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weekNumber,
-          dayNumber,
-          workoutType: day.name,
-          workoutMode: mode,
-          scheduledDate: new Date().toISOString().split('T')[0],
-        }),
-      });
+      if (startInFlight.current) return;
+      startInFlight.current = true;
+      let response: Response;
+      try {
+        response = await fetch('/api/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            weekNumber,
+            dayNumber,
+            workoutType: day.name,
+            workoutMode: mode,
+            scheduledDate: new Date().toISOString().split('T')[0],
+          }),
+        });
+      } finally {
+        startInFlight.current = false;
+      }
 
       if (response.ok) {
         const data = await response.json();
+        if (data.alreadyOpen) {
+          const rows = await loadSessions();
+          openExistingSession(rows || [], Number(data.sessionId));
+          return;
+        }
         trackAction('workout_start', { category: 'workout', cta_type: mode });
         trackAction('workout_mode', { category: 'workout', cta_type: mode });
         setCurrentSession(data.sessionId);
