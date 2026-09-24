@@ -22,6 +22,7 @@ import {
   wrapEmailHtml,
 } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
+import { coachFromAddress, MAIL_FROM } from '@/lib/mailFrom';
 import { pickCoachLine, pickResumeLine } from '@/lib/coachLines';
 import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
@@ -336,8 +337,9 @@ function releaseVoice(tone?: CoachTone | null) {
   };
 }
 
-function fromFor(tone?: CoachTone | null) {
-  return defaultFrom(voiceFromName(normalizeCoachTone(tone)));
+function fromFor(tone?: CoachTone | null, address?: string) {
+  const id = normalizeCoachTone(tone);
+  return defaultFrom(voiceFromName(id), address || coachFromAddress(id));
 }
 
 function address(name: string) {
@@ -428,7 +430,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     emailTextSignOff(signer),
   ].join('\n');
   return {
-    from: fromFor(input.tone),
+    from: fromFor(input.tone, MAIL_FROM.welcome),
     subject: luna ? 'You are welcome. Work-It.' : eli ? "Welcome, let's go. Work-It." : 'Report in. Work-It.',
     html,
     text,
@@ -456,7 +458,7 @@ export function buildVerifyEmail(input: {
     ].join(''),
   });
   return {
-    from: fromFor('luna'),
+    from: fromFor('luna', MAIL_FROM.welcome),
     subject: 'Verify your email. Work-It.',
     html,
     text: [name + '.', '', 'Verify: ' + url, '', 'Waiver: ' + waiver].join('\n'),
@@ -553,7 +555,7 @@ export function buildInviteEmail(input: InviteEmailInput): BuiltEmail {
       ? "Welcome, let's go. Work-It."
       : 'Report in. Work-It.';
   return {
-    from: fromFor(input.tone),
+    from: fromFor(input.tone, MAIL_FROM.welcome),
     // Every invite (including resends, which reuse this builder) leads with who sent it.
     subject: 'An invitation from ' + input.inviterName + ' — ' + toneSubject,
     html,
@@ -589,7 +591,7 @@ export function buildPinResetEmail(input: PinResetEmailInput): BuiltEmail {
     emailTextSignOff(voiceDisplayName('master')),
   ].join('\n');
   return {
-    from: fromFor('master'),
+    from: fromFor('master', MAIL_FROM.help),
     subject: 'New PIN. Work-It.',
     html,
     text,
@@ -628,7 +630,7 @@ export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): Bui
     emailTextSignOff(voiceDisplayName('master')),
   ].join('\n');
   return {
-    from: fromFor('master'),
+    from: fromFor('master', MAIL_FROM.news),
     subject: 'Still training ' + days + ' days a week? Work-It.',
     html,
     text,
@@ -658,7 +660,7 @@ export function buildInviteNotifyEmail(input: InviteNotifyEmailInput): BuiltEmai
     emailTextSignOff(),
   ].join('\n');
   return {
-    from: fromFor(),
+    from: fromFor('master', MAIL_FROM.info),
     subject: 'Invite · ' + input.inviterName + ' added ' + input.inviteeName,
     html,
     text,
@@ -1180,7 +1182,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   ].join('\n');
 
   return {
-    from: fromFor(),
+    from: fromFor('master', MAIL_FROM.info),
     subject: 'Inspection — who obeyed this week',
     html,
     text,
@@ -1237,7 +1239,7 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
     emailTextSignOff(signer),
   ].join('\n');
   return {
-    from: fromFor(tone),
+    from: fromFor(tone, MAIL_FROM.news),
     subject:
       input.subject ||
       (tone === 'master' ? 'New orders — ' + input.title : 'A note — ' + input.title),

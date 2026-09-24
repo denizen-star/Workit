@@ -2,6 +2,7 @@ import { after } from 'next/server';
 import { query } from '@/lib/db';
 import { appUrl, bullets, cta, emailTextHeader, emailTextSignOff, esc, p, statsTable, whoUrl, wrapEmailHtml } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
+import { MAIL_FROM } from '@/lib/mailFrom';
 import { formatAvg, reasonLabel, topicLabel } from '@/lib/feedback';
 import { firstName } from '@/lib/profile';
 import { claimAndSend } from '@/lib/emails/send';
@@ -54,7 +55,7 @@ export function buildFeedbackNoteEmail(input: FeedbackNoteMailInput): BuiltEmail
     .filter(Boolean)
     .join('\n');
   return {
-    from: defaultFrom('Master Tom Iron'),
+    from: defaultFrom('Master Tom Iron', MAIL_FROM.info),
     subject: 'Talk to me · ' + input.name,
     html,
     text,
@@ -121,7 +122,7 @@ export function buildFeedbackDigestEmail(input: {
   ].join('\n');
 
   return {
-    from: defaultFrom('Master Tom Iron'),
+    from: defaultFrom('Master Tom Iron', MAIL_FROM.info),
     subject: 'Work-It feedback digest',
     html,
     text,
@@ -173,7 +174,7 @@ export function buildFeedbackLiveEmail(input: FeedbackLiveMailInput): BuiltEmail
     .filter((line) => line !== undefined)
     .join('\n');
   return {
-    from: defaultFrom('Master Tom Iron'),
+    from: defaultFrom('Master Tom Iron', MAIL_FROM.news),
     subject: 'Your feature is live',
     html,
     text,
@@ -215,7 +216,7 @@ export function buildFeedbackWontDoEmail(input: FeedbackLiveMailInput): BuiltEma
     .filter((line) => line !== undefined)
     .join('\n');
   return {
-    from: defaultFrom('Master Tom Iron'),
+    from: defaultFrom('Master Tom Iron', MAIL_FROM.news),
     subject: 'I will not do this',
     html,
     text,

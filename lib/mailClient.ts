@@ -1,6 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { SendMailOptions, Transporter } from 'nodemailer';
 import { archiveSentEmail, type MailArchiveMeta } from './emails/archive';
+import { MAIL_FROM } from './mailFrom';
 
 export function isEmailEnabled() {
   const v = process.env.EMAIL_ENABLED;
@@ -48,7 +49,7 @@ export type MailPayload = {
 
 export type { MailArchiveMeta };
 
-export const OPS_BCC = 'info@kervinapps.com';
+export const OPS_BCC = MAIL_FROM.info;
 
 function normalizeAddressList(value?: string | string[]): string[] {
   if (!value) return [];
@@ -75,9 +76,8 @@ function withOpsBcc(to: string | string[], bcc?: string | string[]) {
   return bccList.length ? bccList.join(', ') : undefined;
 }
 
-export function defaultFrom(displayName = 'Workit - Coach Tom') {
-  const user = senderUser();
-  return user ? `${displayName} <${user}>` : displayName;
+export function defaultFrom(displayName = 'Workit - Coach Tom', address: string = MAIL_FROM.tom) {
+  return `${displayName} <${address}>`;
 }
 
 export async function sendEmail(payload: MailPayload): Promise<string | null> {

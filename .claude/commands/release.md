@@ -25,5 +25,5 @@ Only run this after step 3 has pushed successfully — this mail tells athletes 
 2. This mail is **for users**, not ops. No Netlify, env vars, cron secrets, Admin Mail, BCC, or deploy checklists.
 3. Keep `version` / `title` / `groups` current (match the version you just tagged). Feature lines are facts, not a dump.
 4. Set `onlyAthletesWithWorkouts: true` and `activeInDays: 14` so it only goes to athletes who've trained in the last two weeks.
-5. Run `npm run mail:release` (needs `.env.local` SMTP). That sends to every qualifying `users.email` and BCCs `info@kervinapps.com`.
+5. Run `npm run mail:release` (needs `.env.local` SMTP). That sends to every qualifying `users.email` from `news@workitapp.fit` and BCCs `info@workitapp.fit`.
 6. In the reply, say who it went to (count, not a dump of secrets) and the subject. If SMTP fails, say so — still finish the release.

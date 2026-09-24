@@ -92,7 +92,7 @@ Not optional for mail and join links. Until this ships, new mail may still say w
 2. In repo (with join work): change `LIVE_APP_URL` in `lib/emailLayout.ts` from `https://workit.kervinapps.com` to `https://workitapp.fit`. Update claim/reset/welcome/waiver links to the new host (`/login`, `/join?h=gowanus`, waiver URL in welcome mail).
 3. Netlify: keep **workitapp.fit** primary. Keep **workit.kervinapps.com** assigned to the site (do not remove). There is **no** Domain management **Options → redirect** for that hostname (Netlify only auto-redirects apex ↔ www). The 301 lives in `netlify.toml` (`workit.kervinapps.com/*` → `https://workitapp.fit/:splat`). Deploy after `APP_URL` is `https://workitapp.fit`.
 4. Manifest / home-screen: athletes who pinned the old URL should **Add to Home Screen** again from Safari on workitapp.fit.
-5. Cron and Zoho: no domain change required if cron still hits the Netlify site URL or the new host. BCC stays `info@kervinapps.com` unless you later add mail on .fit. To receive at `tom@` / `info@` / etc. **workitapp.fit**, follow [`EMAIL_WORKITAPP_FIT.md`](./EMAIL_WORKITAPP_FIT.md).
+5. Cron and Zoho: no domain change required if cron still hits the Netlify site URL or the new host. App mail sends from `@workitapp.fit` and BCCs `info@workitapp.fit` (`lib/mailFrom.ts`). Inbound setup: [`EMAIL_WORKITAPP_FIT.md`](./EMAIL_WORKITAPP_FIT.md).
 
 ---
 

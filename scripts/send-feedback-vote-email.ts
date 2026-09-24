@@ -8,6 +8,7 @@
  *   npx tsx --env-file=.env.local scripts/send-feedback-vote-email.ts
  */
 import { isEmailEnabled, sendEmail, defaultFrom } from '../lib/mailClient';
+import { MAIL_FROM } from '../lib/mailFrom';
 import { voiceFromName } from '../lib/coachCatalog';
 import { wrapEmailHtml, p, bullets, coachPersonaArt, esc } from '../lib/emailLayout';
 import { firstName } from '../lib/profile';
@@ -169,7 +170,7 @@ async function main() {
       subject: email.subject,
       html: email.html,
       text: email.text,
-      from: defaultFrom(voiceFromName('eli')),
+      from: defaultFrom(voiceFromName('eli'), MAIL_FROM.eli),
       archive: { userId: r.id, athleteName: r.name, template: 'feedback-vote' },
     });
     if (!id) {

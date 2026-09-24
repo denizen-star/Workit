@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 9.1.2 - 2026-09-23
+
+### Changed
+- Mail from Work-It comes from @workitapp.fit. Your coach writes from tom@, grey@, luna@, or eli@. Welcome, an invite, and the email check come from welcome@. A new PIN comes from help@. Release notes, the six-week pace check, and a reply about a feature you asked for come from news@.
+
 ## 9.1.1 - 2026-09-23
 
 ### Changed
