@@ -3,7 +3,7 @@ import { resolveAnalyticsWindow, sqlUtc, type AnalyticsRangeId } from '@/lib/ana
 import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
-import { sqlSessionOptionalVolume } from '@/lib/optionals';
+import { sqlSessionOptionalOnlyVolume } from '@/lib/optionals';
 import { effortFromVolume } from '@/lib/hardness';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
@@ -174,7 +174,8 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
       filter.params
     ),
     query(
-      `SELECT ws.user_id, ws.id as session_id, ${sqlSessionOptionalVolume('ws')} as optional_lbs
+      `SELECT ws.user_id, ws.id as session_id, ${sqlSessionOptionalOnlyVolume('ws')} as optional_lbs,
+              COALESCE(ws.credit_lbs, 0) as credit_lbs
        FROM workout_sessions ws
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
@@ -245,11 +246,14 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     user_id: number;
     session_id: number;
     optional_lbs: number;
+    credit_lbs: number;
   }[]) {
     const userId = Number(row.user_id);
     const optional = Number(row.optional_lbs || 0);
-    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + optional);
-    effortByUser.set(userId, (effortByUser.get(userId) || 0) + optional);
+    // Yoga/Core Your pick credit counts toward Total weight, never Best day.
+    const credit = Number(row.credit_lbs || 0);
+    volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + optional + credit);
+    effortByUser.set(userId, (effortByUser.get(userId) || 0) + optional + credit);
     const sessionKey = `${userId}:${Number(row.session_id)}`;
     const bucket = sessionEffort.get(sessionKey);
     if (bucket) bucket.effort += optional;

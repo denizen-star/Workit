@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { query } from '@/lib/db';
+import { bonusWeeksForUser } from '@/lib/yourPickBonus';
 import { getCurrentUser } from '@/lib/auth';
-import { bonusTypeSql } from '@/lib/bonusDay';
 import { checkAndAwardBadges } from '@/lib/badges';
 
 export async function GET() {
@@ -26,12 +26,8 @@ export async function GET() {
       [userId]
     );
 
-    const bonus = await query(
-      `SELECT COUNT(DISTINCT week_number) as bonus_weeks
-       FROM workout_sessions
-       WHERE user_id = ? AND is_completed = 1 AND ${bonusTypeSql('workout_sessions')}`,
-      [userId]
-    );
+    // Past bonus weeks + weeks a Your pick went beyond the required count.
+    const bonusWeeks = await bonusWeeksForUser(userId);
 
     const optionalWeeks = await query(
       `SELECT COUNT(*) as optional_weeks
@@ -58,7 +54,7 @@ export async function GET() {
     return NextResponse.json({
       allBadges: allBadges.rows,
       earnedBadges: earnedBadges.rows,
-      bonusCount: Number((bonus.rows[0] as { bonus_weeks: number } | undefined)?.bonus_weeks || 0),
+      bonusCount: bonusWeeks,
       optionalWeekCount: Number(
         (optionalWeeks.rows[0] as { optional_weeks: number } | undefined)?.optional_weeks || 0
       ),

@@ -1,4 +1,5 @@
 import { bonusCount } from '@/lib/bonusDay';
+import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { OPTIONAL_WEEK_SLOTS, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
 import {
   emptyPerformanceFlags,
@@ -15,6 +16,9 @@ export type FlagSessionRow = {
   completed_at?: string | Date | null;
   warmup_completed_at?: string | Date | null;
   cooldown_completed_at?: string | Date | null;
+  /** Your pick type, and the athlete's day count — for the Bonus Day week rule. */
+  pick_type?: string | null;
+  schedule_days_per_week?: number | null;
 };
 
 function slotTimes(sessions: FlagSessionRow[], slot: 'warmup' | 'cooldown') {
@@ -66,12 +70,15 @@ export function performanceFlagsForSessions(
       week_number: Number(session.week_number || 0),
       day_number: Number(session.day_number || 0),
       workout_type: session.workout_type ?? undefined,
+      pick_type: session.pick_type ?? null,
       is_completed: session.is_completed,
       completed_at:
         session.completed_at instanceof Date
           ? session.completed_at.toISOString()
           : session.completed_at ?? null,
-    }))
+    })),
+    undefined,
+    requiredCountForWeek(Number(sessions[0]?.schedule_days_per_week ?? 4))
   );
 
   for (const session of sessions) {

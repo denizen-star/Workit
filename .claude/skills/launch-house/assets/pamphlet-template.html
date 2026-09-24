@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>{{HOUSE_NAME}} House</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&family=Unbounded:wght@700;800&display=swap">
+<style>
+  @page { size: letter; margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    background: #1c1c1f;
+    font-family: 'Inter', system-ui, sans-serif;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .sheet {
+    width: 8.5in;
+    height: 11in;
+    flex-shrink: 0;
+    overflow: hidden;
+    position: relative;
+    color: #f6f1e3;
+    background:
+      radial-gradient(7.2in 3.4in at 78% -6%, rgba(232,197,71,0.22), transparent 58%),
+      radial-gradient(5.5in 4.2in at -8% 108%, rgba(46,196,182,0.18), transparent 62%),
+      radial-gradient(4in 3in at 110% 78%, rgba(224,122,95,0.14), transparent 60%),
+      #07070a;
+    display: flex;
+    flex-direction: column;
+    padding: 0.3in 0.42in 0.24in;
+    break-after: page;
+    page-break-after: always;
+  }
+  .sheet:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+  .brand {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .word {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.16em;
+    color: #e8c547;
+  }
+  .meta {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(246,241,227,0.5);
+  }
+  .free {
+    margin-top: 0.1in;
+    background: #e8c547;
+    color: #07070a;
+    text-align: center;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    padding: 0.06in 0.14in 0.05in;
+    border-radius: 999px;
+  }
+  .kicker {
+    margin-top: 0.1in;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: #7ee0d6;
+  }
+  h1 {
+    margin: 0.04in 0 0;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 64px;
+    line-height: 0.88;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+    color: #f6f1e3;
+  }
+  .horizon {
+    margin-top: 0.08in;
+    height: 3px;
+    width: 2.4in;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #e8c547, #2ec4b6 70%, transparent);
+  }
+  .lede {
+    margin: 0.08in 0 0;
+    max-width: 6.6in;
+    font-size: 13.5px;
+    line-height: 1.45;
+    color: rgba(246,241,227,0.82);
+  }
+  .stage {
+    margin-top: 0.12in;
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 1fr 2.36in;
+    gap: 0.22in;
+    align-items: stretch;
+  }
+  .left {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    gap: 0.1in;
+  }
+  .points {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.08in;
+  }
+  .point {
+    display: grid;
+    grid-template-columns: 20px 1fr;
+    gap: 0.08in;
+    align-items: start;
+    background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+    border: 1px solid rgba(232,197,71,0.22);
+    border-radius: 14px;
+    padding: 0.08in 0.1in;
+  }
+  .num {
+    width: 20px;
+    height: 20px;
+    border-radius: 999px;
+    background: #e8c547;
+    color: #07070a;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+  .point h2 {
+    margin: 0;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #e8c547;
+  }
+  .point p {
+    margin: 2px 0 0;
+    font-size: 12px;
+    line-height: 1.35;
+    color: rgba(246,241,227,0.78);
+  }
+  .join {
+    margin-top: auto;
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 0.12in;
+    background: linear-gradient(135deg, rgba(232,197,71,0.18), rgba(46,196,182,0.08) 55%, rgba(255,255,255,0.03));
+    border: 1px solid rgba(232,197,71,0.4);
+    border-radius: 16px;
+    padding: 0.1in 0.12in;
+  }
+  .qr {
+    width: 1.22in;
+    height: 1.22in;
+    background: #f6f1e3;
+    border-radius: 14px;
+    padding: 7px;
+    flex-shrink: 0;
+    box-shadow: 0 12px 28px rgba(0,0,0,0.4);
+  }
+  .qr img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .join h2 {
+    margin: 0;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 0.98;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    color: #e8c547;
+  }
+  .join p {
+    margin: 0.04in 0 0;
+    font-size: 12px;
+    line-height: 1.4;
+    color: rgba(246,241,227,0.8);
+  }
+  .url {
+    margin-top: 0.06in;
+    display: inline-block;
+    max-width: 100%;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.02em;
+    color: #07070a;
+    background: #e8c547;
+    border-radius: 999px;
+    padding: 6px 11px;
+  }
+  .phone-col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    align-items: center;
+  }
+  .live {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(246,241,227,0.55);
+    margin-bottom: 0.06in;
+  }
+  .phone {
+    width: 2.36in;
+    flex: 1;
+    min-height: 0;
+    border-radius: 22px;
+    overflow: hidden;
+    border: 2px solid rgba(232,197,71,0.55);
+    box-shadow:
+      0 22px 40px rgba(0,0,0,0.5),
+      0 0 0 6px rgba(232,197,71,0.06);
+    background: #141416;
+  }
+  .phone img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center center;
+    display: block;
+  }
+  .notice {
+    margin-top: 0.12in;
+    border: 1px solid rgba(246,241,227,0.18);
+    background: rgba(255,255,255,0.035);
+    border-radius: 14px;
+    padding: 0.1in 0.14in 0.11in;
+  }
+  .notice h2 {
+    margin: 0 0 0.05in;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 13px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #f6f1e3;
+  }
+  .notice p {
+    margin: 0 0 0.05in;
+    font-size: 10.5px;
+    line-height: 1.38;
+    color: rgba(246,241,227,0.78);
+  }
+  .notice p:last-child {
+    margin-bottom: 0;
+  }
+  .notice .close {
+    color: rgba(246,241,227,0.92);
+  }
+  .foot {
+    margin-top: 0.12in;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(246,241,227,0.42);
+  }
+  .sheet-cover {
+    padding: 0;
+    background: #ffffff;
+    color: #111111;
+  }
+  .gift {
+    height: auto;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding: 0.42in 0.55in 0.28in;
+  }
+  .gift-kicker {
+    margin: 0 0 0.12in;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 700;
+    font-size: 18px;
+    letter-spacing: 0.34em;
+    text-transform: uppercase;
+    color: #0f6e68;
+  }
+  .sheet-cover h1 {
+    margin: 0;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 800;
+    font-size: 74px;
+    line-height: 0.88;
+    letter-spacing: -0.035em;
+    text-transform: uppercase;
+    color: #111111;
+  }
+  .gift-banner {
+    height: 20%;
+    background: #e8c547;
+    color: #07070a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.06in;
+    text-align: center;
+  }
+  .gift-banner strong {
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 800;
+    font-size: 40px;
+    line-height: 1;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+  .gift-banner span {
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+  }
+  .gift-rest {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 0.36in 0.55in 0.42in;
+    color: rgba(17,17,17,0.45);
+  }
+  .gift-scan {
+    display: flex;
+    align-items: center;
+    gap: 0.22in;
+  }
+  .gift-qr {
+    width: 1.7in;
+    height: 1.7in;
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid rgba(17,17,17,0.14);
+    border-radius: 16px;
+    padding: 8px;
+  }
+  .gift-qr img {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+  .gift-scan h2 {
+    margin: 0;
+    font-family: 'Unbounded', sans-serif;
+    font-weight: 800;
+    font-size: 22px;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+    color: #111111;
+  }
+  .gift-scan p {
+    margin: 0.08in 0 0;
+    font-family: 'Oswald', sans-serif;
+    font-weight: 600;
+    font-size: 14px;
+    letter-spacing: 0.04em;
+    color: #111111;
+  }
+  .gift-foot {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    font-size: 12px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  @media screen {
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 28px;
+      padding: 28px 0;
+    }
+    .sheet { box-shadow: 0 24px 70px rgba(0,0,0,0.45); }
+  }
+  @media print {
+    body { background: none; display: block; padding: 0; }
+    .sheet { box-shadow: none; }
+  }
+</style>
+</head>
+<body>
+  <article class="sheet">
+    <header class="brand">
+      <div class="word">Work-It</div>
+      <div class="meta">48-week program · belts &amp; diplomas</div>
+    </header>
+
+    <div class="free">Absolutely free</div>
+
+    <div class="kicker">The house is training</div>
+    <h1>{{HOUSE_NAME}}<br>House</h1>
+    <div class="horizon"></div>
+    <p class="lede">Your own 48-week arc. It starts the second you scan. Email and a 4-digit PIN, then you're in the house. No fee. No name on a list.</p>
+
+    <div class="stage">
+      <div class="left">
+        <div class="points">
+          <div class="point">
+            <div class="num">1</div>
+            <div>
+              <h2>It keeps your log</h2>
+              <p>Every set you finish stays. Next time, last weight and time are already filled in.</p>
+            </div>
+          </div>
+          <div class="point">
+            <div class="num">2</div>
+            <div>
+              <h2>Today is picked</h2>
+              <p>48 weeks are already written. Home shows the day. Tap the gold Start.</p>
+            </div>
+          </div>
+          <div class="point">
+            <div class="num">3</div>
+            <div>
+              <h2>Hit your number</h2>
+              <p>Choose 1 to 5 days a week. Finish that many and the week locks. You don't have to be perfect.</p>
+            </div>
+          </div>
+          <div class="point">
+            <div class="num">4</div>
+            <div>
+              <h2>Gym, Travel, or Alt</h2>
+              <p>Same day, three ways. No gym, use Travel. Alt swaps the move. Pounds or kilos.</p>
+            </div>
+          </div>
+          <div class="point">
+            <div class="num">5</div>
+            <div>
+              <h2>The belts</h2>
+              <p>Diplomas for the weeks you lock. You always see the one you're aiming for.</p>
+            </div>
+          </div>
+          <div class="point">
+            <div class="num">6</div>
+            <div>
+              <h2>A coach with you</h2>
+              <p>In the session and in your mail. Eli starts with you. Switch the voice anytime.</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="join">
+          <div class="qr">
+            <img src="{{SLUG}}-qr.png" alt="QR code to join {{HOUSE_NAME}} House">
+          </div>
+          <div>
+            <h2>Scan to join</h2>
+            <p>Point your camera. Set a PIN. Add to Home Screen, then tap Start WO. Menu → Help covers the rest.</p>
+            <div class="url">workitapp.fit/join?h={{SLUG}}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="phone-col">
+        <div class="live">A live set</div>
+        <div class="phone">
+          <img src="live-set-demo.png" alt="Plank Hold in the Work-It app, with start and end photos, a 45 second timer, and the coach">
+        </div>
+      </div>
+    </div>
+
+    <section class="notice" aria-label="Before you join">
+      <h2>Work-It is a guide</h2>
+      <p>Work-It is a public training guide and a log for the work you choose to do. The program suggests a year of sessions. You decide the days, the loads, and whether to train. You own the outcome, including any change in strength or body weight.</p>
+      <p>The app does not supervise you, set your weight, or promise a result. Coach lines are motivation. They are not medical, dietary, or professional training advice. Strength training and the other activity you log carry a real risk of injury. Stop if something hurts or feels wrong. Get clearance from a qualified professional before you start if you need it.</p>
+      <p>To join, you provide an email address and you sign the Waiver, Release, and Terms of Use. That signature is your acceptance of the risks and your release of the operator of Work-It from claims arising out of your use of the app, to the fullest extent the law allows. The Service is for adults 18 and older.</p>
+      <p class="close">Work-It is a guide you follow on your own. You own the loads and the results. Joining asks for your email and your signature on the waiver at workitapp.fit/waiver. Adults 18+.</p>
+    </section>
+
+    <footer class="foot">
+      <div>{{HOUSE_NAME}} House · Work-It</div>
+      <div>100% free, always</div>
+    </footer>
+  </article>
+
+  <article class="sheet sheet-cover">
+    <div class="gift">
+      <div class="gift-kicker">Enclosed</div>
+      <h1>A free<br>training<br>app gift</h1>
+    </div>
+    <div class="gift-banner">
+      <strong>{{HOUSE_NAME}} House</strong>
+      <span>Absolutely free</span>
+    </div>
+    <div class="gift-rest">
+      <div class="gift-scan">
+        <div class="gift-qr">
+          <img src="{{SLUG}}-qr.png" alt="QR code to join {{HOUSE_NAME}} House">
+        </div>
+        <div>
+          <h2>Scan to join</h2>
+          <p>workitapp.fit/join?h={{SLUG}}</p>
+        </div>
+      </div>
+      <div class="gift-foot">
+        <div>Work-It</div>
+        <div>The house is training</div>
+      </div>
+    </div>
+  </article>
+</body>
+</html>

@@ -9,6 +9,7 @@ import UnitToggle from './UnitToggle';
 import AltButton from './AltButton';
 import AltExerciseTakeover from './AltExerciseTakeover';
 import PlaneIcon from './PlaneIcon';
+import PatternPill from './PatternPill';
 import { pickCoachClip, setProgressCopy, hardnessCopy, PR_CLIPS } from '@/lib/coachLines';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
@@ -1039,6 +1040,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   {isTravelFriendly(exercise.name) && (
                     <PlaneIcon className="mt-1.5 h-3.5 w-3.5 shrink-0 text-[#e8c547]" />
                   )}
+                  <PatternPill name={exercise.name} className="mt-1.5" />
                   {celebrating && (
                     <span className="exercise-title-stamp flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-[#e8c547] bg-[#e8c547]/20 text-[#e8c547]">
                       <Check className="h-3.5 w-3.5" />

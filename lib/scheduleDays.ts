@@ -1,5 +1,6 @@
-import { isBonusDay, requiredDays, weekHasBonus } from '@/lib/bonusDay';
-import { workoutProgram, type Exercise, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
+import { requiredDays } from '@/lib/bonusDay';
+import { getLegacyBonusDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
+import { FULL_BODY_PACKS, YOUR_PICK_SLOT_DAYS, yourPickSlotDay } from '@/lib/yourPick';
 
 export const MIN_SCHEDULE_DAYS = 1;
 export const MAX_SCHEDULE_DAYS = 5;
@@ -20,37 +21,10 @@ export function scheduleDaysForUser(user: { schedule_days_per_week?: unknown } |
   return clampScheduleDays(user?.schedule_days_per_week);
 }
 
-/** 1-3 day/week athletes train full-body instead of a split, so a short week never
- * leaves a muscle group untouched. Built from exercises already in the catalog. */
-const FULL_BODY_PACKS: Exercise[][] = [
-  [
-    { name: 'Barbell Back Squats or Goblet Squats', sets: 3, reps: '8-10' },
-    { name: 'Barbell or Dumbbell Bench Press', sets: 3, reps: '8-10' },
-    { name: 'Single-Arm Dumbbell Rows', sets: 3, reps: '10-12 per arm' },
-    { name: 'Romanian Deadlifts (RDLs)', sets: 3, reps: '8-10' },
-    { name: 'Overhead Dumbbell Shoulder Press', sets: 3, reps: '8-10' },
-    { name: 'Plank Hold', sets: 3, reps: '45 seconds' },
-  ],
-  [
-    { name: 'Trap Bar Deadlifts or Barbell Conventional Deadlifts', sets: 3, reps: '6-8' },
-    { name: 'Incline Dumbbell Bench Press', sets: 3, reps: '8-10' },
-    { name: 'Barbell or Chest-Supported Rows', sets: 3, reps: '8-10' },
-    { name: 'Bulgarian Split Squats', sets: 3, reps: '8-10 per leg' },
-    { name: 'Dumbbell Lateral Raises', sets: 3, reps: '12-15' },
-    { name: 'Dead Bugs', sets: 3, reps: '8 per side' },
-  ],
-  [
-    { name: 'Barbell Hip Thrusts or Glute Bridges', sets: 3, reps: '10-12' },
-    { name: 'Lat Pulldowns or Cable Rows', sets: 3, reps: '10-12' },
-    { name: 'Walking Lunges', sets: 3, reps: '10 steps per leg' },
-    { name: 'Face Pulls', sets: 3, reps: '12-15' },
-    { name: "Farmer's Carries", sets: 3, reps: '40-meter walk' },
-    { name: 'Side Plank', sets: 3, reps: '30 seconds' },
-  ],
-];
-
-/** First full-body `dayNumber` — kept clear of 1-5 (normal program + bonus) and
- * Hyrox's 101+ namespace so `workout_sessions.day_number` never collides. */
+/** First full-body `dayNumber` — kept clear of 1-5 (normal program + retired bonus),
+ * Your pick's 20+ and Hyrox's 101+ namespace so `workout_sessions.day_number` never
+ * collides. 1-3 day/week athletes train full-body instead of a split (`FULL_BODY_PACKS`,
+ * lib/yourPick.ts), so a short week never leaves a muscle group untouched. */
 const FULL_BODY_DAY_NUMBER_BASE = 6;
 
 function fullBodyDay(week: WeekPlan, index: number): WorkoutDay {
@@ -64,25 +38,35 @@ function fullBodyDay(week: WeekPlan, index: number): WorkoutDay {
   };
 }
 
+/** Most days a week can require: 5 in weeks that used to carry a bonus day (3-48),
+ * else 4 — so weeks 1-2 stay at 4 for everyone, a 5-day athlete included. */
+function weekCap(week: WeekPlan): number {
+  return getLegacyBonusDay(week.weekNumber, 5) ? MAX_SCHEDULE_DAYS : DEFAULT_SCHEDULE_DAYS;
+}
+
 /** The days that count toward this athlete's week — what `weekLocked`/`findNextProgramDay`
- * require and what Select Workout should offer as the week's plan. Does not touch the
- * optional bonus day, which stays available to everyone at 1-4 days regardless.
+ * require and what Select Workout should offer as the week's plan.
  *
- * - 4 days (default): unchanged, the program's normal 4 split days.
- * - 5 days: the 4 split days plus the week's bonus day, now required rather than optional.
- *   Weeks 1-2 have no bonus day, so this naturally falls back to 4 there.
+ * - 4-5 days: the program's split days, topped up to the athlete's count (capped by
+ *   `weekCap`) with required Your pick tiles — any Your pick fills them. Weeks 1-6:
+ *   4 split days (+1 Your pick at 5 days from week 3). Week 7+: 3 split days (Extra
+ *   Upper is retired) + 1 Your pick at 4 days, + 2 at 5 days.
  * - 1-3 days: that many full-body days, replacing the split entirely so a short week
  *   still hits every muscle group instead of risking e.g. two upper days with no legs.
+ *
+ * Any week always locks at this many finished sessions of any kind; Your pick
+ * (lib/yourPick.ts) is open to every athlete on top of these.
  */
 export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
   const count = clampScheduleDays(scheduleDays);
   if (count >= DEFAULT_SCHEDULE_DAYS) {
     const split = requiredDays(week);
-    if (count >= MAX_SCHEDULE_DAYS && weekHasBonus(week)) {
-      const bonus = week.days.find((day) => isBonusDay(day));
-      return bonus ? [...split, bonus] : split;
-    }
-    return split;
+    const programDays = new Set(split.map((day) => day.dayNumber));
+    const slotCount = Math.max(0, Math.min(count, weekCap(week)) - split.length);
+    const slots = YOUR_PICK_SLOT_DAYS.filter((dayNumber) => !programDays.has(dayNumber))
+      .slice(0, slotCount)
+      .map((dayNumber) => yourPickSlotDay(dayNumber));
+    return [...split, ...slots];
   }
   return Array.from({ length: count }, (_, index) => fullBodyDay(week, index));
 }
@@ -102,15 +86,24 @@ export function resolveFullBodyDay(weekNumber: number, dayNumber: number): Worko
   return week ? fullBodyDay(week, dayNumber - FULL_BODY_DAY_NUMBER_BASE) : undefined;
 }
 
-/** Everything Select Workout should offer this athlete for the week: the required
- * days from `athleteRequiredDays`, plus the week's optional bonus day tacked on
- * (unless a 5-day athlete already has it folded into required). Bonus stays
- * available to every athlete regardless of chosen frequency. */
+/** Everything Select Workout should offer this athlete as the week's plan. Same as
+ * `athleteRequiredDays` now that the optional bonus day is retired — Your pick is
+ * offered separately (an "Add a workout" row), not as a day in this list. */
 export function athleteWeekDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
-  const required = athleteRequiredDays(week, scheduleDays);
-  if (required.some((day) => isBonusDay(day))) return required;
-  const bonus = week.days.find((day) => isBonusDay(day));
-  return bonus ? [...required, bonus] : required;
+  return athleteRequiredDays(week, scheduleDays);
+}
+
+/** Days-per-week slider hint (join wizard + Edit profile): the count is what locks
+ * the week, then what the plan looks like at that count. */
+export function scheduleDaysHint(scheduleDays: number): string {
+  const count = clampScheduleDays(scheduleDays);
+  const plan =
+    count <= 3
+      ? 'Full-body days so nothing gets skipped on a short week.'
+      : count === MAX_SCHEDULE_DAYS
+        ? 'The upper/lower plan plus Your pick days.'
+        : 'The upper/lower plan; from week 7 one day is a Your pick.';
+  return `The number of workouts locks your week — any mix counts. ${plan}`;
 }
 
 /** Curried `athleteRequiredDays` for passing into `findNextProgramDay`/`getTodayTarget`/

@@ -766,10 +766,11 @@ export type HouseholdPerformanceRow = AthletePerformanceBoard & {
 
 async function loadFlagSessions(userId: number): Promise<FlagSessionRow[]> {
   const result = await query(
-    `SELECT week_number, day_number, workout_type, is_completed, completed_at,
-            warmup_completed_at, cooldown_completed_at
-     FROM workout_sessions
-     WHERE user_id = ?`,
+    `SELECT ws.week_number, ws.day_number, ws.workout_type, ws.is_completed, ws.completed_at,
+            ws.warmup_completed_at, ws.cooldown_completed_at, ws.pick_type, u.schedule_days_per_week
+     FROM workout_sessions ws
+     INNER JOIN users u ON u.id = ws.user_id
+     WHERE ws.user_id = ?`,
     [userId]
   );
   return result.rows as FlagSessionRow[];

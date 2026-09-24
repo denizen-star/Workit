@@ -3,15 +3,21 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { ArrowLeft, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { ArrowLeft, Check, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { coveredDayNumbers, sessionIsRetiredDay, weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import {
-  isBonusDay,
-  restBetweenUppersCopy,
-  shouldRestBetweenUppers,
-  weekProgress,
-  weekProgressLabel,
-} from '@/lib/bonusDay';
-import { applyWorkoutMode, workoutProgram } from '@/lib/workoutData';
+  isTimedPickType,
+  isYourPickSlot,
+  sessionIsYourPick,
+  yourPickDayNumber,
+  yourPickSwapTargets,
+  yourPickWeekAllowed,
+} from '@/lib/yourPick';
+import YourPickSheet, { type YourPickChoice } from '@/components/YourPickSheet';
+import YourPickIcon from '@/components/YourPickIcon';
+import YourPickFlow from '@/components/YourPickFlow';
+import YourPickExplainer from '@/components/YourPickExplainer';
+import { applyWorkoutMode, workoutProgram, type WorkoutDay } from '@/lib/workoutData';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
 import HyroxMilestoneTakeover from '@/components/HyroxMilestoneTakeover';
 import { formatClock } from '@/lib/formatDuration';
@@ -30,8 +36,8 @@ import {
   clampScheduleDays,
   daysForWeekFn,
   DEFAULT_SCHEDULE_DAYS,
-  resolveFullBodyDay,
 } from '@/lib/scheduleDays';
+import { resolveSessionDay } from '@/lib/resolveDay';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import { usePortraitLock } from '@/lib/usePortraitLock';
@@ -40,7 +46,6 @@ import CompleteTakeover, { type TakeoverBadge, type TakeoverBelt } from '@/compo
 import AwardsTakeover from '@/components/AwardsTakeover';
 import WorkoutRecapTakeover from '@/components/WorkoutRecapTakeover';
 import FinishStepper from '@/components/FinishStepper';
-import BonusPickModal from '@/components/BonusPickModal';
 import OptionalCard from '@/components/OptionalCard';
 import SessionTotalsBar from '@/components/SessionTotalsBar';
 import ExitTakeover from '@/components/ExitTakeover';
@@ -57,7 +62,6 @@ import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/no
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt } from '@/lib/belts';
-import { bonusActivityType } from '@/lib/bonusActivity';
 import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
 import { recapExerciseRows, type CompareRow } from '@/lib/compareTable';
 import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
@@ -113,7 +117,6 @@ function WorkoutPageInner() {
   const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [earnedBelt, setEarnedBelt] = useState<TakeoverBelt | null>(null);
-  const [bonusPick, setBonusPick] = useState<{ weekNumber: number; dayNumber: number; mode: WorkoutMode } | null>(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const cooldownRef = useRef<HTMLDivElement>(null);
@@ -140,6 +143,17 @@ function WorkoutPageInner() {
   const [workoutMode, setWorkoutMode] = useState<WorkoutMode>('gym');
   const [pickModes, setPickModes] = useState<Record<string, WorkoutMode>>({});
   const [historySessions, setHistorySessions] = useState<HistorySession[]>([]);
+  /** Week the Your pick sheet is open for (docs/plans/PLAN_YOUR_PICK.md), or null. */
+  const [pickSheetWeek, setPickSheetWeek] = useState<number | null>(null);
+  /** Program day a day card's Swap button pre-selects in the sheet. */
+  const [pickSheetSwapDay, setPickSheetSwapDay] = useState<number | null>(null);
+  const openPickSheet = (weekNumber: number, swapDay: number | null = null) => {
+    setPickSheetSwapDay(swapDay);
+    setPickSheetWeek(weekNumber);
+  };
+  /** Yoga/Core Your pick session How hard, once YourPickFlow allows Finish; else null. */
+  const [pickHardness, setPickHardness] = useState<number | null>(null);
+  const handlePickReady = useCallback((hardness: number | null) => setPickHardness(hardness), []);
   const [sessionLbs, setSessionLbs] = useState(0);
   const [sessionEffort, setSessionEffort] = useState(0);
   const [sessionReps, setSessionReps] = useState(0);
@@ -334,6 +348,15 @@ function WorkoutPageInner() {
         return;
       }
 
+      // Home's Your pick button / an open Your pick slot: /workout?yourPick=<week>.
+      const pickWeek = Number(searchParams.get('yourPick') || '');
+      if (pickWeek) {
+        autoOpened.current = true;
+        setExpandedWeek(pickWeek);
+        openPickSheet(pickWeek);
+        return;
+      }
+
       if (week && day) {
         autoOpened.current = true;
         const alreadyDone = rows.some(
@@ -421,15 +444,15 @@ function WorkoutPageInner() {
     weekNumber: number,
     dayNumber: number,
     knownSessions?: WorkoutSessionRow[],
-    options?: { forceNew?: boolean; mode?: WorkoutMode; skipBonusPick?: boolean }
+    options?: { forceNew?: boolean; mode?: WorkoutMode; pick?: YourPickChoice }
   ) => {
     try {
       const week = program.find((item) => item.weekNumber === weekNumber);
-      // Full-body days (2-3 day/week athletes, dayNumber 6+) aren't in the static
-      // program array — they're synthesized per-athlete (lib/scheduleDays.ts) —
-      // so a plain array lookup always misses them. Without this fallback, this
+      // Full-body days (6-8), Your pick days (20-24) and retired bonus days aren't
+      // in the static program array — they're synthesized/legacy (lib/resolveDay.ts)
+      // — so a plain array lookup always misses them. Without this fallback, this
       // silently no-ops: the athlete clicks Start and nothing happens.
-      const day = week?.days.find((item) => item.dayNumber === dayNumber) ?? resolveFullBodyDay(weekNumber, dayNumber);
+      const day = week?.days.find((item) => item.dayNumber === dayNumber) ?? resolveSessionDay(weekNumber, dayNumber);
       if (!day) return;
 
       if (!options?.forceNew) {
@@ -445,10 +468,6 @@ function WorkoutPageInner() {
       }
 
       const mode = normalizeWorkoutMode(options?.mode);
-      if (isBonusDay(day) && weekNumber >= 7 && !options?.skipBonusPick) {
-        setBonusPick({ weekNumber, dayNumber, mode });
-        return;
-      }
       if (startInFlight.current) return;
       startInFlight.current = true;
       let response: Response;
@@ -462,6 +481,8 @@ function WorkoutPageInner() {
             workoutType: day.name,
             workoutMode: mode,
             scheduledDate: new Date().toISOString().split('T')[0],
+            // Your pick: the server validates week/swap/mode and sets day + type itself.
+            ...(options?.pick ?? {}),
           }),
         });
       } finally {
@@ -486,7 +507,12 @@ function WorkoutPageInner() {
         setPendingSessionStart(true);
         await loadSessions();
       } else {
-        setErrorMessage('Could not start this workout. Try again in a moment.');
+        // Your pick rejections (future week, day already started, one mark-done a
+        // day) carry a plain reason — show it instead of the generic retry line.
+        const reason = await response.json().then((data) => data?.error).catch(() => null);
+        setErrorMessage(
+          options?.pick && reason ? String(reason) : 'Could not start this workout. Try again in a moment.'
+        );
         setShowError(true);
       }
       } catch (error) {
@@ -588,45 +614,6 @@ function WorkoutPageInner() {
     leaveWorkout();
   };
 
-  const finishBonusActivity = async (label: string) => {
-    if (!bonusPick) return;
-    try {
-      const response = await fetch('/api/sessions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          weekNumber: bonusPick.weekNumber,
-          dayNumber: bonusPick.dayNumber,
-          workoutType: bonusActivityType(label),
-          workoutMode: bonusPick.mode,
-          scheduledDate: new Date().toISOString().split('T')[0],
-          complete: true,
-        }),
-      });
-      if (!response.ok) {
-        setErrorMessage('Could not save that bonus. Try again.');
-        setShowError(true);
-        return;
-      }
-      const data = await response.json().catch(() => ({}));
-      setBonusPick(null);
-      await loadSessions();
-      setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
-      setEarnedBelt(data.earnedBelt || null);
-      setBonusFinish(true);
-      const bonusSpoken = pickBonusCompleteClip(coachTone, athleteName);
-      setCompleteLine(bonusSpoken.text);
-      setCompleteClip(bonusSpoken.clipTemplate);
-      setReplenishLine(pickReplenishLine());
-      await loadWorkoutRecap(bonusActivityType(label));
-      setShowRecap(true);
-    } catch (error) {
-      console.error('Error saving bonus activity:', error);
-      setErrorMessage('Could not save that bonus. Try again.');
-      setShowError(true);
-    }
-  };
-
   const restartWorkout = async () => {
     const weekNumber = restartTarget?.weekNumber ?? selectedWeek;
     const dayNumber = restartTarget?.dayNumber ?? selectedDay;
@@ -704,6 +691,8 @@ function WorkoutPageInner() {
         body: JSON.stringify({
           sessionId: currentSession,
           isCompleted: true,
+          // Yoga/Core Your pick: whole-session How hard, which scales its credit.
+          ...(pickHardness != null ? { sessionHardness: pickHardness } : {}),
         }),
       });
 
@@ -747,13 +736,111 @@ function WorkoutPageInner() {
     }
   };
 
+  /** Your pick can be added to this week (current, or an earlier unlocked week). */
+  const pickAllowed = (weekNumber: number) =>
+    yourPickWeekAllowed(weekNumber, sessions, lockedWeeksDetail.keys());
+
+  /** Tile for a 5-day athlete's Your pick slot or a swapped-out program day. */
+  const renderPickTile = (weekNumber: number, day: WorkoutDay, done: boolean) => (
+    <div
+      key={day.dayNumber}
+      className={`flex items-center justify-between gap-3 rounded-2xl border p-4 ${
+        done ? 'border-[#6d8b6e]/60 bg-[#6d8b6e]/10' : 'border-dashed border-[#e8c547]/50'
+      }`}
+    >
+      <div className="min-w-0">
+        <p className="flex items-center gap-2 text-lg font-black text-white">
+          <YourPickIcon />
+          {day.name.replace(' Body ', ' ')}
+        </p>
+        <p className="text-sm text-[#f6f1e3]/65">
+          {isYourPickSlot(day)
+            ? done
+              ? 'Done with a Your pick.'
+              : 'Any Your pick fills this day.'
+            : 'Swapped for a Your pick.'}
+        </p>
+      </div>
+      {done ? (
+        <Check className="h-6 w-6 shrink-0 text-[#6d8b6e]" strokeWidth={3} />
+      ) : pickAllowed(weekNumber) ? (
+        <button
+          type="button"
+          onClick={() => openPickSheet(weekNumber)}
+          className="min-h-11 shrink-0 rounded-2xl bg-[#e8c547] px-4 text-sm font-black text-[#1a1404]"
+        >
+          Pick
+        </button>
+      ) : null}
+    </div>
+  );
+
+  /** The week's Your pick sessions (and any on retired bonus / Extra Upper days), plus Add a workout. */
+  const renderYourPickSection = (weekNumber: number) => {
+    const extras = sessions.filter(
+      (session) =>
+        Number(session.week_number) === weekNumber && (sessionIsYourPick(session) || sessionIsRetiredDay(session))
+    );
+    const open = extras.filter((session) => !isSessionComplete(session));
+    const done = historySessions.filter((session) =>
+      extras.some((extra) => Number(extra.id) === Number(session.id) && isSessionComplete(extra))
+    );
+    const canAdd = pickAllowed(weekNumber);
+    if (!canAdd && extras.length === 0) return null;
+    return (
+      <div className="mt-4 space-y-3 border-t border-white/10 pt-4">
+        {open.map((session) => (
+          <div
+            key={session.id}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-[#e8c547]/50 bg-[#e8c547]/10 p-4"
+          >
+            <p className="flex min-w-0 items-center gap-2 text-lg font-black text-white">
+              <YourPickIcon />
+              {session.workout_type}
+            </p>
+            <div className="flex shrink-0 gap-2">
+              <button
+                type="button"
+                onClick={() => askRestart(weekNumber, Number(session.day_number), Number(session.id))}
+                className="inline-flex min-h-11 items-center rounded-2xl border border-[#e8c547]/50 px-3 text-[#e8c547]"
+                aria-label="Restart"
+              >
+                <RotateCcw className="h-4 w-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => openExistingSession(sessions, Number(session.id))}
+                className="min-h-11 rounded-2xl bg-[#e8c547] px-4 text-sm font-black text-[#1a1404]"
+              >
+                Resume
+              </button>
+            </div>
+          </div>
+        ))}
+        {done.map((session) => (
+          <CompletedSessionCard key={session.id} session={session} />
+        ))}
+        {canAdd ? (
+          <button
+            type="button"
+            onClick={() => openPickSheet(weekNumber)}
+            className="flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#e8c547]/60 text-sm font-black text-[#e8c547]"
+          >
+            <YourPickIcon />
+            Add a workout · Your pick
+          </button>
+        ) : null}
+      </div>
+    );
+  };
+
   const getCurrentWorkout = () => {
     const week = program.find((item) => item.weekNumber === selectedWeek);
     const found = week?.days.find((item) => item.dayNumber === selectedDay);
-    // Same full-body fallback as startWorkout() above — without it, the live
-    // session for a full-body day renders blank (`if (!workout) return null`
-    // below reads as a dead page, not an error).
-    return found ?? (selectedDay != null ? resolveFullBodyDay(selectedWeek, selectedDay) : undefined);
+    // Same fallback as startWorkout() above — without it, the live session for a
+    // full-body / Your pick / legacy bonus day renders blank (`if (!workout) return
+    // null` below reads as a dead page, not an error).
+    return found ?? (selectedDay != null ? resolveSessionDay(selectedWeek, selectedDay) : undefined);
   };
 
   const pickedMode = (weekNumber: number, dayNumber: number, incomplete?: WorkoutSessionRow | null) => {
@@ -771,6 +858,12 @@ function WorkoutPageInner() {
     if (!workout) return null;
 
     const wash = beltWashStyle(displayBelt(lockedWeeks, userGender));
+    // Yoga/Core Your pick runs as a tap-through / mark-done flow, not exercise cards.
+    const liveRow = sessions.find((session) => Number(session.id) === currentSession);
+    const timedPick =
+      liveRow && isTimedPickType(liveRow.pick_type) && (liveRow.pick_mode === 'timed' || liveRow.pick_mode === 'done')
+        ? { type: liveRow.pick_type as 'yoga' | 'core', mode: liveRow.pick_mode as 'timed' | 'done' }
+        : null;
     return (
       <div
         className={hyroxMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
@@ -889,6 +982,28 @@ function WorkoutPageInner() {
         </header>
 
         <div className="container mx-auto space-y-6 px-4 py-8 pb-28">
+          {timedPick ? (
+            <>
+              <YourPickFlow
+                key={currentSession}
+                sessionId={currentSession}
+                weekNumber={selectedWeek}
+                type={timedPick.type}
+                mode={timedPick.mode}
+                startedAt={startedAt}
+                onReadyChange={handlePickReady}
+              />
+              <button
+                type="button"
+                disabled={pickHardness == null}
+                onClick={() => setConfirmComplete(true)}
+                className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404] disabled:opacity-40"
+              >
+                Finish it
+              </button>
+            </>
+          ) : (
+          <>
           <OptionalCard
             sessionId={currentSession}
             slot="warmup"
@@ -935,6 +1050,8 @@ function WorkoutPageInner() {
           >
             Finish it
           </button>
+          </>
+          )}
         </div>
 
         <CoachBubble ref={coachBubbleRef} tone={coachTone} liftPx={restBannerLift} />
@@ -1063,6 +1180,7 @@ function WorkoutPageInner() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
+          {hyroxMode ? null : <YourPickExplainer requiredCount={clampScheduleDays(scheduleDays)} />}
           {program.map((week) => (
             <div key={week.weekNumber} className="glass-card overflow-hidden">
               <button
@@ -1102,6 +1220,17 @@ function WorkoutPageInner() {
                     {athleteWeekDays(week, scheduleDays).map((day) => {
                       const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
                       const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
+                      // A 5-day athlete's Your pick slot, or a program day a Your pick
+                      // swapped out: no session of its own, so a plain tile instead.
+                      const coveredByPick =
+                        !isCompleted &&
+                        !incomplete &&
+                        coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
+                          day.dayNumber
+                        );
+                      if (!hyroxMode && (isYourPickSlot(day) || coveredByPick)) {
+                        return renderPickTile(week.weekNumber, day, coveredByPick || isCompleted);
+                      }
                       const dayHistory = historySessions.filter(
                         (session) =>
                           Number(session.week_number) === week.weekNumber &&
@@ -1183,32 +1312,11 @@ function WorkoutPageInner() {
                                   Day {day.dayNumber}
                                 </span>
                                 <h3 className="text-lg font-black text-white">{day.name}</h3>
-                                {isBonusDay(day) ? (
-                                  <span className="rounded-full border border-[#e8c547]/50 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#e8c547]">
-                                    {/* At 5 days/week this bonus day is folded into athleteRequiredDays and
-                                        counts toward the week lock — "Bonus" alone would misleadingly read
-                                        as skippable, so say so plainly instead. */}
-                                    {athleteRequiredDays(week, scheduleDays).some(
-                                      (required) => required.dayNumber === day.dayNumber
-                                    )
-                                      ? 'Bonus · Required'
-                                      : 'Bonus'}
-                                  </span>
-                                ) : null}
                               </div>
                               <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
                               <p className="mt-1 text-xs text-[#f6f1e3]/50">
                                 Suggested: {day.suggestedDay} • {day.exercises.length} exercises
                               </p>
-                              {isBonusDay(day) && shouldRestBetweenUppers(sessions) ? (
-                                <p className="mt-2 text-xs font-semibold text-[#e8c547]">
-                                  {restBetweenUppersCopy()}
-                                </p>
-                              ) : isBonusDay(day) ? (
-                                <p className="mt-2 text-xs text-[#f6f1e3]/50">
-                                  {restBetweenUppersCopy()}
-                                </p>
-                              ) : null}
                             </div>
                             <ModeToggle
                               mode={mode}
@@ -1238,6 +1346,21 @@ function WorkoutPageInner() {
                                   Restart
                                 </button>
                               )}
+                              {!hyroxMode &&
+                              !incomplete &&
+                              pickAllowed(week.weekNumber) &&
+                              yourPickSwapTargets(week.weekNumber, athleteRequiredDays(week, scheduleDays), sessions).some(
+                                (target) => target.dayNumber === day.dayNumber
+                              ) ? (
+                                <button
+                                  type="button"
+                                  onClick={() => openPickSheet(week.weekNumber, day.dayNumber)}
+                                  className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border border-[#e8c547]/50 px-4 text-sm font-black text-[#e8c547]"
+                                >
+                                  <YourPickIcon />
+                                  Swap
+                                </button>
+                              ) : null}
                               <button
                                 type="button"
                                 onClick={() => startWorkout(week.weekNumber, day.dayNumber, undefined, { mode })}
@@ -1251,6 +1374,7 @@ function WorkoutPageInner() {
                       );
                     })}
                   </div>
+                  {hyroxMode ? null : renderYourPickSection(week.weekNumber)}
                 </div>
               )}
             </div>
@@ -1273,16 +1397,28 @@ function WorkoutPageInner() {
         This clears all in-progress sets for that day and returns it to Start. Nothing is opened until you tap Start.
       </Modal>
 
-      <BonusPickModal
-        open={Boolean(bonusPick)}
-        onCore={() => {
-          const pick = bonusPick;
-          setBonusPick(null);
-          if (pick) startWorkout(pick.weekNumber, pick.dayNumber, undefined, { mode: pick.mode, skipBonusPick: true });
+      {/* Mounted only while open, so each open starts from a fresh choice. */}
+      {pickSheetWeek != null ? (
+      <YourPickSheet
+        open
+        weekNumber={pickSheetWeek ?? 1}
+        initialSwapForDay={pickSheetSwapDay}
+        swapTargets={(() => {
+          const weekPlan = workoutProgram.find((item) => item.weekNumber === pickSheetWeek);
+          return weekPlan
+            ? yourPickSwapTargets(weekPlan.weekNumber, athleteRequiredDays(weekPlan, scheduleDays), sessions)
+            : [];
+        })()}
+        onStart={(choice) => {
+          const weekNumber = pickSheetWeek;
+          setPickSheetWeek(null);
+          if (weekNumber != null) {
+            startWorkout(weekNumber, yourPickDayNumber(choice.pickType), undefined, { mode: 'gym', pick: choice });
+          }
         }}
-        onActivity={(label) => finishBonusActivity(label)}
-        onClose={() => setBonusPick(null)}
+        onClose={() => setPickSheetWeek(null)}
       />
+      ) : null}
 
       <WorkoutRecapTakeover
         open={showRecap}

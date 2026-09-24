@@ -250,7 +250,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     [opts.sessionId, opts.userId]
   );
   const sessions = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at FROM workout_sessions WHERE user_id = ?',
+    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ?',
     [opts.userId]
   );
   const userRow = await query('SELECT schedule_days_per_week, gender FROM users WHERE id = ?', [opts.userId]);

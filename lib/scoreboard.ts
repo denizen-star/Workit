@@ -1,11 +1,11 @@
 import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 import { displayBelt } from '@/lib/belts';
-import { bonusTypeSql } from '@/lib/bonusDay';
+import { bonusWeeksByUser } from '@/lib/yourPickBonus';
 import { query } from '@/lib/db';
 import { sqlSetEffortVolume, sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
-import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
+import { sqlSessionOptionalOnlyVolume, sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import {
   performancePeriodWindow,
   priorPeriodWindow,
@@ -23,6 +23,24 @@ import {
   type ScoreboardPeriod,
 } from '@/lib/scoreboardTypes';
 import { normalizePerformancePeriod, type PerformancePeriod } from '@/lib/athletePerformanceTypes';
+import { avgPerSession, compareRank, rankEligible } from '@/lib/rankRule';
+
+/** Window length in days for the rank eligibility bar (lib/rankRule.ts). null = all time. */
+function scoreboardWindowDays(period: ScoreboardPeriod): number | null {
+  return period === 'all' ? null : period === '30' ? 30 : 7;
+}
+
+function performanceWindowDays(period: PerformancePeriod): number | null {
+  const days: Record<PerformancePeriod, number | null> = {
+    t: 1,
+    't-1': 1,
+    't-7': 7,
+    't-15': 15,
+    't-30': 30,
+    all: null,
+  };
+  return days[period];
+}
 
 function periodFilter(period: ScoreboardPeriod, column: string): SqlWindow {
   if (period === 'all') return { sql: '', params: [] };
@@ -127,7 +145,9 @@ async function householdScoreboardFiltered(
   optionalWindow: SqlWindow,
   badgeWindow: SqlWindow,
   priorSessionWindow: SqlWindow | null = null,
-  householdId?: number | null
+  householdId?: number | null,
+  /** Window length for the rank eligibility bar (lib/rankRule.ts); null = all time. */
+  windowDays: number | null = null
 ): Promise<HouseholdScoreboardRow[]> {
   const house = sqlInHousehold('u.id', householdId);
   const result = await query(
@@ -135,6 +155,7 @@ async function householdScoreboardFiltered(
        u.id,
        u.name,
        u.display_name,
+       u.schedule_days_per_week,
        COUNT(DISTINCT ws.id) as workouts,
        COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
          'u.id',
@@ -158,9 +179,8 @@ async function householdScoreboardFiltered(
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
      WHERE 1=1 ${house.sql}
-     GROUP BY u.id, u.name, u.display_name
-     HAVING COUNT(DISTINCT ws.id) > 0
-     ORDER BY workouts DESC, volume DESC, u.name ASC`,
+     GROUP BY u.id, u.name, u.display_name, u.schedule_days_per_week
+     HAVING COUNT(DISTINCT ws.id) > 0`,
     [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params, ...house.params]
   );
 
@@ -168,6 +188,7 @@ async function householdScoreboardFiltered(
     id: number;
     name: string;
     display_name: string | null;
+    schedule_days_per_week: number | null;
     workouts: number;
     volume: number;
     sets: number;
@@ -227,7 +248,7 @@ async function householdScoreboardFiltered(
        FROM (
          SELECT
            ws.user_id,
-           COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as session_volume
+           COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
          FROM workout_sessions ws
          LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
          WHERE ws.is_completed = 1 ${sessionWindow.sql}
@@ -241,7 +262,7 @@ async function householdScoreboardFiltered(
        FROM (
          SELECT
            ws.user_id,
-           COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as session_volume
+           COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
          FROM workout_sessions ws
          LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
          WHERE ws.is_completed = 1 ${sessionWindow.sql}
@@ -274,26 +295,34 @@ async function householdScoreboardFiltered(
     badgesByUser.set(Number(row.user_id), Number(row.badges || 0));
   }
 
+  // Rank by the shared rule (lib/rankRule.ts): eligible first, then average display
+  // volume per session (effort sets + optional + Your pick credit).
+  const scheduleByUser = new Map(rows.map((row) => [Number(row.id), row.schedule_days_per_week]));
+  const rankRow = (row: HouseholdScoreboardRow) => ({
+    id: row.id,
+    name: row.name,
+    workouts: row.workouts,
+    volume: row.effortVolume || 0,
+    scheduleDays: scheduleByUser.get(row.id),
+    lockedWeeks: lockedByUser.get(row.id) || 0,
+  });
   return rows
-    .map((row) =>
-      toScoreboardRow(
+    .map((row) => {
+      const board = toScoreboardRow(
         { ...row, ...priorByUser.get(Number(row.id)) },
         lastByUser,
         bestByUser,
         effortBestByUser,
         badgesByUser,
         lockedByUser
-      )
-    )
-    .sort(
-      (a, b) =>
-        b.workouts - a.workouts ||
-        b.volume - a.volume ||
-        b.bestSessionVolume - a.bestSessionVolume ||
-        b.heaviest - a.heaviest ||
-        a.name.localeCompare(b.name) ||
-        a.id - b.id
-    );
+      );
+      return {
+        ...board,
+        avgPerSession: avgPerSession(rankRow(board)),
+        rankEligible: rankEligible(rankRow(board), windowDays),
+      };
+    })
+    .sort((a, b) => compareRank(rankRow(a), rankRow(b), windowDays));
 }
 
 export async function householdScoreboard(
@@ -305,7 +334,8 @@ export async function householdScoreboard(
     periodFilter(period, 'COALESCE(optws.completed_at, optws.started_at, optws.created_at)'),
     periodFilter(period, 'ub.earned_at'),
     priorPeriodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
-    householdId
+    householdId,
+    scoreboardWindowDays(period)
   );
 }
 
@@ -320,7 +350,8 @@ export async function householdScoreboardForPerformance(
     sqlPeriodWindow('COALESCE(optws.completed_at, optws.started_at, optws.created_at)', window),
     sqlPeriodWindow('ub.earned_at', window),
     prior ? sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', prior) : null,
-    householdId
+    householdId,
+    performanceWindowDays(normalizePerformancePeriod(period))
   );
 }
 
@@ -405,30 +436,24 @@ export async function householdBonusHonor(
     'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'
   );
   const house = sqlInHousehold('u.id', householdId);
-  const result = await query(
-    `SELECT
-       u.id,
-       u.name,
-       u.display_name,
-       COUNT(DISTINCT ws.week_number) as bonus_weeks
-     FROM users u
-     INNER JOIN workout_sessions ws
-       ON ws.user_id = u.id AND ws.is_completed = 1 AND ${bonusTypeSql('ws')} ${sessionWindow.sql}
-     WHERE ${SQL_EXCLUDE_TEST_USER} ${house.sql}
-     GROUP BY u.id, u.name, u.display_name
-     HAVING COUNT(DISTINCT ws.week_number) > 0
-     ORDER BY bonus_weeks DESC, u.name ASC`,
-    [...sessionWindow.params, ...house.params]
+  // Past bonus weeks + weeks a Your pick went past the athlete's required count.
+  const counts = await bonusWeeksByUser(`AND ${SQL_EXCLUDE_TEST_USER} ${sessionWindow.sql} ${house.sql}`, [
+    ...sessionWindow.params,
+    ...house.params,
+  ]);
+  if (counts.size === 0) return [];
+  const users = await query(
+    `SELECT id, name, display_name FROM users WHERE id IN (${[...counts.keys()].map(() => '?').join(', ')})`,
+    [...counts.keys()]
   );
-
-  return (
-    result.rows as { id: number; name: string; display_name: string | null; bonus_weeks: number }[]
-  ).map((row) => ({
-    id: Number(row.id),
-    name: row.name,
-    displayName: row.display_name ?? null,
-    bonusWeeks: Number(row.bonus_weeks || 0),
-  }));
+  return (users.rows as { id: number; name: string; display_name: string | null }[])
+    .map((row) => ({
+      id: Number(row.id),
+      name: row.name,
+      displayName: row.display_name ?? null,
+      bonusWeeks: counts.get(Number(row.id)) || 0,
+    }))
+    .sort((a, b) => b.bonusWeeks - a.bonusWeeks || a.name.localeCompare(b.name));
 }
 
 /** Per-athlete daily volume for the scoreboard chart. Test stays in the lines; avg drops Test in the chart. */

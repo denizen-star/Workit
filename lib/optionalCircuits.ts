@@ -843,3 +843,109 @@ const ABS_EXERCISES: FixedStep[] = [
 export function absCircuit(): OptionalCircuitStep[] {
   return [...renderFixed(ABS_EXERCISES, ABS_WORK_SECONDS), ...renderFixed(ABS_EXERCISES, ABS_WORK_SECONDS)];
 }
+
+/* ---------------------------------------------------------------------------
+ * Your pick — Yoga and Core as standalone sessions (docs/plans/PLAN_YOUR_PICK.md).
+ * Built from the same pose/hold data above so stills, videos and cues stay in
+ * one place. Tap-through: each step advances on its timer or on a tap.
+ * ------------------------------------------------------------------------- */
+
+/** Yoga Your pick: 15 poses × 2 minutes = a 30-minute flow. */
+const PICK_YOGA_HOLD_SECONDS = YOGA_HOLD_SECONDS;
+/** Core Your pick: 12 holds × 75 seconds = about 15 minutes of work. */
+const PICK_CORE_HOLD_SECONDS = 75;
+
+/** A stretch/core `Cue` as a standalone step (uses its active, warmup wording). */
+function cueStep(item: Cue, holdSeconds: number): OptionalCircuitStep {
+  return { title: item.title, body: item.warmup, holdSeconds, videoId: item.videoId, ...stills(item.id) };
+}
+
+type PickStep = { cue: Cue } | { fixed: FixedStep };
+
+function renderPick(steps: PickStep[], holdSeconds: number): OptionalCircuitStep[] {
+  return steps.map((step) =>
+    'cue' in step ? cueStep(step.cue, holdSeconds) : renderFixed([step.fixed], holdSeconds)[0]
+  );
+}
+
+const c = (item: Cue): PickStep => ({ cue: item });
+const f = (item: FixedStep): PickStep => ({ fixed: item });
+const ABS = {
+  plank: f(ABS_EXERCISES[0]),
+  bicycle: f(ABS_EXERCISES[1]),
+  deadBugs: f(ABS_EXERCISES[2]),
+  russian: f(ABS_EXERCISES[3]),
+  reverse: f(ABS_EXERCISES[4]),
+};
+
+/** Three 15-pose flows that rotate by program week. */
+const PICK_YOGA_FLOWS: PickStep[][] = [
+  // Spine and shoulders.
+  [
+    ...YOGA_WARMUP_UPPER.map(f),
+    c(HOLD.puppy), c(HOLD.eagle), c(HOLD.mermaid), c(HOLD.thread), c(HOLD.cowFace),
+    ...YOGA_COOLDOWN_UPPER.map(f),
+  ],
+  // Hips and legs.
+  [
+    ...YOGA_WARMUP_LOWER.map(f),
+    c(HOLD.lizard), c(HOLD.halfSplit), c(HOLD.pigeon), c(HOLD.butterfly), c(HOLD.frogFold),
+    ...YOGA_COOLDOWN_LOWER.map(f),
+  ],
+  // Whole body.
+  [
+    f(YOGA_WARMUP_UPPER[0]), f(YOGA_WARMUP_UPPER[1]), f(YOGA_WARMUP_UPPER[2]),
+    f(YOGA_WARMUP_LOWER[3]), f(YOGA_WARMUP_LOWER[4]),
+    c(HOLD.lowLungeReach), c(HOLD.longPuppy), c(HOLD.reclinedPigeon), c(HOLD.adductors), c(HOLD.quads),
+    f(YOGA_COOLDOWN_LOWER[1]), f(YOGA_COOLDOWN_UPPER[0]), f(YOGA_COOLDOWN_UPPER[1]),
+    f(YOGA_COOLDOWN_UPPER[3]), f(YOGA_COOLDOWN_UPPER[4]),
+  ],
+];
+
+/** Five 12-hold core packs that rotate by program week. */
+const PICK_CORE_PACKS: PickStep[][] = [
+  // Foundation.
+  [
+    c(HOLD.deadBug), c(HOLD.birdDog), c(HOLD.heelTaps), c(HOLD.sideLyingHold), c(HOLD.easyHollow),
+    c(HOLD.gluteBridge), c(HOLD.bear), c(HOLD.easySidePlank), c(HOLD.toeTaps), c(HOLD.clams),
+    ABS.plank, c(HOLD.childs),
+  ],
+  // Pilates.
+  [
+    c(HOLD.pilatesBreath), c(HOLD.hundred), c(HOLD.singleLegStretch), c(HOLD.doubleLeg), c(HOLD.crissCross),
+    c(HOLD.saw), c(HOLD.rollUp), c(HOLD.sideKick), c(HOLD.teaser), c(HOLD.shoulderBridge),
+    c(HOLD.marchingBridge), c(HOLD.childs),
+  ],
+  // Abs burn.
+  [
+    ABS.plank, ABS.bicycle, ABS.deadBugs, ABS.russian, ABS.reverse,
+    c(HOLD.boat), c(HOLD.heelTaps), c(HOLD.sideLyingKick), c(HOLD.singleLegBridge), c(HOLD.bear),
+    c(HOLD.easySidePlank), c(HOLD.breatheDown),
+  ],
+  // Anti-rotation.
+  [
+    c(HOLD.birdDog), c(HOLD.bear), c(HOLD.easySidePlank), c(HOLD.saw), ABS.russian,
+    c(HOLD.deadBug), c(HOLD.marchingBridge), c(HOLD.clams), c(HOLD.crissCross), ABS.plank,
+    c(HOLD.toeTaps), c(HOLD.childs),
+  ],
+  // Power.
+  [
+    c(HOLD.hundred), c(HOLD.teaser), c(HOLD.boat), ABS.reverse, ABS.bicycle,
+    c(HOLD.rollUp), c(HOLD.singleLegBridge), c(HOLD.sideKick), c(HOLD.doubleLeg), ABS.plank,
+    c(HOLD.crissCross), c(HOLD.breatheDown),
+  ],
+];
+
+function rotate<T>(pool: T[], weekNumber: number): T {
+  return pool[Math.max(0, weekNumber - 1) % pool.length];
+}
+
+/** The Yoga Your pick flow for a program week (30 minutes, rotates weekly). */
+export function yourPickYogaFlow(weekNumber: number): OptionalCircuitStep[] {
+  return renderPick(rotate(PICK_YOGA_FLOWS, weekNumber), PICK_YOGA_HOLD_SECONDS);
+}
+
+/** The Core Your pick pack for a program week (12 holds, rotates weekly). */
+export function yourPickCoreFlow(weekNumber: number): OptionalCircuitStep[] {
+  return renderPick(rotate(PICK_CORE_PACKS, weekNumber), PICK_CORE_HOLD_SECONDS);
+}

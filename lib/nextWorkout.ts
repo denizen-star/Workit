@@ -1,7 +1,7 @@
 import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
-import { requiredDays, weekLocked } from "@/lib/bonusDay";
+import { coveredDayNumbers, requiredDays, weekLocked } from "@/lib/bonusDay";
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
-import { resolveFullBodyDay } from "@/lib/scheduleDays";
+import { resolveSessionDay } from "@/lib/resolveDay";
 
 export interface WorkoutSessionRow {
   id: number;
@@ -23,6 +23,12 @@ export interface WorkoutSessionRow {
   optional_kicker_lbs?: number | null;
   /** Completed sets on this session. Used to resume the copy that has work. */
   completed_set_count?: number | null;
+  /** Your pick (docs/plans/PLAN_YOUR_PICK.md): type, mode, swapped program day, credit. */
+  pick_type?: string | null;
+  pick_mode?: string | null;
+  swap_for_day?: number | null;
+  credit_lbs?: number | null;
+  session_hardness?: number | null;
 }
 
 export function isSessionComplete(session: { is_completed: unknown }): boolean {
@@ -159,18 +165,16 @@ export function findNextProgramDay(
    * `schedule_days_per_week` (see `lib/scheduleDays.ts`) instead. */
   daysForWeek: (week: WeekPlan) => WorkoutDay[] = requiredDays
 ): { week: WeekPlan; day: WorkoutDay } | null {
-  const completed = new Set(
-    sessions
-      .filter(isSessionComplete)
-      .map((session) => `${session.week_number}-${session.day_number}`)
-  );
-
   for (const week of program) {
     if (week.weekNumber < minWeek) continue;
     const days = daysForWeek(week);
     if (weekLocked(sessions, week.weekNumber, days.length)) continue;
+    // Swapped days and a filled Your pick slot count as done (coveredDayNumbers).
+    // An open Your pick slot can come back as the target — callers open the Your
+    // pick picker for it (`isYourPickSlot`) instead of starting it directly.
+    const covered = coveredDayNumbers(sessions, week.weekNumber, days);
     for (const day of days) {
-      if (!completed.has(`${week.weekNumber}-${day.dayNumber}`)) {
+      if (!covered.has(day.dayNumber)) {
         return { week, day };
       }
     }
@@ -202,15 +206,13 @@ export function getTodayTarget(
   const resume = findIncompleteSession(sessions);
   if (resume) {
     const week = workoutProgram.find((item) => item.weekNumber === Number(resume.week_number));
-    // Full-body days (2-3 day/week athletes, dayNumber 6+) aren't in the static
+    // Full-body (6-8), Your pick (20-24) and retired bonus days aren't in the static
     // program array — resolve them the same way app/workout/page.tsx does, or an
-    // open full-body session silently falls through to a fresh "start" target
-    // instead of "resume" here (Select Workout still finds it fine on its own,
-    // since it doesn't go through this lookup — this is specifically about what
-    // Home shows).
+    // open session on one silently falls through to a fresh "start" target instead
+    // of "resume" here (this is specifically about what Home shows).
     const day =
       week?.days.find((item) => item.dayNumber === Number(resume.day_number)) ??
-      (week ? resolveFullBodyDay(Number(resume.week_number), Number(resume.day_number)) : undefined);
+      (week ? resolveSessionDay(Number(resume.week_number), Number(resume.day_number)) : undefined);
     if (week && day) {
       return { type: "resume" as const, session: resume, week, day };
     }

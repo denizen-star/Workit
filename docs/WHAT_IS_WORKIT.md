@@ -2,7 +2,7 @@
 
 New-athlete explanation of the program. Not the short Who-sheet copy (`lib/helpCopy.ts`).
 
-**Keep current:** when week shape, lock rule, bonus, belts, gym/travel, or Home Start change, update this file to match `app/help/page.tsx`, `lib/bonusDay.ts`, and `CLAUDE.md`.
+**Keep current:** when week shape, lock rule, Your pick, belts, gym/travel, or Home Start change, update this file to match `app/help/page.tsx`, `lib/bonusDay.ts`, `lib/yourPick.ts`, and `CLAUDE.md`.
 
 ---
 
@@ -20,9 +20,13 @@ Do not invent the session on the fly. We already thought it through and planned 
 - **Thu** Upper B (same idea, different mix)
 - **Fri** Lower B
 
-Weeks 3–6 also offer an optional **Bonus Upper**. You do not owe it, unless you chose 5 days a week — then it's part of your required week. If you're at 2 or 3 days a week, you'll see **full-body days** instead of the split — nothing gets skipped on a short week.
+If you're at 1 to 3 days a week, you'll see **full-body days** instead of the split — nothing gets skipped on a short week.
 
-**Week 7 onward:** same idea, but only **one** lower (A and B take turns), plus **Extra Upper** on Friday. Saturday bonus is core in the app, or a class / run / yoga you mark.
+**Week 7 onward:** Upper A, **one** lower (A and B take turns), Upper B, and a **Your pick** day on Friday (it replaced the old Extra Upper — pick Upper if you want that workout).
+
+**The count is what matters.** Your week locks once you finish your days-per-week number of workouts — any mix of plan days, swaps and Your picks.
+
+**Your pick**, any week: besides your program, start an **Upper, Lower, Yoga, Core or Full body** workout whenever you want. Add it on top of your week, or **swap** it in for a program day you haven't started (that day then counts as done). Every finished Your pick counts toward locking the week, belts and medals — any 4 sessions still lock a week (or your own day count). It works on this week or an earlier week that isn't locked yet, never a future one. Yoga and Core run as timed holds you tap through, or as **mark done** (30 minutes minimum, once a day); both score like a full workout — your average session from the last 7 days, scaled by how hard it felt. If you chose 5 days a week, you get two Your pick days from week 7 (one in weeks 3–6). The old bonus day is gone; past bonus sessions still count.
 
 ## How you actually train
 
@@ -35,6 +39,8 @@ If you cannot get to a gym, flip the day to **Travel** — same session, no-equi
 You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a short stretch/core circuit). Stretch and Core ask Easy, Medium, or Hard before they start. Nice extra, not required to lock the week. Starting a day that is already open resumes the session that has your sets.
 
 ## What you are chasing
+
+**The house** ranks everyone who hit their own days-per-week for the stretch first (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Weekly medals use the same rule. Piling on extra sessions never buys a spot.
 
 **Belts** are diplomas for locked weeks stacked over the year. They unlock at weeks 2, 6, 12, 18, 24, 30, 36, 42, and 48. You always see the one you are aiming for. Belts feature character artwork based on your chosen gender track (Male, Female, Non-binary), which you can change in Edit profile.
 

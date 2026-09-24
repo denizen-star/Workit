@@ -4,7 +4,7 @@ import { Check } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { HelpTip } from '@/components/HelpSheet';
 import { HOME_WEEK_LOCK_HELP } from '@/lib/helpCopy';
-import { bonusCompletedInWeek, isBonusDay, weekProgress } from '@/lib/bonusDay';
+import { coveredDayNumbers, weekProgress, yourPickCountInWeek } from '@/lib/bonusDay';
 import type { AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
@@ -17,19 +17,16 @@ function shortDayName(name: string) {
   return name.replace(' Body ', ' ');
 }
 
-function isDayDone(day: WorkoutDay, week: WeekPlan, sessions: WorkoutSessionRow[]) {
-  return sessions.some(
-    (session) =>
-      Boolean(Number(session.is_completed)) &&
-      Number(session.week_number) === week.weekNumber &&
-      Number(session.day_number) === day.dayNumber
-  );
+/** Done if a finished session covers the day — its own, a Your pick swap for it, or
+ * (for a Your pick slot tile) a Your pick add. See `weekCoverage` in lib/bonusDay.ts. */
+function isDayDone(day: WorkoutDay, week: WeekPlan, sessions: WorkoutSessionRow[], required: WorkoutDay[]) {
+  return coveredDayNumbers(sessions, week.weekNumber, required).has(day.dayNumber);
 }
 
 const LEGEND = 'Gold = start here. Green = done. Dashed = still open.';
 
 function headerHelp(requiredCount: number) {
-  return `${requiredCount} required days this week. ${LEGEND} Lock the week when all ${requiredCount} are green.`;
+  return `Any ${requiredCount} workouts lock the week — follow the plan, swap a day you haven't started, or add a Your pick. ${LEGEND}`;
 }
 
 const HELP: Record<string, string> = {
@@ -79,30 +76,26 @@ export default function WeekLock({
 
   const required = athleteRequiredDays(week, scheduleDays);
   const progress = weekProgress(sessions, week, undefined, required, lockedRecord);
-  const nextUnpaid = required.find((day) => !isDayDone(day, week, sessions));
+  const nextUnpaid = required.find((day) => !isDayDone(day, week, sessions, required));
   const workouts = board?.workouts || [];
   const weekVolume = weekDoneVolume(
     workouts,
     week.weekNumber,
-    required.filter((day) => isDayDone(day, week, sessions)).map((day) => day.name)
+    required.filter((day) => isDayDone(day, week, sessions, required)).map((day) => day.name)
   );
   const optionals = optionalCountInWeek(sessions, week.weekNumber);
   const optionalLbs = sessions
     .filter((session) => Number(session.week_number) === week.weekNumber)
     .reduce((sum, session) => sum + sessionOptionalLbs(session), 0);
-  const bonusDone = bonusCompletedInWeek(sessions, week.weekNumber);
-  // At 5 days/week the bonus day is already folded into `required` above (its own
-  // tile, counted in the header/fill bar) — a separate "Bonus" line here would
-  // read as a second, still-optional thing when it's actually the same day.
-  const bonusIsSeparateFromRequired = !required.some((day) => isBonusDay(day));
+  const yourPicks = yourPickCountInWeek(sessions, week.weekNumber);
   const slots = required.map((day) => ({
     day,
-    state: isDayDone(day, week, sessions)
+    state: isDayDone(day, week, sessions, required)
       ? 'done'
       : nextUnpaid?.dayNumber === day.dayNumber
         ? 'now'
         : 'open',
-    stats: dayVolumeStats(workouts, week.weekNumber, day.name, isDayDone(day, week, sessions)),
+    stats: dayVolumeStats(workouts, week.weekNumber, day.name, isDayDone(day, week, sessions, required)),
   }));
 
   return (
@@ -113,7 +106,7 @@ export default function WeekLock({
           onClick={() => setHelp(headerHelp(required.length))}
           className="font-semibold text-white"
         >
-          {progress.requiredDone} of {progress.requiredTotal} days
+          {progress.requiredDone} of {progress.requiredTotal} workouts
           {weekVolume ? ` · ${weekVolume}` : ''}
         </button>
         <HelpTip
@@ -127,7 +120,7 @@ export default function WeekLock({
           onClick={() => setHelp(headerHelp(required.length))}
           className="ml-auto text-[#f6f1e3]/60"
         >
-          Lock the week
+          Any mix locks it
         </button>
       </div>
       <div className="mb-4 flex gap-1.5">
@@ -194,7 +187,7 @@ export default function WeekLock({
       </div>
       <p className="mt-3 text-sm text-[#f6f1e3]/70">
         Optionals {optionals.total} / 8 · {optionalLbs ? `+${formatCompact(optionalLbs)}` : '0'}
-        {bonusIsSeparateFromRequired ? ` · Bonus ${bonusDone ? 1 : 0}` : ''}
+        {yourPicks > 0 ? ` · Your pick ${yourPicks}` : ''}
       </p>
       <p className="mt-1 text-sm text-[#f6f1e3]/70">{help || LEGEND}</p>
     </div>

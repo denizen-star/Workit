@@ -682,7 +682,7 @@ export default function AthletePerformance({
           </section>
           {snapshots.length > 0 || flags ? (
             <section>
-              <SectionLabel hint="What you did in this window. Totals use Effort. Place is vs the house on raw iron.">
+              <SectionLabel hint="What you did in this window. Totals use Effort. Place is vs the house: your weekly days met first, then average per session.">
                 Details
               </SectionLabel>
               {snapshots.length > 0 ? (

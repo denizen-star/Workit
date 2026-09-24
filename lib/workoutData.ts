@@ -34,6 +34,9 @@ export interface WorkoutDay {
   bonus?: boolean;
   /** Hyrox Training only: this day is a self-reported benchmark test (1-4), gating the next phase. */
   milestone?: number;
+  /** Your pick day (lib/yourPick.ts) — synthesized per week, not part of `workoutProgram`.
+   * `slot` is a 5-day athlete's required "any Your pick" tile, not a startable day. */
+  pick?: 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'slot';
 }
 
 const COMPOUND_BUILD = 'Add 2.5-5 lb or 1-2 reps';
@@ -440,7 +443,39 @@ const FIRST_SIX: WeekPlan[] = [
   }
 ];
 
-export const workoutProgram: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)]);
+/** Week 7+ Friday day that Your pick replaced (docs/plans/PLAN_YOUR_PICK.md). */
+export const EXTRA_UPPER_NAME = 'Extra Upper';
+
+/** Days Your pick retired: the optional bonus day (Bonus Upper weeks 3-6, Bonus Core
+ * week 7+) and week 7+'s Extra Upper. Past sessions on them still resolve and count. */
+function isRetiredDay(day: WorkoutDay): boolean {
+  return Boolean(day.bonus) || day.name === EXTRA_UPPER_NAME;
+}
+
+/** The full built program, retired days included — built this way so
+ * `applyAbCoreRotation`'s global counter lands every day on the same ab/core move it
+ * always had. Use it for catalogs (Library, canonical reps) and legacy lookups; use
+ * `workoutProgram` for what athletes actually train. */
+export const programWithRetiredDays: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)]);
+
+export const workoutProgram: WeekPlan[] = programWithRetiredDays.map((week) => ({
+  ...week,
+  days: week.days.filter((day) => !isRetiredDay(day)),
+}));
+
+/** A retired day (see `isRetiredDay`) — only for resolving sessions logged before
+ * Your pick replaced it. Never offered to start. */
+export function getRetiredDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
+  const week = programWithRetiredDays.find((item) => item.weekNumber === weekNumber);
+  const day = week?.days.find((item) => item.dayNumber === dayNumber);
+  return day && isRetiredDay(day) ? day : undefined;
+}
+
+/** A retired bonus day specifically (weeks 3-48 had one). */
+export function getLegacyBonusDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
+  const day = getRetiredDay(weekNumber, dayNumber);
+  return day?.bonus ? day : undefined;
+}
 
 /** First program (or ab-core pool) definition for a movement name — used when Alt
  * Exercise swaps onto a different lift so the card keeps that lift's own reps
@@ -448,7 +483,7 @@ export const workoutProgram: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...
 export function canonicalProgramExercise(name: string): Exercise | undefined {
   const poolHit = AB_CORE_POOL.find((item) => item.name === name);
   if (poolHit) return poolHit;
-  for (const week of workoutProgram) {
+  for (const week of programWithRetiredDays) {
     for (const day of week.days) {
       const found = day.exercises.find((item) => item.name === name);
       if (found) return found;
@@ -461,9 +496,11 @@ export function getWeekPlan(weekNumber: number): WeekPlan | undefined {
   return workoutProgram.find(week => week.weekNumber === weekNumber);
 }
 
+/** Program day, or a retired day (bonus / Extra Upper) so past and open sessions on
+ * one still resolve. */
 export function getWorkoutDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
   const week = getWeekPlan(weekNumber);
-  return week?.days.find(day => day.dayNumber === dayNumber);
+  return week?.days.find(day => day.dayNumber === dayNumber) ?? getRetiredDay(weekNumber, dayNumber);
 }
 
 export function applyExerciseMode(exercise: Exercise, mode: WorkoutMode | unknown): Exercise {

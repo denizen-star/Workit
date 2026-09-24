@@ -19,6 +19,6 @@ export const QUICKSTART_STEPS: QuickstartStep[] = [
   },
   {
     title: "You're done",
-    body: "Tap Finish it and rate the session. Four finishes in a week locks it — that's the whole game.",
+    body: "Tap Finish it and rate the session. Hit your weekly number of finishes (4 by default, any mix — plan days, swaps, Your picks) and the week locks. That's the whole game.",
   },
 ];

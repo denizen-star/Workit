@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { BELTS, getBelts, serializeBelt } from '@/lib/belts';
-import { bonusCount, sessionIsBonus } from '@/lib/bonusDay';
+import { bonusCount, sessionIsBonus, weekBonusDone } from '@/lib/bonusDay';
+import { sessionIsYourPick } from '@/lib/yourPick';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
 import { updateDailyStats } from '@/lib/dailyStats';
@@ -11,11 +12,14 @@ import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
 import { parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
-import { applyExerciseMode, getWorkoutDay } from '@/lib/workoutData';
-import { requiredCountForWeek, resolveFullBodyDay } from '@/lib/scheduleDays';
+import { applyExerciseMode } from '@/lib/workoutData';
+import { resolveSessionDay } from '@/lib/resolveDay';
+import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
 import { HYROX_WEEK_OFFSET, getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import { markDoneTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
+import { applyYourPickCredit } from '@/lib/yourPickCredit';
 
 type OpenSessionRow = {
   id: number;
@@ -69,12 +73,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { weekNumber, dayNumber, workoutType, scheduledDate, workoutMode, complete } = await request.json();
+    const body = await request.json();
+    const { weekNumber, scheduledDate, workoutMode, complete } = body;
+    let { dayNumber, workoutType } = body;
     const mode = String(workoutMode || '').trim().toLowerCase() === 'travel' ? 'travel' : 'gym';
     // Derived from the week number, not trusted from the client — Hyrox weeks are
     // namespaced at 101+ (see lib/hyroxProgram.ts) specifically so this is authoritative.
     const track = Number(weekNumber) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main';
     const markComplete = Boolean(complete);
+
+    // Your pick (docs/plans/PLAN_YOUR_PICK.md): the server picks the day number and
+    // workout type from the validated type, never the client's.
+    let pick: YourPickStart | null = null;
+    if (body.pickType != null) {
+      if (track !== 'main' || markComplete) {
+        return NextResponse.json({ error: 'Your pick is main program only' }, { status: 400 });
+      }
+      const checked = await validateYourPickStart(user.id, user.scheduleDaysPerWeek, {
+        weekNumber,
+        pickType: body.pickType,
+        pickMode: body.pickMode,
+        swapForDay: body.swapForDay,
+      });
+      if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
+      pick = checked.start;
+      dayNumber = pick.dayNumber;
+      workoutType = pick.workoutType;
+    }
 
     const openSessionId = markComplete
       ? null
@@ -84,9 +109,21 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, program_track, scheduled_date, started_at, is_completed, completed_at, ended_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ${markComplete ? 'NOW()' : 'NULL'}, ${markComplete ? 'NOW()' : 'NULL'})`,
-      [user.id, weekNumber, dayNumber, workoutType, mode, track, scheduledDate, markComplete ? 1 : 0]
+      `INSERT INTO workout_sessions (user_id, week_number, day_number, workout_type, workout_mode, program_track, scheduled_date, started_at, is_completed, completed_at, ended_at, pick_type, pick_mode, swap_for_day)
+       VALUES (?, ?, ?, ?, ?, ?, ?, NOW(), ?, ${markComplete ? 'NOW()' : 'NULL'}, ${markComplete ? 'NOW()' : 'NULL'}, ?, ?, ?)`,
+      [
+        user.id,
+        weekNumber,
+        dayNumber,
+        workoutType,
+        mode,
+        track,
+        scheduledDate,
+        markComplete ? 1 : 0,
+        pick?.pickType ?? null,
+        pick?.pickMode ?? null,
+        pick?.swapForDay ?? null,
+      ]
     );
 
     if (markComplete) {
@@ -160,7 +197,8 @@ export async function GET(request: NextRequest) {
       const sessionResult = await query(
         `SELECT id, week_number, day_number, workout_type, workout_mode,
                 started_at, completed_at, ended_at, created_at,
-                warmup_lbs, cooldown_lbs, optional_kicker_lbs
+                warmup_lbs, cooldown_lbs, optional_kicker_lbs,
+                pick_type, pick_mode, swap_for_day, credit_lbs, session_hardness
          FROM workout_sessions
          WHERE user_id = ? AND is_completed = 1
          ORDER BY week_number, day_number, COALESCE(completed_at, created_at) DESC`,
@@ -180,6 +218,11 @@ export async function GET(request: NextRequest) {
         warmup_lbs?: number | null;
         cooldown_lbs?: number | null;
         optional_kicker_lbs?: number | null;
+        pick_type?: string | null;
+        pick_mode?: string | null;
+        swap_for_day?: number | null;
+        credit_lbs?: number | null;
+        session_hardness?: number | null;
       }[];
 
       // The completed log's week-fold check (components/CompletedLog.tsx) needs the
@@ -275,11 +318,12 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    const { sessionId, isCompleted, notes } = await request.json();
+    const { sessionId, isCompleted, notes, sessionHardness } = await request.json();
 
     const existing = await query(
       `SELECT id, week_number, day_number, workout_type, is_completed,
-              warmup_lbs, cooldown_lbs, optional_kicker_lbs
+              warmup_lbs, cooldown_lbs, optional_kicker_lbs,
+              pick_type, pick_mode, swap_for_day, started_at
        FROM workout_sessions WHERE id = ? AND user_id = ?`,
       [sessionId, user.id]
     );
@@ -297,9 +341,17 @@ export async function PUT(request: NextRequest) {
       warmup_lbs?: number | null;
       cooldown_lbs?: number | null;
       optional_kicker_lbs?: number | null;
+      pick_type?: string | null;
+      pick_mode?: string | null;
+      swap_for_day?: number | null;
+      started_at?: string | null;
     };
     const alreadyComplete = Boolean(Number(session.is_completed));
-    const bonus = sessionIsBonus(session);
+    let bonus = sessionIsBonus(session);
+    // Your pick mark done needs 30 minutes of wall clock (docs/plans/PLAN_YOUR_PICK.md).
+    if (isCompleted && !alreadyComplete && markDoneTooSoon(session)) {
+      return NextResponse.json({ error: 'Mark done needs 30 minutes' }, { status: 400 });
+    }
     const optionalLbs = sessionOptionalLbs(session);
 
     if (isCompleted) {
@@ -317,6 +369,11 @@ export async function PUT(request: NextRequest) {
        WHERE id = ? AND user_id = ?`,
       [isCompleted, isCompleted ? new Date() : null, isCompleted ? new Date() : null, notes, sessionId, user.id]
     );
+
+    // Yoga/Core Your pick: store its credit before badges / daily stats read volume.
+    if (isCompleted && !alreadyComplete) {
+      await applyYourPickCredit(user.id, session, sessionHardness);
+    }
 
     const awardedBadges = isCompleted && !alreadyComplete
       ? await checkAndAwardBadges(user.id)
@@ -351,17 +408,24 @@ export async function PUT(request: NextRequest) {
     if (isCompleted) {
       await updateDailyStats(Number(sessionId), user.id);
       const all = await query(
-        'SELECT week_number, day_number, workout_type, is_completed FROM workout_sessions WHERE user_id = ?',
-        [user.id]
+        `SELECT week_number, day_number, workout_type, is_completed, pick_type, swap_for_day
+         FROM workout_sessions WHERE user_id = ? AND program_track = ?`,
+        [user.id, Number(session.week_number) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main']
       );
       const rows = all.rows as Array<{
         week_number: number;
         day_number: number;
         workout_type: string;
         is_completed: number | boolean;
+        pick_type: string | null;
+        swap_for_day: number | null;
       }>;
-      uniqueBonusWeeks = bonusCount(rows);
       const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
+      // Bonus = a retired bonus day, or a Your pick that took the week past its bar.
+      uniqueBonusWeeks = bonusCount(rows, undefined, requiredForWeek);
+      if (sessionIsYourPick(session)) {
+        bonus = weekBonusDone(rows, Number(session.week_number), requiredForWeek(Number(session.week_number)));
+      }
       const completedThisWeek = rows.filter(
         (row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))
       ).length;
@@ -453,8 +517,7 @@ export async function PATCH(request: NextRequest) {
     const day =
       Number(session.week_number) > HYROX_WEEK_OFFSET
         ? getHyroxWorkoutDay(Number(session.week_number), Number(session.day_number))
-        : getWorkoutDay(Number(session.week_number), Number(session.day_number)) ??
-          resolveFullBodyDay(Number(session.week_number), Number(session.day_number));
+        : resolveSessionDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);
 
     for (const exercise of day?.exercises || []) {

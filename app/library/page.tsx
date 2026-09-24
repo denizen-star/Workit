@@ -4,6 +4,8 @@ import { useMemo, useState } from 'react';
 import { Search } from 'lucide-react';
 import YouPageShell from '@/components/YouPageShell';
 import MuscleGroupIcon from '@/components/MuscleGroupIcon';
+import PatternPill from '@/components/PatternPill';
+import { movementPattern, MOVEMENT_PATTERNS, type MovementPattern } from '@/lib/movementPattern';
 import {
   MOVEMENT_LIBRARY,
   LIBRARY_MUSCLE_GROUPS,
@@ -82,7 +84,10 @@ function Card({ movement, onJump }: { movement: MovementEntry; onJump: (name: st
         </button>
       </div>
       <div className="p-3">
-        <p className="text-sm font-bold text-white">{movement.name}</p>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-bold text-white">{movement.name}</p>
+          <PatternPill name={movement.name} muscleGroup={movement.muscleGroup} />
+        </div>
         {movement.pairedWith && (
           <button
             type="button"
@@ -105,16 +110,18 @@ export default function LibraryPage() {
   const [query, setQuery] = useState('');
   const [section, setSection] = useState<SectionFilter>('all');
   const [mode, setMode] = useState<ModeFilter>('all');
+  const [pattern, setPattern] = useState<MovementPattern | 'all'>('all');
 
   const filtered = useMemo(() => {
     const needle = query.trim().toLowerCase();
     return MOVEMENT_LIBRARY.filter((m) => {
       if (section !== 'all' && toSection(m.group) !== section) return false;
       if (mode !== 'all' && m.mode !== mode) return false;
+      if (pattern !== 'all' && movementPattern(m.name, m.muscleGroup) !== pattern) return false;
       if (needle && !m.name.toLowerCase().includes(needle) && !m.category.toLowerCase().includes(needle)) return false;
       return true;
     });
-  }, [query, section, mode]);
+  }, [query, section, mode, pattern]);
 
   const byGroup = useMemo(() => {
     const map = new Map<LibraryMuscleGroup, MovementEntry[]>();
@@ -127,6 +134,7 @@ export default function LibraryPage() {
     setQuery(name);
     setSection('all');
     setMode('all');
+    setPattern('all');
   };
 
   return (
@@ -180,6 +188,23 @@ export default function LibraryPage() {
             }`}
           >
             {m.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-2 flex flex-wrap gap-1.5">
+        {(['all', ...MOVEMENT_PATTERNS] as const).map((p) => (
+          <button
+            key={p}
+            type="button"
+            onClick={() => setPattern(p)}
+            className={`rounded-full border px-3 py-1 text-[11px] font-bold ${
+              pattern === p
+                ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]'
+                : 'border-white/15 bg-black/20 text-[#f6f1e3]/50'
+            }`}
+          >
+            {p === 'all' ? 'Any pattern' : p}
           </button>
         ))}
       </div>

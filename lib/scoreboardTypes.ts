@@ -41,13 +41,17 @@ export type HouseholdScoreboardRow = {
   beltFill: string | null;
   lastWorkout: string | null;
   lastAt: string | null;
+  /** Rank rule (lib/rankRule.ts): average display volume per session, and whether
+   * this athlete met their own eligibility bar for the window. */
+  avgPerSession?: number;
+  rankEligible?: boolean;
   /** Display only. Does not change house rank. */
   perception?: number | null;
   effortVolume?: number;
   bestSessionEffort?: number;
   weightSum?: number;
   repsSum?: number;
-  /** Set Volume only. Rank still uses `volume` (optional +500 stays in rank). */
+  /** Set Volume only. Rank uses `avgPerSession` of `effortVolume` (lib/rankRule.ts). */
   rawVolume?: number;
   effortSets?: number;
   priorWeightSum?: number | null;

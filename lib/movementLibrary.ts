@@ -8,7 +8,7 @@
  * the same split table Alt Exercise's content was cross-checked against, promoted from
  * `scripts/export-full-catalog.ts` to a shared module so nothing keeps two copies of it.
  */
-import { workoutProgram } from './workoutData';
+import { programWithRetiredDays } from './workoutData';
 import { hyroxProgram } from './hyroxProgram';
 import { toTravelExercise } from './travelExercises';
 import { getExerciseImages } from './exerciseImages';
@@ -198,7 +198,8 @@ function buildLibrary(): MovementEntry[] {
     }
   }
 
-  for (const week of workoutProgram) {
+  // Retired days too (bonus, Extra Upper): their movements live on in Your pick packs.
+  for (const week of programWithRetiredDays) {
     for (const day of week.days) {
       for (const exercise of day.exercises) {
         addExercise(exercise.name, 'main', 'gym', day.name);

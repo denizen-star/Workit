@@ -1,9 +1,9 @@
-import { bonusTypeSql } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import { clampScheduleDays, requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekNumbers } from '@/lib/lockedWeeks';
+import { bonusWeeksForUser, yourPickBadgeStats } from '@/lib/yourPickBonus';
 
 export type AwardedBadge = {
   id: number;
@@ -82,8 +82,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       `SELECT
          SUM(CASE WHEN is_completed = 1 AND workout_mode = 'travel' THEN 1 ELSE 0 END) as travel_days,
          SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Upper%' THEN 1 ELSE 0 END) as upper_days,
-         SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Lower%' THEN 1 ELSE 0 END) as lower_days,
-         COUNT(DISTINCT CASE WHEN is_completed = 1 AND ${bonusTypeSql('workout_sessions')} THEN week_number END) as bonus_weeks
+         SUM(CASE WHEN is_completed = 1 AND workout_type LIKE '%Lower%' THEN 1 ELSE 0 END) as lower_days
        FROM workout_sessions
        WHERE user_id = ?`,
       [userId]
@@ -92,8 +91,10 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       travel_days: number;
       upper_days: number;
       lower_days: number;
-      bonus_weeks: number;
     };
+    // Bonus Day: past bonus weeks + weeks a Your pick went past the required count.
+    const bonusWeeks = await bonusWeeksForUser(userId);
+    const picks = await yourPickBadgeStats(userId);
 
     // Same fairness reasoning as weeklyCompletion above: a 2-3 day athlete never
     // trains 4 sessions in a week, so the warmup/cooldown week-complete bar has to
@@ -177,7 +178,13 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'long_session', value: hasLong },
       { type: 'early_bird', value: hasEarly },
       { type: 'night_owl', value: hasNight },
-      { type: 'bonus_sessions', value: Number(extra?.bonus_weeks || 0), comparison: 'gte' },
+      { type: 'bonus_sessions', value: bonusWeeks, comparison: 'gte' },
+      // Your pick badges (database/migrate-your-pick.sql).
+      { type: 'pick_sessions', value: picks.picks, comparison: 'gte' },
+      { type: 'pick_all_types', value: picks.pickTypes, comparison: 'gte' },
+      { type: 'pick_yoga', value: picks.yoga, comparison: 'gte' },
+      { type: 'pick_lower', value: picks.lower, comparison: 'gte' },
+      { type: 'pick_locked_week', value: picks.lockedWithPick },
       { type: 'optional_weeks', value: Number(optionalRow?.optional_weeks || 0), comparison: 'gte' },
       { type: 'optionals', value: Number(optionalRow?.optional_slots || 0), comparison: 'gte' },
     ];

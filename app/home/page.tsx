@@ -36,6 +36,8 @@ import {
   HOME_YOU_VS_HELP,
 } from '@/lib/helpCopy';
 import InviteFriendModal from '@/components/InviteFriendModal';
+import YourPickIcon from '@/components/YourPickIcon';
+import { isYourPickSlot, yourPickCurrentWeek, yourPickWeekAllowed } from '@/lib/yourPick';
 import BeltChest from '@/components/BeltChest';
 import { HomeFold } from '@/components/ScanCard';
 import WeekMedal from '@/components/WeekMedal';
@@ -242,7 +244,8 @@ export default function Home() {
   useEffect(() => {
     const target = getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays));
     const typeName = target.day?.name;
-    if (!typeName || target.type === 'hold' || target.type === 'done') {
+    // A Your pick slot has no fixed workout yet, so there's no last-time line to hold.
+    if (!typeName || target.type === 'hold' || target.type === 'done' || isYourPickSlot(target.day)) {
       setHoldLine('');
       return;
     }
@@ -272,11 +275,20 @@ export default function Home() {
   }, [userId, todayWeekNumber, hyroxActive, weekTakeover, weekMissTakeover, scheduleDaysAskedWeek]);
 
   const homeFocus = homePerformanceFocus(today, sessions);
+  // Your pick (docs/plans/PLAN_YOUR_PICK.md): filed under the current week when that
+  // week can still take one. A 5-day athlete's open Your pick slot opens the picker
+  // instead of starting a day directly.
+  const pickWeek = yourPickCurrentWeek(sessions, lockedWeeksDetail.keys());
+  const pickHref = yourPickWeekAllowed(pickWeek, sessions, lockedWeeksDetail.keys())
+    ? `/workout?yourPick=${pickWeek}`
+    : null;
   const todayHref =
     today.type === 'resume' && today.session
       ? `/workout?session=${today.session.id}`
       : today.type === 'start' && today.week && today.day
-        ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}`
+        ? isYourPickSlot(today.day)
+          ? `/workout?yourPick=${today.week.weekNumber}`
+          : `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}`
         : '/workout';
   const todayMode =
     today.type === 'resume' && today.session
@@ -284,7 +296,7 @@ export default function Home() {
       : 'gym';
   const todayDay = today.day != null ? applyWorkoutMode(today.day, todayMode) : null;
   const todayEstimate =
-    todayDay != null ? formatEstimateMinutes(estimateWorkoutSeconds(todayDay)) : null;
+    todayDay != null && !isYourPickSlot(todayDay) ? formatEstimateMinutes(estimateWorkoutSeconds(todayDay)) : null;
   const restartHref =
     today.type === 'resume' && today.week && today.day
       ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
@@ -450,6 +462,16 @@ export default function Home() {
                 >
                   Select WO
                 </Link>
+                {pickHref && (
+                  <Link
+                    href={pickHref}
+                    className={inviteLinkClass}
+                    aria-label="Your pick"
+                  >
+                    <YourPickIcon className="h-5 w-5 text-[#e8c547]" />
+                    Pick
+                  </Link>
+                )}
                 {canInvite && (
                   <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
                     <UserPlus className="h-4 w-4" />
@@ -532,6 +554,16 @@ export default function Home() {
                 >
                   Select WO
                 </Link>
+                {pickHref && (
+                  <Link
+                    href={pickHref}
+                    className={inviteLinkClass}
+                    aria-label="Your pick"
+                  >
+                    <YourPickIcon className="h-5 w-5 text-[#e8c547]" />
+                    Pick
+                  </Link>
+                )}
                 {canInvite && (
                   <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
                     <UserPlus className="h-4 w-4" />

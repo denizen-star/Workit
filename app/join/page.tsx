@@ -8,7 +8,7 @@ import WaiverSheet from '@/components/WaiverSheet';
 import { JOIN_INTRO_BULLETS, JOIN_INTRO_LEAD, JOIN_INTRO_TITLE } from '@/lib/joinCopy';
 import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
-import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS } from '@/lib/scheduleDays';
+import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS, scheduleDaysHint } from '@/lib/scheduleDays';
 
 const DRAFT_KEY = 'workit_join_draft';
 
@@ -200,12 +200,7 @@ export default function JoinPage() {
                 className="mt-2 w-full accent-[#e8c547]"
               />
               <p className="mt-1 text-sm text-[#f6f1e3]/60">
-                {scheduleDays <= 3
-                  ? 'Full-body days so nothing gets skipped on a short week.'
-                  : scheduleDays === MAX_SCHEDULE_DAYS
-                    ? 'The bonus day becomes part of your required week.'
-                    : 'The program’s normal upper/lower split.'}
-                {' '}Change this anytime in Edit profile.
+                {scheduleDaysHint(scheduleDays)} Change this anytime in Edit profile.
               </p>
             </div>
             <label className="flex items-start gap-3 text-sm text-[#f6f1e3]/80">

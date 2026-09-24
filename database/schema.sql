@@ -113,6 +113,11 @@ CREATE TABLE workout_sessions (
     cooldown_lbs DECIMAL(8,2) NOT NULL DEFAULT 0,
     optional_kicker_lbs DECIMAL(10,2) NOT NULL DEFAULT 0,
     optional_kicker_at TIMESTAMP NULL,
+    pick_type VARCHAR(8) NULL, -- Your pick: upper | lower | yoga | core | full (NULL = program day)
+    pick_mode VARCHAR(8) NULL, -- sets | timed | done
+    swap_for_day INT NULL, -- program day_number a Your pick swap stands in for
+    credit_lbs DECIMAL(10,2) NOT NULL DEFAULT 0, -- Yoga/Core credit (lib/yourPickCredit.ts)
+    session_hardness DECIMAL(3,2) NULL, -- Yoga/Core whole-session How hard 1-5
     is_completed BOOLEAN DEFAULT FALSE,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

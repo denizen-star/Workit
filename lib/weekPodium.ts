@@ -5,10 +5,11 @@ import {
   sqlUtc,
 } from '@/lib/analyticsTime';
 import { query } from '@/lib/db';
-import { sqlSetVolume } from '@/lib/exerciseKind';
+import { sqlSetEffortVolume } from '@/lib/exerciseKind';
+import { compareRank } from '@/lib/rankRule';
 import { REQUIRED_DAYS_TO_LOCK } from '@/lib/bonusDay';
 import { isTestUserName, SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
-import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
+import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { workoutDateKey } from '@/lib/statsHousehold';
 
 export const WEEK_PODIUM_BACKFILL = 2;
@@ -93,83 +94,53 @@ export async function rankClosedWeek(monday: string): Promise<WeekPodiumRow[]> {
   const sessionWindow = windowSql('ws');
   const optionalWindow = windowSql('optws');
 
+  // Medals use the house rank rule (lib/rankRule.ts): met your own weekly day count
+  // first, then average display volume per session — effort sets + optional lbs +
+  // Your pick credit. Weeks already written to week_podium keep their old places.
   const result = await query(
     `SELECT
        u.id,
        u.name,
+       u.schedule_days_per_week,
        COUNT(DISTINCT ws.id) as workouts,
-       COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
+       COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume(
          'u.id',
          `AND optws.is_completed = 1${optionalWindow}`,
          'optws'
-       )} as volume,
-       COALESCE(MAX(es.weight_lbs), 0) as heaviest
+       )} as volume
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow}
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
      WHERE ${SQL_EXCLUDE_TEST_USER}
-     GROUP BY u.id, u.name
-     HAVING COUNT(DISTINCT ws.id) > 0
-     ORDER BY workouts DESC, volume DESC, u.name ASC`,
+     GROUP BY u.id, u.name, u.schedule_days_per_week
+     HAVING COUNT(DISTINCT ws.id) > 0`,
     [...bounds, ...bounds]
   );
 
   const rows = result.rows as {
     id: number;
     name: string;
+    schedule_days_per_week: number | null;
     workouts: number;
     volume: number;
-    heaviest: number;
   }[];
   if (rows.length === 0) return [];
 
-  const best = await query(
-    `SELECT user_id, MAX(session_volume) as best_session
-     FROM (
-       SELECT
-         ws.user_id,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as session_volume
-       FROM workout_sessions ws
-       INNER JOIN users u ON u.id = ws.user_id
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
-       WHERE ws.is_completed = 1 ${sessionWindow} AND ${SQL_EXCLUDE_TEST_USER}
-       GROUP BY ws.user_id, ws.id
-     ) session_totals
-     GROUP BY user_id`,
-    bounds
-  );
-
-  const bestByUser = new Map<number, number>();
-  for (const row of best.rows as { user_id: number; best_session: number }[]) {
-    bestByUser.set(Number(row.user_id), Number(row.best_session || 0));
-  }
-
   return rows
     .map((row) => ({
-      weekMonday: monday,
-      place: 1 as WeekPlace,
-      userId: Number(row.id),
+      id: Number(row.id),
       name: row.name,
       workouts: Number(row.workouts || 0),
       volume: Number(row.volume || 0),
-      heaviest: Number(row.heaviest || 0),
-      bestSessionVolume: bestByUser.get(Number(row.id)) || 0,
+      scheduleDays: row.schedule_days_per_week,
     }))
-    .sort(
-      (a, b) =>
-        b.workouts - a.workouts ||
-        b.volume - a.volume ||
-        b.bestSessionVolume - a.bestSessionVolume ||
-        b.heaviest - a.heaviest ||
-        a.name.localeCompare(b.name) ||
-        a.userId - b.userId
-    )
+    .sort((a, b) => compareRank(a, b, 7))
     .slice(0, 3)
     .map((row, index) => ({
       weekMonday: monday,
       place: (index + 1) as WeekPlace,
-      userId: row.userId,
+      userId: row.id,
       name: row.name,
       workouts: row.workouts,
       volume: row.volume,

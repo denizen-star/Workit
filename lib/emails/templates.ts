@@ -22,7 +22,7 @@ import {
   wrapEmailHtml,
 } from '@/lib/emailLayout';
 import { defaultFrom } from '@/lib/mailClient';
-import { coachFromAddress, MAIL_FROM } from '@/lib/mailFrom';
+import { BROADCAST_TONE, coachFromAddress, MAIL_FROM } from '@/lib/mailFrom';
 import { pickCoachLine, pickResumeLine } from '@/lib/coachLines';
 import { voiceDisplayName, voiceFromName } from '@/lib/coachCatalog';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
@@ -181,7 +181,7 @@ function bonusHonorHtml(rows?: ScoreboardHonorRow[]) {
     )
     .join('');
   return (
-    p('<strong style="color:#e8c547;">Bonus work.</strong> Extra upper. They did not owe it. They paid it.') +
+    p('<strong style="color:#e8c547;">Bonus work.</strong> Past their week with a Your pick. They did not owe it. They paid it.') +
     list
   );
 }
@@ -189,7 +189,7 @@ function bonusHonorHtml(rows?: ScoreboardHonorRow[]) {
 function bonusHonorText(rows?: ScoreboardHonorRow[]) {
   if (!rows?.length) return [];
   return [
-    'Bonus work. Extra upper. They did not owe it. They paid it.',
+    'Bonus work. Past their week with a Your pick. They did not owe it. They paid it.',
     ...rows.map((row) => '  ' + row.name + ' · ' + row.bonusWeeks + ' bonus ' + (row.bonusWeeks === 1 ? 'week' : 'weeks')),
     '',
   ];
@@ -607,9 +607,9 @@ export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): Bui
     eyebrow: 'six weeks in',
     title: 'Still the right pace?',
     subtitle: '- Work-It',
-    signer: voiceDisplayName('master'),
+    signer: voiceDisplayName(BROADCAST_TONE),
     childrenHtml: [
-      coachPersonaArt('master', 'ok'),
+      coachPersonaArt(BROADCAST_TONE, 'ok'),
       address(name),
       p(
         `You're set to train ${days} day${days === 1 ? '' : 's'} a week. That is still the plan unless you change it.`
@@ -627,10 +627,10 @@ export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): Bui
     '',
     input.loginUrl,
     '',
-    emailTextSignOff(voiceDisplayName('master')),
+    emailTextSignOff(voiceDisplayName(BROADCAST_TONE)),
   ].join('\n');
   return {
-    from: fromFor('master', MAIL_FROM.news),
+    from: fromFor(BROADCAST_TONE, MAIL_FROM.news),
     subject: 'Still training ' + days + ' days a week? Work-It.',
     html,
     text,
@@ -667,90 +667,33 @@ export function buildInviteNotifyEmail(input: InviteNotifyEmailInput): BuiltEmai
   };
 }
 
+/** Nudge + resume mail goes out to the whole house from the daily cron, so it
+ * speaks in the broadcast voice (Eli), not each athlete's own coach. */
 export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
   const name = firstName(input.name);
-  const tone = normalizeCoachTone(input.tone);
-  const luna = tone === 'luna';
-  const eli = tone === 'eli';
-  const shout =
-    input.mode === 'resume'
-      ? pickResumeLine(input.tone, input.name)
-      : pickCoachLine(0, 3, input.tone, input.name);
+  const tone = BROADCAST_TONE;
+  const resume = input.mode === 'resume';
+  const shout = resume
+    ? pickResumeLine(tone, input.name)
+    : pickCoachLine(0, 3, tone, input.name);
   const signer = voiceDisplayName(tone);
-  const eyebrow =
-    input.mode === 'resume'
-      ? luna
-        ? 'still open'
-        : eli
-          ? "let's finish it"
-          : 'unfinished'
-      : luna
-        ? 'when you are ready'
-        : eli
-          ? "let's go"
-          : 'get to it';
-  const title =
-    input.mode === 'resume'
-      ? luna
-        ? 'Stay. The session is still open.'
-        : eli
-          ? 'Hey, that session is still waiting on you.'
-          : 'The session is still open. The growth is still on the floor.'
-      : luna
-        ? input.dayName + '. When you are ready.'
-        : eli
-          ? input.dayName + '. Let us go get it.'
-          : input.dayName + '. Now.';
+  const eyebrow = resume ? "let's finish it" : "let's go";
+  const title = resume
+    ? 'Hey, that session is still waiting on you.'
+    : input.dayName + '. Let us go get it.';
   const estimate = input.estimate
     ? p(
         esc(input.estimate) +
-          (luna
-            ? '. That time is yours. Stamina does not start until you do.'
-            : eli
-              ? '. That time is yours whenever you are ready. I will be right there with you.'
-              : '. That time is still on the clock. Leave it and the lean waits.')
+          '. That time is yours whenever you are ready. I will be right there with you.'
       )
     : '';
   const href = input.href.startsWith('http') ? input.href : appUrl() + input.href;
-  const body =
-    input.mode === 'resume'
-      ? luna
-        ? 'Week ' +
-          esc(String(input.weekNumber)) +
-          ' · ' +
-          esc(input.dayName) +
-          ' is still open. Come back to the floor. The growth is waiting.'
-        : eli
-          ? 'Week ' +
-            esc(String(input.weekNumber)) +
-            ' · ' +
-            esc(input.dayName) +
-            " is still open. I know you can finish this one, come back and let's close it out."
-          : 'Week ' +
-            esc(String(input.weekNumber)) +
-            ' · ' +
-            esc(input.dayName) +
-            ' is still open. An unfinished session leaves the power here. Get back under the bar.'
-      : luna
-        ? 'Week ' +
-          esc(String(input.weekNumber)) +
-          ' · ' +
-          esc(input.dayName) +
-          (input.focus ? ' · ' + esc(input.focus) : '') +
-          '. That hour is waiting. Stamina does not start until you do.'
-        : eli
-          ? 'Week ' +
-            esc(String(input.weekNumber)) +
-            ' · ' +
-            esc(input.dayName) +
-            (input.focus ? ' · ' + esc(input.focus) : '') +
-            '. That hour is ready whenever you are. Let us go build some stamina.'
-          : 'Week ' +
-            esc(String(input.weekNumber)) +
-            ' · ' +
-            esc(input.dayName) +
-            (input.focus ? ' · ' + esc(input.focus) : '') +
-            '. That hour is still stamina you have not collected.';
+  const where = 'Week ' + input.weekNumber + ' · ' + input.dayName;
+  const body = resume
+    ? esc(where) + " is still open. I know you can finish this one, come back and let's close it out."
+    : esc(where) +
+      (input.focus ? ' · ' + esc(input.focus) : '') +
+      '. That hour is ready whenever you are. Let us go build some stamina.';
   const html = wrapEmailHtml({
     eyebrow,
     title,
@@ -761,56 +704,24 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
       p('<strong style="color:#fff;">' + esc(shout) + '</strong>'),
       p(body),
       estimate,
-      cta(
-        href,
-        input.mode === 'resume'
-          ? luna
-            ? 'STAY WITH IT'
-            : eli
-              ? "LET'S FINISH IT"
-              : 'FINISH IT'
-          : luna
-            ? 'BEGIN'
-            : eli
-              ? "LET'S GO"
-              : 'GET TO IT'
-      ),
+      cta(href, resume ? "LET'S FINISH IT" : "LET'S GO"),
     ].join(''),
   });
-  const subject =
-    input.mode === 'resume'
-      ? luna
-        ? 'Stay with it — ' + input.dayName
-        : eli
-          ? "Let's finish it: " + input.dayName
-          : 'Get back under the bar — ' + input.dayName
-      : luna
-        ? 'Begin — ' + input.dayName
-        : eli
-          ? "Let's go: " + input.dayName
-          : 'Get to it — ' + input.dayName;
+  const subject = (resume ? "Let's finish it: " : "Let's go: ") + input.dayName;
   const text = [
     emailTextHeader(eyebrow, title),
     name + '.',
     '',
     shout,
     '',
-    input.mode === 'resume'
-      ? luna
-        ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is still open. Come back. The growth is waiting.'
-        : eli
-          ? 'Week ' + input.weekNumber + ' · ' + input.dayName + " is still open. I know you can finish this, come back and let's close it out."
-          : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is still open. The power is still on the floor.'
-      : luna
-        ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. Stamina does not start until you do.'
-        : eli
-          ? 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is ready whenever you are. Let us go build some stamina.'
-          : 'Week ' + input.weekNumber + ' · ' + input.dayName + ' is waiting. That is stamina you have not collected.',
+    resume
+      ? where + " is still open. I know you can finish this, come back and let's close it out."
+      : where + ' is ready whenever you are. Let us go build some stamina.',
     '',
     href,
     emailTextSignOff(signer),
   ].join('\n');
-  return { from: fromFor(input.tone), subject, html, text };
+  return { from: fromFor(tone), subject, html, text };
 }
 
 function formatLbs(value: number | null | undefined) {
@@ -1076,9 +987,14 @@ export function buildBeltEmail(input: BeltEmailInput): BuiltEmail {
   };
 }
 
+const SCOREBOARD_INTRO =
+  'Here is the house this week. Every workout on this list is somebody choosing to show up, and I love to see it. Stamina, power, growth, all of it came from those hours.';
+const SCOREBOARD_OPEN =
+  'Left a session open? No stress, it is still waiting for you. Come back and close it out, I know you have it.';
+
 export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
-  const eyebrow = 'inspection';
-  const title = 'Who obeyed · ' + input.rangeLabel;
+  const eyebrow = 'the house';
+  const title = 'Who showed up · ' + input.rangeLabel;
   const yoursName = input.yoursName ? firstName(input.yoursName) : null;
   const rankingHtml =
     input.ranking && input.ranking.length
@@ -1137,9 +1053,9 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     eyebrow,
     title,
     childrenHtml: [
-      coachPersonaArt('master', 'celebratory'),
-      p('I do not care about feelings. I care who showed up and who went soft. Quit does not get a row of honor.'),
-      p('Open sessions are unfinished business. I see them.'),
+      coachPersonaArt(BROADCAST_TONE, 'celebratory'),
+      p(esc(SCOREBOARD_INTRO)),
+      p(esc(SCOREBOARD_OPEN)),
       rankingHtml,
       yoursHtml,
       bonusHonorHtml(input.bonusHonor),
@@ -1147,14 +1063,15 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
       '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">' +
         rowsHtml +
         '</table>',
-      cta(whoUrl(), 'REPORT IN'),
+      cta(whoUrl(), "LET'S GO"),
     ].join(''),
   });
 
   const text = [
     emailTextHeader(eyebrow, title),
     '',
-    'I do not care about feelings. I care who showed up and who went soft. Quit does not get a row of honor.',
+    SCOREBOARD_INTRO,
+    SCOREBOARD_OPEN,
     '',
     ...(input.ranking && input.ranking.length
       ? ['Best day / Total weight.', ...input.ranking.map((line) => '  ' + line), '']
@@ -1178,12 +1095,12 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
     ),
     '',
     whoUrl(),
-    emailTextSignOff(),
+    emailTextSignOff(voiceDisplayName(BROADCAST_TONE)),
   ].join('\n');
 
   return {
-    from: fromFor('master', MAIL_FROM.info),
-    subject: 'Inspection — who obeyed this week',
+    from: fromFor(BROADCAST_TONE, MAIL_FROM.info),
+    subject: 'The house this week — who showed up',
     html,
     text,
   };

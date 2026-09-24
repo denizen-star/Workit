@@ -185,9 +185,23 @@ export function sessionOptionalLbs(session: {
   );
 }
 
-/** One session row, for SUM() without multiplying through exercise_sets. */
-export function sqlSessionOptionalVolume(alias = 'ws'): string {
+/** Warmup + cooldown + kicker lbs only, no Your pick credit. For Best day (a real
+ * lifting record) — everywhere else wants `sqlSessionOptionalVolume`. */
+export function sqlSessionOptionalOnlyVolume(alias = 'ws'): string {
   return `(COALESCE(${alias}.warmup_lbs, 0) + COALESCE(${alias}.cooldown_lbs, 0) + COALESCE(${alias}.optional_kicker_lbs, 0))`;
+}
+
+/** One session row, for SUM() without multiplying through exercise_sets. The session's
+ * non-set lbs: optional warmup/cooldown/kicker plus Yoga/Core Your pick credit
+ * (`credit_lbs`, lib/yourPickCredit.ts) — so credit counts everywhere optional lbs
+ * already do (totals, daily stats, recap, weight badges, podium volume). */
+export function sqlSessionOptionalVolume(alias = 'ws'): string {
+  return `(${sqlSessionOptionalOnlyVolume(alias)} + COALESCE(${alias}.credit_lbs, 0))`;
+}
+
+/** Yoga/Core Your pick credit on one session row (0 for anything else). */
+export function sessionCreditLbs(session: { credit_lbs?: number | string | null }) {
+  return Number(session.credit_lbs || 0);
 }
 
 /** Correlated SUM so a JOIN to exercise_sets cannot multiply Optional lbs. */

@@ -117,9 +117,10 @@ const APP_PAGES: AppPageGuide[] = [
     title: 'The house',
     tag: 'Where you rank',
     description:
-      "See how your whole house is doing — who's lifting the most, where you land next to everyone else, and who's put in extra work like bonus days or cardio.",
+      "See how your whole house is doing — who's lifting the most, where you land next to everyone else, and who's put in extra work like Your picks past their week or cardio.",
     bullets: [
       'Switch between last 7 days, last 30 days, or all time',
+      'Rank: first everyone who hit their own days-per-week for that stretch (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Extra sessions alone never buy a spot',
       'A table of everyone in your house, with their current belt',
       "A running list of who's earned gold, silver, or bronze each week",
     ],
@@ -130,7 +131,7 @@ const APP_PAGES: AppPageGuide[] = [
     title: 'Completed log',
     tag: 'Your history',
     description:
-      "Every workout you've ever finished, organized by week. See the weight, reps, and time for each one — and a checkmark for every week you completed all 4 days.",
+      "Every workout you've ever finished, organized by week. See the weight, reps, and time for each one — and a checkmark for every week you locked.",
     bullets: [
       'Tap a week to see its individual workouts',
       'A quick way to look back at what you did on any past day',
@@ -236,19 +237,19 @@ const MECHANICS: MechanicsRow[] = [
   },
   {
     label: 'Week lock',
-    description: "Finish any 4 sessions in a week and it locks — green check, done. Doesn't have to be 4 in a row.",
+    description: "Finish your days-per-week number of workouts (4 by default) and the week locks — green check, done. Any mix counts: plan days, swaps, Your picks.",
     tone: 'good',
   },
   {
     label: 'Miss the week',
     description:
-      "Finish fewer than 4 days and don't place on the board, and it counts as a missed week — you'll see it called out next time you open Home.",
+      "Finish fewer than your weekly number and don't place on the board, and it counts as a missed week — you'll see it called out next time you open Home.",
     tone: 'bad',
   },
   {
-    label: 'Bonus & optionals',
+    label: 'Your pick & optionals',
     description:
-      "Extra workouts and warmup/cooldown add-ons are there for more credit if you want it — skipping them never stops your week from locking.",
+      "Your pick (Upper, Lower, Yoga, Core or Full body) counts like any session toward the week, belts and medals — add it on top, or swap it for a program day you haven't started. Warmup/cooldown add-ons are extra credit; skipping them never stops your week from locking.",
     tone: 'gold',
   },
 ];
@@ -318,7 +319,7 @@ const SUMMARY: { id: string; title: string; description: string }[] = [
   {
     id: 'mechanics',
     title: 'Training Mechanics',
-    description: 'The rules of the program: logging sets, Gym vs Travel, Alt Exercise, week lock, bonus & optionals.',
+    description: 'The rules of the program: logging sets, Gym vs Travel, Alt Exercise, week lock, Your pick & optionals.',
   },
   { id: 'program', title: 'Program & Belts', description: 'The shape of the 48-week program, and what each belt means.' },
   { id: 'glossary', title: 'Glossary', description: 'Plain-English definitions for the stats and labels you’ll see while training.' },
@@ -507,14 +508,17 @@ export default function HelpPage() {
         <p className="mt-1 text-sm text-[#f6f1e3]/55">48 weeks</p>
         <div className="glass-card mt-4 p-5">
           <p className="text-sm leading-relaxed text-[#f6f1e3]/80">
-            Weeks 1–6 run a 4-day upper/lower saddle. Week 7 on, it&apos;s one lower day, Extra Upper, and a bonus
-            core or class. Belts mark the miles — earn one, aim at the next. See the full list on the{' '}
+            Weeks 1–6 run a 4-day upper/lower saddle. Week 7 on, it&apos;s Upper A, one lower day, Upper B, and a{' '}
+            <span className="font-black text-[#e8c547]">Your pick</span> day. Any week, Your pick adds an Upper,
+            Lower, Yoga, Core or Full body workout — on top, or swapped in for a day you haven&apos;t started. The
+            count locks the week, not which days: any mix of your weekly workouts. Belts mark the miles — earn
+            one, aim at the next. See the full list on the{' '}
             <span className="font-black text-[#e8c547]">Belts</span> page.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
             Training fewer or more days a week? Set your own pace (1 to 5 days) in{' '}
-            <span className="font-black text-[#e8c547]">Edit profile</span> — 2 and 3 day plans swap the split for
-            full-body days so nothing gets skipped. A week you&apos;ve already locked stays locked even if you
+            <span className="font-black text-[#e8c547]">Edit profile</span> — 1 to 3 day plans swap the split for
+            full-body days so nothing gets skipped, and a 5-day plan&apos;s 5th day is a Your pick. A week you&apos;ve already locked stays locked even if you
             change your pace later.
           </p>
         </div>

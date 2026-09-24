@@ -22,3 +22,8 @@ const COACH_ADDRESS: Record<CoachTone, string> = {
 export function coachFromAddress(tone?: CoachTone | null) {
   return COACH_ADDRESS[normalizeCoachTone(tone)];
 }
+
+/** Voice for mail that goes out to the whole house at once (release notes,
+ * nudges, the six-week pace check, the weekly scoreboard) — one voice for
+ * everyone instead of each athlete's own coach. */
+export const BROADCAST_TONE: CoachTone = 'eli';

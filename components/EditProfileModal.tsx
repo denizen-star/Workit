@@ -10,7 +10,7 @@ import { getCoachVoiceEnabled, setCoachVoiceEnabled, setSoundEnabled } from '@/l
 import { normalizeSoundOn } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes, REST_EXTRA_MAX_MINUTES } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, NOISE_LEVELS, type NoiseLevel } from '@/lib/noisePref';
-import { clampScheduleDays, DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS } from '@/lib/scheduleDays';
+import { clampScheduleDays, DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS, scheduleDaysHint } from '@/lib/scheduleDays';
 import { trackAction } from '@/lib/analytics';
 import PhotoCropField from '@/components/PhotoCropField';
 import { photoSrc } from '@/lib/photo';
@@ -303,11 +303,7 @@ export default function EditProfileModal({
                 {scheduleDays === DEFAULT_SCHEDULE_DAYS ? ' (recommended)' : ''}
               </p>
               <p className="mb-2 text-xs text-[#f6f1e3]/55">
-                {scheduleDays <= 3
-                  ? 'Full-body days replace the split so a short week still hits every muscle group.'
-                  : scheduleDays === MAX_SCHEDULE_DAYS
-                    ? 'The bonus day becomes part of your required week.'
-                    : "The program's normal upper/lower split."}
+                {scheduleDaysHint(scheduleDays)}
               </p>
               <input
                 type="range"

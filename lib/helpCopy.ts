@@ -9,10 +9,10 @@ export const WHO_CLAIM_LINES = [
 export const WHAT_IS_WORKIT_TITLE = 'What is Work-It?';
 
 export const WHAT_IS_WORKIT_LEAD =
-  'Work-It is a 48-week strength log for this house. Four training days lock a week. You pick your name, set a PIN, and record the work.';
+  'Work-It is a 48-week strength log for this house. Your weekly count of workouts locks a week — any mix. You pick your name, set a PIN, and record the work.';
 
 export const WHAT_IS_WORKIT_BULLETS = [
-  'Four days a week. That locks the week.',
+  'Your days-per-week count locks the week. Plan days, swaps, Your picks — any mix.',
   'Gold is the move. Start. Log the set. Finish it.',
   'Your numbers stay on your name.',
   'Put it on the home screen. Not a Safari tab.',
@@ -59,12 +59,12 @@ export const HOME_TODAY_HELP = {
 
 export const HOME_WEEK_LOCK_HELP = {
   title: 'Week lock',
-  lead: 'Four required days. Four greens lock the week. Volume sits on each tile.',
+  lead: 'The count locks the week, not which days: any mix of your weekly workouts — plan days, swaps, or Your picks. Volume sits on each tile.',
   bullets: [
     'Gold = start here. Green = done. Dashed = still open.',
     'Done tiles show this day’s volume and % vs last time that day ran.',
     'Open tiles show last time that day ran.',
-    'Under the row: optionals n/8, optional lbs, and bonus for this program week.',
+    'Under the row: optionals n/8, optional lbs, and Your picks finished this program week.',
   ],
 } as const;
 

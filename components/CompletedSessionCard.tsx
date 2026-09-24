@@ -6,9 +6,12 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatDuration } from '@/lib/formatDuration';
 import { getExerciseKind, sessionSetTotals, setLogLabel } from '@/lib/exerciseKind';
-import { sessionOptionalLbs } from '@/lib/optionals';
+import { sessionCreditLbs, sessionOptionalLbs } from '@/lib/optionals';
 import { workoutModeLabel, normalizeWorkoutMode } from '@/lib/workoutMode';
 import { sessionDateLabel, sessionDurationSeconds } from '@/lib/sessionLog';
+import { sessionIsYourPick } from '@/lib/yourPick';
+import YourPickIcon from '@/components/YourPickIcon';
+import PatternPill from '@/components/PatternPill';
 
 export type HistorySet = {
   workout_session_id: number;
@@ -32,6 +35,12 @@ export type HistorySession = {
   warmup_lbs?: number | null;
   cooldown_lbs?: number | null;
   optional_kicker_lbs?: number | null;
+  /** Your pick (docs/plans/PLAN_YOUR_PICK.md). */
+  pick_type?: string | null;
+  pick_mode?: string | null;
+  swap_for_day?: number | null;
+  credit_lbs?: number | null;
+  session_hardness?: number | null;
   sets: HistorySet[];
 };
 
@@ -62,7 +71,7 @@ export function historySessionTotals(session: HistorySession) {
     }))
   );
   return {
-    lbs: lifts.lbs + sessionOptionalLbs(session),
+    lbs: lifts.lbs + sessionOptionalLbs(session) + sessionCreditLbs(session),
     reps: lifts.reps,
     seconds: sessionDurationSeconds(session),
   };
@@ -121,6 +130,7 @@ export default function CompletedSessionCard({
           <div className="mb-1 flex items-center gap-2">
             <Check className="h-6 w-6 shrink-0 text-[#6d8b6e]" strokeWidth={3} />
             <h4 className="text-lg font-black text-white">{session.workout_type}</h4>
+            {sessionIsYourPick(session) ? <YourPickIcon className="h-5 w-5 shrink-0 text-[#e8c547]" /> : null}
           </div>
           {focus && <p className="text-sm text-[#f6f1e3]/65">{focus}</p>}
           <p className="mt-2 text-lg font-black text-white">
@@ -142,6 +152,9 @@ export default function CompletedSessionCard({
             <span className="rounded-full border border-white/10 bg-black/25 px-3 py-1">
               {session.sets?.length || 0} sets
             </span>
+            {session.swap_for_day != null ? (
+              <span className="rounded-full border border-[#e8c547]/40 px-3 py-1 text-[#e8c547]">Swap</span>
+            ) : null}
             {bestDay ? (
               <span className="rounded-full bg-[#e8c547] px-3 py-1 font-black text-[#1a1404]">
                 Best day
@@ -172,7 +185,10 @@ export default function CompletedSessionCard({
             const kind = getExerciseKind(group.name, group.sets[0]?.target_reps || '');
             return (
               <div key={`${session.id}-${group.name}`}>
-                <h5 className="text-base font-black text-white">{group.name}</h5>
+                <h5 className="flex items-center gap-2 text-base font-black text-white">
+                  {group.name}
+                  <PatternPill name={group.name} />
+                </h5>
                 <ul className="mt-2 space-y-2">
                   {group.sets.map((set) => (
                     <li

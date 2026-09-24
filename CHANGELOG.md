@@ -2,6 +2,24 @@
 
 ## Unreleased
 
+## 10.0.0 - 2026-09-24
+
+### Added
+- **Your pick** — any week, start an Upper, Lower, Yoga, Core or Full body workout besides your plan. Add it on top, or swap it in for a day you haven't started (that day then counts as done). Every finished one counts toward your week, belts and medals. Works on this week or an earlier week that isn't locked yet. Find it on Home (gold **Pick**), under each week in Select Workout, or with the **Swap** button on any unstarted day.
+- **Yoga and Core as full workouts** — a 30-minute yoga flow or a 12-hold core pack you tap through, or **Mark done** (30 minutes minimum, once a day). Rate how hard it was at the end. They count like a workout: your average session from the last 7 days, scaled by that rating.
+- **Push / Pull / Legs / Core** tag on every exercise — on the live card, in finished sessions, and in the Library, which can now filter by it.
+- Seven new badges: Your Pick, Picky Ten, Picky Twenty-Five, Full Menu, Ten Flows, Ten Lowers, Picked and Locked.
+- A one-time card on Select Workout: your week locks at your number of workouts, any mix.
+
+### Changed
+- **The count locks the week, not which days.** Week headers now read "2 of 4 workouts".
+- From week 7, Friday's Extra Upper is now a **Your pick** day — pick Upper if you want that workout. At 5 days a week you get two Your pick days from week 7 (one in weeks 3–6).
+- **The house and weekly medals rank differently.** First everyone who hit their own days per week for that stretch (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Extra sessions alone no longer buy a spot. Medals already won stay as they are.
+- **Bonus Day** now means going past your week with a Your pick. Past bonus days still count.
+
+### Removed
+- The optional bonus day (Bonus Upper, Bonus Core, and the class/run picker). Your pick replaces it. Nothing you already logged is lost.
+
 ## 9.1.3 - 2026-09-24
 
 ### Changed

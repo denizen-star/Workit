@@ -1,0 +1,778 @@
+    <!-- print.html -->
+<html>
+<head>
+<meta charset="utf-8">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    a { color: #e8c547; }
+    a:hover { color: #f6f1e3; }
+  
+@page { size: letter; margin: 0; }
+html, body { margin: 0; padding: 0; }
+.page { width: 816px; height: 1056px; overflow: hidden; page-break-after: always; }
+.page:last-child { page-break-after: auto; }
+img { max-width: none; }
+</style>
+</head>
+<body>
+<div class="page"><div style="
+  width: 816px;
+  height: 1056px;
+  position: relative;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(232,197,71,0.20), transparent 55%),
+    radial-gradient(700px 500px at 100% 100%, rgba(192,132,87,0.14), transparent 60%),
+    #07070a;
+  color: #f6f1e3;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+">
+
+  <!-- top wordmark bar -->
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 44px 56px 0 56px;
+  ">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      color: #e8c547;
+    ">Free WORK&#8209;IT App</div>
+    <div style="
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: rgba(246,241,227,0.55);
+      text-transform: uppercase;
+    ">48&#8209;week program &middot; belts &amp; diplomas</div>
+  </div>
+
+  <!-- hero -->
+  <div style="padding: 26px 56px 0 56px;">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.02;
+      letter-spacing: 0.01em;
+      color: #f6f1e3;
+      text-transform: uppercase;
+    ">The house is training.</div>
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 76px;
+      line-height: 0.98;
+      letter-spacing: 0.005em;
+      color: #c08457;
+      text-transform: uppercase;
+      margin-top: 4px;
+      text-wrap: pretty;
+    ">{{HOUSE_NAME}} House</div>
+  </div>
+
+  <!-- household line -->
+  <div style="padding: 18px 56px 0 56px; max-width: 640px;">
+    <div style="
+      font-size: 16px;
+      line-height: 1.5;
+      color: rgba(246,241,227,0.82);
+    ">Not a countdown everyone's stuck on together. This is your own 48&#8209;week arc, and it starts the second you say go. Join {{HOUSE_NAME}} house, pick 1&#8211;5 days a week (4 is the default), get your own week 1, and train at your pace under one roof. No cap, no name picker. Just your email and a 4&#8209;digit PIN and you're in.</div>
+  </div>
+
+  <!-- first three moves -->
+  <div style="padding: 20px 56px 0 56px;">
+    <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; color: rgba(246,241,227,0.5); text-transform: uppercase; margin-bottom: 10px;">How it starts</div>
+    <div style="display: flex; gap: 10px;">
+      <div style="flex: 1; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 14px; padding: 12px 14px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 13px; color: #07070a; background: #e8c547; width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">1</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Scan &amp; set a PIN</div>
+        <div style="font-size: 12.5px; line-height: 1.4; color: rgba(246,241,227,0.75); margin-top: 4px;">Email + 4 digits. Verify the mail, then you're in the house.</div>
+      </div>
+      <div style="flex: 1; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 14px; padding: 12px 14px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 13px; color: #07070a; background: #e8c547; width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">2</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Add to Home Screen</div>
+        <div style="font-size: 12.5px; line-height: 1.4; color: rgba(246,241,227,0.75); margin-top: 4px;">Safari → Share → Add to Home Screen. Don't live in a browser tab.</div>
+      </div>
+      <div style="flex: 1; background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 14px; padding: 12px 14px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 13px; color: #07070a; background: #e8c547; width: 22px; height: 22px; border-radius: 999px; display: flex; align-items: center; justify-content: center; margin-bottom: 8px;">3</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Tap Start WO</div>
+        <div style="font-size: 12.5px; line-height: 1.4; color: rgba(246,241,227,0.75); margin-top: 4px;">Home shows today's day. Gold button. Don't shop the year.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- week shape -->
+  <div style="padding: 14px 56px 0 56px;">
+    <div style="display: flex; gap: 10px;">
+      <div style="
+        flex: 1;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+        border: 1px solid rgba(232,197,71,0.22);
+        border-radius: 16px;
+        padding: 14px 16px;
+      ">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.04em; color: #e8c547; text-transform: uppercase;">Weeks 1&#8211;2 &middot; Get acquainted</div>
+        <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 6px;">Upper A, Lower A, Upper B, Lower B. Learn the movements, keep the weight light.</div>
+      </div>
+      <div style="
+        flex: 1;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+        border: 1px solid rgba(232,197,71,0.22);
+        border-radius: 16px;
+        padding: 14px 16px;
+      ">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.04em; color: #e8c547; text-transform: uppercase;">Weeks 3&#8211;6 &middot; Build the habit</div>
+        <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 6px;">Same four days. Optional Bonus Upper if you want extra credit. Hit the days you picked and the week locks.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- QR join panel -->
+  <div style="
+    margin: 18px 56px 0 56px;
+    flex: 1;
+    background: linear-gradient(135deg, rgba(232,197,71,0.16), rgba(255,255,255,0.03) 45%, rgba(7,7,10,0.5));
+    border: 1px solid rgba(232,197,71,0.35);
+    border-radius: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    padding: 28px;
+    min-height: 0;
+  ">
+    <div style="
+      width: 200px;
+      height: 200px;
+      background: #f6f1e3;
+      border-radius: 20px;
+      padding: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      flex-shrink: 0;
+    ">
+      <img src="{{SLUG}}-qr.png" alt="QR code to join {{HOUSE_NAME}} house" style="width: 100%; height: 100%; display: block;">
+    </div>
+    <div style="display: flex; flex-direction: column; gap: 12px; max-width: 300px;">
+      <div style="
+        font-family: 'Oswald', sans-serif;
+        font-weight: 700;
+        font-size: 32px;
+        line-height: 1.05;
+        color: #e8c547;
+        text-transform: uppercase;
+      ">Scan to join {{HOUSE_NAME}} house</div>
+      <div style="font-size: 14px; line-height: 1.5; color: rgba(246,241,227,0.78);">Point your camera at the code, set your PIN, and your first week is waiting. Quickstart opens on its own the first time you log in.</div>
+      <div style="
+        margin-top: 4px;
+        display: inline-flex;
+        align-self: flex-start;
+        font-family: 'Oswald', sans-serif;
+        font-weight: 600;
+        font-size: 14px;
+        letter-spacing: 0.05em;
+        color: #07070a;
+        background: #e8c547;
+        border-radius: 999px;
+        padding: 10px 18px;
+      ">workitapp.fit/join?h={{SLUG}}</div>
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 56px 36px 56px;
+  ">
+    <div style="font-size: 12px; line-height: 1.4; color: rgba(246,241,227,0.5);">Made for us, by us. 100% free, always. Once you're in, menu → Help is the full guide.</div>
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    ">
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45); text-transform: uppercase;">{{HOUSE_NAME}} House &middot; Work&#8209;It</div>
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45);">workitapp.fit</div>
+    </div>
+  </div>
+
+</div></div>
+<div class="page"><div style="
+  width: 816px;
+  height: 1056px;
+  position: relative;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(232,197,71,0.20), transparent 55%),
+    radial-gradient(700px 500px at 100% 100%, rgba(192,132,87,0.14), transparent 60%),
+    #07070a;
+  color: #f6f1e3;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+">
+
+  <!-- top wordmark bar -->
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 56px 0 56px;
+  ">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      color: #e8c547;
+    ">Free WORK&#8209;IT App</div>
+    <div style="
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: rgba(246,241,227,0.55);
+      text-transform: uppercase;
+    ">{{HOUSE_NAME}} House</div>
+  </div>
+
+  <!-- hero -->
+  <div style="padding: 18px 56px 0 56px;">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: 0.005em;
+      color: #f6f1e3;
+      text-transform: uppercase;
+    ">One workout, then the year</div>
+  </div>
+
+  <!-- guide callout -->
+  <div style="
+    margin: 14px 56px 0 56px;
+    background: linear-gradient(180deg, rgba(192,132,87,0.16), rgba(255,255,255,0.02));
+    border: 1px solid rgba(192,132,87,0.4);
+    border-radius: 16px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  ">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 13px;
+      letter-spacing: 0.05em;
+      color: #c08457;
+      text-transform: uppercase;
+      flex-shrink: 0;
+    ">The whole game</div>
+    <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.85);">Start whenever you're ready and move at your own pace. Gold means do this. Hit the days you picked at join — default is 4 — and the week locks. They don't have to be in a row.</div>
+  </div>
+
+  <!-- three steps -->
+  <div style="
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px 56px 0 56px;
+  ">
+
+    <div style="
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 1px solid rgba(232,197,71,0.22);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    ">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; color: #07070a; background: #e8c547; width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">1</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Start it</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.75);">Tap the gold Start WO. Left one open? It says Resume WO and picks up where you stopped. Travel flips the whole day from Select Workout.</div>
+    </div>
+
+    <div style="
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 1px solid rgba(232,197,71,0.22);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    ">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; color: #07070a; background: #e8c547; width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">2</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Move through it</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.75);">Weight and reps are already filled in. Set effort 1–5 before you tap Complete Set or start a timer. Rest runs itself — skip it if you're ready. Need a different move? Alt Exercise swaps that one lift.</div>
+    </div>
+
+    <div style="
+      background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02));
+      border: 1px solid rgba(232,197,71,0.22);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    ">
+      <div style="display: flex; align-items: center; gap: 10px;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; color: #07070a; background: #e8c547; width: 24px; height: 24px; border-radius: 999px; display: flex; align-items: center; justify-content: center; flex-shrink: 0;">3</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 15px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Finish it</div>
+      </div>
+      <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.75);">Warmup or cooldown is extra credit — run, bike, stretch, core, yoga, or abs. Then Finish it, rate the session, and see the recap. Hit your days and the week locks.</div>
+    </div>
+
+  </div>
+
+  <div style="padding: 12px 56px 0 56px; font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.55);">
+    Later the week shifts to one lower, Extra Upper, and a bonus core or class. Help covers that when you get there.
+  </div>
+
+  <!-- coach voices -->
+  <div style="padding: 16px 56px 0 56px;">
+    <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; color: rgba(246,241,227,0.5); text-transform: uppercase; margin-bottom: 4px;">Your coach</div>
+    <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.7); margin-bottom: 10px;">Someone in the corner of every session, and in your mail. Eli greets you on day one. Switch any time in Edit profile.</div>
+    <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px;">
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.28); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;">
+        <img src="personas/eli-welcome.png" alt="Eli Sparks" style="width: 56px; height: 56px; border-radius: 999px; object-fit: cover; object-position: center top; border: 2px solid #e8c547; display: block;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Eli Sparks</div>
+        <div style="font-size: 11px; line-height: 1.35; color: rgba(246,241,227,0.75);">Loud belief. In your corner. The default voice when you join.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;">
+        <img src="personas/master-welcome.png" alt="Master Tom Iron" style="width: 56px; height: 56px; border-radius: 999px; object-fit: cover; object-position: center top; border: 2px solid rgba(232,197,71,0.45); display: block;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Tom Iron</div>
+        <div style="font-size: 11px; line-height: 1.35; color: rgba(246,241,227,0.75);">Direct. Owns the hour. The prize is growth, lean, power.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;">
+        <img src="personas/james-welcome.png" alt="James Grey" style="width: 56px; height: 56px; border-radius: 999px; object-fit: cover; object-position: center top; border: 2px solid rgba(232,197,71,0.45); display: block;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">James Grey</div>
+        <div style="font-size: 11px; line-height: 1.35; color: rgba(246,241,227,0.75);">Private. Wants you present. The hour has to show on the body.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px;">
+        <img src="personas/luna-welcome.png" alt="Luna Meadows" style="width: 56px; height: 56px; border-radius: 999px; object-fit: cover; object-position: center top; border: 2px solid rgba(232,197,71,0.45); display: block;">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 12px; letter-spacing: 0.03em; color: #e8c547; text-transform: uppercase;">Luna Meadows</div>
+        <div style="font-size: 11px; line-height: 1.35; color: rgba(246,241,227,0.75);">Calm. Soft. Holds you in the hard part until it stays.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- belts section -->
+  <div style="padding: 12px 56px 0 56px;">
+    <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; letter-spacing: 0.08em; color: rgba(246,241,227,0.5); text-transform: uppercase; margin-bottom: 4px;">The belts</div>
+    <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.7); margin-bottom: 8px;">Nine belts over the year. Lock enough weeks and the next one is yours. Names follow the track you pick. A few samples:</div>
+    <div style="
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+    ">
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 10px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <img src="characters/david.png" alt="David" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 28%; border: 2px solid #f6f1e3; display: block; background: #111;">
+          <img src="characters/ripley.png" alt="Ripley" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 18%; border: 2px solid #f6f1e3; display: block; background: #111;">
+        </div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; color: #e8c547;">2 WEEKS</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; line-height: 1.15; color: #f6f1e3; text-transform: uppercase;">The Buy&#8209;In</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.65);">David / Ripley</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.8);">You showed up. Stamina starting.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 10px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <img src="characters/hemsworth.png" alt="Hemsworth" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 16%; border: 2px solid #b7e1b5; display: block; background: #111;">
+          <img src="characters/croft.png" alt="Croft" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 16%; border: 2px solid #b7e1b5; display: block; background: #111;">
+        </div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; color: #e8c547;">6 WEEKS</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; line-height: 1.15; color: #f6f1e3; text-transform: uppercase;">The Foundation</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.65);">Hemsworth / Croft</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.8);">You're in the program. Growth is sticking.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(255,255,255,0.1); border-radius: 14px; padding: 10px 10px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <img src="characters/arnold.png" alt="Schwarzenegger" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 14%; border: 2px solid #d4894a; display: block; background: #111;">
+          <img src="characters/furiosa.png" alt="Furiosa" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 16%; border: 2px solid #d4894a; display: block; background: #111;">
+        </div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; color: #e8c547;">24 WEEKS</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; line-height: 1.15; color: #f6f1e3; text-transform: uppercase;">The Standard</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.65);">Schwarzenegger / Furiosa</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.8);">The bar is moving. Prove the power.</div>
+      </div>
+      <div style="background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.35); border-radius: 14px; padding: 10px 10px 12px; display: flex; flex-direction: column; align-items: center; text-align: center; gap: 5px;">
+        <div style="display: flex; align-items: center; justify-content: center; gap: 6px;">
+          <img src="characters/atlas-globe.png" alt="Atlas" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 58%; border: 2px solid #e8c547; display: block; background: #111;">
+          <img src="characters/athena.png" alt="Athena" style="width: 48px; height: 48px; border-radius: 999px; object-fit: cover; object-position: center 18%; border: 2px solid #e8c547; display: block; background: #111;">
+        </div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 11px; letter-spacing: 0.04em; color: #e8c547;">48 WEEKS</div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 13px; line-height: 1.15; color: #f6f1e3; text-transform: uppercase;">The Pinnacle</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.65);">Atlas / Athena</div>
+        <div style="font-size: 11px; line-height: 1.3; color: rgba(246,241,227,0.8);">A full year. Mobility and growth, kept.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="flex: 1;"></div>
+
+  <!-- slim CTA line -->
+  <div style="
+    margin: 0 56px 0 56px;
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.5;
+    color: rgba(246,241,227,0.6);
+  ">Ready when you are. Scan the code on the front — or the back — to join {{HOUSE_NAME}} house.</div>
+
+  <!-- footer -->
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 18px 56px 36px 56px;
+  ">
+    <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45); text-transform: uppercase;">{{HOUSE_NAME}} House &middot; Work&#8209;It</div>
+    <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45);">workitapp.fit</div>
+  </div>
+
+</div></div>
+<div class="page"><div style="
+  width: 816px;
+  height: 1056px;
+  position: relative;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(232,197,71,0.20), transparent 55%),
+    radial-gradient(700px 500px at 100% 100%, rgba(192,132,87,0.14), transparent 60%),
+    #07070a;
+  color: #f6f1e3;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+">
+
+  <!-- top wordmark bar -->
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 40px 56px 0 56px;
+  ">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      color: #e8c547;
+    ">Free WORK&#8209;IT App</div>
+    <div style="
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: rgba(246,241,227,0.55);
+      text-transform: uppercase;
+    ">{{HOUSE_NAME}} House</div>
+  </div>
+
+  <!-- hero -->
+  <div style="padding: 18px 56px 0 56px;">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 40px;
+      line-height: 1.05;
+      letter-spacing: 0.005em;
+      color: #f6f1e3;
+      text-transform: uppercase;
+    ">What's inside</div>
+    <div style="font-size: 14px; line-height: 1.5; color: rgba(246,241,227,0.72); margin-top: 8px; max-width: 620px;">What you're signing up for. The how-to lives in the app, under menu → Help.</div>
+  </div>
+
+  <!-- features grid -->
+  <div style="
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    padding: 18px 56px 0 56px;
+  ">
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M21 11.5a8.4 8.4 0 01-8.4 8.4 8.5 8.5 0 01-3.8-.9L3 20l1-5.8a8.4 8.4 0 1117-2.7z"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Your coach</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Eli greets you on day one. Tom, Grey, Luna, or Eli sits in the corner of every session — and in your mail.</div>
+      </div>
+    </div>
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M4 11L12 4l8 7"/><path d="M6 10v9h12v-9"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">The house</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Scoreboard, weekly gold / silver / bronze, and honor for bonus days and extra work.</div>
+      </div>
+    </div>
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M3 12l4-4 4 4"/><path d="M21 12l-4 4-4-4"/><path d="M7 8v9"/><path d="M17 16V7"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Travel or Alt</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Travel flips the whole day from Select Workout. Alt Exercise swaps one lift when you need a different move.</div>
+      </div>
+    </div>
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><path d="M4 19V13"/><path d="M10 19V9"/><path d="M16 19V5"/><path d="M22 19V11"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Your performance</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Each lift: up, down, held, or first time. Versus last time you ran it, and versus the house.</div>
+      </div>
+    </div>
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="8" r="3.5"/><path d="M6 20v-1.5A5.5 5.5 0 0112 13h0a5.5 5.5 0 016 5.5V20"/><path d="M16 4l2 2 4-4"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Belts and medals</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Nine belts for locked weeks. Names follow your track. Badges and weekly places live on their own screens.</div>
+      </div>
+    </div>
+
+    <div style="background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.02)); border: 1px solid rgba(232,197,71,0.22); border-radius: 16px; padding: 14px 16px; display: flex; gap: 12px; align-items: flex-start;">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114.2 1.8c-.7.6-1.7 1.2-1.7 2.2v.5"/><circle cx="12" cy="17" r="0.8" fill="#e8c547" stroke="none"/></svg>
+      <div>
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Help, always</div>
+        <div style="font-size: 12.5px; line-height: 1.45; color: rgba(246,241,227,0.75); margin-top: 4px;">Every screen, how a workout runs, what your coach does, and what the numbers mean.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- spotlight: exercise media -->
+  <div style="
+    margin: 16px 56px 0 56px;
+    background: linear-gradient(135deg, rgba(232,197,71,0.14), rgba(255,255,255,0.02) 55%, rgba(7,7,10,0.4));
+    border: 1px solid rgba(232,197,71,0.3);
+    border-radius: 18px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  ">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#e8c547" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><rect x="2.5" y="5" width="19" height="14" rx="2.5"/><path d="M9.5 9l6 3-6 3z"/></svg>
+    <div>
+      <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Never guess the movement</div>
+      <div style="font-size: 13px; line-height: 1.5; color: rgba(246,241,227,0.8); margin-top: 4px;">Every exercise ships with a video, step photos, and a plain&#8209;English how&#8209;to — gym version and every swap. No wondering what "hip thrust" means at 6am.</div>
+    </div>
+  </div>
+
+  <!-- spotlight: help is the manual -->
+  <div style="
+    margin: 12px 56px 0 56px;
+    background: linear-gradient(135deg, rgba(192,132,87,0.16), rgba(255,255,255,0.02) 55%, rgba(7,7,10,0.4));
+    border: 1px solid rgba(192,132,87,0.4);
+    border-radius: 18px;
+    padding: 16px 20px;
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+  ">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#c08457" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0; margin-top: 2px;"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 114.2 1.8c-.7.6-1.7 1.2-1.7 2.2v.5"/><circle cx="12" cy="17" r="0.9" fill="#c08457" stroke="none"/></svg>
+    <div>
+      <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">The manual is in the app</div>
+      <div style="font-size: 13px; line-height: 1.5; color: rgba(246,241,227,0.8); margin-top: 4px;">First login opens Quickstart — three steps, no manual required. After that, menu → Help covers Getting Started, Running a Workout, Your Coach, every screen, the training rules, The Library, Why Work&#8209;It, and a plain&#8209;English glossary. You don't have to remember this flyer.</div>
+    </div>
+  </div>
+
+  <div style="flex: 1;"></div>
+
+  <!-- disclaimer + footer -->
+  <div style="
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 18px 56px 36px 56px;
+  ">
+    <div style="font-size: 12px; line-height: 1.4; color: rgba(246,241,227,0.5);">Made for us, by us. 100% free, always. No trial, no upsell, no catch.</div>
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    ">
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45); text-transform: uppercase;">{{HOUSE_NAME}} House &middot; Work&#8209;It</div>
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45);">workitapp.fit</div>
+    </div>
+  </div>
+
+</div></div>
+<div class="page"><div style="
+  width: 816px;
+  height: 1056px;
+  position: relative;
+  background:
+    radial-gradient(900px 420px at 50% -8%, rgba(232,197,71,0.20), transparent 55%),
+    radial-gradient(700px 500px at 100% 100%, rgba(192,132,87,0.14), transparent 60%),
+    #07070a;
+  color: #f6f1e3;
+  font-family: 'Inter', system-ui, sans-serif;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+">
+
+  <!-- top wordmark bar -->
+  <div style="
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 32px 56px 0 56px;
+  ">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 600;
+      font-size: 18px;
+      letter-spacing: 0.1em;
+      color: #e8c547;
+    ">Free WORK&#8209;IT App</div>
+    <div style="
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      color: rgba(246,241,227,0.55);
+      text-transform: uppercase;
+    ">{{HOUSE_NAME}} House</div>
+  </div>
+
+  <!-- hero -->
+  <div style="padding: 12px 56px 0 56px;">
+    <div style="
+      font-family: 'Oswald', sans-serif;
+      font-weight: 700;
+      font-size: 36px;
+      line-height: 1.05;
+      letter-spacing: 0.005em;
+      color: #f6f1e3;
+      text-transform: uppercase;
+    ">See it in action</div>
+    <div style="font-size: 13.5px; line-height: 1.45; color: rgba(246,241,227,0.72); margin-top: 6px; max-width: 620px;">A real exercise card from a live session. Photos, last time, then log the set.</div>
+  </div>
+
+  <!-- screenshot + side column -->
+  <div style="
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 18px;
+    padding: 14px 56px 0 56px;
+    flex: 1;
+    min-height: 0;
+  ">
+
+    <div style="
+      border-radius: 22px;
+      border: 1px solid rgba(232,197,71,0.4);
+      background: #111114;
+      overflow: hidden;
+      box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+      height: 100%;
+      min-height: 0;
+    ">
+      <img
+        src="plank-hold-live.png"
+        alt="Plank Hold live exercise card"
+        style="width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block;"
+      >
+    </div>
+
+    <div style="display: flex; flex-direction: column; gap: 12px; min-height: 0;">
+
+      <div style="
+        border-radius: 16px;
+        border: 1px solid rgba(232,197,71,0.22);
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.02));
+        padding: 16px 18px;
+      ">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 18px; letter-spacing: 0.02em; color: #f6f1e3; text-transform: uppercase;">Plank Hold</div>
+        <div style="font-size: 13px; line-height: 1.45; color: rgba(246,241,227,0.72); margin-top: 6px;">A timed set. Last time is already filled in — 45 seconds, Effort 3. Set effort, then start the timer.</div>
+        <div style="display: flex; flex-direction: column; gap: 8px; margin-top: 12px;">
+          <div style="font-size: 13px; line-height: 1.4; color: rgba(246,241,227,0.8);"><b style="color: #e8c547;">Start and End photos.</b> Plus a video, so you never guess the movement.</div>
+          <div style="font-size: 13px; line-height: 1.4; color: rgba(246,241,227,0.8);"><b style="color: #e8c547;">Alt Exercise.</b> Swap this one lift. Travel flips the whole day from Select Workout.</div>
+          <div style="font-size: 13px; line-height: 1.4; color: rgba(246,241,227,0.8);"><b style="color: #e8c547;">Your coach.</b> Eli sits in the corner of the session. Tap Complete Set when the hold is done.</div>
+        </div>
+      </div>
+
+      <div style="
+        border-radius: 16px;
+        border: 1px solid rgba(192,132,87,0.4);
+        background: linear-gradient(180deg, rgba(192,132,87,0.14), rgba(0,0,0,0.2));
+        padding: 14px 16px;
+      ">
+        <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 11px; letter-spacing: 0.12em; color: #c08457;">MENU → HELP</div>
+        <div style="font-size: 13px; line-height: 1.4; color: rgba(246,241,227,0.8); margin-top: 6px;">Quickstart opens on first login. After that, Help is the full guide — how a workout runs, your coach, every screen, The Library, Why Work&#8209;It, the glossary.</div>
+      </div>
+
+      <div style="
+        border-radius: 16px;
+        border: 1px solid rgba(232,197,71,0.35);
+        background: linear-gradient(135deg, rgba(232,197,71,0.16), rgba(255,255,255,0.03) 45%, rgba(7,7,10,0.5));
+        padding: 14px 16px;
+        display: flex;
+        align-items: center;
+        gap: 14px;
+      ">
+        <div style="
+          width: 96px;
+          height: 96px;
+          background: #f6f1e3;
+          border-radius: 12px;
+          padding: 8px;
+          flex-shrink: 0;
+        ">
+          <img src="{{SLUG}}-qr.png" alt="QR code to join {{HOUSE_NAME}} house" style="width: 100%; height: 100%; display: block;">
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 6px; min-width: 0;">
+          <div style="font-family: 'Oswald', sans-serif; font-weight: 700; font-size: 20px; line-height: 1.05; color: #e8c547; text-transform: uppercase;">Scan to join</div>
+          <div style="
+            align-self: flex-start;
+            font-family: 'Oswald', sans-serif;
+            font-weight: 600;
+            font-size: 11px;
+            letter-spacing: 0.04em;
+            color: #07070a;
+            background: #e8c547;
+            border-radius: 999px;
+            padding: 6px 10px;
+          ">workitapp.fit/join?h={{SLUG}}</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- footer -->
+  <div style="
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 56px 32px 56px;
+  ">
+    <div style="font-size: 12px; line-height: 1.4; color: rgba(246,241,227,0.5);">A real card from inside a live workout.</div>
+    <div style="
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    ">
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45); text-transform: uppercase;">{{HOUSE_NAME}} House &middot; Work&#8209;It</div>
+      <div style="font-size: 12px; letter-spacing: 0.06em; color: rgba(246,241,227,0.45);">workitapp.fit</div>
+    </div>
+  </div>
+
+</div></div>
+</body>
+</html>

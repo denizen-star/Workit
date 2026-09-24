@@ -1,6 +1,7 @@
 import type { Exercise, WeekPlan, WorkoutDay } from '@/lib/workoutData';
 
-const EXTRA_UPPER_PACKS: Exercise[][] = [
+/** Also the Upper pool for Your pick (lib/yourPick.ts). */
+export const EXTRA_UPPER_PACKS: Exercise[][] = [
   [
     { name: 'Dumbbell or Barbell Shrugs', sets: 3, reps: '12-15', notes: 'Lighter than A and B.' },
     { name: 'Straight-Arm Pulldowns or Dumbbell Pullovers', sets: 3, reps: '10-12', notes: 'Lighter than A and B.' },
@@ -66,7 +67,8 @@ function cloneExercises(exercises: Exercise[], note?: string): Exercise[] {
   }));
 }
 
-function blockFor(weekNumber: number) {
+/** Phase title + note by program week. Also used by Your pick (lib/yourPick.ts). */
+export function blockFor(weekNumber: number) {
   const easy = weekNumber % 6 === 0;
   if (easy) {
     return {
@@ -131,7 +133,9 @@ export function buildYearWeeks(firstSix: WeekPlan[]): WeekPlan[] {
     const pack = EXTRA_UPPER_PACKS[Math.floor((weekNumber - 7) / 6) % EXTRA_UPPER_PACKS.length];
     weeks.push({
       weekNumber,
-      description: `${block.title}. One lower (${lower.name}). Extra upper Friday. How hard is a suggestion only.`,
+      // Day 4 (Extra Upper) is built for legacy lookups only — Your pick replaced it
+      // (lib/workoutData.ts strips it from workoutProgram).
+      description: `${block.title}. One lower (${lower.name}). Friday is Your pick. How hard is a suggestion only.`,
       days: [
         {
           ...upperA,

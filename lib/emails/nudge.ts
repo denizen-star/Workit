@@ -1,4 +1,4 @@
-import { getUserTone, markScheduleDaysAsked } from '@/lib/auth';
+import { markScheduleDaysAsked } from '@/lib/auth';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { loginUrl, whoUrl } from '@/lib/emailLayout';
@@ -51,7 +51,7 @@ export async function sendNudgesForUser(
   if (!user.email) return { sent: false, skipped: 'no-address' };
 
   const result = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at FROM workout_sessions WHERE user_id = ? ORDER BY week_number, day_number',
+    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ? ORDER BY week_number, day_number',
     [user.id]
   );
   const sessions = result.rows as WorkoutSessionRow[];
@@ -127,7 +127,6 @@ export async function sendNudgesForUser(
     focus: target.day.focus,
     estimate: formatEstimateMinutes(estimateWorkoutSeconds(target.day)),
     href: whoUrl(),
-    tone: await getUserTone(user.id),
     isRepeat,
   });
 

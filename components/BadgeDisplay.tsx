@@ -56,7 +56,17 @@ function requirementLabel(badge: Badge) {
     case 'night_owl':
       return 'Start at or after 8pm';
     case 'bonus_sessions':
-      return 'Finish a bonus day';
+      return 'Go past your week with a Your pick';
+    case 'pick_sessions':
+      return `${badge.requirement_value} Your pick ${badge.requirement_value === 1 ? 'workout' : 'workouts'}`;
+    case 'pick_all_types':
+      return 'Every Your pick type';
+    case 'pick_yoga':
+      return `${badge.requirement_value} Your pick yoga`;
+    case 'pick_lower':
+      return `${badge.requirement_value} Your pick lower`;
+    case 'pick_locked_week':
+      return 'Lock a week with a Your pick';
     case 'optional_weeks':
       return 'Finish 4 warmups and 4 cooldowns in a week';
     case 'optionals':
@@ -121,7 +131,7 @@ export default function BadgeDisplay({
 
                   {isEarned && badge.requirement_type === 'bonus_sessions' ? (
                     <p className="mt-2 text-xs text-[#e8c547]">
-                      {bonusCount} bonus {bonusCount === 1 ? 'day' : 'days'}
+                      {bonusCount} bonus {bonusCount === 1 ? 'week' : 'weeks'}
                     </p>
                   ) : isEarned && badge.requirement_type === 'optional_weeks' ? (
                     <p className="mt-2 text-xs text-[#e8c547]">
