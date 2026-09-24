@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 10.1.0 - 2026-09-24
+
+### Changed
+- **Eli writes the mail the whole house gets** — nudges, the "still open" reminder, the weekly scoreboard, the six-week pace check, and release notes, whoever your coach is. Your welcome, workout recap, badges and belts still come from your own coach.
+- The weekly scoreboard reads warmer: "The house this week — who showed up".
+
+### Security
+- Mail sent to more than one person puts everyone on Bcc, so nobody sees anyone else's address.
+
 ## 10.0.0 - 2026-09-24
 
 ### Added

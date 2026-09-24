@@ -21,7 +21,7 @@ Ask for permission to run:
 
 Only run this after step 3 has pushed successfully — this mail tells athletes about a change that's live, not one still deploying.
 
-1. Rewrite `lib/emails/currentRelease.ts` from the **CHANGELOG Unreleased** section you just released. Sandwich: `intro` / `mid` / `close` in **Master Tom Iron** (quit as a noun, address **man** in the body, no orphan `Man.` greeting). The `groups` middle is **plain English and visual** (`label — fact`). No developer words. Sign **Master Tom Iron**. James Grey and Luna Meadows recipients get their own intro/mid/close automatically. No Add-to-Home-Screen block on release.
+1. Rewrite `lib/emails/currentRelease.ts` from the **CHANGELOG Unreleased** section you just released. Sandwich: `intro` / `mid` / `close` in **Eli Sparks** (high-energy, encouraging, believes-in-you; quit as a noun). Every athlete gets the same Eli letter whatever their own coach is (`BROADCAST_TONE` in `lib/mailFrom.ts`). The `groups` middle is **plain English and visual** (`label — fact`). No developer words. The signer is Eli automatically — do not set `signer` / `tone`. No Add-to-Home-Screen block on release.
 2. This mail is **for users**, not ops. No Netlify, env vars, cron secrets, Admin Mail, BCC, or deploy checklists.
 3. Keep `version` / `title` / `groups` current (match the version you just tagged). Feature lines are facts, not a dump.
 4. Set `onlyAthletesWithWorkouts: true` and `activeInDays: 14` so it only goes to athletes who've trained in the last two weeks.

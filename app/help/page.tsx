@@ -259,7 +259,7 @@ const COACH_MOMENTS: string[] = [
   'The rest call between sets, spoken the same way',
   "New records, better or worse than last time, and how hard the exercise felt. Spoken the same way. When more than one applies, they play one after another. Turn each pop-up on or off in Noise Control",
   'The finish screen and the quit screen, spoken out loud, with a large coach face. Belts and badges stay on the next screen',
-  "Emails — your welcome message, workout recaps, and a nudge if you haven't trained in a few days",
+  "Emails — your welcome message, workout recaps, badges and belts. Mail the whole house gets (nudges, the weekly scoreboard, the six-week pace check, release notes) always comes from Eli, whoever your coach is",
 ];
 
 type GlossaryTerm = { term: string; tag: string; definition: string };

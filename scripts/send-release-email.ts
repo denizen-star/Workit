@@ -1,5 +1,5 @@
 /**
- * Send Master Workit release orders to every household user with an email.
+ * Send release notes (Eli's voice) to every household user with an email.
  *
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts
  *
@@ -11,7 +11,7 @@ import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
 import { buildReleaseEmail } from '../lib/emails/templates';
 import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
 import { firstName } from '../lib/profile';
-import { normalizeCoachTone } from '../lib/coachTone';
+import { BROADCAST_TONE } from '../lib/mailFrom';
 
 async function householdRecipients() {
   const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
@@ -101,10 +101,11 @@ async function main() {
 
   let sent = 0;
   for (const user of recipients) {
-    const tone = normalizeCoachTone(user.coach_tone);
-    const forKevin = firstName(user.name).toLowerCase() === 'kevin' && CURRENT_RELEASE.kevin;
-    const forLuna = tone === 'luna' && CURRENT_RELEASE.luna;
-    const voiced = forKevin ? CURRENT_RELEASE.kevin : forLuna ? CURRENT_RELEASE.luna : null;
+    // Release notes go to the whole house in one voice (Eli), whoever their own coach is.
+    const voiced =
+      firstName(user.name).toLowerCase() === 'kevin' && CURRENT_RELEASE.kevin
+        ? CURRENT_RELEASE.kevin
+        : null;
     const copy = voiced
       ? {
           ...CURRENT_RELEASE,
@@ -117,8 +118,7 @@ async function main() {
     const email = buildReleaseEmail({
       name: user.name,
       ...copy,
-      tone,
-      signer: tone === 'master' ? CURRENT_RELEASE.signer : undefined,
+      tone: BROADCAST_TONE,
     });
     const id = await sendEmail({
       to: user.email as string,

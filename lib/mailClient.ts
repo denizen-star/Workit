@@ -76,6 +76,29 @@ function withOpsBcc(to: string | string[], bcc?: string | string[]) {
   return bccList.length ? bccList.join(', ') : undefined;
 }
 
+/** More than one person on To/Cc → nobody sees anybody else's address: every
+ * recipient moves to Bcc and the mail is addressed to the sender itself. A single
+ * recipient is sent as-is. Ops Bcc is added either way. */
+function visibleRecipients(from: string, payload: MailPayload) {
+  const to = normalizeAddressList(payload.to);
+  const cc = normalizeAddressList(payload.cc);
+  if (to.length + cc.length <= 1) {
+    return {
+      to: to.join(', '),
+      cc: cc.length ? cc.join(', ') : undefined,
+      bcc: withOpsBcc(payload.to, payload.bcc),
+    };
+  }
+  const seen = new Set<string>();
+  const everyone = [...to, ...cc, ...normalizeAddressList(payload.bcc)].filter((entry) => {
+    const key = emailAddress(entry);
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  return { to: from, cc: undefined, bcc: withOpsBcc(from, everyone) };
+}
+
 export function defaultFrom(displayName = 'Workit - Coach Tom', address: string = MAIL_FROM.tom) {
   return `${displayName} <${address}>`;
 }
@@ -95,12 +118,10 @@ export async function sendEmail(payload: MailPayload): Promise<string | null> {
   const from = payload.from || defaultFrom();
   const info = await transporter.sendMail({
     from,
-    to: Array.isArray(payload.to) ? payload.to.join(', ') : payload.to,
+    ...visibleRecipients(from, payload),
     subject: payload.subject,
     html: payload.html,
     text: payload.text,
-    bcc: withOpsBcc(payload.to, payload.bcc),
-    cc: Array.isArray(payload.cc) ? payload.cc.join(', ') : payload.cc,
     attachments: payload.attachments,
   });
 

@@ -1052,6 +1052,7 @@ export function buildScoreboardEmail(input: ScoreboardEmailInput): BuiltEmail {
   const html = wrapEmailHtml({
     eyebrow,
     title,
+    signer: voiceDisplayName(BROADCAST_TONE),
     childrenHtml: [
       coachPersonaArt(BROADCAST_TONE, 'celebratory'),
       p(esc(SCOREBOARD_INTRO)),
@@ -1318,5 +1319,5 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       ],
     });
   }
-  return buildReleaseEmail({ name: 'Kevin', ...CURRENT_RELEASE });
+  return buildReleaseEmail({ name: 'Kevin', ...CURRENT_RELEASE, tone: BROADCAST_TONE });
 }
