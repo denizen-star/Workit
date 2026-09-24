@@ -1,7 +1,7 @@
 import { createHash } from 'crypto';
 
 /** ElevenLabs voice for Master Tom Iron. */
-export const TOM_ELEVEN_VOICE_ID = 'c1zz1gP1b2Gxm00yeXa5';
+export const TOM_ELEVEN_VOICE_ID = 'mKRyR5dyNdWWG5c8dHd6';
 
 /** ElevenLabs voice for Eli Sparks. */
 export const ELI_ELEVEN_VOICE_ID = '4qlF1DCcdREwQSYtHyMk';
@@ -27,7 +27,8 @@ export function coachClipKey(template: string): string {
 
 /**
  * What Tom actually speaks. `{name}` is omitted so one clip fits every athlete.
- * Newlines between a title and a body become a sentence break.
+ * A line break is a breath. A title and the line under it stay one phrase,
+ * so the voice does not stop and start again. The on-screen text is unchanged.
  */
 export function speakableCoachText(template: string): string {
   let text = template.replace(/\r\n/g, '\n');
@@ -35,7 +36,11 @@ export function speakableCoachText(template: string): string {
   text = text.replace(/,\s*\{name\}/g, '');
   text = text.replace(/\{name\}\s*,/g, '');
   text = text.replace(/\{name\}/g, '');
-  text = text.replace(/\n+/g, '. ');
+  // A period that only existed to end "{name}." is not a real stop.
+  text = text.replace(/\n+\s*\./g, '\n');
+  text = text.replace(/^\s*\.\s*/, '');
+  text = text.replace(/([.?!])\s*\n+/g, '$1 ');
+  text = text.replace(/\n+/g, ', ');
   text = text.replace(/\s+/g, ' ').trim();
   text = text.replace(/\s+([,.?!])/g, '$1');
   text = text.replace(/\s+with\s*\./g, '.');
@@ -45,5 +50,8 @@ export function speakableCoachText(template: string): string {
   text = text.replace(/^[,.\s]+/, '');
   text = text.replace(/\s{2,}/g, ' ').trim();
   text = text.replace(/([.?!]\s+)([a-z])/g, (_match, lead: string, letter: string) => lead + letter.toUpperCase());
+  text = text.replace(/,\s+([A-Z])(?![A-Z])/g, (_match, letter: string) =>
+    letter === 'I' ? ', I' : ', ' + letter.toLowerCase()
+  );
   return text;
 }
