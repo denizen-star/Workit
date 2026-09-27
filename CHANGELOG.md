@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 10.4.1 - 2026-09-27
+
+### Fixed
+- Admin: onboarding report sends from the mail login address, so Zoho no longer rejects it.
+
 ## 10.4.0 - 2026-09-27
 
 ### Added

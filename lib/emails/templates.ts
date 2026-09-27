@@ -1490,7 +1490,9 @@ export function buildOnboardingReportEmail(input: OnboardingReportInput): BuiltE
   ].join('\n');
 
   return {
-    from: defaultFrom('Work-It', MAIL_FROM.info),
+    // Internal, Kevin only: the SMTP login address itself, so it never depends on Zoho send-as
+    // for the workitapp.fit groups (info@ / news@ / eli@ are rejected with 553 without it).
+    from: defaultFrom('Work-It', (process.env.SENDER_EMAIL || '').trim() || MAIL_FROM.info),
     subject:
       'Onboarding · ' +
       input.today.joined +
