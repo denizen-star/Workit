@@ -181,10 +181,10 @@ Kevin only.
 
 ## `/admin/mail` — Mail
 
-- Template picker (welcome, invite, PIN reset, nudges, recap, week, program, badge, diploma, scoreboard, days-per-week check-in, What's new)
-- Preview
+- Template picker (welcome, invite, PIN reset, nudges, recap, week, program, badge, diploma, scoreboard, days-per-week check-in, What's new, onboarding report)
+- Preview (scoreboard + onboarding report use live data)
 - Sample send
-- Run nudges / force scoreboard
+- Run nudges / force scoreboard / send onboarding report now
 
 ## Shared overlays (any logged-in page)
 

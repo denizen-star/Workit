@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 10.4.0 - 2026-09-27
+
+### Added
+- Admin: **nightly onboarding report** — email to Kevin at 8pm Eastern. Today's join visits, new accounts and first workouts; a 7-day per-house join funnel (opened → 18+ → details → PIN → joined, split QR / link / invite); anonymous visitors who left sign-up partway; unclaimed invites and how far each got; every athlete from the last 14 days with verified → signed in → first workout progress, a stuck / watch / on-track flag, and how they're training. Preview live and **Send onboarding report** in Admin → Mail.
+- Sign-up now records how each athlete arrived (QR code, link or invite). QR codes need `&src=qr` to count as QR — codes already printed read as link.
+
 ## 10.3.0 - 2026-09-27
 
 ### Added

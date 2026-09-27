@@ -28,6 +28,7 @@ CREATE TABLE users (
     email_verified_at TIMESTAMP NULL,
     adult_risk_confirmed_at TIMESTAMP NULL,
     blocked_at TIMESTAMP NULL,
+    join_source VARCHAR(16) NULL,
     last_household_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

@@ -1170,6 +1170,339 @@ export function buildReleaseEmail(input: ReleaseEmailInput): BuiltEmail {
   };
 }
 
+export type OnboardingFunnelRow = {
+  house: string;
+  /** Distinct browsers per furthest wizard screen reached (cumulative). */
+  opened: number;
+  agree: number;
+  form: number;
+  pin: number;
+  /** Accounts created (users table), not events. */
+  joined: number;
+  qr: number;
+  link: number;
+  invite: number;
+};
+
+export type OnboardingVisitorRow = {
+  house: string;
+  source: string;
+  furthest: string;
+  lastSeen: string;
+  where: string | null;
+};
+
+export type OnboardingInviteRow = {
+  name: string;
+  house: string;
+  invitedBy: string | null;
+  sentLabel: string;
+  progress: string;
+};
+
+export type OnboardingAthleteRow = {
+  name: string;
+  callName: string;
+  email: string | null;
+  house: string;
+  source: string;
+  invitedBy: string | null;
+  joinedLabel: string;
+  steps: { label: string; done: boolean }[];
+  status: string;
+  /** good = earth green, watch = gold, stuck = earth red. */
+  flag: 'good' | 'watch' | 'stuck';
+  how: string[];
+};
+
+export type OnboardingReportInput = {
+  dateLabel: string;
+  windowDays: number;
+  funnelDays: number;
+  today: { opened: number; qr: number; joined: number; firstWorkouts: number; passed: number };
+  funnel: OnboardingFunnelRow[];
+  passed7d: number;
+  stuckVisitors: OnboardingVisitorRow[];
+  invites: OnboardingInviteRow[];
+  athletes: OnboardingAthleteRow[];
+};
+
+const REPORT_GREEN = '#6d8b6e';
+const REPORT_RED = '#a35d52';
+const REPORT_GOLD = '#e8c547';
+const REPORT_COPPER = '#c08457';
+const REPORT_MUTED = '#b9b1a0';
+const FLAG_COLOR = { good: REPORT_GREEN, watch: REPORT_GOLD, stuck: REPORT_RED } as const;
+const FLAG_ORDER = { stuck: 0, watch: 1, good: 2 } as const;
+
+function reportHeading(label: string) {
+  return (
+    '<p style="margin:22px 0 8px;font-size:11px;letter-spacing:0.18em;text-transform:uppercase;color:' +
+    REPORT_GOLD +
+    ';font-weight:700;">' +
+    esc(label) +
+    '</p>'
+  );
+}
+
+function reportMuted(text: string) {
+  return '<div style="font-size:12px;color:' + REPORT_MUTED + ';margin-top:3px;line-height:1.45;">' + esc(text) + '</div>';
+}
+
+function funnelTableHtml(rows: OnboardingFunnelRow[]) {
+  const cell = 'padding:7px 4px;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;text-align:right;color:#f6f1e3;';
+  const head = ['House', 'Opened', '18+', 'Details', 'PIN', 'Joined']
+    .map(
+      (label, i) =>
+        '<td style="padding:4px;font-size:10px;letter-spacing:0.12em;text-transform:uppercase;color:' +
+        REPORT_MUTED +
+        ';text-align:' +
+        (i === 0 ? 'left' : 'right') +
+        ';">' +
+        label +
+        '</td>'
+    )
+    .join('');
+  const body = rows
+    .map(
+      (row) =>
+        '<tr><td style="' +
+        cell +
+        'text-align:left;"><div style="font-weight:800;color:' +
+        REPORT_COPPER +
+        ';">' +
+        esc(row.house) +
+        '</div>' +
+        reportMuted('QR ' + row.qr + ' · Link ' + row.link + ' · Invite ' + row.invite) +
+        '</td>' +
+        [row.opened, row.agree, row.form, row.pin]
+          .map((n) => '<td style="' + cell + '">' + n + '</td>')
+          .join('') +
+        '<td style="' +
+        cell +
+        'font-weight:800;color:' +
+        (row.joined > 0 ? REPORT_GREEN : '#f6f1e3') +
+        ';">' +
+        row.joined +
+        '</td></tr>'
+    )
+    .join('');
+  return (
+    '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 8px;"><tr>' +
+    head +
+    '</tr>' +
+    body +
+    '</table>'
+  );
+}
+
+function stepsHtml(steps: OnboardingAthleteRow['steps']) {
+  return (
+    '<div style="margin-top:6px;line-height:1.9;">' +
+    steps
+      .map(
+        (step) =>
+          '<span style="display:inline-block;margin:0 4px 0 0;padding:1px 7px;border-radius:999px;font-size:11px;font-weight:700;' +
+          (step.done
+            ? 'background:rgba(109,139,110,0.22);color:#b7d3b8;'
+            : 'border:1px dashed rgba(255,255,255,0.25);color:' + REPORT_MUTED + ';') +
+          '">' +
+          (step.done ? '✓ ' : '') +
+          esc(step.label) +
+          '</span>'
+      )
+      .join('') +
+    '</div>'
+  );
+}
+
+function athleteHtml(row: OnboardingAthleteRow) {
+  const color = FLAG_COLOR[row.flag];
+  return (
+    '<div style="padding:12px 0 12px 12px;border-left:3px solid ' +
+    color +
+    ';margin:0 0 10px;">' +
+    '<div style="font-weight:800;color:#fff;font-size:15px;">' +
+    esc(row.name) +
+    (row.callName && row.callName !== row.name.split(/\s+/)[0] ? ' <span style="color:' + REPORT_MUTED + ';font-weight:400;">(' + esc(row.callName) + ')</span>' : '') +
+    '</div>' +
+    '<div style="font-size:12px;margin-top:2px;"><span style="color:' +
+    REPORT_COPPER +
+    ';font-weight:700;">' +
+    esc(row.house) +
+    '</span><span style="color:' +
+    REPORT_MUTED +
+    ';"> · ' +
+    esc(row.source) +
+    (row.invitedBy ? ' from ' + esc(row.invitedBy) : '') +
+    ' · joined ' +
+    esc(row.joinedLabel) +
+    '</span></div>' +
+    '<div style="font-size:13px;font-weight:800;color:' +
+    color +
+    ';margin-top:6px;">' +
+    esc(row.status) +
+    '</div>' +
+    stepsHtml(row.steps) +
+    row.how.map((line) => reportMuted(line)).join('') +
+    (row.email ? reportMuted(row.email) : '') +
+    '</div>'
+  );
+}
+
+/** Kevin's nightly onboarding report (lib/emails/onboarding.ts). Plain house-ops mail, not a coach voice. */
+export function buildOnboardingReportEmail(input: OnboardingReportInput): BuiltEmail {
+  const athletes = [...input.athletes].sort((a, b) => FLAG_ORDER[a.flag] - FLAG_ORDER[b.flag]);
+  const stuck = athletes.filter((a) => a.flag === 'stuck').length;
+  const watch = athletes.filter((a) => a.flag === 'watch').length;
+  const title = 'New athletes · ' + input.dateLabel;
+  const todayRows: Array<[string, string]> = [
+    ['Opened /join today', String(input.today.opened) + (input.today.qr ? ' (' + input.today.qr + ' by QR)' : '')],
+    ['New accounts today', String(input.today.joined)],
+    ['First workouts finished today', String(input.today.firstWorkouts)],
+    ['Under 18 / Pass today', String(input.today.passed)],
+    ['Need a look', stuck + ' stuck · ' + watch + ' to watch'],
+  ];
+
+  const funnelHtml = input.funnel.length
+    ? funnelTableHtml(input.funnel) +
+      reportMuted(
+        'Browsers per furthest screen reached; Joined = accounts created. ' +
+          input.passed7d +
+          ' tapped Under 18 / Pass.'
+      )
+    : p('Nobody opened /join in the last ' + input.funnelDays + ' days.');
+
+  const stuckHtml = input.stuckVisitors.length
+    ? input.stuckVisitors
+        .map(
+          (v) =>
+            '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;color:#f6f1e3;">' +
+            '<strong style="color:' +
+            REPORT_COPPER +
+            ';">' +
+            esc(v.house) +
+            '</strong> · ' +
+            esc(v.source) +
+            ' · <span style="color:' +
+            REPORT_RED +
+            ';">' +
+            esc(v.furthest) +
+            '</span>' +
+            reportMuted(v.lastSeen + (v.where ? ' · ' + v.where : '')) +
+            '</div>'
+        )
+        .join('')
+    : p('Nobody left the wizard partway.');
+
+  const invitesHtml = input.invites.length
+    ? input.invites
+        .map(
+          (inv) =>
+            '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;color:#f6f1e3;">' +
+            '<strong style="color:#fff;">' +
+            esc(inv.name) +
+            '</strong> · <span style="color:' +
+            REPORT_COPPER +
+            ';">' +
+            esc(inv.house) +
+            '</span>' +
+            reportMuted(
+              'Invited ' + inv.sentLabel + (inv.invitedBy ? ' by ' + inv.invitedBy : '') + ' · ' + inv.progress
+            ) +
+            '</div>'
+        )
+        .join('')
+    : '';
+
+  const html = wrapEmailHtml({
+    eyebrow: 'onboarding report',
+    title,
+    signer: 'Work-It',
+    footer: 'Nightly at 8pm Eastern · anonymous wizard visits come from the app’s own analytics',
+    childrenHtml: [
+      statsTable(todayRows),
+      reportHeading('Join funnel · last ' + input.funnelDays + ' days'),
+      funnelHtml,
+      reportHeading('Left the wizard partway'),
+      stuckHtml,
+      input.invites.length ? reportHeading('Invites not claimed yet') + invitesHtml : '',
+      reportHeading('Joined in the last ' + input.windowDays + ' days'),
+      athletes.length ? athletes.map(athleteHtml).join('') : p('No new athletes.'),
+      cta(appUrl() + '/admin/users', 'OPEN USERS'),
+    ].join(''),
+  });
+
+  const text = [
+    emailTextHeader('onboarding report', title),
+    '',
+    ...todayRows.map(([label, value]) => label + ': ' + value),
+    '',
+    'JOIN FUNNEL · last ' + input.funnelDays + ' days (opened / 18+ / details / PIN / joined)',
+    ...(input.funnel.length
+      ? input.funnel.map(
+          (row) =>
+            '  ' +
+            row.house +
+            ': ' +
+            [row.opened, row.agree, row.form, row.pin, row.joined].join(' / ') +
+            '  (QR ' +
+            row.qr +
+            ' · Link ' +
+            row.link +
+            ' · Invite ' +
+            row.invite +
+            ')'
+        )
+      : ['  Nobody opened /join.']),
+    '  Under 18 / Pass: ' + input.passed7d,
+    '',
+    'LEFT THE WIZARD PARTWAY',
+    ...(input.stuckVisitors.length
+      ? input.stuckVisitors.map(
+          (v) => '  ' + v.house + ' · ' + v.source + ' · ' + v.furthest + ' · ' + v.lastSeen + (v.where ? ' · ' + v.where : '')
+        )
+      : ['  None.']),
+    ...(input.invites.length
+      ? [
+          '',
+          'INVITES NOT CLAIMED YET',
+          ...input.invites.map(
+            (inv) =>
+              '  ' + inv.name + ' · ' + inv.house + ' · invited ' + inv.sentLabel + (inv.invitedBy ? ' by ' + inv.invitedBy : '') + ' · ' + inv.progress
+          ),
+        ]
+      : []),
+    '',
+    'JOINED IN THE LAST ' + input.windowDays + ' DAYS',
+    ...(athletes.length
+      ? athletes.flatMap((a) => [
+          '',
+          a.name + ' — ' + a.status.toUpperCase(),
+          '  ' + a.house + ' · ' + a.source + (a.invitedBy ? ' from ' + a.invitedBy : '') + ' · joined ' + a.joinedLabel,
+          '  ' + a.steps.map((step) => (step.done ? '[x] ' : '[ ] ') + step.label).join('  '),
+          ...a.how.map((line) => '  ' + line),
+          ...(a.email ? ['  ' + a.email] : []),
+        ])
+      : ['  None.']),
+    '',
+    appUrl() + '/admin/users',
+  ].join('\n');
+
+  return {
+    from: defaultFrom('Work-It', MAIL_FROM.info),
+    subject:
+      'Onboarding · ' +
+      input.today.joined +
+      ' joined today · ' +
+      stuck +
+      ' stuck · ' +
+      input.dateLabel,
+    html,
+    text,
+  };
+}
+
 export function sampleEmail(template: MailTemplateId): BuiltEmail {
   const completeBase: WorkoutCompleteEmailInput = {
     name: 'Kevin',
@@ -1318,6 +1651,54 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
             '  Lead: Triceps Cable Pushdowns or Overhead Extensions · 45 reps · +8% vs Kevin',
             '  Behind: —',
             '  In the pack: Lat Pulldowns or Cable Rows · 36 reps · 2% from pack avg',
+          ],
+        },
+      ],
+    });
+  }
+  if (template === 'onboarding') {
+    const steps = (done: number) =>
+      ['Joined', 'Verified', 'Signed in', 'Started a workout', 'Finished one'].map((label, i) => ({
+        label,
+        done: i < done,
+      }));
+    return buildOnboardingReportEmail({
+      dateLabel: 'Sunday, Sep 27',
+      windowDays: 14,
+      funnelDays: 7,
+      today: { opened: 6, qr: 4, joined: 2, firstWorkouts: 1, passed: 0 },
+      funnel: [
+        { house: 'Gowanus', opened: 9, agree: 7, form: 6, pin: 4, joined: 3, qr: 6, link: 3, invite: 0 },
+        { house: 'Brooklyn', opened: 3, agree: 2, form: 1, pin: 1, joined: 1, qr: 3, link: 0, invite: 0 },
+      ],
+      passed7d: 1,
+      stuckVisitors: [
+        { house: 'Gowanus', source: 'QR code', furthest: 'On their details', lastSeen: '3h ago', where: 'Brooklyn, New York · mobile' },
+        { house: 'Brooklyn', source: 'QR code', furthest: 'On the 18+ screen', lastSeen: 'yesterday', where: 'mobile' },
+      ],
+      invites: [
+        { name: 'Maya Chen', house: 'The OG', invitedBy: 'Kevin Leacock', sentLabel: '2d ago', progress: 'On the PIN · yesterday' },
+      ],
+      athletes: [
+        {
+          name: 'Jordan Reyes', callName: 'Jordan', email: 'jordan@example.com', house: 'Gowanus', source: 'QR code',
+          invitedBy: null, joinedLabel: '3d ago · Sep 24', steps: steps(3), status: 'Signed in, no workout yet', flag: 'stuck',
+          how: ['Last seen in the app: 2d ago'],
+        },
+        {
+          name: 'Sam Patel', callName: 'Sam', email: 'sam@example.com', house: 'Brooklyn', source: 'Link',
+          invitedBy: null, joinedLabel: 'today · Sep 27', steps: steps(1), status: "Hasn't verified their email", flag: 'watch',
+          how: ['Last seen in the app: never'],
+        },
+        {
+          name: 'Alex Kim', callName: 'Alex', email: 'alex@example.com', house: 'Gowanus', source: 'QR code',
+          invitedBy: null, joinedLabel: '5d ago · Sep 22', steps: steps(5), status: 'On track', flag: 'good',
+          how: [
+            '2 workouts finished · 2 in the last 7 days (plans 4/wk)',
+            '9,850 lb · 34 sets · Effort 3.4 · 4.5★ enjoyment',
+            'Last: Test Drive · Full Body B · yesterday',
+            'Test Drive · 2 of 2 done · Week 1 starts in 1 day',
+            'Last seen in the app: 3h ago',
           ],
         },
       ],

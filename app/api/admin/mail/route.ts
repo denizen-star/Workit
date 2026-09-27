@@ -6,6 +6,7 @@ import { sampleEmail } from '@/lib/emails/templates';
 import { MAIL_TEMPLATES, type MailTemplateId } from '@/lib/emails/ids';
 import { sendDailyNudges } from '@/lib/emails/nudge';
 import { sendScoreboardEmail, buildLiveScoreboard } from '@/lib/emails/scoreboard';
+import { buildLiveOnboardingReport, sendOnboardingReport } from '@/lib/emails/onboarding';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
 function isTemplate(value: string): value is MailTemplateId {
@@ -25,7 +26,9 @@ export async function GET(request: NextRequest) {
     const email =
       templateParam === 'scoreboard' && live
         ? await buildLiveScoreboard()
-        : sampleEmail(templateParam);
+        : templateParam === 'onboarding' && live
+          ? await buildLiveOnboardingReport()
+          : sampleEmail(templateParam);
 
     void trackServerEvent({
       eventType: 'admin_mail',
@@ -73,6 +76,16 @@ export async function POST(request: NextRequest) {
         eventType: 'admin_mail',
         pageCategory: 'admin-mail',
         ctaType: 'scoreboard',
+      });
+      return NextResponse.json({ ok: true, result });
+    }
+
+    if (action === 'onboarding') {
+      const result = await sendOnboardingReport({ force: true });
+      void trackServerEvent({
+        eventType: 'admin_mail',
+        pageCategory: 'admin-mail',
+        ctaType: 'onboarding',
       });
       return NextResponse.json({ ok: true, result });
     }

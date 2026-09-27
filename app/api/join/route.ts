@@ -16,6 +16,14 @@ import { parsePhotoDataUrl } from '@/lib/photo';
 import { WAIVER_TEXT } from '@/lib/waiver';
 import { queueJoinWelcome } from '@/lib/emails/lifecycle';
 import { clampScheduleDays } from '@/lib/scheduleDays';
+import { joinSourceFrom, type JoinSource } from '@/lib/joinSource';
+
+/** Best effort: the onboarding report reads it, a sign-up never fails on it (column may be unapplied). */
+async function recordJoinSource(userId: number, source: JoinSource) {
+  await query('UPDATE users SET join_source = ? WHERE id = ?', [source, userId]).catch((error) => {
+    console.warn('[join] join_source not saved', error);
+  });
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -49,6 +57,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const h = String(body.h || HOUSE_GOWANUS);
     const claim = typeof body.claim === 'string' ? body.claim : '';
+    const joinSource = joinSourceFrom(body.src, claim);
     const firstName = normalizeOptionalText(body.firstName, 120);
     const lastName = normalizeOptionalText(body.lastName, 120);
     const displayName = normalizeOptionalText(body.displayName, 120);
@@ -120,6 +129,7 @@ export async function POST(request: NextRequest) {
       );
       await addHouseholdMember(house.id, waiting.id);
       await query('UPDATE users SET last_household_id = ? WHERE id = ?', [house.id, waiting.id]);
+      await recordJoinSource(waiting.id, joinSource);
       queueJoinWelcome({
         id: waiting.id,
         name,
@@ -175,6 +185,7 @@ export async function POST(request: NextRequest) {
     );
     const id = Number(result.insertId);
     await addHouseholdMember(house.id, id);
+    await recordJoinSource(id, joinSource);
     queueJoinWelcome({
       id,
       name,

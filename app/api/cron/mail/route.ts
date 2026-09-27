@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDailyNudges } from '@/lib/emails/nudge';
 import { sendScoreboardEmail } from '@/lib/emails/scoreboard';
+import { sendOnboardingReport } from '@/lib/emails/onboarding';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -10,6 +11,14 @@ function isCronAuthorized(request: NextRequest) {
   if (!secret) return false;
   const auth = request.headers.get('authorization');
   return auth === 'Bearer ' + secret;
+}
+
+function hourInNewYork() {
+  return Number(
+    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/New_York' }).format(
+      new Date()
+    )
+  );
 }
 
 function todayWeekdayInNewYork() {
@@ -36,6 +45,18 @@ async function handle(request: NextRequest) {
   const weekday = todayWeekdayInNewYork();
 
   const result: Record<string, unknown> = { ok: true, task, weekday };
+
+  // Onboarding report: its own evening cron fires at 00:00 and 01:00 UTC so one of the two
+  // lands on 8pm Eastern in both EDT and EST; the other is a no-op. Never part of 'all'.
+  if (task === 'onboarding') {
+    const hour = hourInNewYork();
+    if (hour !== 20 && request.nextUrl.searchParams.get('force') !== '1') {
+      result.onboarding = { sent: false, skipped: 'not-8pm-eastern', hour };
+    } else {
+      result.onboarding = await sendOnboardingReport();
+    }
+    return NextResponse.json(result);
+  }
 
   if (task === 'nudge' || task === 'all') {
     result.nudges = await sendDailyNudges();

@@ -28,6 +28,7 @@ const LABELS: Record<MailTemplateId, string> = {
   scoreboard: 'Scoreboard',
   release: "What's new",
   schedule_days_ask: 'Days per week check-in',
+  onboarding: 'Onboarding report',
 };
 
 export default function AdminMailPage() {
@@ -38,7 +39,7 @@ export default function AdminMailPage() {
   const [busy, setBusy] = useState(false);
 
   const load = async (next: MailTemplateId) => {
-    const response = await fetch('/api/admin/mail?template=' + next + (next === 'scoreboard' ? '&live=1' : ''));
+    const response = await fetch('/api/admin/mail?template=' + next + (next === 'scoreboard' || next === 'onboarding' ? '&live=1' : ''));
     if (response.status === 401 || response.status === 403) {
       router.replace('/home');
       return;
@@ -73,7 +74,11 @@ export default function AdminMailPage() {
           ? 'Nudges ran'
           : body.action === 'scoreboard'
             ? 'Scoreboard sent'
-            : 'Sample sent to ' + data.to
+            : body.action === 'onboarding'
+              ? data.result?.sent
+                ? 'Onboarding report sent'
+                : 'Onboarding report not sent (' + (data.result?.skipped || 'SMTP') + ')'
+              : 'Sample sent to ' + data.to
       );
     } catch {
       setStatus('Send failed');
@@ -132,6 +137,14 @@ export default function AdminMailPage() {
             className="min-h-11 rounded-2xl border border-white/10 px-4 font-semibold text-[#f6f1e3]/85 disabled:opacity-50"
           >
             Send live scoreboard
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => post({ action: 'onboarding' })}
+            className="min-h-11 rounded-2xl border border-white/10 px-4 font-semibold text-[#f6f1e3]/85 disabled:opacity-50"
+          >
+            Send onboarding report
           </button>
         </div>
 

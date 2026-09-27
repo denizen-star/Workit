@@ -60,8 +60,11 @@ The QR code is not an app feature — it's just an image encoding the join URL, 
 one-off tool (no dependency gets added to `package.json`):
 
 ```bash
-npx -y qrcode "https://workitapp.fit/join?h=<slug>" -o <slug>-qr.png -w 800
+npx -y qrcode "https://workitapp.fit/join?h=<slug>&src=qr" -o <slug>-qr.png -w 800
 ```
+
+Keep `&src=qr` on the encoded URL (not on the printed text URL): it is how the nightly onboarding
+report (`lib/emails/onboarding.ts`) and `users.join_source` tell a QR scan from a typed link.
 
 Save it to the project root (matching `miami-beach-qr.png` / `brooklyn-qr.png`), and read the image
 back once to visually confirm it rendered as a real QR pattern (not a blank or corrupted file) before

@@ -78,9 +78,9 @@ SMTP login stays `SENDER_EMAIL=info@kervinapps.com`. The address on the message 
 | New PIN | `help@` |
 | Nudge, resume, workout recap, badge, belt | Athlete's coach: `tom@` / `grey@` / `luna@` / `eli@` |
 | Six-week pace check, release notes, "your feature is live", "I will not do this" | `news@` |
-| Scoreboard, invite alert to Kevin, Talk to me, feedback digest | `info@` |
+| Scoreboard, invite alert to Kevin, Talk to me, feedback digest, nightly onboarding report | `info@` |
 
-Cron (`workit-mail-cron` → `POST /api/cron/mail`) does not use these aliases. Keep `CRON_SECRET` and set `APP_URL` to `https://workitapp.fit` as in the domain runbook.
+Cron (`workit-mail-cron` → `POST /api/cron/mail`, 8am Eastern; `workit-onboarding-cron` → `?task=onboarding`, 8pm Eastern) does not use these aliases. Keep `CRON_SECRET` and set `APP_URL` to `https://workitapp.fit` as in the domain runbook.
 
 ---
 

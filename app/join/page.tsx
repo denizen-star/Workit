@@ -15,6 +15,8 @@ import {
   JOIN_INTRO_TITLE,
 } from '@/lib/joinCopy';
 import { DEVICE_BLOCK_STORAGE_KEY } from '@/lib/deviceBlockShared';
+import { trackAction } from '@/lib/analytics';
+import { joinSourceFrom, joinStepContext } from '@/lib/joinSource';
 import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
 import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS, scheduleDaysHint } from '@/lib/scheduleDays';
@@ -39,6 +41,9 @@ export default function JoinPage() {
   const [step, setStep] = useState<Step>('intro');
   const [h, setH] = useState('gowanus');
   const [claim, setClaim] = useState('');
+  // 'qr' when the printed code's ?src=qr came in; kept in the draft so a resumed sign-up keeps it.
+  const [src, setSrc] = useState('');
+  const [ready, setReady] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -71,10 +76,12 @@ export default function JoinPage() {
     }
     setH(house || 'gowanus');
     setClaim(token);
+    let source = params.get('src') || '';
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
-        const draft = JSON.parse(saved) as { step?: Step; firstName?: string };
+        const draft = JSON.parse(saved) as { step?: Step; firstName?: string; src?: string };
+        if (!source && draft.src) source = draft.src;
         // Any saved step past the intro resumes on the agree screen: the 18+ / own-risk
         // confirmation is never persisted, so it has to be given again every visit.
         if (draft.step && draft.step !== 'wait' && draft.step !== 'intro') {
@@ -85,6 +92,8 @@ export default function JoinPage() {
         /* ignore */
       }
     }
+    setSrc(source);
+    setReady(true);
     fetch('/api/join?' + new URLSearchParams({ h: house, claim: token }).toString()).then(async (res) => {
       const data = await res.json();
       if (!res.ok && data.redirect) {
@@ -105,8 +114,19 @@ export default function JoinPage() {
       localStorage.removeItem(DRAFT_KEY);
       return;
     }
-    localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, firstName, lastName, displayName, email }));
-  }, [step, firstName, lastName, displayName, email]);
+    localStorage.setItem(DRAFT_KEY, JSON.stringify({ step, firstName, lastName, displayName, email, src }));
+  }, [step, firstName, lastName, displayName, email, src]);
+
+  // One join_step per screen reached, for the nightly onboarding report's funnel.
+  // Anonymous (visitor id only) until the account exists.
+  useEffect(() => {
+    if (!ready) return;
+    trackAction('join_step', {
+      category: 'join',
+      cta_type: step,
+      article_context: joinStepContext(h, joinSourceFrom(src, claim)),
+    });
+  }, [ready, step, h, src, claim]);
 
   // Takes confirmPinValue explicitly rather than reading the `confirmPin` state
   // directly: the auto-submit call fires from the same PinPad onChange handler
@@ -122,6 +142,7 @@ export default function JoinPage() {
       body: JSON.stringify({
         h,
         claim,
+        src,
         firstName,
         lastName,
         displayName,
@@ -147,6 +168,11 @@ export default function JoinPage() {
       return;
     }
     localStorage.removeItem(DRAFT_KEY);
+    trackAction('join_step', {
+      category: 'join',
+      cta_type: 'done',
+      article_context: joinStepContext(h, joinSourceFrom(src, claim)),
+    });
     if (data.session) {
       router.replace('/home');
       return;
