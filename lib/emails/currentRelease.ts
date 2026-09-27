@@ -34,37 +34,37 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '10.2.0',
-  title: 'Every new face starts on the same page.',
-  subject: 'Before you join — 18+, your pace, and a code we all train by',
+  version: '10.3.0',
+  title: 'No more waiting for Monday.',
+  subject: 'Test Drive — new faces start the day they join',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Quick one today, and it is about the people who come next. The house is growing, and every new face deserves to walk in knowing exactly what this place is.',
-  mid: 'So anyone joining now gets one clear screen before they sign up. Adults only. Your body, your pace, your call. We plan the work. You own how hard you push it. That is the deal it has always been. Now it is written down where everyone sees it first.',
+    'I have got a good one for you. Nobody joins Work-It and then just sits around waiting for Monday anymore. The day they walk in is the day they start.',
+  mid: 'Here is how it works. Week 1 still starts on a Monday, because a clean week is a fair week. But if someone joins on a Wednesday, they get a Test Drive: a couple of real workouts to learn the app and feel the work. Those count for them, not for the board. So nobody gets a head start on you, and nobody feels left out either.',
   close:
-    'You set the tone for everyone who walks in after you, and I know you are going to make them want to keep up. Go train. Growth, power, stamina. They are waiting for you. Quit is the only thing not welcome here.',
+    'And when you finish a workout now, you will see the app working for you. Saving, calculating, checking. That is your growth being counted. Go give it something to count. Quit is the only thing not welcome here.',
   lead: '',
   groups: [
     {
-      heading: 'Joining Work-It',
+      heading: 'Test Drive',
       wins: [
-        'New screen — before signing up, everyone confirms they are 18 or older.',
-        'Your pace, your risk — workouts and weights are suggestions. Know your injuries and health limits.',
-        'Invite links too — friends you invite see the same screen.',
-        'Under 18 — that phone cannot sign up. Tapped it by mistake? Send one request from that screen.',
+        'Joined mid-week — start the same day with a Test Drive.',
+        'How many — 3 workouts from Tuesday, 2 Wednesday to Friday, 1 on the weekend.',
+        'Countdown — Home shows how many days until Week 1 starts.',
+        'Finished early — confetti, and a look at what you did: workouts, pounds, time.',
+        'Counts for you — your totals, stats, badges and lift history. Not Week 1, belts, the house board or medals.',
+        'Monday — leftover Test Drive workouts disappear, and your coach welcomes you to Week 1.',
       ],
     },
     {
-      heading: 'Code of Conduct',
+      heading: 'Finishing a workout',
       wins: [
-        'New in the waiver — treat people with respect, no harassment.',
-        'Log real work — only training you actually did.',
-        'Privacy — do not share other people\'s photos or info.',
-        'One account each — and keep your PIN to yourself.',
-        'Already signed up? Nothing to do. Your signature stands.',
+        'Complete it — the button now shows Saving, Calculating, Checking while your numbers land.',
+        'One tap — tapping twice will not save the workout twice.',
+        'Same for Yoga, Core and the Hyrox milestone.',
       ],
     },
   ],
