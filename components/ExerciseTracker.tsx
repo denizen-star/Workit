@@ -278,6 +278,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // the athlete's actual hardness vote instead of whatever was on the set the instant
   // it was completed — the vote itself is cast after completion, not before.
   const exerciseSetsRef = useRef<ExerciseSet[]>([]);
+  // Latest hardness save per set ("name#setNumber"), so an older save's response
+  // can't land after a newer pick and put the old vote back on screen.
+  const hardnessSeqRef = useRef<Record<string, number>>({});
   useEffect(() => {
     exerciseSetsRef.current = exerciseSets;
   }, [exerciseSets]);
@@ -784,6 +787,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const previousScore = parseHardness(set.hardness);
     const setKey = (item: ExerciseSet) =>
       item.exercise_name === set.exercise_name && item.set_number === set.set_number;
+    const seqKey = `${set.exercise_name}#${set.set_number}`;
+    const seq = (hardnessSeqRef.current[seqKey] ?? 0) + 1;
+    hardnessSeqRef.current[seqKey] = seq;
+    const stale = () => hardnessSeqRef.current[seqKey] !== seq;
 
     // Optimistic: reflect the rating immediately (this runs synchronously, before the
     // `await` below, so the caller sees it applied right away) so a fold or the next
@@ -804,6 +811,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         }),
       });
       const data = response.ok || response.status === 409 ? await response.json() : null;
+      if (stale()) return;
       if (!response.ok && response.status !== 409) {
         setExerciseSets((current) => current.map((item) => (setKey(item) ? { ...item, hardness: previousScore } : item)));
         return;
@@ -825,6 +833,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       }
     } catch (error) {
       console.error('Error saving hardness:', error);
+      if (stale()) return;
       setExerciseSets((current) => current.map((item) => (setKey(item) ? { ...item, hardness: previousScore } : item)));
     }
   };
@@ -1249,6 +1258,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                               <SetHardness
                                 value={hardnessScore}
                                 highlight={hardnessScore == null}
+                                deferCommit
                                 // saveHardness applies the optimistic update itself (and rolls
                                 // it back if the save fails), so the fold still plays right on
                                 // release without a second copy of that logic here.
@@ -1373,6 +1383,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                         <SetHardness
                           value={hardnessScore}
                           forceEditable
+                          // A completed set saves each pick to the server, so only send the
+                          // released value; an unfinished set just holds it in memory.
+                          deferCommit={Boolean(set.is_completed)}
                           onPick={(score) =>
                             set.is_completed
                               ? saveHardness(set, score, exercise.sets)

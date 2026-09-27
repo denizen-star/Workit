@@ -182,6 +182,7 @@ export default function YourPickFlow({
               <SetHardness
                 value={null}
                 highlight
+                deferCommit
                 onPick={(score: HardnessScore) =>
                   save({ ...progress, index: progress.index + 1, tapped: [...progress.tapped, score] })
                 }
