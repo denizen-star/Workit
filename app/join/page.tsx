@@ -5,23 +5,33 @@ import { useRouter } from 'next/navigation';
 import PhotoCropField from '@/components/PhotoCropField';
 import PinPad from '@/components/PinPad';
 import WaiverSheet from '@/components/WaiverSheet';
-import { JOIN_INTRO_BULLETS, JOIN_INTRO_LEAD, JOIN_INTRO_TITLE } from '@/lib/joinCopy';
+import {
+  JOIN_AGREE_CONFIRM,
+  JOIN_AGREE_PASS,
+  JOIN_AGREE_SECTIONS,
+  JOIN_AGREE_TITLE,
+  JOIN_INTRO_BULLETS,
+  JOIN_INTRO_LEAD,
+  JOIN_INTRO_TITLE,
+} from '@/lib/joinCopy';
+import { DEVICE_BLOCK_STORAGE_KEY } from '@/lib/deviceBlockShared';
 import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
 import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS, scheduleDaysHint } from '@/lib/scheduleDays';
 
 const DRAFT_KEY = 'workit_join_draft';
 
-type Step = 'intro' | 'form' | 'pin' | 'confirm' | 'wait';
+type Step = 'intro' | 'agree' | 'form' | 'pin' | 'confirm' | 'wait';
 
-// Collapses the five internal steps into 3 visual stages for the progress bar.
-const STAGE_LABELS = ['Details', 'PIN', 'Done'];
+// Collapses the six internal steps into 4 visual stages for the progress bar.
+const STAGE_LABELS = ['Confirm', 'Details', 'PIN', 'Done'];
 const STAGE_FOR_STEP: Record<Step, number> = {
   intro: 0,
-  form: 0,
-  pin: 1,
-  confirm: 1,
-  wait: 2,
+  agree: 0,
+  form: 1,
+  pin: 2,
+  confirm: 2,
+  wait: 3,
 };
 
 export default function JoinPage() {
@@ -38,6 +48,8 @@ export default function JoinPage() {
   const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
   const [photo, setPhoto] = useState<string | null>(null);
   const [accepted, setAccepted] = useState(false);
+  // In memory only (never in the draft): a resumed sign-up always passes the agree screen again.
+  const [adultConfirmed, setAdultConfirmed] = useState(false);
   const [waiverOpen, setWaiverOpen] = useState(false);
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
@@ -48,16 +60,25 @@ export default function JoinPage() {
     const params = new URLSearchParams(window.location.search);
     const house = params.get('h') || '';
     const token = params.get('claim') || '';
+    // Backup for the httpOnly block cookie middleware already checks.
+    try {
+      if (localStorage.getItem(DEVICE_BLOCK_STORAGE_KEY)) {
+        router.replace('/blocked');
+        return;
+      }
+    } catch {
+      /* storage unavailable: the cookie still guards */
+    }
     setH(house || 'gowanus');
     setClaim(token);
     const saved = localStorage.getItem(DRAFT_KEY);
     if (saved) {
       try {
         const draft = JSON.parse(saved) as { step?: Step; firstName?: string };
-        // 'pin'/'confirm' entries aren't persisted, so a restored 'confirm' step
-        // can never be completed. Always resume PIN entry from the 'pin' screen.
-        if (draft.step && draft.step !== 'wait') {
-          setStep(draft.step === 'confirm' ? 'pin' : draft.step);
+        // Any saved step past the intro resumes on the agree screen: the 18+ / own-risk
+        // confirmation is never persisted, so it has to be given again every visit.
+        if (draft.step && draft.step !== 'wait' && draft.step !== 'intro') {
+          setStep('agree');
         }
         if (draft.firstName) setFirstName(draft.firstName);
       } catch {
@@ -110,6 +131,7 @@ export default function JoinPage() {
         photo,
         scheduleDaysPerWeek: scheduleDays,
         acceptedWaiver: accepted,
+        adultRiskConfirmed: adultConfirmed,
         pin,
         confirmPin: confirmPinValue,
       }),
@@ -132,6 +154,23 @@ export default function JoinPage() {
     setStep('wait');
   };
 
+  // "Under 18 / Pass": block this browser (server row + cookie + localStorage) and leave.
+  const pass = async () => {
+    setBusy(true);
+    await fetch('/api/device-block', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'pass' }),
+    }).catch(() => null);
+    try {
+      localStorage.setItem(DEVICE_BLOCK_STORAGE_KEY, '1');
+      localStorage.removeItem(DRAFT_KEY);
+    } catch {
+      /* cookie still guards */
+    }
+    router.replace('/blocked');
+  };
+
   return (
     <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col px-5 py-8">
       <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#e8c547]/80">Work-It</p>
@@ -147,7 +186,7 @@ export default function JoinPage() {
           </ul>
           <button
             type="button"
-            onClick={() => setStep('form')}
+            onClick={() => setStep('agree')}
             className="mt-8 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
           >
             Next
@@ -158,6 +197,41 @@ export default function JoinPage() {
           <a href="/faq" className="mt-3 text-center text-sm font-bold text-[#f6f1e3]/60">
             Why Work-It
           </a>
+        </>
+      ) : null}
+
+      {step === 'agree' ? (
+        <>
+          <h1 className="mt-4 text-4xl font-black tracking-tight text-[#e8c547]">{JOIN_AGREE_TITLE}</h1>
+          <div className="mt-8 space-y-7">
+            {JOIN_AGREE_SECTIONS.map((section) => (
+              <section key={section.heading}>
+                <h2 className="text-2xl font-black text-[#e8c547]">{section.heading}</h2>
+                <p className="mt-2 text-xl leading-relaxed text-[#f6f1e3]/90">{section.body}</p>
+              </section>
+            ))}
+          </div>
+          {/* Both gold on purpose: the one screen where "gold = take this action" doesn't apply. */}
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => {
+              setAdultConfirmed(true);
+              setStep('form');
+            }}
+            className="mt-10 min-h-14 rounded-2xl bg-[#e8c547] text-xl font-black text-[#1a1404] disabled:opacity-40"
+          >
+            {JOIN_AGREE_CONFIRM}
+          </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={pass}
+            className="mt-3 min-h-14 rounded-2xl bg-[#e8c547] text-xl font-black text-[#1a1404] disabled:opacity-40"
+          >
+            {JOIN_AGREE_PASS}
+          </button>
+          <BackLink onClick={() => setStep('intro')} />
         </>
       ) : null}
 
@@ -223,6 +297,10 @@ export default function JoinPage() {
             type="button"
             disabled={!accepted}
             onClick={() => {
+              if (!adultConfirmed) {
+                setStep('agree');
+                return;
+              }
               if (!email.trim()) {
                 setError('Email is required');
                 return;
@@ -238,7 +316,7 @@ export default function JoinPage() {
           >
             Next
           </button>
-          <BackLink onClick={() => setStep('intro')} />
+          <BackLink onClick={() => setStep('agree')} />
         </>
       ) : null}
 

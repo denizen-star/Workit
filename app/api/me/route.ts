@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import { query } from '@/lib/db';
 import {
   getCurrentUser,
+  getCurrentUserOrBlocked,
   hashPin,
   isValidPin,
   soundCookieOptions,
@@ -37,8 +38,12 @@ import { parsePhotoDataUrl } from '@/lib/photo';
 import { WAIVER_TEXT } from '@/lib/waiver';
 
 export async function GET() {
-  const user = await getCurrentUser();
+  const user = await getCurrentUserOrBlocked();
 
+  // Blocked account: the session was just evicted; AppMenu sends the page to /blocked.
+  if (user === 'blocked') {
+    return NextResponse.json({ error: 'Blocked', blocked: true }, { status: 403 });
+  }
   if (!user) {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }

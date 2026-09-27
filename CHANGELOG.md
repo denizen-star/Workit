@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 10.2.0 - 2026-09-27
+
+### Added
+- **"Before you join" screen** — new sign-ups (invite links too) confirm they're **18+** and that workouts and weights are suggestions, trained at your own pace and risk. Right after the intro; sign-up bar is now Confirm · Details · PIN · Done.
+- **Code of Conduct** in the waiver (§8): respect, no harassment, log only real training, don't share other people's photos or info, one account each. New sign-ups agree to it; earlier signatures stand.
+- **Under 18 / Pass** — ends sign-up on that phone/browser. Tapped by mistake? Send one access request from that screen.
+- Admin: **Block / Unblock** athletes and a **Blocks** list in Admin → Users (pending requests first, Clear to release). Blocked athletes can't sign in and get no mail; their numbers stay on the boards.
+
 ## 10.1.0 - 2026-09-24
 
 ### Changed

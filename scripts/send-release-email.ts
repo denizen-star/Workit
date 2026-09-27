@@ -9,7 +9,7 @@ import { query } from '../lib/db';
 import { isEmailEnabled, sendEmail } from '../lib/mailClient';
 import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
 import { buildReleaseEmail } from '../lib/emails/templates';
-import { SQL_EXCLUDE_TEST_USER } from '../lib/householdUsers';
+import { SQL_EXCLUDE_TEST_USER, SQL_NOT_BLOCKED_USER } from '../lib/householdUsers';
 import { firstName } from '../lib/profile';
 import { BROADCAST_TONE } from '../lib/mailFrom';
 
@@ -27,6 +27,7 @@ async function householdRecipients() {
        WHERE u.email IS NOT NULL AND u.email != ''
          AND u.pin_hash IS NOT NULL
          AND ${SQL_EXCLUDE_TEST_USER}
+         AND ${SQL_NOT_BLOCKED_USER}
          AND NOT EXISTS (
            SELECT 1 FROM workout_sessions ws
            WHERE ws.user_id = u.id AND ws.is_completed = 1
@@ -41,6 +42,7 @@ async function householdRecipients() {
              INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
              WHERE u.email IS NOT NULL AND u.email != ''
                AND ${SQL_EXCLUDE_TEST_USER}
+               AND ${SQL_NOT_BLOCKED_USER}
              UNION
              ${newJoiners}
            ) recipients
@@ -50,10 +52,12 @@ async function householdRecipients() {
          INNER JOIN workout_sessions ws ON ws.user_id = u.id AND ws.is_completed = 1${recent}
          WHERE u.email IS NOT NULL AND u.email != ''
            AND ${SQL_EXCLUDE_TEST_USER}
+           AND ${SQL_NOT_BLOCKED_USER}
          ORDER BY u.id ASC`
-      : `SELECT id, name, email, coach_tone FROM users
-         WHERE email IS NOT NULL AND email != ''
-         ORDER BY id ASC`
+      : `SELECT u.id, u.name, u.email, u.coach_tone FROM users u
+         WHERE u.email IS NOT NULL AND u.email != ''
+           AND ${SQL_NOT_BLOCKED_USER}
+         ORDER BY u.id ASC`
   );
   const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) =>
     name.trim().toLowerCase()

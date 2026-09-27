@@ -34,12 +34,11 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '10.0.0',
+  version: '10.1.0',
   title: 'Your pick. Your week.',
   subject: 'Your pick is here — any workout, any day, it all counts',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Mike', 'Christine', 'Peter', 'Kevin'],
   includeNewAthletes: false,
   intro:
     'Okay, this is the big one and I have been waiting to tell you. You asked for more say in your week. You got it. Starting now, you pick.',
@@ -67,6 +66,13 @@ export const CURRENT_RELEASE: {
         'Every exercise — a Push, Pull, Legs or Core tag. The Library can filter by it.',
         'Seven new badges — start with Your Pick and go for Full Menu.',
         'The old bonus day — gone. Your pick replaced it. Everything you already logged still counts.',
+      ],
+    },
+    {
+      heading: 'Mail from the house',
+      wins: [
+        'From me — nudges, the weekly scoreboard, the six-week pace check, and these notes now come from me, Eli, whoever your coach is.',
+        'From your coach — your welcome, your workout recap, your badges and belts. Same as always.',
       ],
     },
   ],

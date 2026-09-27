@@ -1,4 +1,5 @@
 import { markScheduleDaysAsked } from '@/lib/auth';
+import { SQL_NOT_BLOCKED_USER } from '@/lib/householdUsers';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { loginUrl, whoUrl } from '@/lib/emailLayout';
@@ -142,7 +143,8 @@ export async function sendNudgesForUser(
 
 export async function sendDailyNudges() {
   const users = await query(
-    'SELECT id, name, email, schedule_days_per_week, schedule_days_asked_week FROM users WHERE email IS NOT NULL AND pin_hash IS NOT NULL'
+    `SELECT u.id, u.name, u.email, u.schedule_days_per_week, u.schedule_days_asked_week FROM users u
+     WHERE u.email IS NOT NULL AND u.pin_hash IS NOT NULL AND ${SQL_NOT_BLOCKED_USER}`
   );
   const results = [];
   for (const user of users.rows as {

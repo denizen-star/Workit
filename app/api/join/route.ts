@@ -62,8 +62,13 @@ export async function POST(request: NextRequest) {
     const pin = typeof body.pin === 'string' ? body.pin : '';
     const confirmPin = typeof body.confirmPin === 'string' ? body.confirmPin : '';
     const accepted = body.acceptedWaiver === true;
+    // /join's agree screen (18+ and own risk); stamped as users.adult_risk_confirmed_at below.
+    const adultRiskConfirmed = body.adultRiskConfirmed === true;
     const photo = parsePhotoDataUrl(body.photo);
 
+    if (!adultRiskConfirmed) {
+      return NextResponse.json({ error: 'Confirm you are 18+ to continue' }, { status: 400 });
+    }
     if (!accepted) {
       return NextResponse.json({ error: 'Accept the waiver to continue' }, { status: 400 });
     }
@@ -105,7 +110,8 @@ export async function POST(request: NextRequest) {
            name = ?, first_name = ?, last_name = ?, display_name = ?, email = ?, phone = ?,
            body_weight_lb = ?, pin_hash = ?, invite_token = NULL, coach_tone = COALESCE(coach_tone, 'eli'),
            schedule_days_per_week = ?,
-           waiver_text = ?, waiver_accepted_at = UTC_TIMESTAMP(), email_verified_at = UTC_TIMESTAMP()
+           waiver_text = ?, waiver_accepted_at = UTC_TIMESTAMP(), email_verified_at = UTC_TIMESTAMP(),
+           adult_risk_confirmed_at = UTC_TIMESTAMP()
            ${photo ? ', photo = ?' : ''}
          WHERE id = ?`,
         photo
@@ -149,8 +155,9 @@ export async function POST(request: NextRequest) {
     const result = await query(
       `INSERT INTO users (
          name, email, pin_hash, coach_tone, schedule_days_per_week, first_name, last_name, display_name, phone,
-         body_weight_lb, photo, waiver_text, waiver_accepted_at, email_verified_at, last_household_id
-       ) VALUES (?, ?, ?, 'eli', ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, ?)`,
+         body_weight_lb, photo, waiver_text, waiver_accepted_at, email_verified_at, adult_risk_confirmed_at,
+         last_household_id
+       ) VALUES (?, ?, ?, 'eli', ?, ?, ?, ?, ?, ?, ?, ?, UTC_TIMESTAMP(), NULL, UTC_TIMESTAMP(), ?)`,
       [
         name,
         email,

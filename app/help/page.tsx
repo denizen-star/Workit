@@ -33,7 +33,7 @@ const GETTING_STARTED: GuideStep[] = [
   {
     title: 'Log in with email + PIN',
     description:
-      'No name picker — enter your email and 4-digit PIN at the login screen. Forgot it? Reset by email from the same page.',
+      'No name picker — enter your email and 4-digit PIN at the login screen. Forgot it? Reset by email from the same page. New here? Joining asks you to confirm you’re 18+ and train at your own risk.',
     image: '/help/start-login.png',
   },
   {
@@ -198,6 +198,7 @@ const APP_PAGES: AppPageGuide[] = [
       "Bring someone new into your house. Enter their email, and we'll send them a link to set their own PIN and get started.",
     bullets: [
       "See who's joined and who still needs to set their PIN",
+      'Work-It is 18+ — your friend confirms that before they join',
       "Didn't get the email? Resend the invite without using up a slot",
     ],
     image: '/help/page-invite.png',

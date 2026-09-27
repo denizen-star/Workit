@@ -6,7 +6,7 @@ export const WAIVER_CHECKBOX_LABEL =
 /** Formal snapshot stored on accept. Change later does not force re-sign in this project. */
 export const WAIVER_TEXT = `Work-It Waiver, Release, and Terms of Use
 
-Effective date: 6 September 2026
+Effective date: 27 September 2026
 
 These terms govern access to and use of Work-It (workitapp.fit), including any household or house, training program, session log, scoreboard, messaging, and related content (collectively, the "Service"). The Service is provided by the operator of workitapp.fit ("Operator," "we," "us," or "our").
 
@@ -37,19 +37,22 @@ Access is authenticated by credentials you establish (including electronic mail 
 7. Other users
 A house includes other individuals. Operator is not responsible for their statements, conduct, or use of your display name or photograph as presented on rosters or scoreboards. You should not upload an image you are unwilling to have visible to members of that house.
 
-8. Indemnification
+8. Code of conduct
+As a condition of access, you agree to: (a) treat other users with respect; (b) refrain from harassment, threats, discrimination, and abusive, obscene, or unlawful content, including in any name, alias, photograph, note, or message; (c) record only training you actually performed and not manipulate scores, ranks, awards, or other features; (d) not post, share, or disclose another user's photograph, contact information, or personal information outside the Service without that user's consent; (e) maintain no more than one account and not share your credentials; and (f) not interfere with, probe, or disrupt the Service or its security. Operator may, in its sole discretion and without notice, block, suspend, or remove any account, browser, or device it believes has violated this section, consistent with Section 5.
+
+9. Indemnification
 You agree to indemnify, defend, and hold harmless Operator and the persons identified in Section 4 from and against claims, damages, losses, and expenses (including reasonable attorneys' fees) arising out of or relating to your physical activity, your content, your invitations, or your misuse of the Service, to the extent permitted by law.
 
-9. Limitation of liability
+10. Limitation of liability
 TO THE FULLEST EXTENT PERMITTED BY LAW, OPERATOR SHALL NOT BE LIABLE FOR INDIRECT, INCIDENTAL, SPECIAL, CONSEQUENTIAL, OR PUNITIVE DAMAGES, INCLUDING LOSS OF DATA, LOSS OF GOODWILL, OR CLAIMS ARISING FROM EMOTIONAL DISTRESS, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGES. IF THE FOREGOING RELEASE IS HELD UNENFORCEABLE IN WHOLE OR IN PART, OPERATOR'S AGGREGATE LIABILITY TO YOU SHALL NOT EXCEED THE GREATER OF FIFTY UNITED STATES DOLLARS (US$50) OR THE AMOUNTS YOU PAID TO OPERATOR FOR THE SERVICE DURING THE TWELVE (12) MONTHS PRECEDING THE CLAIM.
 
-10. Record of acceptance
+11. Record of acceptance
 Upon your acceptance, Operator will store the text of this document as presented to you and the date and time of acceptance. That stored text constitutes the terms to which you agreed. Operator may revise the terms thereafter. Whether a subsequent acceptance is required is determined by Operator.
 
-11. Governing law and miscellaneous
+12. Governing law and miscellaneous
 These terms are governed by the laws of the State of New York, without regard to conflict-of-law principles. Exclusive venue shall lie in the state or federal courts sitting in Kings County, New York, except where applicable law requires otherwise. If any provision is held invalid or unenforceable, the remaining provisions shall continue in full force. These terms constitute the entire agreement between you and Operator concerning use of the Service and supersede all prior or contemporaneous understandings, whether written or oral, relating to that subject. No modification is binding unless made in a writing accepted by Operator or by your acceptance of a later version through the Service.
 
-12. Contact
+13. Contact
 Questions concerning these terms may be sent to info@kervinapps.com.`;
 
 export const WAIVER_PATH = '/waiver';

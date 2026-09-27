@@ -26,6 +26,8 @@ CREATE TABLE users (
     waiver_text MEDIUMTEXT NULL,
     waiver_accepted_at TIMESTAMP NULL,
     email_verified_at TIMESTAMP NULL,
+    adult_risk_confirmed_at TIMESTAMP NULL,
+    blocked_at TIMESTAMP NULL,
     last_household_id INT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -239,6 +241,17 @@ CREATE TABLE IF NOT EXISTS coach_lines (
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     UNIQUE KEY unique_voice_bucket_order (voice_id, bucket, sort_order),
     INDEX idx_voice_bucket (voice_id, bucket, is_active, sort_order)
+);
+
+CREATE TABLE IF NOT EXISTS device_blocks (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    request_email VARCHAR(255) NULL,
+    request_note TEXT NULL,
+    requested_at TIMESTAMP NULL,
+    cleared_at TIMESTAMP NULL,
+    INDEX idx_device_blocks_user (user_id)
 );
 
 -- Insert default user (can be modified)

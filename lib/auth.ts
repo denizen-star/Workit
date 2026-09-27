@@ -6,7 +6,9 @@ import { normalizeSoundOn, SOUND_COOKIE } from '@/lib/soundPref';
 import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
 import { clampScheduleDays, scheduleDaysForUser } from '@/lib/scheduleDays';
-import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
+import { clearSessionCookieOptions, verifySessionToken, SESSION_COOKIE } from '@/lib/session';
+import { accountBlockId } from '@/lib/deviceBlock';
+import { createDeviceBlockToken, deviceBlockCookieOptions } from '@/lib/deviceBlockToken';
 import { athleteCallName } from '@/lib/profile';
 import { getHouseholdById, householdIdForUser } from '@/lib/household';
 
@@ -42,7 +44,7 @@ export type SessionUser = {
   coachVoiceOn: boolean;
 };
 
-let userSelectMode: 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
+let userSelectMode: 'guard' | 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
 
 type UserRow = {
   id: number;
@@ -70,11 +72,16 @@ type UserRow = {
   created_at?: string | Date | null;
   gender?: string | null;
   coach_voice_on?: number | boolean | string | null;
+  blocked_at?: string | Date | null;
 };
 
+const HOUSE_SELECT =
+  'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender, coach_voice_on FROM users WHERE id = ? LIMIT 1';
+
 const USER_SELECTS = {
-  house:
-    'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender, coach_voice_on FROM users WHERE id = ? LIMIT 1',
+  // 'house' + blocked_at (migrate-user-blocked.sql). Falls back to 'house' until that column exists.
+  guard: HOUSE_SELECT.replace(' FROM users', ', blocked_at FROM users'),
+  house: HOUSE_SELECT,
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
   tone: 'SELECT id, name, email, pin_hash, coach_tone FROM users WHERE id = ? LIMIT 1',
@@ -82,7 +89,7 @@ const USER_SELECTS = {
 } as const;
 
 async function selectUserRow(userId: number): Promise<UserRow | undefined> {
-  const order: Array<'house' | 'rest' | 'full' | 'tone' | 'base'> =
+  const order: Array<'guard' | 'house' | 'rest' | 'full' | 'tone' | 'base'> =
     userSelectMode === 'base'
       ? ['base']
       : userSelectMode === 'tone'
@@ -91,7 +98,9 @@ async function selectUserRow(userId: number): Promise<UserRow | undefined> {
           ? ['full', 'tone', 'base']
           : userSelectMode === 'rest'
             ? ['rest', 'full', 'tone', 'base']
-            : ['house', 'rest', 'full', 'tone', 'base'];
+            : userSelectMode === 'house'
+              ? ['house', 'rest', 'full', 'tone', 'base']
+              : ['guard', 'house', 'rest', 'full', 'tone', 'base'];
 
   for (const mode of order) {
     try {
@@ -291,12 +300,32 @@ export async function getSessionUserId(): Promise<number | null> {
   return verifySessionToken(token);
 }
 
-export async function getCurrentUser(): Promise<SessionUser | null> {
+/**
+ * Signs a blocked account out of this browser (Admin → Users block): drops the session
+ * cookie and marks the browser with the account's device-block cookie. Cookie writes only
+ * work in route handlers / actions, so a server-component caller just gets the null.
+ */
+async function evictBlockedSession(userId: number): Promise<void> {
+  try {
+    const cookieStore = await cookies();
+    cookieStore.set(clearSessionCookieOptions());
+    cookieStore.set(deviceBlockCookieOptions(await createDeviceBlockToken(await accountBlockId(userId), true)));
+  } catch {
+    /* read-only cookie context */
+  }
+}
+
+/** Like getCurrentUser, but says 'blocked' for a blocked account (after evicting its session). */
+export async function getCurrentUserOrBlocked(): Promise<SessionUser | 'blocked' | null> {
   const userId = await getSessionUserId();
   if (!userId) return null;
 
   const row = await selectUserRow(userId);
   if (!row) return null;
+  if (row.blocked_at) {
+    await evictBlockedSession(userId);
+    return 'blocked';
+  }
   const cookieStore = await cookies();
   let house: { id: number | null; slug: string | null; name: string | null } = {
     id: null,
@@ -318,6 +347,12 @@ export async function getCurrentUser(): Promise<SessionUser | null> {
     },
     house
   );
+}
+
+/** Session user, or null when signed out or blocked (a blocked session is evicted on the spot). */
+export async function getCurrentUser(): Promise<SessionUser | null> {
+  const user = await getCurrentUserOrBlocked();
+  return user === 'blocked' ? null : user;
 }
 
 export function toneCookieOptions(tone: CoachTone) {

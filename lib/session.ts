@@ -7,7 +7,8 @@ type SessionPayload = {
   userId: number;
 };
 
-function getAuthSecret(): Uint8Array {
+/** HS256 key shared by every signed cookie (session + device block). */
+export function getAuthSecret(): Uint8Array {
   const secret = process.env.AUTH_SECRET;
   if (!secret || secret.length < 32) {
     throw new Error('AUTH_SECRET must be set and at least 32 characters');

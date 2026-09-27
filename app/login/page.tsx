@@ -92,6 +92,10 @@ export default function LoginPage() {
     });
     const data = await res.json();
     setBusy(false);
+    if (data.blocked) {
+      router.replace('/blocked');
+      return;
+    }
     if (!res.ok) {
       setError(data.unverified ? EMAIL_NOT_VERIFIED : data.error || 'Could not log in');
       setPin('');

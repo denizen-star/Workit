@@ -11,3 +11,17 @@ export const JOIN_INTRO_BULLETS = [
 ] as const;
 
 export const EMAIL_NOT_VERIFIED = 'That email has not been verified. Open the mail we sent, then come back.';
+
+/** /join agree screen (between intro and form). Neutral, near-legal; the formal terms stay in lib/waiver.ts. */
+export const JOIN_AGREE_TITLE = 'Before you join';
+
+export const JOIN_AGREE_SECTIONS = [
+  { heading: '18+ only.', body: 'You must be 18 or older to use Work-It.' },
+  {
+    heading: 'Your risk.',
+    body: 'Workouts and weights are suggestions only. Know your injuries and health limits. Train at your own pace and at your own risk.',
+  },
+] as const;
+
+export const JOIN_AGREE_CONFIRM = 'I confirm';
+export const JOIN_AGREE_PASS = 'Under 18 / Pass';

@@ -11,6 +11,7 @@ import {
   verifyPin,
 } from '@/lib/auth';
 import { EMAIL_NOT_VERIFIED } from '@/lib/joinCopy';
+import { accountBlockId, isUserBlocked, setDeviceBlockCookie } from '@/lib/deviceBlock';
 import { normalizeEmail } from '@/lib/profile';
 
 export async function POST(request: NextRequest) {
@@ -89,6 +90,15 @@ export async function POST(request: NextRequest) {
     }
 
     clearFailedAttempts(row.id);
+    // Checked only after a correct PIN so the block isn't revealed to anyone guessing.
+    // No session; the browser gets the account's block cookie and the client goes to /blocked.
+    if (await isUserBlocked(row.id)) {
+      return setDeviceBlockCookie(
+        NextResponse.json({ error: 'Blocked', blocked: true }, { status: 403 }),
+        await accountBlockId(row.id),
+        true
+      );
+    }
     const token = await createSessionToken(row.id);
     const cookieStore = await cookies();
     cookieStore.set(sessionCookieOptions(token));

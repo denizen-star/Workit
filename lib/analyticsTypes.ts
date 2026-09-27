@@ -18,6 +18,7 @@ export const ALLOWED_EVENT_TYPES = [
   'admin_page_view',
   'admin_mail',
   'admin_user',
+  'join_pass',
 ] as const;
 
 export type AnalyticsEventType = (typeof ALLOWED_EVENT_TYPES)[number];

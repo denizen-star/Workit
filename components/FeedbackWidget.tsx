@@ -4,7 +4,8 @@ import { FormEvent, useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { FEEDBACK_TOPICS, topicLabel, type FeedbackTopic } from '@/lib/feedback';
 
-const HIDDEN = ['/workout', '/who'];
+// /blocked: a blocked browser has no session to send notes with, and the account screen is a dumbbell only.
+const HIDDEN = ['/workout', '/who', '/blocked'];
 
 export default function FeedbackWidget() {
   const pathname = usePathname();

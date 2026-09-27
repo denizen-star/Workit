@@ -6,7 +6,7 @@ New-athlete explanation of the program. Not the short Who-sheet copy (`lib/helpC
 
 ---
 
-Work-It is a strength log for your house. You sign in with **email + a 4-digit PIN** and write down what you lifted. That is the whole job: show up, do the day’s work, record it. New people join at `/join?h=gowanus`. Returning people use `/login`.
+Work-It is a strength log for your house. You sign in with **email + a 4-digit PIN** and write down what you lifted. That is the whole job: show up, do the day’s work, record it. New people join at `/join?h=gowanus`. Returning people use `/login`. Work-It is for adults: before signing up, every new athlete confirms they are **18 or older** and that the workouts and weights are suggestions they follow **at their own pace and their own risk**. The waiver they sign also carries a short **Code of Conduct** (respect, no harassment, log only real training, don't share other people's photos or information, one account each); breaking it can get an account blocked.
 
 Do not invent the session on the fly. We already thought it through and planned it for you. The year is written: **48 weeks**. You pick how many days a week you train (**1 to 5**, 4 is the default) at sign-up, and can change it anytime in Edit profile — Home asks again every 6 weeks in case your life changed. Finish that many sessions and the week **locks**. Gaps count — you do not have to be perfect, you have to hit your number. A week you have already locked stays locked, belt and all, even if you change your pace later.
 

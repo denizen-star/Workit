@@ -62,6 +62,35 @@ export function buildFeedbackNoteEmail(input: FeedbackNoteMailInput): BuiltEmail
   };
 }
 
+/** A blocked browser's one-time "Request access" note from /blocked. Goes to Kevin like Talk to me. */
+export function buildAccessRequestEmail(input: { blockId: number; email: string; note: string }): BuiltEmail {
+  const title = 'Access request · block #' + input.blockId;
+  const html = wrapEmailHtml({
+    eyebrow: 'blocked browser',
+    title,
+    childrenHtml: [
+      p('Reply: ' + esc(input.email)),
+      p(esc(input.note).replace(/\n/g, '<br>')),
+      cta(appUrl() + '/admin/users', 'Review in Admin'),
+    ].join(''),
+  });
+  const text = [
+    emailTextHeader('blocked browser', title),
+    'Reply: ' + input.email,
+    '',
+    input.note,
+    '',
+    'Review: ' + appUrl() + '/admin/users',
+    emailTextSignOff(),
+  ].join('\n');
+  return {
+    from: defaultFrom('Work-It', MAIL_FROM.info),
+    subject: title,
+    html,
+    text,
+  };
+}
+
 export function buildFeedbackDigestEmail(input: {
   stats: RatingStats;
   items: DigestItem[];

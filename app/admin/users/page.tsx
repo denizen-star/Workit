@@ -2,9 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Pencil, Plus, Trash2, Mail } from 'lucide-react';
+import { Ban, Pencil, Plus, Trash2, Mail } from 'lucide-react';
 import UserFormModal, { type AdminUser } from '@/components/UserFormModal';
 import Modal from '@/components/Modal';
+import AdminBlocks from '@/components/AdminBlocks';
+import type { DeviceBlockRow } from '@/lib/deviceBlock';
+import { UNBLOCKABLE_USER_ID } from '@/lib/deviceBlockShared';
 
 export default function AdminUsersPage() {
   const router = useRouter();
@@ -18,6 +21,9 @@ export default function AdminUsersPage() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [resendingId, setResendingId] = useState<number | null>(null);
+  const [blocks, setBlocks] = useState<DeviceBlockRow[]>([]);
+  const [blockedIds, setBlockedIds] = useState<Set<number>>(new Set());
+  const [blockTarget, setBlockTarget] = useState<AdminUser | null>(null);
 
   const load = async () => {
     try {
@@ -29,6 +35,12 @@ export default function AdminUsersPage() {
       if (usersRes.ok) {
         const data = await usersRes.json();
         setUsers(data.users || []);
+      }
+      const blocksRes = await fetch('/api/admin/blocks');
+      if (blocksRes.ok) {
+        const data = await blocksRes.json();
+        setBlocks(data.blocks || []);
+        setBlockedIds(new Set<number>(data.blockedUserIds || []));
       }
       const meRes = await fetch('/api/me');
       if (meRes.ok) {
@@ -67,6 +79,28 @@ export default function AdminUsersPage() {
     } finally {
       setResendingId(null);
     }
+  };
+
+  /** POST /api/admin/blocks, then reload users + blocks. */
+  const updateBlock = async (payload: Record<string, unknown>) => {
+    setError('');
+    const response = await fetch('/api/admin/blocks', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => null);
+    if (!response?.ok) {
+      const data = await response?.json().catch(() => ({}));
+      setError(data?.error || 'Could not update block');
+    }
+    await load();
+  };
+
+  const confirmBlock = async () => {
+    if (!blockTarget) return;
+    const target = blockTarget;
+    setBlockTarget(null);
+    await updateBlock({ action: blockedIds.has(target.id) ? 'unblock' : 'block', userId: target.id });
   };
 
   const confirmDelete = async () => {
@@ -130,7 +164,10 @@ export default function AdminUsersPage() {
             <div key={user.id} className="glass-card p-4 sm:p-5">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <p className="truncate text-lg font-black text-white">{user.name}</p>
+                  <p className="truncate text-lg font-black text-white">
+                    {user.name}
+                    {blockedIds.has(user.id) ? <span className="ml-2 text-sm text-[#a35d52]">Blocked</span> : null}
+                  </p>
                   <p className="truncate text-sm text-[#f6f1e3]/55">{user.email || 'No email'}</p>
                   <p className="mt-1 text-xs text-[#f6f1e3]/40">
                     ID {user.id}
@@ -162,6 +199,20 @@ export default function AdminUsersPage() {
                   >
                     <Pencil className="h-4 w-4" />
                   </button>
+                  {user.id !== UNBLOCKABLE_USER_ID && (
+                    <button
+                      type="button"
+                      aria-label={`${blockedIds.has(user.id) ? 'Unblock' : 'Block'} ${user.name}`}
+                      onClick={() => setBlockTarget(user)}
+                      className={`inline-flex min-h-11 min-w-11 items-center justify-center rounded-2xl border ${
+                        blockedIds.has(user.id)
+                          ? 'border-[#a35d52] bg-[#a35d52]/20 text-[#f6f1e3]'
+                          : 'border-white/10 text-[#a35d52]'
+                      }`}
+                    >
+                      <Ban className="h-4 w-4" />
+                    </button>
+                  )}
                   <button
                     type="button"
                     aria-label={`Delete ${user.name}`}
@@ -176,6 +227,8 @@ export default function AdminUsersPage() {
             </div>
           ))}
         </div>
+
+        <AdminBlocks blocks={blocks} onClear={(block) => updateBlock({ action: 'clear', blockId: block.id })} />
       </div>
 
       <UserFormModal
@@ -188,6 +241,20 @@ export default function AdminUsersPage() {
         }}
         onSaved={load}
       />
+
+      <Modal
+        open={!!blockTarget}
+        title={blockTarget && blockedIds.has(blockTarget.id) ? 'Unblock this person?' : 'Block this person?'}
+        cancelLabel="Cancel"
+        confirmLabel={blockTarget && blockedIds.has(blockTarget.id) ? 'Unblock' : 'Block'}
+        variant="danger"
+        onCancel={() => setBlockTarget(null)}
+        onConfirm={confirmBlock}
+      >
+        {blockTarget && blockedIds.has(blockTarget.id)
+          ? `${blockTarget.name} can sign in again and gets mail again.`
+          : `${blockTarget?.name} is signed out, cannot sign in, and gets no automated mail. Their numbers stay on the boards.`}
+      </Modal>
 
       <Modal
         open={!!deleteTarget}

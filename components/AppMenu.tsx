@@ -86,7 +86,16 @@ export default function AppMenu({
   useEffect(() => {
     setMounted(true);
     fetch('/api/me')
-      .then((res) => (res.ok ? res.json() : null))
+      .then(async (res) => {
+        // Admin blocked this account: the API already evicted the session.
+        if (!res.ok) {
+          if (res.status === 403 && (await res.json().catch(() => null))?.blocked) {
+            window.location.replace('/blocked');
+          }
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
         setHouses(data?.houses || []);
         setHouseId(data?.user?.householdId ?? null);

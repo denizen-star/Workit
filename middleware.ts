@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifySessionToken, SESSION_COOKIE } from '@/lib/session';
+import { DEVICE_BLOCK_COOKIE, readDeviceBlockToken, verifyDeviceBlockToken } from '@/lib/deviceBlockToken';
+
+/** Sign-up surfaces a blocked browser loses (lib/deviceBlock.ts). Login and signed-in use stay open. */
+const DEVICE_BLOCKED_PATHS = new Set(['/join', '/faq', '/waiver', '/api/join']);
 
 function toLogin(request: NextRequest) {
   const url = request.nextUrl.clone();
@@ -34,6 +38,25 @@ export async function middleware(request: NextRequest) {
 
   if (pathname.startsWith('/api/cron') || pathname === '/api/analytics/event') {
     return NextResponse.next();
+  }
+
+  // /blocked and its status/request API are the only way out of a block, so always public.
+  if (pathname === '/blocked' || pathname === '/api/device-block') {
+    return NextResponse.next();
+  }
+
+  // Cookie check only (no DB): whether the block was cleared is settled on /blocked itself.
+  if (DEVICE_BLOCKED_PATHS.has(pathname) && (await verifyDeviceBlockToken(request.cookies.get(DEVICE_BLOCK_COOKIE)?.value))) {
+    const signedIn = await verifySessionToken(request.cookies.get(SESSION_COOKIE)?.value ?? '');
+    if (!signedIn) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Blocked', blocked: true }, { status: 403 });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/blocked';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
   }
 
   if (pathname.startsWith('/api/auth') || pathname === '/api/join' || pathname === '/waiver' || pathname === '/faq') {
@@ -83,6 +106,18 @@ export async function middleware(request: NextRequest) {
   }
 
   if (!userId) {
+    // An evicted blocked account (lib/auth.ts) lands on /blocked, not /login. Its parallel
+    // requests race the eviction, so APIs answer `blocked` for AppMenu to redirect on.
+    const block = await readDeviceBlockToken(request.cookies.get(DEVICE_BLOCK_COOKIE)?.value);
+    if (block?.account) {
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json({ error: 'Blocked', blocked: true }, { status: 403 });
+      }
+      const url = request.nextUrl.clone();
+      url.pathname = '/blocked';
+      url.search = '';
+      return NextResponse.redirect(url);
+    }
     if (pathname.startsWith('/api/')) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
