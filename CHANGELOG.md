@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 10.2.1 - 2026-09-27
+
+### Fixed
+- **How hard now saves what you pick.** Rating a set after you complete it saved the first step of your drag, so dragging to Hard stored Light. It now saves when you let go.
+- Changing a vote with **Editing** saves the one you land on, never an earlier one.
+- **Your pick Yoga/Core** hold ratings no longer skip ahead a hold or record the wrong score.
+
 ## 10.2.0 - 2026-09-27
 
 ### Added
