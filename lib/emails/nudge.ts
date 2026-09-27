@@ -1,5 +1,6 @@
 import { markScheduleDaysAsked } from '@/lib/auth';
 import { SQL_NOT_BLOCKED_USER } from '@/lib/householdUsers';
+import { testDriveState } from '@/lib/testDrive';
 import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { loginUrl, whoUrl } from '@/lib/emailLayout';
@@ -47,6 +48,7 @@ export async function sendNudgesForUser(
     email: string | null;
     schedule_days_per_week?: number | null;
     schedule_days_asked_week?: number | null;
+    created_at?: string | Date | null;
   }
 ) {
   if (!user.email) return { sent: false, skipped: 'no-address' };
@@ -56,6 +58,10 @@ export async function sendNudgesForUser(
     [user.id]
   );
   const sessions = result.rows as WorkoutSessionRow[];
+  // Test Drive (lib/testDrive.ts): nothing is owed before Week 1's Monday.
+  if (testDriveState(user.created_at, sessions)?.active) {
+    return { sent: false, skipped: 'test-drive-until-monday' };
+  }
   const { weekday, date } = todayInNewYork();
   const scheduleDays = clampScheduleDays(user.schedule_days_per_week);
   const target = getTodayTarget(sessions, 1, daysForWeekFn(scheduleDays));
@@ -143,7 +149,7 @@ export async function sendNudgesForUser(
 
 export async function sendDailyNudges() {
   const users = await query(
-    `SELECT u.id, u.name, u.email, u.schedule_days_per_week, u.schedule_days_asked_week FROM users u
+    `SELECT u.id, u.name, u.email, u.schedule_days_per_week, u.schedule_days_asked_week, u.created_at FROM users u
      WHERE u.email IS NOT NULL AND u.pin_hash IS NOT NULL AND ${SQL_NOT_BLOCKED_USER}`
   );
   const results = [];
@@ -153,6 +159,7 @@ export async function sendDailyNudges() {
     email: string | null;
     schedule_days_per_week?: number | null;
     schedule_days_asked_week?: number | null;
+    created_at?: string | Date | null;
   }[]) {
     results.push({
       userId: user.id,

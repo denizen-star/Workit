@@ -4,6 +4,7 @@ import { lockedWeekStreak } from '@/lib/bonusDay';
 import { sqlSetEffortVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 
 export type HouseholdHomeStats = {
@@ -61,6 +62,8 @@ export async function householdHomeStats(
   householdId?: number | null
 ): Promise<HouseholdHomeStats | null> {
   const house = sqlInHousehold('u.id', householdId);
+  // The house average never counts Test Drive sessions (week 0, lib/testDrive.ts).
+  const notTestDrive = sqlNotTestDrive('ws');
   const active = await query(
     `SELECT DISTINCT ws.user_id as id
      FROM workout_sessions ws
@@ -68,7 +71,7 @@ export async function householdHomeStats(
      WHERE ws.is_completed = 1
        AND ${SQL_EXCLUDE_TEST_USER}
        AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)
-       ${house.sql}`,
+       ${notTestDrive} ${house.sql}`,
     house.params
   );
 
@@ -88,7 +91,7 @@ export async function householdHomeStats(
          COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
-       WHERE ws.user_id IN (${sql})
+       WHERE ws.user_id IN (${sql}) ${notTestDrive}
        GROUP BY ws.user_id`,
       params
     ),
@@ -147,7 +150,7 @@ export async function householdHomeStats(
              INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
              WHERE ws.user_id IN (${sql})
                AND ws.is_completed = 1
-               AND es.is_completed = 1
+               AND es.is_completed = 1 ${notTestDrive}
                AND DATE(COALESCE(ws.completed_at, ws.created_at)) IN (${dailyDates.map(() => '?').join(', ')})
              GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
              UNION ALL
@@ -155,7 +158,7 @@ export async function householdHomeStats(
                     COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as weight
              FROM workout_sessions ws
              WHERE ws.user_id IN (${sql})
-               AND ws.is_completed = 1
+               AND ws.is_completed = 1 ${notTestDrive}
                AND DATE(COALESCE(ws.completed_at, ws.created_at)) IN (${dailyDates.map(() => '?').join(', ')})
              GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
            ) effort_days

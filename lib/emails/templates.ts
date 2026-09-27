@@ -1,4 +1,5 @@
 import { athleteCallName, firstName } from '@/lib/profile';
+import { sessionWhereLabel, TEST_DRIVE_EMAIL_LINE } from '@/lib/testDrive';
 import { formatDuration } from '@/lib/formatDuration';
 import {
   appUrl,
@@ -389,6 +390,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
       address(name),
       p(open),
       p(next),
+      p(TEST_DRIVE_EMAIL_LINE),
       p(pin),
       bullets(
         luna
@@ -420,6 +422,7 @@ export function buildWelcomeEmail(input: WelcomeEmailInput): BuiltEmail {
     '',
     open,
     next,
+    TEST_DRIVE_EMAIL_LINE,
     pin,
     '',
     url,
@@ -454,6 +457,7 @@ export function buildVerifyEmail(input: {
       address(name),
       p('Your PIN is set. Open this mail to verify the address. Home waits until you do.'),
       cta(url, 'VERIFY EMAIL'),
+      p(TEST_DRIVE_EMAIL_LINE),
       p('Waiver, Release, and Terms of Use: ' + waiver),
     ].join(''),
   });
@@ -461,7 +465,7 @@ export function buildVerifyEmail(input: {
     from: fromFor('luna', MAIL_FROM.welcome),
     subject: 'Verify your email. Work-It.',
     html,
-    text: [name + '.', '', 'Verify: ' + url, '', 'Waiver: ' + waiver].join('\n'),
+    text: [name + '.', '', 'Verify: ' + url, '', TEST_DRIVE_EMAIL_LINE, '', 'Waiver: ' + waiver].join('\n'),
   };
 }
 
@@ -688,7 +692,7 @@ export function buildNudgeEmail(input: NudgeEmailInput): BuiltEmail {
       )
     : '';
   const href = input.href.startsWith('http') ? input.href : appUrl() + input.href;
-  const where = 'Week ' + input.weekNumber + ' · ' + input.dayName;
+  const where = sessionWhereLabel(input.weekNumber, input.dayName);
   const body = resume
     ? esc(where) + " is still open. I know you can finish this one, come back and let's close it out."
     : esc(where) +
@@ -763,7 +767,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
           : input.dayName + ' is done. ' + name + '. That is growth.';
 
   const rows: Array<[string, string]> = [
-    ['Workout', 'Week ' + input.weekNumber + ' · ' + input.dayName],
+    ['Workout', sessionWhereLabel(input.weekNumber, input.dayName)],
     ['Time under the iron', formatDuration(input.durationSeconds)],
     ['Volume', formatLbs(input.volumeLbs)],
     ['Sets', String(input.setCount ?? '—')],
@@ -861,7 +865,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     input.completeLine,
     '',
     ...(input.replenishLine ? [input.replenishLine, ''] : []),
-    'Week ' + input.weekNumber + ' · ' + input.dayName,
+    sessionWhereLabel(input.weekNumber, input.dayName),
     'Time: ' + formatDuration(input.durationSeconds),
     'Volume: ' + formatLbs(input.volumeLbs),
     ...beltProgressBlock(input.lockedWeeks).text,

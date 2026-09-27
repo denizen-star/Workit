@@ -1,17 +1,20 @@
 'use client';
 
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { coachPersonaSrc } from '@/lib/coachPersonas';
 import type { CoachTone } from '@/lib/coachTone';
 import { pickHyroxMilestoneLine } from '@/lib/coachLines';
 import { HYROX_MILESTONE_CRITERIA } from '@/lib/hyroxProgram';
+import { useSavingCaption } from '@/lib/useSavingCaption';
 
 interface HyroxMilestoneTakeoverProps {
   tone: CoachTone;
   name: string;
   milestoneNumber: number;
-  /** Called once a final decision is made: passed, or failed + what to do next. */
-  onResolve: (result: { passed: boolean; leaveHyrox: boolean }) => void;
+  /** Called once a final decision is made: passed, or failed + what to do next. Awaited
+   * so the button can show the saving captions while it records the result. */
+  onResolve: (result: { passed: boolean; leaveHyrox: boolean }) => void | Promise<void>;
 }
 
 type Step = 'checklist' | 'result' | 'decide';
@@ -31,6 +34,30 @@ export default function HyroxMilestoneTakeover({
   const [passed, setPassed] = useState(false);
 
   const allChecked = checked.every(Boolean);
+  const save = useSavingCaption();
+  // Which final button is saving, so only that one shows the caption.
+  const [savingChoice, setSavingChoice] = useState<'continue' | 'retry' | 'leave' | null>(null);
+
+  const resolve = async (choice: 'continue' | 'retry' | 'leave') => {
+    if (!save.begin()) return;
+    setSavingChoice(choice);
+    try {
+      await onResolve({ passed: choice === 'continue', leaveHyrox: choice === 'leave' });
+    } finally {
+      save.end();
+      setSavingChoice(null);
+    }
+  };
+
+  const label = (choice: 'continue' | 'retry' | 'leave', text: string) =>
+    savingChoice === choice ? (
+      <span className="inline-flex items-center justify-center gap-2">
+        <Loader2 className="h-4 w-4 animate-spin" />
+        {save.caption}
+      </span>
+    ) : (
+      text
+    );
   const avatarSrc = coachPersonaSrc(tone, passed ? 'celebratory' : 'ok');
   const line = step !== 'checklist' ? pickHyroxMilestoneLine(passed, tone, name) : '';
 
@@ -101,10 +128,12 @@ export default function HyroxMilestoneTakeover({
             <p className="mt-3 text-[#f6f1e3]/80">{line}</p>
             <button
               type="button"
-              onClick={() => onResolve({ passed: true, leaveHyrox: false })}
+              onClick={() => resolve('continue')}
+              disabled={save.saving}
+              aria-busy={savingChoice === 'continue'}
               className="mt-8 min-h-12 w-full rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
             >
-              Continue
+              {label('continue', 'Continue')}
             </button>
           </>
         )}
@@ -117,17 +146,21 @@ export default function HyroxMilestoneTakeover({
             </p>
             <button
               type="button"
-              onClick={() => onResolve({ passed: false, leaveHyrox: false })}
+              onClick={() => resolve('retry')}
+              disabled={save.saving}
+              aria-busy={savingChoice === 'retry'}
               className="mt-8 min-h-12 w-full rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404]"
             >
-              Retry the milestone
+              {label('retry', 'Retry the milestone')}
             </button>
             <button
               type="button"
-              onClick={() => onResolve({ passed: false, leaveHyrox: true })}
+              onClick={() => resolve('leave')}
+              disabled={save.saving}
+              aria-busy={savingChoice === 'leave'}
               className="mt-3 block w-full text-center text-sm font-bold text-[#f6f1e3]/60"
             >
-              Return to my normal program
+              {label('leave', 'Return to my normal program')}
             </button>
           </>
         )}

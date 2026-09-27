@@ -3,6 +3,7 @@ import { resolveAnalyticsWindow, sqlUtc, type AnalyticsRangeId } from '@/lib/ana
 import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalOnlyVolume } from '@/lib/optionals';
 import { effortFromVolume } from '@/lib/hardness';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
@@ -142,7 +143,9 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
   effortByUser: Map<number, number>;
   effortBestDayByUser: Map<number, number>;
 }> {
-  const filter = windowFilter(window);
+  const base = windowFilter(window);
+  // House comparison: Test Drive sessions (week 0) stay off it (lib/testDrive.ts).
+  const filter = { ...base, sql: `${base.sql}${sqlNotTestDrive('ws')}` };
 
   const [athleteResult, setResult, optionalResult] = await Promise.all([
     query(

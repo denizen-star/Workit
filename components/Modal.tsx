@@ -1,6 +1,7 @@
 "use client";
 
 import { ReactNode } from "react";
+import { Loader2 } from "lucide-react";
 
 interface ModalProps {
   open: boolean;
@@ -12,6 +13,9 @@ interface ModalProps {
   onCancel?: () => void;
   confirmDisabled?: boolean;
   variant?: "info" | "success" | "danger";
+  /** Saving: both buttons and the backdrop stop responding, confirm shows a spinner + `busyLabel`. */
+  busy?: boolean;
+  busyLabel?: string;
 }
 
 export default function Modal({
@@ -24,6 +28,8 @@ export default function Modal({
   onCancel,
   confirmDisabled = false,
   variant = "info",
+  busy = false,
+  busyLabel,
 }: ModalProps) {
   if (!open) return null;
 
@@ -38,7 +44,7 @@ export default function Modal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
         className="absolute inset-0 bg-black/70 backdrop-blur-md"
-        onClick={onCancel ?? onConfirm}
+        onClick={busy ? undefined : onCancel ?? onConfirm}
       />
       <div className="glass-card relative w-full max-w-md overflow-hidden">
         <div className="h-1.5 bg-gradient-to-r from-white/40 via-white to-white/80" />
@@ -50,18 +56,29 @@ export default function Modal({
               <button
                 type="button"
                 onClick={onCancel}
-                className="min-h-12 rounded-2xl px-4 py-2.5 font-semibold text-[#f6f1e3]/80 hover:bg-white/5"
+                disabled={busy}
+                className="min-h-12 rounded-2xl px-4 py-2.5 font-semibold text-[#f6f1e3]/80 hover:bg-white/5 disabled:opacity-40"
               >
                 {cancelLabel}
               </button>
             )}
             <button
               type="button"
-              disabled={confirmDisabled}
+              disabled={confirmDisabled || busy}
+              aria-busy={busy}
               onClick={onConfirm ?? onCancel}
-              className={`min-h-12 rounded-2xl px-5 py-2.5 font-black transition-colors disabled:cursor-not-allowed disabled:opacity-40 ${confirmClass}`}
+              className={`min-h-12 rounded-2xl px-5 py-2.5 font-black transition-colors disabled:cursor-not-allowed ${
+                busy ? "inline-flex items-center gap-2" : "disabled:opacity-40"
+              } ${confirmClass}`}
             >
-              {confirmLabel}
+              {busy ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  {busyLabel || confirmLabel}
+                </>
+              ) : (
+                confirmLabel
+              )}
             </button>
           </div>
         </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense } from 'react';
 import Link from 'next/link';
 import { Dumbbell, UserPlus } from 'lucide-react';
 import HomeKpiLead, { HomeTodayKpis } from '@/components/HomeKpiLead';
@@ -49,7 +49,9 @@ import HyroxHome from '@/components/HyroxHome';
 import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
-import { pickResumeLine } from '@/lib/coachLines';
+import { pickResumeLine, pickWeek1StartCopy } from '@/lib/coachLines';
+import { testDriveCountdown, testDriveTarget, type TestDriveState } from '@/lib/testDrive';
+import TestDriveDoneHero, { type TestDriveDoneSummary } from '@/components/TestDriveDoneHero';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
 
 function shortDayName(name: string) {
@@ -60,9 +62,21 @@ function shortDayName(name: string) {
 
 function shortWeekDay(weekNumber?: number | null, dayName?: string | null) {
   if (weekNumber == null || !dayName) return '';
+  // Test Drive (week 0) has no program week to show — its day name already says Test Drive.
+  if (weekNumber === 0) return dayName;
   return `W${weekNumber} - ${shortDayName(dayName)}`;
 }
 
+
+/** Home's "today": a Test Drive start/resume while one is on (lib/testDrive.ts), else the program's. */
+function homeTarget(
+  sessions: WorkoutSessionRow[],
+  testDrive: TestDriveState | null,
+  resumeFloor: number,
+  scheduleDays: number
+) {
+  return testDriveTarget(testDrive, sessions) ?? getTodayTarget(sessions, resumeFloor, daysForWeekFn(scheduleDays));
+}
 
 function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
   return earliestKey(
@@ -110,6 +124,9 @@ export default function Home() {
   const [hyroxStartError, setHyroxStartError] = useState('');
   const [showHyroxBanner, setShowHyroxBanner] = useState(false);
   const [hyroxResumeFloor, setHyroxResumeFloor] = useState(1);
+  // Test Drive (lib/testDrive.ts): before Week 1's Monday, plus the one-time Monday takeover.
+  const [testDrive, setTestDrive] = useState<(TestDriveState & { summary: TestDriveDoneSummary | null }) | null>(null);
+  const [week1Start, setWeek1Start] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,7 +135,7 @@ export default function Home() {
       try {
         const [meRes, sessionsRes, catalogRes, hyroxRes] = await Promise.all([
           fetch('/api/me'),
-          fetch('/api/sessions'),
+          fetch('/api/sessions?home=1'),
           fetch('/api/coach-catalog'),
           fetch('/api/hyrox'),
         ]);
@@ -152,6 +169,10 @@ export default function Home() {
         if (sessionsRes.ok) {
           const sessionData = await sessionsRes.json();
           setSessions(sessionData.sessions || []);
+          setTestDrive(sessionData.testDrive || null);
+          setWeek1Start(Boolean(sessionData.week1Start));
+          // Quickstart shows on every Home open until Week 1's Monday during a Test Drive.
+          if (sessionData.testDrive?.active) setShowQuickstartTakeover(true);
           setLockedWeeks(Number(sessionData.lockedWeeks || 0));
           setLockedWeeksDetail(
             new Map(
@@ -234,15 +255,21 @@ export default function Home() {
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
-    if (getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays)).type !== 'resume') {
+    if (homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays).type !== 'resume') {
       setResumeLine('');
       return;
     }
     setResumeLine(pickResumeLine(userTone, userName));
-  }, [sessions, userTone, userName, hyroxResumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, userTone, userName, hyroxResumeFloor, userScheduleDays]);
+
+  const week1Line = useMemo(() => {
+    if (!week1Start) return '';
+    const copy = pickWeek1StartCopy(userTone, userName);
+    return `${copy.title}\n${copy.body}`;
+  }, [week1Start, userTone, userName]);
 
   useEffect(() => {
-    const target = getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays));
+    const target = homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays);
     const typeName = target.day?.name;
     // A Your pick slot has no fixed workout yet, so there's no last-time line to hold.
     if (!typeName || target.type === 'hold' || target.type === 'done' || isYourPickSlot(target.day)) {
@@ -261,9 +288,11 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [sessions, hyroxResumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, hyroxResumeFloor, userScheduleDays]);
 
-  const today = getTodayTarget(sessions, hyroxResumeFloor, daysForWeekFn(userScheduleDays));
+  const today = homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays);
+  const testDriveOn = Boolean(testDrive?.active);
+  const testDriveDone = testDriveOn && Boolean(testDrive?.allDone) && today.type !== 'resume';
   const todayWeekNumber = today.week?.weekNumber ?? null;
 
   useEffect(() => {
@@ -279,7 +308,8 @@ export default function Home() {
   // week can still take one. A 5-day athlete's open Your pick slot opens the picker
   // instead of starting a day directly.
   const pickWeek = yourPickCurrentWeek(sessions, lockedWeeksDetail.keys());
-  const pickHref = yourPickWeekAllowed(pickWeek, sessions, lockedWeeksDetail.keys())
+  // Your pick would file into Week 1, which waits for Monday during a Test Drive.
+  const pickHref = !testDriveOn && yourPickWeekAllowed(pickWeek, sessions, lockedWeeksDetail.keys())
     ? `/workout?yourPick=${pickWeek}`
     : null;
   const todayHref =
@@ -400,6 +430,7 @@ export default function Home() {
         <UpdateProfileGate onDone={() => setNeedsWaiver(false)} />
       ) : showQuickstartTakeover ? (
         <QuickstartTakeover
+          countdown={testDrive?.active ? testDriveCountdown(testDrive) : undefined}
           onDone={() => {
             setShowQuickstartTakeover(false);
             fetch('/api/me', {
@@ -438,7 +469,9 @@ export default function Home() {
               <WeekMedal place={weekYou.place} size="sm" caption="Last week" />
             </div>
           ) : null}
-          {today.type === 'hold' ? (
+          {testDriveDone && testDrive ? (
+            <TestDriveDoneHero daysUntilMonday={testDrive.daysUntilMonday} summary={testDrive.summary} />
+          ) : today.type === 'hold' ? (
             <>
               <p className="flex items-center gap-1 text-sm font-semibold uppercase tracking-[0.35em] text-[#e8c547]">
                 Rest
@@ -529,6 +562,9 @@ export default function Home() {
                   .filter(Boolean)
                   .join(' · ')}
               </p>
+              {testDriveOn && testDrive ? (
+                <p className="mt-3 text-lg font-black text-[#e8c547]">{testDriveCountdown(testDrive)}</p>
+              ) : null}
               {holdLine ? (
                 <p className="mt-3 text-lg leading-relaxed text-[#f6f1e3]/90">{holdLine}</p>
               ) : null}
@@ -589,13 +625,18 @@ export default function Home() {
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">
           <section>
-            <WeekLock
-              week={today.week}
-              sessions={sessions}
-              scheduleDays={userScheduleDays}
-              lockedRecord={today.week ? lockedWeeksDetail.get(today.week.weekNumber) : undefined}
-            />
-            <WeekPerformance week={today.week} />
+            {/* No program week to lock yet during a Test Drive — Week 1 starts Monday. */}
+            {!testDriveOn ? (
+              <>
+                <WeekLock
+                  week={today.week}
+                  sessions={sessions}
+                  scheduleDays={userScheduleDays}
+                  lockedRecord={today.week ? lockedWeeksDetail.get(today.week.weekNumber) : undefined}
+                />
+                <WeekPerformance week={today.week} />
+              </>
+            ) : null}
             {stats?.daily && stats.daily.length > 0 ? (
               <div className="mt-6">
                 <DailyWeightChart
@@ -647,6 +688,17 @@ export default function Home() {
           line={weekYou.line}
           tone={userTone}
           onClose={() => setWeekTakeover(false)}
+        />
+      ) : null}
+      {week1Line ? (
+        <WeekMissTakeover
+          open={week1Start}
+          line={week1Line}
+          tone={userTone}
+          eyebrow="Test Drive · over"
+          expression="celebratory"
+          accent="#e8c547"
+          onClose={() => setWeek1Start(false)}
         />
       ) : null}
       {weekMiss && !weekYou ? (

@@ -9,6 +9,7 @@ import { sqlSetEffortVolume } from '@/lib/exerciseKind';
 import { compareRank } from '@/lib/rankRule';
 import { REQUIRED_DAYS_TO_LOCK } from '@/lib/bonusDay';
 import { isTestUserName, SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { workoutDateKey } from '@/lib/statsHousehold';
 
@@ -91,8 +92,9 @@ function windowSql(alias: string) {
 export async function rankClosedWeek(monday: string): Promise<WeekPodiumRow[]> {
   const { startUtc, endUtc } = weekWindowUtc(monday);
   const bounds = [startUtc, endUtc];
-  const sessionWindow = windowSql('ws');
-  const optionalWindow = windowSql('optws');
+  // Test Drive sessions (week 0) never place (lib/testDrive.ts).
+  const sessionWindow = windowSql('ws') + sqlNotTestDrive('ws');
+  const optionalWindow = windowSql('optws') + sqlNotTestDrive('optws');
 
   // Medals use the house rank rule (lib/rankRule.ts): met your own weekly day count
   // first, then average display volume per session — effort sets + optional lbs +
@@ -289,7 +291,8 @@ export function accountExistedBeforeWeek(
   return new Date(String(createdAt)).getTime() < new Date(startUtc).getTime();
 }
 
-export type WeekTakeoverKind = 'podium' | 'miss';
+/** `week1_start`: Test Drive athlete's one-time "Week 1 starts now" Home takeover (lib/testDrive.ts). */
+export type WeekTakeoverKind = 'podium' | 'miss' | 'week1_start';
 
 function isMissingSeenTable(error: unknown) {
   const message = String(error instanceof Error ? error.message : error);

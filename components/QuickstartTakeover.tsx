@@ -3,14 +3,23 @@
 import Link from 'next/link';
 import { QUICKSTART_LEAD, QUICKSTART_STEPS, QUICKSTART_TITLE } from '@/lib/quickstartCopy';
 
-/** First-login takeover for brand-new athletes. Shown once (gated on users.quickstart_seen_at), after the waiver gate if one was needed. Same copy as the standalone /quickstart page. */
-export default function QuickstartTakeover({ onDone }: { onDone: () => void }) {
+/** First-login takeover for brand-new athletes. Shown once (gated on users.quickstart_seen_at), after the waiver gate if one was needed. Same copy as the standalone /quickstart page.
+ * During a Test Drive (lib/testDrive.ts) Home shows it on every open until Monday, with `countdown` ("Week 1 starts in 3 days"). */
+export default function QuickstartTakeover({ onDone, countdown }: { onDone: () => void; countdown?: string }) {
   return (
     <div className="fixed inset-0 z-[85] overflow-y-auto bg-[#07070a] px-5 py-10">
       <div className="mx-auto max-w-md">
         <p className="text-[11px] font-black uppercase tracking-[0.22em] text-[#e8c547]/80">Work-It</p>
         <h2 className="mt-2 text-3xl font-black tracking-tight text-white">{QUICKSTART_TITLE}</h2>
         <p className="mt-3 text-[#f6f1e3]/80">{QUICKSTART_LEAD}</p>
+        {countdown ? (
+          <div className="mt-5 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3">
+            <p className="text-lg font-black text-[#e8c547]">{countdown}</p>
+            <p className="mt-1 text-sm text-[#f6f1e3]/80">
+              Until then, take a Test Drive: a few workouts to learn the app. They count for you, not for Week 1.
+            </p>
+          </div>
+        ) : null}
 
         <ol className="mt-8 space-y-4">
           {QUICKSTART_STEPS.map((step, index) => (

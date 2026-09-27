@@ -34,45 +34,37 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '10.1.0',
-  title: 'Your pick. Your week.',
-  subject: 'Your pick is here — any workout, any day, it all counts',
+  version: '10.2.0',
+  title: 'Every new face starts on the same page.',
+  subject: 'Before you join — 18+, your pace, and a code we all train by',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
+  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Okay, this is the big one and I have been waiting to tell you. You asked for more say in your week. You got it. Starting now, you pick.',
-  mid: 'Here is the part I love most. Your week locks on a number, not a schedule. Hit your workouts, any mix, and it is locked. Plan days, swaps, Your picks. All of it counts. So if Tuesday wants legs instead of upper, go do legs. I am not going to stop you. I am going to cheer.',
+    'Quick one today, and it is about the people who come next. The house is growing, and every new face deserves to walk in knowing exactly what this place is.',
+  mid: 'So anyone joining now gets one clear screen before they sign up. Adults only. Your body, your pace, your call. We plan the work. You own how hard you push it. That is the deal it has always been. Now it is written down where everyone sees it first.',
   close:
-    'Open the app and try one this week. Swap a day, add a flow, go chase a new badge. I knew you had more in you than the plan asked for. Growth, lean, definition, power, stamina, mobility. Go take them. Quit is still the only thing not welcome in here.',
+    'You set the tone for everyone who walks in after you, and I know you are going to make them want to keep up. Go train. Growth, power, stamina. They are waiting for you. Quit is the only thing not welcome here.',
   lead: '',
   groups: [
     {
-      heading: 'Your pick',
+      heading: 'Joining Work-It',
       wins: [
-        'Pick a workout — Upper, Lower, Yoga, Core or Full body, any week, any day.',
-        'Add it — on top of your week, as an extra.',
-        'Swap it — tap Swap on any day you have not started. That day counts as done.',
-        'It counts — toward locking your week, your belts and your medals.',
-        'Find it — the gold Pick button on Home, or under each week in Select Workout.',
+        'New screen — before signing up, everyone confirms they are 18 or older.',
+        'Your pace, your risk — workouts and weights are suggestions. Know your injuries and health limits.',
+        'Invite links too — friends you invite see the same screen.',
+        'Under 18 — that phone cannot sign up. Tapped it by mistake? Send one request from that screen.',
       ],
     },
     {
-      heading: 'What else is new',
+      heading: 'Code of Conduct',
       wins: [
-        'Yoga and Core — a 30-minute flow or a core circuit you tap through, or mark it done after 30 minutes. They count like a full workout.',
-        'Friday from week 7 — Extra Upper is now a Your pick day. Want it? Pick Upper.',
-        'The house — rank goes to who hit their days first, then the best average per workout. More sessions alone will not buy a spot.',
-        'Every exercise — a Push, Pull, Legs or Core tag. The Library can filter by it.',
-        'Seven new badges — start with Your Pick and go for Full Menu.',
-        'The old bonus day — gone. Your pick replaced it. Everything you already logged still counts.',
-      ],
-    },
-    {
-      heading: 'Mail from the house',
-      wins: [
-        'From me — nudges, the weekly scoreboard, the six-week pace check, and these notes now come from me, Eli, whoever your coach is.',
-        'From your coach — your welcome, your workout recap, your badges and belts. Same as always.',
+        'New in the waiver — treat people with respect, no harassment.',
+        'Log real work — only training you actually did.',
+        'Privacy — do not share other people\'s photos or info.',
+        'One account each — and keep your PIN to yourself.',
+        'Already signed up? Nothing to do. Your signature stands.',
       ],
     },
   ],

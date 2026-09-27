@@ -7,6 +7,7 @@ import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { formatDuration } from '@/lib/formatDuration';
 import { workoutProgram } from '@/lib/workoutData';
+import { resolveTestDriveDay, TEST_DRIVE_NAME, TEST_DRIVE_WEEK } from '@/lib/testDrive';
 import { athleteRequiredDays, clampScheduleDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { setVolume } from '@/lib/exerciseKind';
 import CompletedSessionCard, {
@@ -101,6 +102,56 @@ export default function CompletedLog({
     return bestId;
   }, [sessions]);
 
+  /** Test Drive sessions (week 0, lib/testDrive.ts) sit above Week 1 in their own fold. */
+  const renderTestDrive = () => {
+    const testDriveSessions = byWeek.get(TEST_DRIVE_WEEK) || [];
+    if (!testDriveSessions.length) return null;
+    const open = expandedWeek === TEST_DRIVE_WEEK;
+    const totals = weekHistoryTotals(testDriveSessions);
+    return (
+      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/20">
+        <button
+          type="button"
+          onClick={() => setExpandedWeek(open ? null : TEST_DRIVE_WEEK)}
+          className="flex w-full items-center justify-between gap-3 px-5 py-4 hover:bg-white/5"
+          aria-expanded={open}
+        >
+          <div className="min-w-0 text-left">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+              <h3 className="text-xl font-black text-white">{TEST_DRIVE_NAME}</h3>
+              <span className="text-sm text-[#f6f1e3]/65">{testDriveSessions.length} done</span>
+            </div>
+            <p className="mt-1 text-lg font-black text-white">
+              {formatCompact(totals.lbs)} lb
+              <span className="text-[#f6f1e3]/55"> · </span>
+              {formatCompact(totals.reps)} reps
+              <span className="text-[#f6f1e3]/55"> · </span>
+              {totals.seconds != null ? formatDuration(totals.seconds) : '—'}
+            </p>
+          </div>
+          {open ? (
+            <ChevronUp className="h-6 w-6 shrink-0 text-[#e8c547]" />
+          ) : (
+            <ChevronDown className="h-6 w-6 shrink-0 text-[#e8c547]" />
+          )}
+        </button>
+        {open && (
+          <div className="space-y-3 px-5 pb-5">
+            {testDriveSessions.map((session) => (
+              <CompletedSessionCard
+                key={session.id}
+                session={session}
+                focus={resolveTestDriveDay(TEST_DRIVE_WEEK, Number(session.day_number))?.focus || ''}
+                defaultOpen={openSessionId === Number(session.id)}
+                bestDay={bestSessionId === Number(session.id)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="space-y-4">
       {loading && <p className="text-center text-lg font-black text-[#e8c547]">Loading...</p>}
@@ -119,6 +170,8 @@ export default function CompletedLog({
           </Link>
         </div>
       )}
+
+      {!loading && renderTestDrive()}
 
       {!loading &&
         workoutProgram.map((week) => {

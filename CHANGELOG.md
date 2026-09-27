@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 10.3.0 - 2026-09-27
+
+### Added
+- **Test Drive** — joined mid-week? Start right away. If your first workout isn't on a Monday you get a few workouts to learn the app: 3 from Tuesday, 2 Wednesday–Friday, 1 on the weekend. Week 1 starts that Monday, and Home counts down to it. Test Drive workouts count for you (totals, stats, badges, lift history) but not for Week 1, belts, the house board or medals. Leftovers disappear Monday. New athletes only.
+- **Test Drive done** — finish them all early and Home celebrates with confetti, the countdown and what you did (workouts · lbs · time).
+- **Week 1 starts now** — a one-time coach takeover the first time you open Home that Monday.
+- Welcome and verify emails mention the Monday start. No nudge mail before it.
+
+### Changed
+- **Complete it shows it's working** — the button spins and walks "Saving… → Calculating… → Checking…" until your recap is ready, and a second tap does nothing. Same for Yoga/Core Your pick and the Hyrox milestone.
+
 ## 10.2.0 - 2026-09-27
 
 ### Added

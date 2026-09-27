@@ -5,6 +5,7 @@ import { query } from '@/lib/db';
 import { sqlSetEffortVolume, sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalOnlyVolume, sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import {
   performancePeriodWindow,
@@ -40,6 +41,11 @@ function performanceWindowDays(period: PerformancePeriod): number | null {
     all: null,
   };
   return days[period];
+}
+
+/** Same window, minus Test Drive (week 0) sessions on `alias`. */
+function withoutTestDrive(window: SqlWindow, alias: string): SqlWindow {
+  return { ...window, sql: `${window.sql}${sqlNotTestDrive(alias)}` };
 }
 
 function periodFilter(period: ScoreboardPeriod, column: string): SqlWindow {
@@ -149,6 +155,10 @@ async function householdScoreboardFiltered(
   /** Window length for the rank eligibility bar (lib/rankRule.ts); null = all time. */
   windowDays: number | null = null
 ): Promise<HouseholdScoreboardRow[]> {
+  // Test Drive sessions (week 0) never reach the board (lib/testDrive.ts).
+  sessionWindow = withoutTestDrive(sessionWindow, 'ws');
+  optionalWindow = withoutTestDrive(optionalWindow, 'optws');
+  priorSessionWindow = priorSessionWindow && withoutTestDrive(priorSessionWindow, 'ws');
   const house = sqlInHousehold('u.id', householdId);
   const result = await query(
     `SELECT
@@ -462,7 +472,7 @@ export async function householdWeightSeries(
   householdId?: number | null
 ): Promise<ScoreboardDailyPoint[]> {
   const day = 'DATE(COALESCE(ws.completed_at, ws.created_at))';
-  const dateWindow = periodFilter(period, day);
+  const dateWindow = withoutTestDrive(periodFilter(period, day), 'ws');
   const house = sqlInHousehold('u.id', householdId);
   const [sets, optionals] = await Promise.all([
     query(

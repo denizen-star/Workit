@@ -20,6 +20,15 @@ import { HYROX_WEEK_OFFSET, getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { markDoneTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
 import { applyYourPickCredit } from '@/lib/yourPickCredit';
+import { isTestDriveWeek } from '@/lib/testDrive';
+import {
+  deleteOpenTestDriveSessions,
+  loadTestDriveState,
+  programStartBlocked,
+  testDriveSummary,
+  validateTestDriveStart,
+} from '@/lib/testDriveServer';
+import { hasSeenWeekTakeover, markWeekTakeoverSeen } from '@/lib/weekPodium';
 
 type OpenSessionRow = {
   id: number;
@@ -99,6 +108,19 @@ export async function POST(request: NextRequest) {
       pick = checked.start;
       dayNumber = pick.dayNumber;
       workoutType = pick.workoutType;
+    }
+
+    // Test Drive (lib/testDrive.ts): week 0, only while it's open and only an allotted,
+    // unfinished day. Server names the day; never a Your pick or a mark-complete.
+    if (isTestDriveWeek(weekNumber)) {
+      if (pick || markComplete) {
+        return NextResponse.json({ error: 'Not allowed on a Test Drive' }, { status: 400 });
+      }
+      const checked = await validateTestDriveStart(user, Number(dayNumber));
+      if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
+      workoutType = checked.day.name;
+    } else if (track === 'main' && (await programStartBlocked(user))) {
+      return NextResponse.json({ error: 'Week 1 starts Monday' }, { status: 400 });
     }
 
     const openSessionId = markComplete
@@ -300,11 +322,38 @@ export async function GET(request: NextRequest) {
     sql += ' ORDER BY ws.week_number, ws.day_number';
 
     const result = await query(sql, params);
+    let rows = result.rows as Array<{ week_number: number; day_number: number; is_completed: number | boolean; started_at: string | null; created_at: string | null }>;
+    // Test Drive needs every session, so only the unfiltered list carries it. Once
+    // Week 1's Monday arrives, an open Test Drive session is thrown away.
+    let testDrive = weekNumber ? null : await loadTestDriveState(user, rows);
+    if (testDrive && !testDrive.active) {
+      const openTestDrive = (row: (typeof rows)[number]) =>
+        isTestDriveWeek(row.week_number) && !Number(row.is_completed);
+      if (rows.some(openTestDrive) && (await deleteOpenTestDriveSessions(user.id))) {
+        rows = rows.filter((row) => !openTestDrive(row));
+        testDrive = await loadTestDriveState(user, rows);
+      }
+    }
+    // Home only (`?home=1`), so another page's session read never uses these up:
+    // the done hero's summary, and the one-time "Week 1 starts now" takeover.
+    const home = searchParams.get('home') === '1';
+    const summary = home && testDrive?.active && testDrive.allDone ? await testDriveSummary(user.id) : null;
+    let week1Start = false;
+    if (home && testDrive && !testDrive.active) {
+      week1Start = !(await hasSeenWeekTakeover(user.id, testDrive.firstMonday, 'week1_start'));
+      if (week1Start) await markWeekTakeoverSeen(user.id, testDrive.firstMonday, 'week1_start');
+    }
     const [lockedWeeks, lockedWeeksDetail] = await Promise.all([
       lockedWeekCountFromTable(user.id),
       lockedWeekRecords(user.id),
     ]);
-    return NextResponse.json({ sessions: result.rows, lockedWeeks, lockedWeeksDetail });
+    return NextResponse.json({
+      sessions: rows,
+      lockedWeeks,
+      lockedWeeksDetail,
+      testDrive: testDrive ? { ...testDrive, summary } : null,
+      week1Start,
+    });
   } catch (error) {
     console.error('Error getting workout sessions:', error);
     return NextResponse.json({ error: 'Failed to get workout sessions' }, { status: 500 });
@@ -429,9 +478,11 @@ export async function PUT(request: NextRequest) {
       const completedThisWeek = rows.filter(
         (row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))
       ).length;
-      const thisWeekLocked = completedThisWeek >= requiredForWeek(Number(session.week_number));
+      // A Test Drive (week 0) never locks a week or earns a belt (lib/testDrive.ts).
+      const testDrive = isTestDriveWeek(session.week_number);
+      const thisWeekLocked = !testDrive && completedThisWeek >= requiredForWeek(Number(session.week_number));
       // Same Hyrox exclusion as the POST path above.
-      if (Number(session.week_number) <= HYROX_WEEK_OFFSET) {
+      if (!testDrive && Number(session.week_number) <= HYROX_WEEK_OFFSET) {
         await recordWeekLockIfNeeded(
           user.id,
           Number(session.week_number),

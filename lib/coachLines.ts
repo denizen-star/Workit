@@ -22,6 +22,8 @@ type LinePack = {
    * bank only, not part of the DB-backed `coachCatalog.LinePack` shape — optional here
    * purely so `packFor()`'s cast of that external type still lines up. */
   sessionStart?: readonly string[];
+  /** Test Drive athlete's one-time Monday "Week 1 starts now" takeover. Code bank only, same as sessionStart. */
+  week1Start?: readonly string[];
   missedWeek: readonly string[];
   /** Hyrox Training milestone moments. Code bank only, same as sessionStart — not DB-editable. */
   hyroxMilestonePass?: readonly string[];
@@ -188,6 +190,7 @@ const MASTER: LinePack = {
     "I'M WATCHING\nEvery rep counts from the first one. Don't give me a reason to say otherwise.",
     'TIME TO PAY\n{name}, the tax is due. Pay it in sweat, not excuses.',
   ],
+  week1Start: ["WEEK 1\n{name}. The test drive is over. Now the program owns you. Pay the first week in full."],
   missedWeek: [
     'Oh, sorry... were you busy?\nThe power took the week off with {name}. So did the lean.',
   ],
@@ -356,6 +359,7 @@ const JAMES: LinePack = {
     "ON THE FLOOR\nThis is not a warm chat. It's the work. Let's begin.",
     "I'M HERE\nSo are you, {name}. Let's make the hour count.",
   ],
+  week1Start: ["WEEK 1\nRight, {name}. That was the taster. This is the real thing. Let's have it."],
   missedWeek: ['{name}. The week closed. You did not. So the power did not. I noticed the gap.'],
   hyroxMilestonePass: [
     '{name}, that is a pass. I want the base held, not just hit. Phase 2 now.',
@@ -522,6 +526,7 @@ const SERGEANT: LinePack = {
     'PRESENT AND READY\nWhatever brought you here, leave it at the door. This hour is yours.',
     "WELCOME BACK TO YOURSELF\nTake a breath, {name}. Then let's begin, quietly and fully.",
   ],
+  week1Start: ["WEEK 1\nWelcome in properly, {name}. The practice is behind you. Begin the real work, gently and fully."],
   missedWeek: [
     '{name}. Last week closed without you. Softly said: the stamina did not get built. Come back present.',
   ],
@@ -692,6 +697,7 @@ const ELI: LinePack = {
     "PROUD OF YOU ALREADY\nYou didn't have to show up. You did anyway. Let's go earn it.",
     "TIME TO PROVE IT\nThis one's not for me, {name}. It's for you. I'm just here to watch it happen.",
   ],
+  week1Start: ["WEEK 1, LET'S GO!\n{name}, you test drove it. Now it's yours. I've been waiting for this Monday."],
   missedWeek: [
     '{name}, last week closed without you. No judgment, just come back. The growth is still here waiting.',
   ],
@@ -879,6 +885,17 @@ export function pickSessionStartCopy(
   const raw = fillCoachName(clipTemplate, name);
   const [title, ...rest] = raw.split('\n');
   return { title, body: rest.join('\n').trim(), clipTemplate };
+}
+
+/** Test Drive's "Week 1 starts now" takeover, as TITLE + body. Code bank only. */
+export function pickWeek1StartCopy(
+  tone?: CoachTone | null,
+  name?: string | null
+): { title: string; body: string } {
+  const id = normalizeCoachTone(tone);
+  const raw = fillCoachName(pickFrom(PACKS[id].week1Start ?? [], `week1-start:${id}`), name);
+  const [title, ...rest] = raw.split('\n');
+  return { title, body: rest.join('\n').trim() };
 }
 
 /** Hyrox milestone self-report result. Code bank only. */

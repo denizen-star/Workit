@@ -522,6 +522,12 @@ export default function HelpPage() {
             full-body days so nothing gets skipped, and a 5-day plan&apos;s 5th day is a Your pick. A week you&apos;ve already locked stays locked even if you
             change your pace later.
           </p>
+          <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
+            Week 1 starts on a Monday. Joined mid-week? Your first workout off a Monday opens a{' '}
+            <span className="font-black text-[#e8c547]">Test Drive</span>: 3 workouts from Tuesday, 2 from
+            Wednesday–Friday, 1 on the weekend. They count for you, not for Week 1, belts or the house board. Leftovers
+            disappear on Monday.
+          </p>
         </div>
       </section>
 

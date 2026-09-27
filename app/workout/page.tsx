@@ -17,7 +17,7 @@ import YourPickSheet, { type YourPickChoice } from '@/components/YourPickSheet';
 import YourPickIcon from '@/components/YourPickIcon';
 import YourPickFlow from '@/components/YourPickFlow';
 import YourPickExplainer from '@/components/YourPickExplainer';
-import { applyWorkoutMode, workoutProgram, type WorkoutDay } from '@/lib/workoutData';
+import { applyWorkoutMode, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
 import HyroxMilestoneTakeover from '@/components/HyroxMilestoneTakeover';
 import { formatClock } from '@/lib/formatDuration';
@@ -38,6 +38,14 @@ import {
   DEFAULT_SCHEDULE_DAYS,
 } from '@/lib/scheduleDays';
 import { resolveSessionDay } from '@/lib/resolveDay';
+import { useSavingCaption } from '@/lib/useSavingCaption';
+import {
+  isTestDriveWeek,
+  TEST_DRIVE_NAME,
+  TEST_DRIVE_WEEK,
+  testDriveCountdown,
+  type TestDriveState,
+} from '@/lib/testDrive';
 import CompletedSessionCard, { type HistorySession } from '@/components/CompletedSessionCard';
 import { useWakeLock } from '@/lib/useWakeLock';
 import { usePortraitLock } from '@/lib/usePortraitLock';
@@ -79,6 +87,8 @@ function WorkoutPageInner() {
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
   const [completedWorkouts, setCompletedWorkouts] = useState<Set<string>>(new Set());
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
+  // Test Drive (lib/testDrive.ts): before Week 1's Monday, from GET /api/sessions.
+  const [testDrive, setTestDrive] = useState<TestDriveState | null>(null);
   const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
     Map<number, { requiredCount: number; completedCount: number }>
   >(new Map());
@@ -100,6 +110,8 @@ function WorkoutPageInner() {
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
   const [confirmComplete, setConfirmComplete] = useState(false);
+  // Complete it: timed "Saving… / Calculating… / Checking…" until the recap is ready.
+  const finishSave = useSavingCaption();
   const [completeStars, setCompleteStars] = useState<number | null>(null);
   const [showSuccess, setShowSuccess] = useState(false);
   const [showRecap, setShowRecap] = useState(false);
@@ -330,11 +342,13 @@ function WorkoutPageInner() {
     loadSessions().then((rows) => {
       if (autoOpened.current) return;
       const sessionId = searchParams.get('session');
-      const week = Number(searchParams.get('week') || '');
+      // `week=0` is a Test Drive day, so presence — not truthiness — says a week was given.
+      const weekParam = searchParams.get('week');
+      const week = weekParam ? Number(weekParam) : null;
       const day = Number(searchParams.get('day') || '');
       const shouldRestart = searchParams.get('restart') === '1';
 
-      if (shouldRestart && week && day) {
+      if (shouldRestart && week != null && day) {
         autoOpened.current = true;
         setExpandedWeek(week);
         const open = findIncompleteSession(rows, week, day);
@@ -357,7 +371,7 @@ function WorkoutPageInner() {
         return;
       }
 
-      if (week && day) {
+      if (week != null && day) {
         autoOpened.current = true;
         const alreadyDone = rows.some(
           (session) =>
@@ -391,6 +405,7 @@ function WorkoutPageInner() {
         const data = await response.json();
         const rows: WorkoutSessionRow[] = data.sessions || [];
         setSessions(rows);
+        setTestDrive(data.testDrive || null);
         setLockedWeeks(Number(data.lockedWeeks || 0));
         setLockedWeeksDetail(
           new Map(
@@ -510,8 +525,11 @@ function WorkoutPageInner() {
         // Your pick rejections (future week, day already started, one mark-done a
         // day) carry a plain reason — show it instead of the generic retry line.
         const reason = await response.json().then((data) => data?.error).catch(() => null);
+        // Test Drive and "Week 1 starts Monday" refusals are 400s with a plain reason too.
         setErrorMessage(
-          options?.pick && reason ? String(reason) : 'Could not start this workout. Try again in a moment.'
+          (options?.pick || response.status === 400) && reason
+            ? String(reason)
+            : 'Could not start this workout. Try again in a moment.'
         );
         setShowError(true);
       }
@@ -667,6 +685,8 @@ function WorkoutPageInner() {
 
   const completeWorkout = async () => {
     if (!currentSession || completeStars == null) return;
+    // Captions start on the tap, so they cover the celebration wait below too.
+    if (!finishSave.begin()) return;
 
     unlockAudio();
     playCompleteChime();
@@ -675,9 +695,9 @@ function WorkoutPageInner() {
     // its celebration animation may still be playing or about to start — give it the
     // full run before the Finish takeover stack (recap -> complete -> awards) begins
     // mounting, so the celebration is never interrupted or hidden underneath a takeover.
-    await exerciseTrackerRef.current?.awaitPendingCelebration();
-
     try {
+      await exerciseTrackerRef.current?.awaitPendingCelebration();
+
       const rated = await saveSessionRating(completeStars, 'complete');
       if (!rated) {
         setErrorMessage('Could not save your score. Try again.');
@@ -704,8 +724,6 @@ function WorkoutPageInner() {
 
       const data = await response.json().catch(() => ({ awardedBadges: [] }));
       await loadSessions();
-      setConfirmComplete(false);
-      setCompleteStars(null);
       setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
       setEarnedBelt(data.earnedBelt || null);
       const finishedBonus = Boolean(data.bonus);
@@ -728,11 +746,16 @@ function WorkoutPageInner() {
       setCompleteClip(spoken.clipTemplate);
       setReplenishLine(pickReplenishLine());
       await loadWorkoutRecap(getCurrentWorkout()?.name || null);
+      // The modal stays up (saving) until the recap is ready, so there's no blank gap.
+      setConfirmComplete(false);
+      setCompleteStars(null);
       setShowRecap(true);
     } catch (error) {
       console.error('Error completing workout:', error);
       setErrorMessage('Could not save the completed workout. Try again.');
       setShowError(true);
+    } finally {
+      finishSave.end();
     }
   };
 
@@ -934,7 +957,9 @@ function WorkoutPageInner() {
                 }`}
               >
                 <h1 className="text-lg font-black leading-tight text-[#f5d76e] sm:text-xl">
-                  Week {hyroxMode ? hyroxDisplayWeek(selectedWeek) : selectedWeek} · Day {workout.dayNumber} · {workout.name}
+                  {isTestDriveWeek(selectedWeek)
+                    ? workout.name
+                    : `Week ${hyroxMode ? hyroxDisplayWeek(selectedWeek) : selectedWeek} · Day ${workout.dayNumber} · ${workout.name}`}
                 </h1>
                 <p className="text-sm text-[#f6f1e3]/65">
                   {workout.focus}
@@ -1129,6 +1154,8 @@ function WorkoutPageInner() {
           confirmLabel="Complete it"
           variant="success"
           confirmDisabled={completeStars == null}
+          busy={finishSave.saving}
+          busyLabel={finishSave.caption}
           onCancel={() => {
             setConfirmComplete(false);
             setCompleteStars(null);
@@ -1159,6 +1186,192 @@ function WorkoutPageInner() {
     );
   }
 
+  /** Test Drive block (lib/testDrive.ts): the allotted days while it's on, then only
+   * the finished ones — unused days disappear once Week 1 starts. */
+  const renderTestDrive = () => {
+    if (!testDrive) return null;
+    const days = testDrive.active
+      ? testDrive.days
+      : testDrive.days.filter((day) => testDrive.doneDayNumbers.includes(day.dayNumber));
+    if (!days.length) return null;
+    const week: WeekPlan = { weekNumber: TEST_DRIVE_WEEK, description: TEST_DRIVE_NAME, days };
+    return (
+      <div className="glass-card overflow-hidden px-6 py-5">
+        <h2 className="text-xl font-black text-white">{TEST_DRIVE_NAME}</h2>
+        {testDrive.active ? (
+          <p className="mt-1 text-lg font-black text-[#e8c547]">{testDriveCountdown(testDrive)}</p>
+        ) : null}
+        <p className="mt-1 text-sm text-[#f6f1e3]/65">
+          A few workouts to learn the app. They count for you, not for Week 1.
+        </p>
+        <div className="mt-4 grid gap-3">{days.map((day) => renderDayCard(week, day))}</div>
+      </div>
+    );
+  };
+
+  /** One Select Workout day card: completed card(s), or Start/Resume with mode + Swap.
+   * Shared by the program weeks and the Test Drive block (lib/testDrive.ts). */
+  const renderDayCard = (week: WeekPlan, day: WorkoutDay) => {
+    // Test Drive days are 30-32 under the hood; show them as Day 1-3, one go each.
+    const testDriveDay = isTestDriveWeek(week.weekNumber);
+    const dayLabel = testDriveDay ? week.days.indexOf(day) + 1 : day.dayNumber;
+    const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
+    const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
+    // A 5-day athlete's Your pick slot, or a program day a Your pick
+    // swapped out: no session of its own, so a plain tile instead.
+    const coveredByPick =
+      !isCompleted &&
+      !incomplete &&
+      coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
+        day.dayNumber
+      );
+    if (!hyroxMode && (isYourPickSlot(day) || coveredByPick)) {
+      return renderPickTile(week.weekNumber, day, coveredByPick || isCompleted);
+    }
+    const dayHistory = historySessions.filter(
+      (session) =>
+        Number(session.week_number) === week.weekNumber &&
+        Number(session.day_number) === day.dayNumber
+    );
+    const fallbackCompleted = findLatestCompletedSession(
+      sessions,
+      week.weekNumber,
+      day.dayNumber
+    );
+    const completedCards =
+      dayHistory.length > 0
+        ? dayHistory
+        : fallbackCompleted
+          ? [
+              {
+                id: Number(fallbackCompleted.id),
+                week_number: Number(fallbackCompleted.week_number),
+                day_number: Number(fallbackCompleted.day_number),
+                workout_type: fallbackCompleted.workout_type,
+                workout_mode: fallbackCompleted.workout_mode || null,
+                started_at: fallbackCompleted.started_at || null,
+                completed_at: fallbackCompleted.completed_at || null,
+                ended_at: fallbackCompleted.ended_at || null,
+                created_at: fallbackCompleted.created_at || null,
+                sets: [],
+              } satisfies HistorySession,
+            ]
+          : [];
+    const mode = pickedMode(week.weekNumber, day.dayNumber, incomplete);
+    const planned = applyWorkoutMode(day, mode);
+    const estimate = formatEstimateMinutes(
+      estimateWorkoutSeconds(
+        planned,
+        restSecondsWithExtra(restExtraMinutes, REST_SECONDS)
+      )
+    );
+
+    if (isCompleted && !incomplete) {
+      return (
+        <div key={day.dayNumber} className="space-y-3">
+          {completedCards.map((session) => (
+            <CompletedSessionCard
+              key={session.id}
+              session={session}
+              focus={day.focus}
+              headerAction={
+                testDriveDay ? undefined : <button
+                  type="button"
+                  onClick={() =>
+                    startWorkout(week.weekNumber, day.dayNumber, undefined, {
+                      mode: normalizeWorkoutMode(session.workout_mode),
+                    })
+                  }
+                  className="inline-flex min-h-8 items-center rounded-lg bg-[#e8c547] px-2.5 text-xs font-black text-[#1a1404]"
+                >
+                  Do Again
+                </button>
+              }
+            />
+          ))}
+        </div>
+      );
+    }
+
+    return (
+      <div
+        key={day.dayNumber}
+        className={`rounded-2xl border p-4 ${
+          incomplete
+            ? 'border-[#e8c547]/50 bg-[#e8c547]/10'
+            : 'border-white/10 bg-black/20'
+        }`}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 flex-1">
+            <div className="mb-1 flex items-center gap-2">
+              <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f6f1e3]/70">
+                Day {dayLabel}
+              </span>
+              <h3 className="text-lg font-black text-white">{day.name}</h3>
+            </div>
+            <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
+            <p className="mt-1 text-xs text-[#f6f1e3]/50">
+              Suggested: {day.suggestedDay} • {day.exercises.length} exercises
+            </p>
+          </div>
+          <ModeToggle
+            mode={mode}
+            locked={!!incomplete}
+            onChange={(next) =>
+              setPickModes((current) => ({
+                ...current,
+                [dayModeKey(week.weekNumber, day.dayNumber)]: next,
+              }))
+            }
+          />
+        </div>
+
+        <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
+          <span className="inline-flex items-center gap-1.5 text-sm font-black text-[#e8c547]">
+            <Clock className="h-4 w-4" />
+            Est. {estimate}
+          </span>
+          <div className="flex items-center gap-2">
+            {incomplete && (
+              <button
+                type="button"
+                onClick={() => askRestart(week.weekNumber, day.dayNumber, Number(incomplete.id))}
+                className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#e8c547]/50 px-4 font-black text-[#e8c547]"
+              >
+                <RotateCcw className="h-4 w-4" />
+                Restart
+              </button>
+            )}
+            {!hyroxMode &&
+            !testDriveDay &&
+            !incomplete &&
+            pickAllowed(week.weekNumber) &&
+            yourPickSwapTargets(week.weekNumber, athleteRequiredDays(week, scheduleDays), sessions).some(
+              (target) => target.dayNumber === day.dayNumber
+            ) ? (
+              <button
+                type="button"
+                onClick={() => openPickSheet(week.weekNumber, day.dayNumber)}
+                className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border border-[#e8c547]/50 px-4 text-sm font-black text-[#e8c547]"
+              >
+                <YourPickIcon />
+                Swap
+              </button>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => startWorkout(week.weekNumber, day.dayNumber, undefined, { mode })}
+              className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] px-6 font-black text-[#1a1404]"
+            >
+              {incomplete ? 'Resume' : 'Start'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
     <div className="min-h-screen">
       <header className="glass-header">
@@ -1180,8 +1393,12 @@ function WorkoutPageInner() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
-          {hyroxMode ? null : <YourPickExplainer requiredCount={clampScheduleDays(scheduleDays)} />}
-          {program.map((week) => (
+          {hyroxMode ? null : renderTestDrive()}
+          {hyroxMode || testDrive?.active ? null : (
+            <YourPickExplainer requiredCount={clampScheduleDays(scheduleDays)} />
+          )}
+          {/* Program weeks wait for Monday during a Test Drive (the server refuses those starts). */}
+          {(testDrive?.active ? [] : program).map((week) => (
             <div key={week.weekNumber} className="glass-card overflow-hidden">
               <button
                 type="button"
@@ -1217,162 +1434,7 @@ function WorkoutPageInner() {
                   <p className="mb-4 text-sm text-[#f6f1e3]/65">{week.description}</p>
 
                   <div className="grid gap-3">
-                    {athleteWeekDays(week, scheduleDays).map((day) => {
-                      const isCompleted = completedWorkouts.has(`${week.weekNumber}-${day.dayNumber}`);
-                      const incomplete = findIncompleteSession(sessions, week.weekNumber, day.dayNumber);
-                      // A 5-day athlete's Your pick slot, or a program day a Your pick
-                      // swapped out: no session of its own, so a plain tile instead.
-                      const coveredByPick =
-                        !isCompleted &&
-                        !incomplete &&
-                        coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
-                          day.dayNumber
-                        );
-                      if (!hyroxMode && (isYourPickSlot(day) || coveredByPick)) {
-                        return renderPickTile(week.weekNumber, day, coveredByPick || isCompleted);
-                      }
-                      const dayHistory = historySessions.filter(
-                        (session) =>
-                          Number(session.week_number) === week.weekNumber &&
-                          Number(session.day_number) === day.dayNumber
-                      );
-                      const fallbackCompleted = findLatestCompletedSession(
-                        sessions,
-                        week.weekNumber,
-                        day.dayNumber
-                      );
-                      const completedCards =
-                        dayHistory.length > 0
-                          ? dayHistory
-                          : fallbackCompleted
-                            ? [
-                                {
-                                  id: Number(fallbackCompleted.id),
-                                  week_number: Number(fallbackCompleted.week_number),
-                                  day_number: Number(fallbackCompleted.day_number),
-                                  workout_type: fallbackCompleted.workout_type,
-                                  workout_mode: fallbackCompleted.workout_mode || null,
-                                  started_at: fallbackCompleted.started_at || null,
-                                  completed_at: fallbackCompleted.completed_at || null,
-                                  ended_at: fallbackCompleted.ended_at || null,
-                                  created_at: fallbackCompleted.created_at || null,
-                                  sets: [],
-                                } satisfies HistorySession,
-                              ]
-                            : [];
-                      const mode = pickedMode(week.weekNumber, day.dayNumber, incomplete);
-                      const planned = applyWorkoutMode(day, mode);
-                      const estimate = formatEstimateMinutes(
-                        estimateWorkoutSeconds(
-                          planned,
-                          restSecondsWithExtra(restExtraMinutes, REST_SECONDS)
-                        )
-                      );
-
-                      if (isCompleted && !incomplete) {
-                        return (
-                          <div key={day.dayNumber} className="space-y-3">
-                            {completedCards.map((session) => (
-                              <CompletedSessionCard
-                                key={session.id}
-                                session={session}
-                                focus={day.focus}
-                                headerAction={
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      startWorkout(week.weekNumber, day.dayNumber, undefined, {
-                                        mode: normalizeWorkoutMode(session.workout_mode),
-                                      })
-                                    }
-                                    className="inline-flex min-h-8 items-center rounded-lg bg-[#e8c547] px-2.5 text-xs font-black text-[#1a1404]"
-                                  >
-                                    Do Again
-                                  </button>
-                                }
-                              />
-                            ))}
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div
-                          key={day.dayNumber}
-                          className={`rounded-2xl border p-4 ${
-                            incomplete
-                              ? 'border-[#e8c547]/50 bg-[#e8c547]/10'
-                              : 'border-white/10 bg-black/20'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="mb-1 flex items-center gap-2">
-                                <span className="shrink-0 rounded-full border border-white/15 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.14em] text-[#f6f1e3]/70">
-                                  Day {day.dayNumber}
-                                </span>
-                                <h3 className="text-lg font-black text-white">{day.name}</h3>
-                              </div>
-                              <p className="text-sm text-[#f6f1e3]/65">{day.focus}</p>
-                              <p className="mt-1 text-xs text-[#f6f1e3]/50">
-                                Suggested: {day.suggestedDay} • {day.exercises.length} exercises
-                              </p>
-                            </div>
-                            <ModeToggle
-                              mode={mode}
-                              locked={!!incomplete}
-                              onChange={(next) =>
-                                setPickModes((current) => ({
-                                  ...current,
-                                  [dayModeKey(week.weekNumber, day.dayNumber)]: next,
-                                }))
-                              }
-                            />
-                          </div>
-
-                          <div className="mt-4 flex flex-col gap-3 border-t border-white/10 pt-3 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="inline-flex items-center gap-1.5 text-sm font-black text-[#e8c547]">
-                              <Clock className="h-4 w-4" />
-                              Est. {estimate}
-                            </span>
-                            <div className="flex items-center gap-2">
-                              {incomplete && (
-                                <button
-                                  type="button"
-                                  onClick={() => askRestart(week.weekNumber, day.dayNumber, Number(incomplete.id))}
-                                  className="inline-flex min-h-12 flex-1 items-center justify-center gap-2 rounded-2xl border border-[#e8c547]/50 px-4 font-black text-[#e8c547]"
-                                >
-                                  <RotateCcw className="h-4 w-4" />
-                                  Restart
-                                </button>
-                              )}
-                              {!hyroxMode &&
-                              !incomplete &&
-                              pickAllowed(week.weekNumber) &&
-                              yourPickSwapTargets(week.weekNumber, athleteRequiredDays(week, scheduleDays), sessions).some(
-                                (target) => target.dayNumber === day.dayNumber
-                              ) ? (
-                                <button
-                                  type="button"
-                                  onClick={() => openPickSheet(week.weekNumber, day.dayNumber)}
-                                  className="inline-flex min-h-12 items-center justify-center gap-1.5 rounded-2xl border border-[#e8c547]/50 px-4 text-sm font-black text-[#e8c547]"
-                                >
-                                  <YourPickIcon />
-                                  Swap
-                                </button>
-                              ) : null}
-                              <button
-                                type="button"
-                                onClick={() => startWorkout(week.weekNumber, day.dayNumber, undefined, { mode })}
-                                className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] px-6 font-black text-[#1a1404]"
-                              >
-                                {incomplete ? 'Resume' : 'Start'}
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                    {athleteWeekDays(week, scheduleDays).map((day) => renderDayCard(week, day))}
                   </div>
                   {hyroxMode ? null : renderYourPickSection(week.weekNumber)}
                 </div>
