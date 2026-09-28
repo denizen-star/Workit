@@ -48,6 +48,7 @@ import QuickstartTakeover from '@/components/QuickstartTakeover';
 import HyroxHome from '@/components/HyroxHome';
 import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
+import DismissibleBanner from '@/components/DismissibleBanner';
 import BodyWeightBanner from '@/components/BodyWeightBanner';
 import { bodyWeightBannerDue } from '@/lib/bodyWeightShared';
 import OverloadHome from '@/components/OverloadHome';
@@ -132,6 +133,9 @@ export default function Home() {
   const [showHyroxIntro, setShowHyroxIntro] = useState(false);
   const [hyroxStartError, setHyroxStartError] = useState('');
   const [showHyroxBanner, setShowHyroxBanner] = useState(false);
+  const [showOverloadBanner, setShowOverloadBanner] = useState(false);
+  // Locked main weeks — the More programs menu's "N of 6 weeks locked" line (lib/programUnlock.ts).
+  const [mainLockedWeeks, setMainLockedWeeks] = useState(0);
   // Where the 48-week program resumes after a Hyrox or Overload run (the later of the two).
   const [resumeFloor, setResumeFloor] = useState(1);
   // Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md): GET /api/overload.
@@ -217,12 +221,10 @@ export default function Home() {
           setHyroxActive(Boolean(hyroxData.active));
           setHyroxEligibleFlag(Boolean(hyroxData.eligible));
           setResumeFloor((floor) => Math.max(floor, Number(hyroxData.resumeFloor) || 1));
+          setMainLockedWeeks(Number(hyroxData.lockedWeeks) || 0);
+          // Server decides: unlocked, inside the 3-day window, not yet tapped/✕'d.
+          setShowHyroxBanner(Boolean(hyroxData.bannerDue));
           if (hyroxData.eligible && !hyroxData.active) {
-            try {
-              setShowHyroxBanner(!localStorage.getItem(`hyrox_banner_seen_${resolvedUserId ?? ''}`));
-            } catch {
-              // localStorage can throw in private browsing; just skip the one-time nudge.
-            }
             // The "Hyrox Training" menu item on every other page can't open the
             // takeover directly (only Home has it mounted) — it instead navigates
             // here with ?hyrox=1, which this picks up on the resulting fresh mount.
@@ -242,6 +244,7 @@ export default function Home() {
             daysUntilStart: Number(overloadData.daysUntilStart) || 0,
             unseenDiploma: overloadData.unseenDiploma ?? null,
           });
+          setShowOverloadBanner(Boolean(overloadData.bannerDue));
           // Its floor already folds in Hyrox's (lib/overloadState.ts `mainResumeFloor`).
           setResumeFloor((floor) => Math.max(floor, Number(overloadData.resumeFloor) || 1));
           // Same menu hand-off as ?hyrox=1 above, for the Overload Progressions item.
@@ -431,6 +434,13 @@ export default function Home() {
   // Opted in, waiting for Monday: normal Home stays up, with a countdown and a way out.
   const overloadWaiting = Boolean(overload?.active && !overload.running);
   const overloadAvailable = Boolean(overload?.eligible && !overload.active);
+  // Menu's More programs section: one program at a time, so a running Overload
+  // (waiting for its Monday) hides both items; Leave stays in the menu footer.
+  const morePrograms = {
+    lockedWeeks: mainLockedWeeks,
+    hyrox: overload?.active ? null : hyroxEligibleFlag ? ('open' as const) : ('locked' as const),
+    overload: !overload || overload.active ? null : overload.eligible ? ('open' as const) : ('locked' as const),
+  };
 
   const startOverload = async () => {
     setOverloadStartError('');
@@ -480,13 +490,22 @@ export default function Home() {
     }
   };
 
+  /** A More programs banner was tapped or ✕'d: hide it now, and record it on the
+   * account so it never shows again (lib/programBanner.ts). */
+  const markBannerSeen = (endpoint: '/api/hyrox' | '/api/overload') => {
+    fetch(endpoint, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'bannerSeen' }),
+    }).catch(() => {});
+  };
   const dismissHyroxBanner = () => {
     setShowHyroxBanner(false);
-    try {
-      if (userId != null) localStorage.setItem(`hyrox_banner_seen_${userId}`, '1');
-    } catch {
-      // Best-effort only.
-    }
+    markBannerSeen('/api/hyrox');
+  };
+  const dismissOverloadBanner = () => {
+    setShowOverloadBanner(false);
+    markBannerSeen('/api/overload');
   };
 
   if (showOverloadIntro) {
@@ -531,9 +550,8 @@ export default function Home() {
               userScheduleDays={userScheduleDays}
               userGender={userGender}
               isAdmin={isAdmin}
-              hyroxAvailable={hyroxEligibleFlag && !overload?.active}
+              morePrograms={morePrograms}
               onHyroxClick={() => setShowHyroxIntro(true)}
-              overloadAvailable={overloadAvailable}
               onOverloadClick={() => setShowOverloadIntro(true)}
               overloadActive={overloadWaiting}
               onLeaveOverload={leaveOverload}
@@ -590,28 +608,33 @@ export default function Home() {
             <p className="mt-1 text-xs text-[#f6f1e3]/75">Keep training your program until then.</p>
           </div>
         ) : null}
-        {overloadAvailable ? (
-          // Appears once main-program week 6 is locked (lib/overloadState.ts `overloadEligible`).
-          <button
-            type="button"
-            onClick={() => setShowOverloadIntro(true)}
-            className="mb-6 block w-full rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 text-left"
-          >
-            <p className="text-sm font-black text-[#e8c547]">Overload Progressions is open</p>
-            <p className="mt-1 text-xs text-[#f6f1e3]/75">
-              You finished week 6. Six weeks of more weight, starting Monday. See what it is.
-            </p>
-          </button>
+        {overloadAvailable && showOverloadBanner ? (
+          // 3 days after 6 locked main weeks, until tapped or ✕'d (lib/programBanner.ts);
+          // after that the menu's More programs section is the way in.
+          <DismissibleBanner onDismiss={dismissOverloadBanner}>
+            <button
+              type="button"
+              onClick={() => {
+                dismissOverloadBanner();
+                setShowOverloadIntro(true);
+              }}
+              className="block w-full rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 pr-10 text-left"
+            >
+              <p className="text-sm font-black text-[#e8c547]">Overload Progressions is open</p>
+              <p className="mt-1 text-xs text-[#f6f1e3]/75">
+                You locked 6 weeks. Six weeks of more weight, starting Monday. See what it is.
+              </p>
+            </button>
+          </DismissibleBanner>
         ) : null}
-        {overload?.active ? null : showHyroxBanner ? (
+        {!overload?.active && showHyroxBanner ? (
           <HyroxRewardBanner
             onClick={() => {
               dismissHyroxBanner();
               setShowHyroxIntro(true);
             }}
+            onDismiss={dismissHyroxBanner}
           />
-        ) : hyroxEligibleFlag ? (
-          <HyroxRewardBanner onClick={() => setShowHyroxIntro(true)} />
         ) : null}
         {bodyWeightBannerDue(userWeightLb, sessions) ? (
           <BodyWeightBanner onAdd={() => setWeightEditSignal((n) => n + 1)} />

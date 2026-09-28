@@ -34,36 +34,34 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.1.0',
-  title: 'Your push-ups count now.',
-  subject: 'Your push-ups count now — Work-It',
+  version: '11.2.0',
+  title: 'More programs, one tap away.',
+  subject: 'More programs, one tap away — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Big one today! Every push-up, every dip, every knee raise you have ever done was worth zero pounds on your board. Not anymore. Your own body is the weight now, and it finally counts.',
-  mid: 'All it takes is your weight in Edit profile. If you have not saved one, you will see a banner on Home asking for it. Tap Add weight, type it in, done. It is private. Only you and Kevin ever see it.',
+    'Your menu just got a new home for the big stuff! Hyrox Training and Overload Progressions now live together under More programs, right at the top. No hunting. You always know where they are and how close you are.',
+  mid: 'Not open yet? You will see a lock. Tap it and it tells you how many locked weeks you have. Six opens both. And your weight log got better too: add a weigh-in any time, and fix a typo with one tap.',
   close:
-    'So drop down and give me twenty, and watch them land on your total this time. I believe in every rep you put in. Quit is the only thing that still counts for nothing.',
+    'Six locked weeks is closer than you think. I have watched you show up week after week, and I know you get there. Quit is the only thing that never unlocks anything.',
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Bodyweight moves — push-ups, dips, squats, lunges, rows and knee raises count part of your weight on every rep.',
-        'Extra weight — a vest or backpack goes in the weight box and counts on top.',
-        'Your weight over time — Your performance, Body weight.',
-        'Add your weight — a banner on Home and your next few workouts until you save it.',
-        'Recap — shows the weight your bodyweight moves used.',
+        'More programs — Hyrox Training and Overload Progressions, together at the top of the Home menu.',
+        'Locked programs — show a lock. Tap to see how many locked weeks you have.',
+        'Weight log — add a weigh-in any time, or remove one you mistyped.',
+        'Body weight — now at the top of Your performance and under the weight field in Edit profile.',
       ],
     },
     {
       heading: 'Also',
       wins: [
-        'Past sets — if you had already saved a weight, your old bodyweight sets now count too.',
-        'Six-week check-in — now asks for your current weight as well.',
-        'Hip thrusts and leg extensions — now ask for the weight you actually lifted.',
+        'Overload Progressions — opens at 6 locked weeks, same as Hyrox.',
+        'Unlock banners on Home — show for 3 days, then step aside. Tap the ✕ to hide one sooner.',
       ],
     },
   ],

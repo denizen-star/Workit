@@ -291,8 +291,9 @@ export function accountExistedBeforeWeek(
   return new Date(String(createdAt)).getTime() < new Date(startUtc).getTime();
 }
 
-/** `week1_start`: Test Drive athlete's one-time "Week 1 starts now" Home takeover (lib/testDrive.ts). */
-export type WeekTakeoverKind = 'podium' | 'miss' | 'week1_start';
+/** `week1_start`: Test Drive athlete's one-time "Week 1 starts now" Home takeover (lib/testDrive.ts).
+ * `banner_hyrox` / `banner_overload`: More programs Home banner tapped or ✕'d (lib/programBanner.ts). */
+export type WeekTakeoverKind = 'podium' | 'miss' | 'week1_start' | 'banner_hyrox' | 'banner_overload';
 
 function isMissingSeenTable(error: unknown) {
   const message = String(error instanceof Error ? error.message : error);

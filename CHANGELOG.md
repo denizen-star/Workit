@@ -2,9 +2,16 @@
 
 ## Unreleased
 
+## 11.2.0 - 2026-09-27
+
 ### Added
 - **Body weight log** — Your performance → Body weight now lists every weigh-in. **+ Add weigh-in** saves a new one (it becomes your current weight); **✕** removes a mistyped one and your weight falls back to the one before it. A jump of more than 20% from your last weigh-in asks once before saving.
 - The **Body weight** card now sits at the top of Your performance, and the same **Weight log** is under the weight field in Edit profile.
+- **More programs** in the Home menu — Hyrox Training and Overload Progressions live in their own section at the top. Not open yet? They show a lock and "Unlocks after 6 locked weeks"; tap to see how many you have.
+
+### Changed
+- **Overload Progressions opens at 6 locked weeks**, same as Hyrox (was: week 6 itself locked).
+- The Hyrox and Overload "unlocked" banners on Home show for **3 days** after you unlock, then step aside. Tap one to see the program, or **✕** to hide it. Once gone, it stays gone on every device.
 
 ## 11.1.0 - 2026-09-27
 

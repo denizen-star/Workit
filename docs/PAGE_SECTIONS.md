@@ -36,6 +36,7 @@ Public waiver text.
 - Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house dropdown if in more than one; one house is a text label
 - First visit without waiver: Update your profile (prefilled) + required waiver
 - How to use banner until 5 finished workouts (links to `/quickstart`)
+- Overload Progressions / Hyrox unlocked banners: 3 days after 6 locked weeks, until tapped (opens intro) or ✕'d
 - Today card (`gold-hero`)
   - Rest / Today / Pick back up / Program-done title
   - Focus · Est. (live day)
@@ -136,7 +137,7 @@ Single-page user guide, replacing the old `/how` and `/about`. Linked from the m
 
 ## Menu (home + You pages + admin)
 
-Athlete: Your performance · The house · Completed log · Medals · Belts · Help. Your performance + Belts on for Test. You vs still hidden on Home / The house.
+Athlete: **More programs** (Home's menu only: Hyrox Training · Overload Progressions; locked = dimmed + lock + "Unlocks after 6 locked weeks", tap → "N of 6 weeks locked"; hidden while Overload runs) · Your performance · The house · Completed log · Medals · Belts · The Library · Help · Why Work-It. Your performance + Belts on for Test. You vs still hidden on Home / The house.
 
 Pinned footer: Edit profile · Invite a friend (not Test) · Switch profile.
 

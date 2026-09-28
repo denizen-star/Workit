@@ -1,6 +1,6 @@
 # Feature Implementation Plan — Overload Progressions
 
-**Overall Progress:** `100%` — built, migrations applied 2026-09-27, API pass as Test green ([pick page](https://claude.ai/artifact/43DHmWpS3zujJB9S2CTS9k)). Gate changed after build: opens once main week 6 is locked, with a Home card. Cable Chest Fly media, How, Alt, travel swap (Backpack Floor Flyes), Dumbbell Flyes alt and Library done.
+**Overall Progress:** `100%` — built, migrations applied 2026-09-27, API pass as Test green ([pick page](https://claude.ai/artifact/43DHmWpS3zujJB9S2CTS9k)). Gate changed after build: opens once main week 6 is locked, with a Home card. Changed again 2026-09-27 (docs/plans/PLAN_MORE_PROGRAMS.md): opens at 6 locked main weeks, same as Hyrox; Home card shows 3 days; menu item lives under More programs. Cable Chest Fly media, How, Alt, travel swap (Backpack Floor Flyes), Dumbbell Flyes alt and Library done.
 
 ## TLDR
 

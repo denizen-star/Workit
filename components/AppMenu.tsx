@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell, ChevronsUp } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell, ChevronsUp, Lock } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -11,6 +11,9 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { type NoiseLevel } from '@/lib/noisePref';
 import { isTestUserName } from '@/lib/householdUsers';
 import { trackAction } from '@/lib/analytics';
+import { PROGRAM_LOCKED_HINT, programUnlockProgress } from '@/lib/programUnlock';
+
+export type MoreProgramState = 'open' | 'locked' | null;
 
 interface AppMenuProps {
   userName: string;
@@ -24,8 +27,15 @@ interface AppMenuProps {
   userShowPrs?: boolean | null;
   userGender?: string | null;
   isAdmin?: boolean;
-  /** Shown once the athlete has 6 locked weeks — hidden otherwise, and while a run is active it routes to /home (which renders the Hyrox view). */
-  hyroxAvailable?: boolean;
+  /** **More programs** section (docs/plans/PLAN_MORE_PROGRAMS.md) — Home's menu only.
+   * Each program is `open` (normal item), `locked` (lock + hint; a tap shows
+   * "N of 6 weeks locked"), or `null` (hidden, e.g. while the other one is active).
+   * Omitted = no section. */
+  morePrograms?: {
+    lockedWeeks: number;
+    hyrox: MoreProgramState;
+    overload: MoreProgramState;
+  };
   /** Called instead of navigating when the Hyrox nav item is tapped and the current
    * page can handle it directly (Home opens the intro takeover in place) — pages
    * that don't pass this fall back to `/home?hyrox=1`, which Home reads on mount. */
@@ -33,9 +43,8 @@ interface AppMenuProps {
   /** A Hyrox run is active right now — shows "Leave Hyrox Training" in the footer. */
   hyroxActive?: boolean;
   onLeaveHyrox?: () => void;
-  /** Same three props for Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md):
-   * menu item once eligible (`/home?overload=1` fallback), leave item while a run is active. */
-  overloadAvailable?: boolean;
+  /** Same three for Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md):
+   * item tap (`/home?overload=1` fallback), leave item while a run is active. */
   onOverloadClick?: () => void;
   overloadActive?: boolean;
   onLeaveOverload?: () => void;
@@ -70,11 +79,10 @@ export default function AppMenu({
   userShowPrs = true,
   userGender = 'male',
   isAdmin = false,
-  hyroxAvailable = false,
+  morePrograms,
   hyroxActive = false,
   onLeaveHyrox,
   onHyroxClick,
-  overloadAvailable = false,
   overloadActive = false,
   onLeaveOverload,
   onOverloadClick,
@@ -88,6 +96,8 @@ export default function AppMenu({
   // `?profile=weight` deep link (docs/plans/PLAN_BODY_WEIGHT.md): open Edit profile on the Weight field.
   const [focusWeight, setFocusWeight] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  // Which locked More program was tapped — shows its "N of 6 weeks locked" line.
+  const [lockedTapped, setLockedTapped] = useState<'hyrox' | 'overload' | null>(null);
   const [houses, setHouses] = useState<{ id: number; slug: string; name: string }[]>([]);
   const [houseId, setHouseId] = useState<number | null>(null);
   const [callName, setCallName] = useState(userName);
@@ -210,6 +220,14 @@ export default function AppMenu({
     router.refresh();
   };
 
+  // More programs, Hyrox first. A `null` state drops the item; no items = no section.
+  const moreProgramItems = (
+    [
+      { key: 'hyrox', label: 'Hyrox Training', Icon: Flame, state: morePrograms?.hyrox ?? null, onTrack: onHyroxClick, href: '/home?hyrox=1' },
+      { key: 'overload', label: 'Overload Progressions', Icon: ChevronsUp, state: morePrograms?.overload ?? null, onTrack: onOverloadClick, href: '/home?overload=1' },
+    ] as const
+  ).filter((item) => item.state !== null);
+
   const menu = open && mounted
     ? createPortal(
         <div className="fixed inset-0 z-[200]">
@@ -303,6 +321,52 @@ export default function AppMenu({
                   })}
                 </div>
               )}
+              {moreProgramItems.length > 0 && (
+                <div className="border-b border-white/10 py-1">
+                  <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">
+                    More programs
+                  </p>
+                  {moreProgramItems.map(({ key, label, Icon, state, onTrack, href }) => {
+                    const locked = state === 'locked';
+                    return (
+                      <button
+                        key={key}
+                        type="button"
+                        // Locked: stays in the menu and shows what's left instead of opening.
+                        aria-disabled={locked}
+                        onClick={() => {
+                          if (locked) {
+                            setLockedTapped((current) => (current === key ? null : key));
+                            return;
+                          }
+                          setOpen(false);
+                          if (onTrack) {
+                            onTrack();
+                            return;
+                          }
+                          router.push(href);
+                        }}
+                        className={`flex w-full items-start gap-3 px-4 py-2.5 text-left text-sm font-semibold ${
+                          locked ? 'text-[#f6f1e3]/40' : 'text-[#f6f1e3]/85 hover:bg-white/5'
+                        }`}
+                      >
+                        <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${locked ? 'text-[#f6f1e3]/40' : 'text-[#e8c547]'}`} />
+                        <span className="min-w-0 flex-1">
+                          {label}
+                          {locked ? (
+                            <span className="block text-xs font-medium text-[#f6f1e3]/40">
+                              {lockedTapped === key
+                                ? programUnlockProgress(morePrograms?.lockedWeeks ?? 0)
+                                : PROGRAM_LOCKED_HINT}
+                            </span>
+                          ) : null}
+                        </span>
+                        {locked ? <Lock className="mt-0.5 h-4 w-4 shrink-0 text-[#f6f1e3]/40" /> : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
               <div className="py-1">
                 {[
                   { href: '/performance', label: 'Your performance', Icon: TrendingUp },
@@ -310,31 +374,17 @@ export default function AppMenu({
                   { href: '/history', label: 'Completed log', Icon: ClipboardList },
                   { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
-                  ...(hyroxAvailable
-                    ? [{ href: '/home?hyrox=1', label: 'Hyrox Training', Icon: Flame, onTrack: onHyroxClick }]
-                    : []),
-                  ...(overloadAvailable
-                    ? [{ href: '/home?overload=1', label: 'Overload Progressions', Icon: ChevronsUp, onTrack: onOverloadClick }]
-                    : []),
                   { href: '/library', label: 'The Library', Icon: Dumbbell },
                   { href: '/help', label: 'Help', Icon: CircleHelp },
                   { href: '/faq', label: 'Why Work-It', Icon: Sparkles },
-                ].map(({ href, label, Icon, onTrack }) => {
-                    // The opt-in track items (Hyrox, Overload Progressions) never count as
-                    // the "active" nav entry — /home is also where the plain Home page
-                    // lives, and highlighting one there would be misleading.
-                    const isTrack = href.startsWith('/home?');
-                    const active = !isTrack && (pathname === href || pathname.startsWith(href + '/'));
+                ].map(({ href, label, Icon }) => {
+                    const active = pathname === href || pathname.startsWith(href + '/');
                     return (
                       <button
                         key={href}
                         type="button"
                         onClick={() => {
                           setOpen(false);
-                          if (onTrack) {
-                            onTrack();
-                            return;
-                          }
                           router.push(href);
                         }}
                         className={`flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold ${

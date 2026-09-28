@@ -548,8 +548,9 @@ export default function HelpPage() {
             disappear on Monday.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
-            Once you complete week 6 you can opt into{' '}
-            <span className="font-black text-[#e8c547]">Overload Progressions</span> from the menu: a 6-week
+            Once you have 6 locked weeks you can opt into{' '}
+            <span className="font-black text-[#e8c547]">Overload Progressions</span> (or Hyrox Training) from{' '}
+            <span className="font-black text-[#e8c547]">More programs</span> in the menu: a 6-week
             muscle-building series that starts on a Monday and replaces your program while it runs. Your days per week
             set the split, heavy lifts rest 3 minutes, and each week asks a little more. Weeks you lock there count
             toward belts, and you earn a diploma as weeks 2, 4 and 6 end. Leave any time; your program picks back up

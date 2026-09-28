@@ -9,6 +9,7 @@ import { workoutProgram } from '@/lib/workoutData';
 import { daysForWeekFn } from '@/lib/scheduleDays';
 import { lockedMainWeekCount } from '@/lib/lockedWeeks';
 import { loadOverloadState } from '@/lib/overloadState';
+import { markProgramBannerSeen, programBannerDue } from '@/lib/programBanner';
 
 type SessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
   program_track?: string | null;
@@ -66,9 +67,15 @@ export async function GET() {
   // normal 48-week program should resume at (see POST action=drop).
   const resumeFloor = state && !active ? Number(state.normal_week_at_start) : 1;
 
+  const lockedWeeks = await lockedMainWeekCount(user.id);
+  const eligible = hyroxEligible(lockedWeeks);
+
   return NextResponse.json({
-    eligible: hyroxEligible(await lockedMainWeekCount(user.id)),
+    eligible,
     active,
+    // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
+    lockedWeeks,
+    bannerDue: eligible && !active ? await programBannerDue(user.id, 'banner_hyrox') : false,
     resumeFloor,
     state: state
       ? {
@@ -214,6 +221,12 @@ export async function POST(request: NextRequest) {
     );
 
     return NextResponse.json({ success: true, resumeWeek });
+  }
+
+  // Home banner tapped or ✕'d — never shows again for this account.
+  if (action === 'bannerSeen') {
+    await markProgramBannerSeen(user.id, 'banner_hyrox');
+    return NextResponse.json({ success: true });
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 });

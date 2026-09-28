@@ -7,7 +7,8 @@
 // - Diploma tiers are calendar-based (weeks 2 / 4 / 6 ended while still in the run),
 //   awarded compute-on-read like the week podium.
 import { query } from '@/lib/db';
-import { mainWeekLocked } from '@/lib/lockedWeeks';
+import { lockedMainWeekCount } from '@/lib/lockedWeeks';
+import { programUnlocked } from '@/lib/programUnlock';
 import { addEasternCalendarDays, easternMondayKey, easternWeekday, easternYmd } from '@/lib/analyticsTime';
 import {
   OVERLOAD_WEEKS,
@@ -98,13 +99,10 @@ export async function validateOverloadStart(
   return { ok: true };
 }
 
-/** Main-program week that must be locked (completed) before Overload Progressions opens. */
-export const OVERLOAD_UNLOCK_WEEK = 6;
-
-/** Overload Progressions appears once the athlete completes main-program week 6
- * (its `locked_weeks` row exists). Overload weeks themselves never satisfy it. */
-export function overloadEligible(userId: number): Promise<boolean> {
-  return mainWeekLocked(userId, OVERLOAD_UNLOCK_WEEK);
+/** Overload Progressions opens on the same rule as Hyrox: 6 locked main-program
+ * weeks (lib/programUnlock.ts). Overload weeks themselves never count toward it. */
+export async function overloadEligible(userId: number): Promise<boolean> {
+  return programUnlocked(await lockedMainWeekCount(userId));
 }
 
 /** Weeks locked in this run (persisted `locked_weeks`, lib/lockedWeeks.ts) — how far

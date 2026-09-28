@@ -43,6 +43,18 @@ export async function lockedMainWeekCount(userId: number): Promise<number> {
   return Number((result.rows[0] as { n?: number } | undefined)?.n || 0);
 }
 
+/** When the athlete's `n`th main-program week (1–48) locked — the moment a More
+ * program opened (lib/programUnlock.ts). Null until they have `n` locked weeks. */
+export async function nthMainWeekLockedAt(userId: number, n: number): Promise<string | null> {
+  const result = await query(
+    `SELECT locked_at FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN 1 AND 48
+     ORDER BY locked_at ASC, week_number ASC LIMIT 1 OFFSET ?`,
+    [userId, Math.max(0, n - 1)]
+  );
+  const row = result.rows[0] as { locked_at?: string | null } | undefined;
+  return row?.locked_at ? String(row.locked_at) : null;
+}
+
 /** True once this exact main-program week is locked (e.g. week 6 for Overload
  * Progressions, which opens only after the athlete completes week 6). */
 export async function mainWeekLocked(userId: number, weekNumber: number): Promise<boolean> {

@@ -20,6 +20,9 @@ import {
   overloadCalendarWeek,
   overloadRunning,
 } from '@/lib/overloadState';
+import { lockedMainWeekCount } from '@/lib/lockedWeeks';
+import { markProgramBannerSeen, programBannerDue } from '@/lib/programBanner';
+import { programUnlocked } from '@/lib/programUnlock';
 import { daysForWeekFn } from '@/lib/scheduleDays';
 import { workoutProgram } from '@/lib/workoutData';
 
@@ -58,10 +61,16 @@ export async function GET() {
   const sessions = running ? await runSessions(user.id, run) : [];
   const next = running ? findNextProgramDay(sessions, overloadProgram(run, user.scheduleDaysPerWeek)) : null;
   const diplomas = await loadOverloadDiplomas(user.id);
+  // Same count `overloadEligible` reads — fetched once here so the menu can show "N of 6".
+  const lockedWeeks = await lockedMainWeekCount(user.id);
+  const eligible = programUnlocked(lockedWeeks);
 
   return NextResponse.json({
-    eligible: await overloadEligible(user.id),
+    eligible,
     active,
+    // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
+    lockedWeeks,
+    bannerDue: eligible && !active ? await programBannerDue(user.id, 'banner_overload') : false,
     running,
     run,
     startsOn: state?.starts_on ?? null,
@@ -158,6 +167,12 @@ export async function POST(request: NextRequest) {
       'UPDATE overload_diplomas SET seen_at = NOW() WHERE user_id = ? AND run_number = ? AND tier = ? AND seen_at IS NULL',
       [user.id, run, tier]
     );
+    return NextResponse.json({ success: true });
+  }
+
+  // Home banner tapped or ✕'d — never shows again for this account.
+  if (action === 'bannerSeen') {
+    await markProgramBannerSeen(user.id, 'banner_overload');
     return NextResponse.json({ success: true });
   }
 
