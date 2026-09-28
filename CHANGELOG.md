@@ -7,6 +7,7 @@
 ### Fixed
 - **How hard now saves what you pick.** Rating a set after you complete it saved the first step of your drag, so dragging to Hard stored Light. It now saves when you let go.
 - Changing a vote with **Editing** saves the one you land on, never an earlier one.
+- **Planks keep their How hard.** On Your pick and full-body days, a rating picked before a plank was wiped before you hit Stop. It now sticks.
 - **Your pick Yoga/Core** hold ratings no longer skip ahead a hold or record the wrong score.
 
 ## 10.2.0 - 2026-09-27

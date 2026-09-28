@@ -53,6 +53,7 @@ export const CURRENT_RELEASE: {
       wins: [
         'How hard — drag to your rating and let go. That is the one that saves.',
         'Editing a set — change your vote and the new one sticks.',
+        'Planks — rate it before you start the timer and it is still there when you hit Stop.',
         'Yoga and Core picks — rating a hold moves you on one hold, with the score you chose.',
         'Older sets — anything rated before today may read Light or Easy. Tap the set and use Editing to fix it.',
       ],
