@@ -3,16 +3,19 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 /** Visible From addresses. SMTP still logs in as SENDER_EMAIL, and Zoho only lets
  * it send as a registered alias of that mailbox (a group address 553s).
  * Registered aliases: tom@, luna@, grey@, eli.sparks@, workit-info@.
- * Not yet registered: welcome@, news@, help@ — those sends 553 until they are. */
+ * welcome / news / help have no alias yet (Kevin is setting them up), so they
+ * send from workit-info@ until then — swap each back to its own alias once it exists. */
+const INFO_ALIAS = 'workit-info@workitapp.fit';
+
 export const MAIL_FROM = {
   tom: 'tom@workitapp.fit',
   luna: 'luna@workitapp.fit',
   grey: 'grey@workitapp.fit',
   eli: 'eli.sparks@workitapp.fit',
-  welcome: 'welcome@workitapp.fit',
-  news: 'news@workitapp.fit',
-  help: 'help@workitapp.fit',
-  info: 'workit-info@workitapp.fit',
+  welcome: INFO_ALIAS,
+  news: INFO_ALIAS,
+  help: INFO_ALIAS,
+  info: INFO_ALIAS,
 } as const;
 
 /** Where every send is BCC'd — the info@ group (receiving works; only sending as it 553s). */
