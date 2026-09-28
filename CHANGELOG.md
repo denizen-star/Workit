@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 11.0.1 - 2026-09-27
+
 ### Fixed
 - **Emails arrive again.** Since Sep 24, sign-up verification, welcome and invite emails, PIN resets, workout reminders, the weekly scoreboard, the six-week check-in and release notes weren't going out. They send from working addresses now, so new athletes can verify and get in.
 
