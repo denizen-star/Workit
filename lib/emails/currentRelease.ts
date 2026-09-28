@@ -34,37 +34,47 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '10.3.0',
-  title: 'No more waiting for Monday.',
-  subject: 'Test Drive — new faces start the day they join',
+  version: '11.0.0',
+  title: 'Six weeks of more.',
+  subject: 'Overload Progressions — six weeks of more weight',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'I have got a good one for you. Nobody joins Work-It and then just sits around waiting for Monday anymore. The day they walk in is the day they start.',
-  mid: 'Here is how it works. Week 1 still starts on a Monday, because a clean week is a fair week. But if someone joins on a Wednesday, they get a Test Drive: a couple of real workouts to learn the app and feel the work. Those count for them, not for the board. So nobody gets a head start on you, and nobody feels left out either.',
+    'I have been waiting to tell you this one. Once you finish week 6, a new door opens: Overload Progressions. Six weeks built for one thing. Putting more weight on the bar, week after week, because you earned it.',
+  mid: 'It is simple. Hit the top of the rep range on every set, and your card tells you to add weight. Miss it, and it tells you to stay and get one more rep. Real rests on the heavy lifts, a target on every set, and three diplomas along the way. Every week you lock still counts toward your next belt. And the Next line and Aim line are on every lift card now, program days included.',
   close:
-    'And when you finish a workout now, you will see the app working for you. Saving, calculating, checking. That is your growth being counted. Go give it something to count. Quit is the only thing not welcome here.',
+    'You do not have to guess anymore. The card tells you what you earned. Go earn it. I already know you will. Quit is the only thing that does not get a spot on the bar.',
   lead: '',
   groups: [
     {
-      heading: 'Test Drive',
+      heading: 'Overload Progressions',
       wins: [
-        'Joined mid-week — start the same day with a Test Drive.',
-        'How many — 3 workouts from Tuesday, 2 Wednesday to Friday, 1 on the weekend.',
-        'Countdown — Home shows how many days until Week 1 starts.',
-        'Finished early — confetti, and a look at what you did: workouts, pounds, time.',
-        'Counts for you — your totals, stats, badges and lift history. Not Week 1, belts, the house board or medals.',
-        'Monday — leftover Test Drive workouts disappear, and your coach welcomes you to Week 1.',
+        'When — opens once you finish week 6. Look for the card on Home.',
+        'Start — join any day, it begins the next Monday. Your program pauses until you leave.',
+        'Your week — 1 to 3 days full body, 4 days upper/lower, 5 days upper/lower/push/pull/legs.',
+        'Rests — 3 minutes on heavy lifts, 2 on the next ones, 75 seconds on the small ones.',
+        'The climb — weeks 1-2 Fair, weeks 3-4 Hard, weeks 5-6 push the last set on the small lifts.',
+        'Counts — locked weeks count toward belts, badges, the house board and medals.',
+        'Diplomas — one each as weeks 2, 4 and 6 end.',
+        'Leave any time — your program picks back up, moved ahead by the weeks you locked.',
       ],
     },
     {
-      heading: 'Finishing a workout',
+      heading: 'On every lift card',
       wins: [
-        'Complete it — the button now shows Saving, Calculating, Checking while your numbers land.',
-        'One tap — tapping twice will not save the workout twice.',
-        'Same for Yoga, Core and the Hyrox milestone.',
+        'Next — what to lift next time. Earned it: +2.5 lb on curls and raises, +5 upper body, +10 legs.',
+        'Not yet — same weight, one more rep.',
+        'Just a suggestion — your numbers still fill in the way they always have. Shows in kg if you log in kg.',
+        'Aim — how hard each set should feel, like "Hard · about 2 reps left".',
+      ],
+    },
+    {
+      heading: 'New lift',
+      wins: [
+        'Cable Chest Fly — with photos, a form video and how-to.',
+        'Traveling — swap it for Backpack Floor Flyes, no equipment needed.',
+        'No cables — tap Alt for Dumbbell Flyes.',
       ],
     },
   ],

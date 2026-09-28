@@ -25,6 +25,7 @@ export const ALT_EXERCISES: Record<string, string[]> = {
   'Burpee Broad Jumps': ['Burpees', 'Wall Balls', "Farmer's Carries", 'Loaded Water Jug Carries'],
   Burpees: ['Burpee Broad Jumps', 'Wall Balls', "Farmer's Carries", 'Loaded Water Jug Carries'],
   'Dead Bugs': ['Plank Hold', 'Side Plank', 'Pallof Press', 'Hanging Knee Raises'],
+  'Cable Chest Fly': ['Dumbbell Flyes', 'Backpack Floor Flyes', 'Incline Dumbbell Bench Press', 'Push-Ups'],
   'Dumbbell Biceps Curls': ['Hammer Curls', 'Doorframe ISO Curls', 'Loaded Backpack Curls', 'Backpack Hammer Curls'],
   'Dumbbell Lateral Raises': ['Wall Lateral ISO Raises', 'Backpack Raises', 'Face Pulls', 'Overhead Dumbbell Shoulder Press'],
   'Dumbbell or Barbell Shrugs': ['Backpack Shrugs', 'Lat Pulldowns', 'Single-Arm Dumbbell Rows'],

@@ -7,7 +7,8 @@ import { hyroxWeeksElapsed, resumeNormalWeek, type HyroxStateRow } from '@/lib/h
 import { findNextProgramDay, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { workoutProgram } from '@/lib/workoutData';
 import { daysForWeekFn } from '@/lib/scheduleDays';
-import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
+import { lockedMainWeekCount } from '@/lib/lockedWeeks';
+import { loadOverloadState } from '@/lib/overloadState';
 
 type SessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
   program_track?: string | null;
@@ -66,7 +67,7 @@ export async function GET() {
   const resumeFloor = state && !active ? Number(state.normal_week_at_start) : 1;
 
   return NextResponse.json({
-    eligible: hyroxEligible(await lockedWeekCountFromTable(user.id)),
+    eligible: hyroxEligible(await lockedMainWeekCount(user.id)),
     active,
     resumeFloor,
     state: state
@@ -108,9 +109,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, alreadyActive: true });
     }
 
+    // One opt-in track at a time (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md). Tolerates
+    // overload_state not existing yet, so Hyrox start never depends on that migration.
+    if ((await loadOverloadState(user.id).catch(() => null))?.active) {
+      return NextResponse.json({ error: 'Leave Overload Progressions first' }, { status: 409 });
+    }
+
     const allSessions = await loadSessions(user.id);
     const mainSessions = allSessions.filter((row) => (row.program_track || 'main') === 'main');
-    if (!hyroxEligible(await lockedWeekCountFromTable(user.id))) {
+    if (!hyroxEligible(await lockedMainWeekCount(user.id))) {
       return NextResponse.json({ error: 'Not eligible yet' }, { status: 403 });
     }
 

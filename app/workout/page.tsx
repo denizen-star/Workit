@@ -19,6 +19,7 @@ import YourPickFlow from '@/components/YourPickFlow';
 import YourPickExplainer from '@/components/YourPickExplainer';
 import { applyWorkoutMode, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
+import { overloadDisplayWeek, overloadProgram } from '@/lib/overloadProgram';
 import HyroxMilestoneTakeover from '@/components/HyroxMilestoneTakeover';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes, REST_SECONDS } from '@/lib/estimateDuration';
@@ -187,7 +188,20 @@ function WorkoutPageInner() {
     weekNumber: number;
     dayNumber: number;
   } | null>(null);
-  const program = hyroxMode ? hyroxProgram : workoutProgram;
+  // Overload Progressions works the same way once its run is past its start Monday
+  // (before then the athlete keeps training the main program): its run's 6 weeks
+  // feed Select Workout + the live session, with the same red wash as Hyrox.
+  const [overloadRun, setOverloadRun] = useState(0);
+  const overloadMode = overloadRun > 0;
+  /** Either opt-in track: no Your pick, no Test Drive block, red wash. */
+  const trackMode = hyroxMode || overloadMode;
+  const program = hyroxMode
+    ? hyroxProgram
+    : overloadMode
+      ? overloadProgram(overloadRun, scheduleDays)
+      : workoutProgram;
+  const displayWeek = (weekNumber: number) =>
+    hyroxMode ? hyroxDisplayWeek(weekNumber) : overloadMode ? overloadDisplayWeek(weekNumber) : weekNumber;
 
   useWakeLock(!!currentSession);
   usePortraitLock(!!currentSession);
@@ -212,9 +226,11 @@ function WorkoutPageInner() {
       fetch('/api/me').then((res) => (res.ok ? res.json() : null)),
       fetch('/api/coach-catalog').then((res) => (res.ok ? res.json() : null)),
       fetch('/api/hyrox').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/overload').then((res) => (res.ok ? res.json() : null)),
     ])
-      .then(([data, catalog, hyroxData]) => {
+      .then(([data, catalog, hyroxData, overloadData]) => {
         setHyroxMode(Boolean(hyroxData?.active));
+        setOverloadRun(overloadData?.running ? Number(overloadData.run) || 0 : 0);
         setHyroxLoaded(true);
         if (data?.user) {
           setAthleteName(data.user.name || '');
@@ -426,7 +442,11 @@ function WorkoutPageInner() {
         );
         if (!selectWeekInit.current) {
           selectWeekInit.current = true;
-          setExpandedWeek(defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays)));
+          setExpandedWeek(
+            overloadMode
+              ? defaultSelectWeek(rows, program)
+              : defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays))
+          );
         }
         if (historyRes.ok) {
           const historyData = await historyRes.json();
@@ -889,8 +909,8 @@ function WorkoutPageInner() {
         : null;
     return (
       <div
-        className={hyroxMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
-        style={hyroxMode ? undefined : { background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
+        className={trackMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
+        style={trackMode ? undefined : { background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
       >
         <header className="glass-header sticky top-0 z-10" style={{ borderBottomColor: wash.borderColor }}>
           <div className="container mx-auto px-4 py-2.5 sm:py-4">
@@ -959,7 +979,7 @@ function WorkoutPageInner() {
                 <h1 className="text-lg font-black leading-tight text-[#f5d76e] sm:text-xl">
                   {isTestDriveWeek(selectedWeek)
                     ? workout.name
-                    : `Week ${hyroxMode ? hyroxDisplayWeek(selectedWeek) : selectedWeek} · Day ${workout.dayNumber} · ${workout.name}`}
+                    : `Week ${displayWeek(selectedWeek)} · Day ${workout.dayNumber} · ${workout.name}`}
                 </h1>
                 <p className="text-sm text-[#f6f1e3]/65">
                   {workout.focus}
@@ -1225,7 +1245,7 @@ function WorkoutPageInner() {
       coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
         day.dayNumber
       );
-    if (!hyroxMode && (isYourPickSlot(day) || coveredByPick)) {
+    if (!trackMode && (isYourPickSlot(day) || coveredByPick)) {
       return renderPickTile(week.weekNumber, day, coveredByPick || isCompleted);
     }
     const dayHistory = historySessions.filter(
@@ -1343,7 +1363,7 @@ function WorkoutPageInner() {
                 Restart
               </button>
             )}
-            {!hyroxMode &&
+            {!trackMode &&
             !testDriveDay &&
             !incomplete &&
             pickAllowed(week.weekNumber) &&
@@ -1393,8 +1413,8 @@ function WorkoutPageInner() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
-          {hyroxMode ? null : renderTestDrive()}
-          {hyroxMode || testDrive?.active ? null : (
+          {trackMode ? null : renderTestDrive()}
+          {trackMode || testDrive?.active ? null : (
             <YourPickExplainer requiredCount={clampScheduleDays(scheduleDays)} />
           )}
           {/* Program weeks wait for Monday during a Test Drive (the server refuses those starts). */}
@@ -1408,7 +1428,7 @@ function WorkoutPageInner() {
               >
                 <div className="flex items-center gap-4">
                   <h2 className="text-xl font-black text-white">
-                    Week {hyroxMode ? hyroxDisplayWeek(week.weekNumber) : week.weekNumber}
+                    Week {displayWeek(week.weekNumber)}
                   </h2>
                   <span className="text-sm text-[#f6f1e3]/65">
                     {weekProgressLabel(
@@ -1436,7 +1456,7 @@ function WorkoutPageInner() {
                   <div className="grid gap-3">
                     {athleteWeekDays(week, scheduleDays).map((day) => renderDayCard(week, day))}
                   </div>
-                  {hyroxMode ? null : renderYourPickSection(week.weekNumber)}
+                  {trackMode ? null : renderYourPickSection(week.weekNumber)}
                 </div>
               )}
             </div>

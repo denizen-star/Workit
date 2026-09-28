@@ -10,6 +10,7 @@
  */
 import { programWithRetiredDays } from './workoutData';
 import { hyroxProgram } from './hyroxProgram';
+import { overloadProgram } from './overloadProgram';
 import { toTravelExercise } from './travelExercises';
 import { getExerciseImages } from './exerciseImages';
 import { getExerciseMedia } from './exerciseMedia';
@@ -125,7 +126,7 @@ const ATOMIC_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
   'Leg Extension Machine': 'Quads', 'Loaded Backpack Curls': 'Arms', 'Loaded Water Jug Carries': 'Full Body',
   'Lying Triceps Extensions (Skull Crushers)': 'Arms', 'Overhead Dumbbell Shoulder Press': 'Shoulders',
   'Overhead Extensions': 'Arms', 'Pallof Press': 'Core', 'Pike Push-Ups': 'Shoulders', 'Plank Hold': 'Core',
-  'Prone Y-T-W Raises': 'Shoulders', 'Push-Ups': 'Chest', 'Reverse Lunges': 'Quads',
+  'Prone Y-T-W Raises': 'Shoulders', 'Push-Ups': 'Chest', 'Cable Chest Fly': 'Chest', 'Backpack Floor Flyes': 'Chest', 'Dumbbell Flyes': 'Chest', 'Reverse Lunges': 'Quads',
   'Reverse Wrist Curls': 'Arms', 'Romanian Deadlifts (RDLs)': 'Hamstrings', 'Side Plank': 'Core',
   'Single-Arm Dumbbell Rows': 'Back', 'Single-Leg Bodyweight Calf Raises': 'Calves',
   'Single-Leg Glute Bridges': 'Glutes', 'Single-Leg Good Mornings': 'Hamstrings', 'Sissy Squats': 'Quads',
@@ -201,6 +202,20 @@ function buildLibrary(): MovementEntry[] {
   // Retired days too (bonus, Extra Upper): their movements live on in Your pick packs.
   for (const week of programWithRetiredDays) {
     for (const day of week.days) {
+      for (const exercise of day.exercises) {
+        addExercise(exercise.name, 'main', 'gym', day.name);
+        const travel = toTravelExercise(exercise);
+        if (travel.name !== exercise.name) {
+          addExercise(travel.name, 'main', 'travel', day.name);
+        }
+      }
+    }
+  }
+
+  // Overload Progressions: weeks built at 3, 4 and 5 days cover all 10 day templates.
+  // Filed under the main program — every lift but Cable Chest Fly is already there.
+  for (const days of [3, 4, 5]) {
+    for (const day of overloadProgram(1, days)[0].days) {
       for (const exercise of day.exercises) {
         addExercise(exercise.name, 'main', 'gym', day.name);
         const travel = toTravelExercise(exercise);

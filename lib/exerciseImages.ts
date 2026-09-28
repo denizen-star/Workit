@@ -81,6 +81,22 @@ const IMAGE_MAP: Record<string, { start: string; end: string }> = {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/0.jpg",
     end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Side_Lateral_Raise/1.jpg",
   },
+  // Overload Progressions (lib/overloadProgram.ts, Upper B), its travel swap and its best Alt.
+  "Cable Chest Fly": {
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cable_Crossover/1.jpg",
+  },
+  // No free-exercise-db floor fly: YouTube's own frames of PureGym's floor fly demo
+  // (hqdefault = arms together at the top, hq1 = arms open at the floor).
+  "Backpack Floor Flyes": {
+    start: "https://img.youtube.com/vi/bgC53-J-6gA/hqdefault.jpg",
+    end: "https://img.youtube.com/vi/bgC53-J-6gA/hq1.jpg",
+  },
+  // Alt Exercise option for Cable Chest Fly.
+  "Dumbbell Flyes": {
+    start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes/0.jpg",
+    end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dumbbell_Flyes/1.jpg",
+  },
   "Face Pulls": {
     start: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/0.jpg",
     end: "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Face_Pull/1.jpg",

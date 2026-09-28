@@ -78,6 +78,11 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "dumbbell lateral raises": { images: gym.dumbbell, videoId: "3VcKaXpzqRo" },
   "db lateral raises": { images: gym.hotel, videoId: "3VcKaXpzqRo" },
   "face pulls": { images: gym.pull, videoId: "IeOqdw9WI90" },
+  // Overload Progressions (Upper B): PureGym cable fly; travel swap = PureGym floor fly
+  // (same movement with a backpack); Alt = Mind Pump dumbbell fly.
+  "cable chest fly": { images: gym.bench, videoId: "QcTcWpkn_bw" },
+  "backpack floor flyes": { images: gym.hotel, videoId: "bgC53-J-6gA" },
+  "dumbbell flyes": { images: gym.bench, videoId: "QENKPHhQVi4" },
   "dumbbell biceps curls": { images: gym.dumbbell, videoId: "XE_pHwbst04" },
   "db biceps curls": { images: gym.hotel, videoId: "XE_pHwbst04" },
   "hanging knee raises or ab wheel rollouts": {

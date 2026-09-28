@@ -9,15 +9,19 @@ const TIER_NAMES: Record<number, string> = {
 
 interface HyroxDiplomasProps {
   earnedTiers: number[];
+  /** Tier → name. Defaults to Hyrox's four milestones; Overload Progressions passes its three. */
+  tierNames?: Record<number, string>;
 }
 
-/** Separate diploma track from the normal belt chest — one badge per passed milestone. */
-export default function HyroxDiplomas({ earnedTiers }: HyroxDiplomasProps) {
+/** Separate diploma track from the normal belt chest — one badge per passed milestone
+ * (or per Overload Progressions tier, via `tierNames`). */
+export default function HyroxDiplomas({ earnedTiers, tierNames = TIER_NAMES }: HyroxDiplomasProps) {
   const earned = new Set(earnedTiers);
+  const tiers = Object.keys(tierNames).map(Number);
 
   return (
-    <div className="grid grid-cols-2 gap-3">
-      {[1, 2, 3, 4].map((tier) => {
+    <div className={`grid gap-3 ${tiers.length === 3 ? 'grid-cols-3' : 'grid-cols-2'}`}>
+      {tiers.map((tier) => {
         const won = earned.has(tier);
         return (
           <div
@@ -27,7 +31,7 @@ export default function HyroxDiplomas({ earnedTiers }: HyroxDiplomasProps) {
             }`}
           >
             <p className={`text-2xl font-black ${won ? 'text-[#e8c547]' : 'text-[#f6f1e3]/40'}`}>{tier}</p>
-            <p className="mt-1 text-xs font-bold text-[#f6f1e3]/80">{TIER_NAMES[tier]}</p>
+            <p className="mt-1 text-xs font-bold text-[#f6f1e3]/80">{tierNames[tier]}</p>
           </div>
         );
       })}

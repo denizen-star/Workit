@@ -22,6 +22,14 @@ export interface Exercise {
   /** Groups consecutive exercises under one "Circuit" header in the live session —
    * same label ties them together. Purely visual; each still logs its own sets. */
   circuitGroup?: string;
+  /** Rest after each set, in seconds. Overrides the stock 60s + the athlete's extra
+   * rest minutes entirely (Overload Progressions: 180 heavy / 120 secondary / 75 iso). */
+  restSeconds?: number;
+  /** "Aim" effort for this lift's sets, on the How hard 1-5 scale. Absent = Hard (4)
+   * everywhere the Aim line shows (lib/nextLoad.ts `aimLine`). */
+  targetEffort?: 1 | 2 | 3 | 4 | 5;
+  /** Extra cue for the last set, appended to the Aim line (e.g. "last set to failure"). */
+  lastSetCue?: string;
 }
 
 export interface WorkoutDay {

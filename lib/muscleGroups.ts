@@ -58,6 +58,7 @@ const MUSCLE_GROUP_BY_EXERCISE: Record<string, MuscleGroup> = {
   'Dumbbell or Barbell Shrugs': 'Back',
   'Easy Bike or Walk': 'Cardio',
   'Easy Row (SkiErg or Rower)': 'Cardio',
+  'Cable Chest Fly': 'Chest',
   'Face Pulls': 'Shoulders',
   "Farmer's Carries": 'Full Body',
   'Floor Plate Push (Sled Push Substitute)': 'Full Body',

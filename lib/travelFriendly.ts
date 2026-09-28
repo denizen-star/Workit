@@ -50,6 +50,7 @@ const EXPLICIT_TRAVEL_SUBSTITUTE_NAMES = [
   'Towel ISO Press',
   'Towel Straight-Arm Pulls',
   'Wall Lateral ISO Raises',
+  'Backpack Floor Flyes',
 ];
 
 const ALREADY_BODYWEIGHT_NAMES = ['Plank Hold', 'Dead Bugs', 'Hanging Knee Raises'];

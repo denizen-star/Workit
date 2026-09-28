@@ -31,6 +31,12 @@ const HOW: Record<string, string> = {
     'Stand side-on to the cable or band. Press the handle straight out. Do not let the torso rotate. Bring it back.',
   'Dumbbell Lateral Raises':
     'Soft elbows. Raise the dumbbells out to the sides to shoulder height. Lead with the elbows. Lower slow.',
+  'Cable Chest Fly':
+    'Pulleys at chest height, one handle in each hand, step forward. Soft bend in the elbows. Sweep the hands together in front of the chest. Open slow until you feel the chest stretch.',
+  'Backpack Floor Flyes':
+    'Lie on the floor, knees bent. Hold a loaded backpack strap or a water jug in each hand above the chest, palms facing. Soft elbows. Open the arms wide until the upper arms touch the floor. Squeeze back up.',
+  'Dumbbell Flyes':
+    'Lie on a flat bench, dumbbells above the chest, palms facing. Soft bend in the elbows. Open wide until you feel the chest stretch. Hug them back up. Do not press.',
   'Face Pulls':
     'Pull the rope or band to the face. Elbows high and wide. Squeeze the rear shoulders. Do not shrug.',
   'Dumbbell Biceps Curls':

@@ -26,6 +26,10 @@ type LinePack = {
   week1Start?: readonly string[];
   missedWeek: readonly string[];
   /** Hyrox Training milestone moments. Code bank only, same as sessionStart — not DB-editable. */
+  /** Overload Progressions intro takeover + diploma takeover. DB buckets
+   * `overload_start` / `overload_diploma` (coach_lines); these are the fallback. */
+  overloadStart: readonly string[];
+  overloadDiploma: readonly string[];
   hyroxMilestonePass?: readonly string[];
   hyroxMilestoneFail?: readonly string[];
   setUpTitle: string;
@@ -198,6 +202,14 @@ const MASTER: LinePack = {
     'You passed, {name}. That base is real. Phase 2 starts loading it.',
     'Clean run, clean stations, no pain. That is what I asked for. Move on.',
   ],
+  overloadStart: [
+    'Six weeks, {name}. Same lifts, heavier every time you earn it. I decide when you earned it. That is growth.',
+    'You asked for more load. Take it clean, one plate at a time, and the power stays yours.',
+  ],
+  overloadDiploma: [
+    'Two weeks paid in full, {name}. The next ones cost more. Pay them. That is growth.',
+    'That diploma is yours. Heavier bar next week. I did not say easier.',
+  ],
   hyroxMilestoneFail: [
     'Not yet, {name}. The base is not there. Run it back before I let you load more on it.',
     'That is not a pass. Retry it, or take the 48-week program back. Your call.',
@@ -364,6 +376,14 @@ const JAMES: LinePack = {
   hyroxMilestonePass: [
     '{name}, that is a pass. I want the base held, not just hit. Phase 2 now.',
     'Clean. I noticed. Move on.',
+  ],
+  overloadStart: [
+    'Six weeks, {name}. I want the weight to move and the form to stay. Show me.',
+    "Top of the range, then more load. Simple. I'll be watching what it does to you.",
+  ],
+  overloadDiploma: [
+    'Another diploma, {name}. I like what the last two weeks did to you. Keep going.',
+    "Two more weeks in the bar. It shows. Don't stop now.",
   ],
   hyroxMilestoneFail: [
     'Not there yet, {name}. I would rather you repeat it properly than carry it broken.',
@@ -533,6 +553,14 @@ const SERGEANT: LinePack = {
   hyroxMilestonePass: [
     'You passed, {name}. Quietly, cleanly. The base is real. On to the next phase.',
     'That was steady work. I saw it. Continue.',
+  ],
+  overloadStart: [
+    'Six weeks, {name}. One more rep, then a little more weight. Breathe and keep climbing.',
+    'The load goes up slowly. So do you. Growth comes one step at a time.',
+  ],
+  overloadDiploma: [
+    'Another two weeks held, {name}. Stay with it. The strength is settling in.',
+    'Soft breath, hard work, two more weeks. That is growth.',
   ],
   hyroxMilestoneFail: [
     'Not yet, {name}. No shame in that. Rest, then run it again when you are ready.',
@@ -704,6 +732,14 @@ const ELI: LinePack = {
   hyroxMilestonePass: [
     'You passed, {name}! That base is locked in. Phase 2, let\'s go!',
     'Clean run, clean stations. I am so proud of that. Keep moving.',
+  ],
+  overloadStart: [
+    "SIX WEEKS, {name}! Every week the bar gets heavier and so do you. Let's go!",
+    'Hit the top of the range, earn the plate. I already know you will.',
+  ],
+  overloadDiploma: [
+    'Another diploma, {name}! Look at you climbing! That is growth!',
+    'Two more weeks locked in. I told you. I TOLD you.',
   ],
   hyroxMilestoneFail: [
     'Not quite yet, {name} — and that is okay! Give it another go when you are ready.',
@@ -907,6 +943,19 @@ export function pickHyroxMilestoneLine(
   const id = normalizeCoachTone(tone);
   const pool = passed ? PACKS[id].hyroxMilestonePass : PACKS[id].hyroxMilestoneFail;
   return fillCoachName(pickFrom(pool ?? [], `hyrox-milestone:${id}:${passed}`), name);
+}
+
+/** Overload Progressions moments: the intro takeover (`start`) and a diploma tier. */
+export function pickOverloadLine(
+  moment: 'start' | 'diploma',
+  tone?: CoachTone | null,
+  name?: string | null
+): string {
+  const id = normalizeCoachTone(tone);
+  const key = moment === 'start' ? 'overloadStart' : 'overloadDiploma';
+  const live = getLinePack(id);
+  const pool = live?.[key] && live[key].length ? live[key] : PACKS[id][key];
+  return fillCoachName(pickFrom(pool, `overload:${id}:${moment}`), name);
 }
 
 export function pickCompleteClip(

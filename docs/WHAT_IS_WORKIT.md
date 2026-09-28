@@ -36,6 +36,8 @@ Gold means **do this**: Start, log the set, Finish it.
 
 Each movement has sets. You type **weight and reps** (or time / distance when that is the move), then tap Complete Set. **How hard** is optional; skip it and the set counts as Fair. The app remembers last time and copies load forward so you are not guessing. The idea is **progressive overload**: start conservative (weeks 1–2), then add a little weight or a couple of reps (weeks 3–5), then try to match or beat an earlier week. After that, same big lifts; the notes change by block.
 
+Every lift card shows a **Next** line (the suggested next load) and an **Aim** line (how hard the sets should feel). Next uses double progression: hit the top of the rep range on every set at Hard or easier, and it says add weight — 2.5 lb on dumbbell curls and raises, 5 lb on other upper-body lifts, 10 lb on legs. Otherwise it says same weight, one more rep. It is a suggestion; the app's prefill does not change. Aim is Hard (about 2 reps left) unless a program sets it.
+
 If you cannot get to a gym, flip the day to **Travel** — same session, no-equipment swaps.
 
 You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a short stretch/core circuit). Stretch and Core ask Easy, Medium, or Hard before they start. Nice extra, not required to lock the week. Starting a day that is already open resumes the session that has your sets.
@@ -43,6 +45,8 @@ You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a s
 ## What you are chasing
 
 **The house** ranks everyone who hit their own days-per-week for the stretch first (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Weekly medals use the same rule. Piling on extra sessions never buys a spot.
+
+**Overload Progressions** (opens once you complete week 6 — a card on Home and an item in the menu): a 6-week muscle-building series that starts on a Monday and replaces the program while it runs — one opt-in track at a time, so not alongside Hyrox. Your days per week set the split (1–3 full body, 4 upper/lower, 5 upper/lower/push/pull/legs). Heavy lifts rest 3 minutes, secondary 2, isolation 75 seconds. Weeks 1–2 aim Fair, 3–4 Hard, 5–6 push the last isolation set further. A week locks at your day count and counts toward belts. Diplomas land as weeks 2, 4 and 6 end. Leave any time (a restart begins at week 1); the program picks back up moved ahead by the weeks you locked. You can run it again later.
 
 **Belts** are diplomas for locked weeks stacked over the year. They unlock at weeks 2, 6, 12, 18, 24, 30, 36, 42, and 48. You always see the one you are aiming for. Belts feature character artwork based on your chosen gender track (Male, Female, Non-binary), which you can change in Edit profile.
 

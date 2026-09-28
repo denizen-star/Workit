@@ -9,13 +9,14 @@ import { performanceRangeLabel, type AthletePerformanceBoard } from '@/lib/athle
 import { kpisFromBoard } from '@/lib/kpi';
 import { KpiList } from '@/components/KpiList';
 import { latestWorkout, weekVsLast } from '@/lib/kpiView';
+import type { OptInTrack } from '@/lib/programTrack';
 
-// Keyed by track ('all' for the untracked default) so a Hyrox-scoped fetch never
+// Keyed by track ('all' for the untracked default) so a Hyrox/Overload-scoped fetch never
 // clobbers — or gets clobbered by — the normal Home's whole-history cache.
 const homeBoardCache = new Map<string, AthletePerformanceBoard | null>();
 const homeBoardInflight = new Map<string, Promise<AthletePerformanceBoard | null>>();
 
-function loadHomeBoard(track?: 'hyrox') {
+function loadHomeBoard(track?: OptInTrack) {
   const key = track ?? 'all';
   const trackQuery = track ? `&track=${track}` : '';
   if (homeBoardCache.has(key)) return Promise.resolve(homeBoardCache.get(key) ?? null);
@@ -45,7 +46,7 @@ function loadHomeBoard(track?: 'hyrox') {
   return promise;
 }
 
-function useHomeBoard(track?: 'hyrox') {
+function useHomeBoard(track?: OptInTrack) {
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(
     homeBoardCache.get(track ?? 'all') ?? null
   );
@@ -68,7 +69,7 @@ function useHomeBoard(track?: 'hyrox') {
 }
 
 /** Four KPI rows that sit inside the Today card. */
-export function HomeTodayKpis({ locked = false, track }: { locked?: boolean; track?: 'hyrox' }) {
+export function HomeTodayKpis({ locked = false, track }: { locked?: boolean; track?: OptInTrack }) {
   const board = useHomeBoard(track);
   const rows = board ? kpisFromBoard(board) : null;
   if (!rows || !board) return null;
@@ -90,7 +91,7 @@ export default function HomeKpiLead({
   track,
 }: {
   weekNumber?: number | null;
-  track?: 'hyrox';
+  track?: OptInTrack;
 }) {
   const board = useHomeBoard(track);
   if (!board || (board.exercises.length === 0 && !board.window?.setCount)) return null;

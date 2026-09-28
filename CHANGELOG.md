@@ -2,6 +2,20 @@
 
 ## Unreleased
 
+## 11.0.0 - 2026-09-27
+
+### Added
+- **Overload Progressions** — a new 6-week muscle-building series. It opens once you complete week 6 (a card on Home plus a menu item). Join any day; it starts the next Monday and replaces your program while it runs.
+  - Your days per week set the split: 1–3 full body, 4 upper/lower, 5 upper/lower/push/pull/legs.
+  - Real rests: 3 min on heavy lifts, 2 min on secondary lifts, 75 s on isolation.
+  - Each week climbs: weeks 1–2 aim Fair, 3–4 Hard, 5–6 push the last isolation set to failure.
+  - Weeks you lock count toward belts, badges, the house board and medals.
+  - Three diplomas, as weeks 2, 4 and 6 end.
+  - Leave any time; your program picks back up moved ahead by the weeks you locked. Run it again later, but not alongside Hyrox.
+- **Next load** on every lift card — hit the top of the rep range on every set at Hard or easier and it says add weight (+2.5 lb dumbbell curls/raises, +5 other upper body, +10 legs); otherwise same weight, one more rep. A suggestion only; what the app fills in doesn't change. Shows in kg if you log in kg.
+- **Aim** on every lift card — how hard your sets should feel, e.g. "Aim: Hard · about 2 reps left".
+- New lift **Cable Chest Fly**, with a no-equipment travel swap (**Backpack Floor Flyes**) and **Dumbbell Flyes** as an Alt. Each has photos, a form video and a How cue.
+
 ## 10.4.1 - 2026-09-27
 
 ### Fixed

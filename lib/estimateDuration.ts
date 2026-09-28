@@ -52,10 +52,12 @@ function estimateSetWorkSeconds(exercise: Exercise): number {
 
 /** Estimated total session length in seconds (work + rest + transitions). */
 export function estimateWorkoutSeconds(day: WorkoutDay, restSeconds = REST_SECONDS): number {
-  const rest = Math.max(REST_SECONDS, restSeconds);
+  const baseRest = Math.max(REST_SECONDS, restSeconds);
   let total = 0;
 
   day.exercises.forEach((exercise, index) => {
+    // A program-set rest (Overload Progressions) replaces the athlete's rest pref.
+    const rest = exercise.restSeconds ?? baseRest;
     // estimatedMinutes is a total-time override (sets + internal rest already
     // accounted for) for content the sets×reps model can't parse — a continuous
     // run, an AMRAP, a multi-movement circuit packed into one reps string.

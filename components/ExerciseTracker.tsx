@@ -55,6 +55,7 @@ import {
 import { formatWhen } from '@/lib/kpiView';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
+import { aimLine, nextLoadFor, nextLoadLabel } from '@/lib/nextLoad';
 import {
   kgFromLbs,
   lbsFromKg,
@@ -64,7 +65,18 @@ import {
   type WeightUnit,
 } from '@/lib/weightUnit';
 
-type Exercise = Pick<ProgramExercise, 'name' | 'sets' | 'reps' | 'notes' | 'noRestAfter' | 'circuitGroup'>;
+type Exercise = Pick<
+  ProgramExercise,
+  | 'name'
+  | 'sets'
+  | 'reps'
+  | 'notes'
+  | 'noRestAfter'
+  | 'circuitGroup'
+  | 'restSeconds'
+  | 'targetEffort'
+  | 'lastSetCue'
+>;
 
 interface ExerciseSet {
   id?: number;
@@ -565,16 +577,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     return data.setId && !set.id ? { ...set, id: data.setId } : set;
   };
 
+  /** The program exercise whose card a logged set belongs to (Alt / Gym-Travel aware). */
+  const programExerciseFor = (exerciseName: string) =>
+    exercises.find((item) => {
+      const display = alts[item.name] || applyExerciseMode(item, modes[item.name] || defaultMode).name;
+      return setOnCard(exerciseName, item.name, display);
+    });
+
   const updateSet = async (index: number, updates: Partial<ExerciseSet>, options?: { copyForward?: boolean; startRest?: boolean }) => {
     const updatedSet = { ...exerciseSets[index], ...updates };
     const newSets = [...exerciseSets];
     newSets[index] = updatedSet;
 
+    const gym = programExerciseFor(updatedSet.exercise_name);
     if (options?.copyForward && updatedSet.is_completed) {
-      const gym = exercises.find((item) => {
-        const display = alts[item.name] || applyExerciseMode(item, modes[item.name] || defaultMode).name;
-        return setOnCard(updatedSet.exercise_name, item.name, display);
-      });
       const nextIndex = newSets.findIndex((item, itemIndex) => {
         if (itemIndex <= index || item.is_completed || item.actual_reps != null || item.weight_lbs != null) {
           return false;
@@ -617,7 +633,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       if (options?.startRest) {
         const remaining = newSets.filter((item) => !item.is_completed).length;
         if (remaining > 0) {
-          setRestSeconds(restClock);
+          // A program-set rest (Overload Progressions) replaces the stock clock and
+          // the athlete's extra minutes entirely; everything else keeps restClock.
+          setRestSeconds(gym?.restSeconds ?? restClock);
           const completed = newSets.filter((item) => item.is_completed).length;
           const coach = pickCoachClip(completed, newSets.length, tone, athleteName);
           setRestLine(coach.text);
@@ -987,6 +1005,17 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         // hide them so the finished card reads as sets + KPIs, not leftover setup chrome.
         const plannedSets = sets.filter((item) => item.set_number <= exercise.sets);
         const exerciseFullyDone = plannedSets.length > 0 && plannedSets.every((item) => item.is_completed);
+        // Double-progression suggestion from the last time this lift ran, in this
+        // card's unit (lib/nextLoad.ts). Suggest only — prefill is unchanged.
+        const nextLoad = nextLoadFor({
+          name: exercise.name,
+          reps: exercise.reps,
+          kind,
+          lastSets: lastSetsFor(exercise.name, history),
+        });
+        const nextLoadView = nextLoad ? nextLoadLabel(nextLoad, unit) : null;
+        // Rep-based lifts only — a timed hold or a distance has no "reps left".
+        const showAim = kind === 'weighted' || kind === 'bodyweight';
 
         // Alt Exercise (docs/plans/PLAN_ALT_EXERCISES.md): no control shown at all when there's
         // nothing to swap to — Cardio/Mobility/AMRAP entries have no curated shortlist.
@@ -1144,6 +1173,22 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                       }}
                     />
                   </>
+                )}
+              </div>
+            )}
+
+            {!exerciseFullyDone && (nextLoadView || showAim) && (
+              <div className="mb-3 space-y-2">
+                {nextLoadView && (
+                  <div className="rounded-2xl border border-[#e8c547]/60 bg-[#e8c547]/10 px-4 py-3">
+                    <p className="text-base font-black text-[#e8c547]">{nextLoadView.title}</p>
+                    <p className="text-xs font-semibold text-[#f6f1e3]/75">{nextLoadView.detail}</p>
+                  </div>
+                )}
+                {showAim && (
+                  <p className="text-sm font-bold text-[#f6f1e3]/85">
+                    {aimLine(exercise.targetEffort, exercise.lastSetCue)}
+                  </p>
                 )}
               </div>
             )}

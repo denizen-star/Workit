@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell, ChevronsUp } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
@@ -33,6 +33,12 @@ interface AppMenuProps {
   /** A Hyrox run is active right now — shows "Leave Hyrox Training" in the footer. */
   hyroxActive?: boolean;
   onLeaveHyrox?: () => void;
+  /** Same three props for Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md):
+   * menu item once eligible (`/home?overload=1` fallback), leave item while a run is active. */
+  overloadAvailable?: boolean;
+  onOverloadClick?: () => void;
+  overloadActive?: boolean;
+  onLeaveOverload?: () => void;
   onProfileSaved?: (profile: {
     name: string;
     email: string | null;
@@ -65,6 +71,10 @@ export default function AppMenu({
   hyroxActive = false,
   onLeaveHyrox,
   onHyroxClick,
+  overloadAvailable = false,
+  overloadActive = false,
+  onLeaveOverload,
+  onOverloadClick,
   onProfileSaved,
 }: AppMenuProps) {
   const router = useRouter();
@@ -280,24 +290,28 @@ export default function AppMenu({
                   { href: '/belts', label: 'Belts', Icon: GraduationCap },
                   { href: '/medals', label: 'Medals', Icon: Award },
                   ...(hyroxAvailable
-                    ? [{ href: '/home?hyrox=1', label: 'Hyrox Training', Icon: Flame, isHyrox: true }]
+                    ? [{ href: '/home?hyrox=1', label: 'Hyrox Training', Icon: Flame, onTrack: onHyroxClick }]
+                    : []),
+                  ...(overloadAvailable
+                    ? [{ href: '/home?overload=1', label: 'Overload Progressions', Icon: ChevronsUp, onTrack: onOverloadClick }]
                     : []),
                   { href: '/library', label: 'The Library', Icon: Dumbbell },
                   { href: '/help', label: 'Help', Icon: CircleHelp },
                   { href: '/faq', label: 'Why Work-It', Icon: Sparkles },
-                ].map(({ href, label, Icon, isHyrox }) => {
-                    // The Hyrox item never counts as the "active" nav entry — /home
-                    // is also where the plain Home page lives, and highlighting this
-                    // one there would be misleading.
-                    const active = !isHyrox && (pathname === href || pathname.startsWith(href + '/'));
+                ].map(({ href, label, Icon, onTrack }) => {
+                    // The opt-in track items (Hyrox, Overload Progressions) never count as
+                    // the "active" nav entry — /home is also where the plain Home page
+                    // lives, and highlighting one there would be misleading.
+                    const isTrack = href.startsWith('/home?');
+                    const active = !isTrack && (pathname === href || pathname.startsWith(href + '/'));
                     return (
                       <button
                         key={href}
                         type="button"
                         onClick={() => {
                           setOpen(false);
-                          if (isHyrox && onHyroxClick) {
-                            onHyroxClick();
+                          if (onTrack) {
+                            onTrack();
                             return;
                           }
                           router.push(href);
@@ -351,6 +365,19 @@ export default function AppMenu({
                 >
                   <DoorOpen className="h-4 w-4 shrink-0 text-[#e4032e]" />
                   Leave Hyrox Training
+                </button>
+              )}
+              {overloadActive && onLeaveOverload && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    onLeaveOverload();
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#ff5c6c] hover:bg-[#e4032e]/10"
+                >
+                  <DoorOpen className="h-4 w-4 shrink-0 text-[#e4032e]" />
+                  Leave Overload Progressions
                 </button>
               )}
               <button

@@ -1,4 +1,5 @@
 import { requiredDays } from '@/lib/bonusDay';
+import { isOverloadWeek } from '@/lib/overloadProgram';
 import { getLegacyBonusDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { FULL_BODY_PACKS, YOUR_PICK_SLOT_DAYS, yourPickSlotDay } from '@/lib/yourPick';
 
@@ -58,6 +59,10 @@ function weekCap(week: WeekPlan): number {
  * (lib/yourPick.ts) is open to every athlete on top of these.
  */
 export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
+  // Overload Progressions weeks are already built from the athlete's count
+  // (lib/overloadProgram.ts `overloadWeekPlan`) — never swap in main-program
+  // full-body days or Your pick slots.
+  if (isOverloadWeek(week.weekNumber)) return requiredDays(week);
   const count = clampScheduleDays(scheduleDays);
   if (count >= DEFAULT_SCHEDULE_DAYS) {
     const split = requiredDays(week);
@@ -132,6 +137,9 @@ export function isScheduleDaysAskWeek(weekNumber: number): boolean {
  * per-week-count SQL. */
 export function requiredCountForWeek(scheduleDays: number): (weekNumber: number) => number {
   return (weekNumber) => {
+    // Overload Progressions weeks (201+) need exactly the athlete's count (1-5) —
+    // their split is built from it (lib/overloadProgram.ts `overloadWeekPlan`).
+    if (isOverloadWeek(weekNumber)) return clampScheduleDays(scheduleDays);
     const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
     return week ? athleteRequiredDays(week, scheduleDays).length : Math.min(scheduleDays, DEFAULT_SCHEDULE_DAYS);
   };

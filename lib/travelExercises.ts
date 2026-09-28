@@ -87,6 +87,12 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     notes:
       'Press the backs of your hands outward against a doorframe or wall, or fill a backpack with books to perform raises.',
   },
+  'Cable Chest Fly': {
+    name: 'Backpack Floor Flyes',
+    notes:
+      'Lie on the floor with a loaded backpack or a water jug in each hand. The floor stops the arms at a safe depth.',
+    videoId: 'bgC53-J-6gA',
+  },
   'Face Pulls': {
     name: 'Doorframe Rear Delt Flyes / Prone Y-T-W Raises',
     notes:

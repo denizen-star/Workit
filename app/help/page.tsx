@@ -168,7 +168,7 @@ const APP_PAGES: AppPageGuide[] = [
     title: 'The Library',
     tag: 'Every movement',
     description:
-      'A catalog of every distinct lift and hold in Work-It — the main program (gym and travel), Hyrox Training, and the optional warmup/cooldown circuits — grouped by the muscle it trains, with a start and end form photo for each.',
+      'A catalog of every distinct lift and hold in Work-It — the main program (gym and travel), Overload Progressions, Hyrox Training, and the optional warmup/cooldown circuits — grouped by the muscle it trains, with a start and end form photo for each.',
     bullets: [
       'Search by name, or filter by program and gym / travel / bodyweight',
       'Jump between paired “or” lifts (the two halves of a combined program line)',
@@ -294,6 +294,18 @@ const GLOSSARY: GlossaryTerm[] = [
     tag: '1–5',
     definition:
       "Your own rating of how hard a set felt: Easy, Light, Fair, Hard, or Max. Don't rate it, and it's counted as Fair by default.",
+  },
+  {
+    term: 'Next',
+    tag: 'next load',
+    definition:
+      'A suggestion above the last-time line. Hit the top of the rep range on every set at Hard or easier, and it tells you to add weight: 2.5 lb on dumbbell curls and raises, 5 lb on other upper-body lifts, 10 lb on legs. Otherwise, same weight and one more rep. It never changes what the app fills in for you.',
+  },
+  {
+    term: 'Aim',
+    tag: 'target effort',
+    definition:
+      'How hard each set should feel, as reps you could still do. Hard means about 2 reps left. Overload Progressions changes it by week; everywhere else it is Hard.',
   },
   {
     term: 'Noise Control',
@@ -527,6 +539,14 @@ export default function HelpPage() {
             <span className="font-black text-[#e8c547]">Test Drive</span>: 3 workouts from Tuesday, 2 from
             Wednesday–Friday, 1 on the weekend. They count for you, not for Week 1, belts or the house board. Leftovers
             disappear on Monday.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
+            Once you complete week 6 you can opt into{' '}
+            <span className="font-black text-[#e8c547]">Overload Progressions</span> from the menu: a 6-week
+            muscle-building series that starts on a Monday and replaces your program while it runs. Your days per week
+            set the split, heavy lifts rest 3 minutes, and each week asks a little more. Weeks you lock there count
+            toward belts, and you earn a diploma as weeks 2, 4 and 6 end. Leave any time; your program picks back up
+            further along by the weeks you locked.
           </p>
         </div>
       </section>

@@ -21,6 +21,8 @@ export type LinePack = {
   weekPlace3: string[];
   resume: string[];
   missedWeek: string[];
+  overloadStart: string[];
+  overloadDiploma: string[];
   setUpTitle: string;
   setUpBody: string;
   setDownTitle: string;
@@ -80,6 +82,8 @@ function emptyPack(): LinePack {
     weekPlace3: [],
     resume: [],
     missedWeek: [],
+    overloadStart: [],
+    overloadDiploma: [],
     setUpTitle: '',
     setUpBody: '',
     setDownTitle: '',
@@ -240,6 +244,8 @@ export function catalogFromRows(
     if (row.bucket === 'week_place_3') pack.weekPlace3.push(row.body);
     if (row.bucket === 'resume') pack.resume.push(row.body);
     if (row.bucket === 'missed_week') pack.missedWeek.push(row.body);
+    if (row.bucket === 'overload_start') pack.overloadStart.push(row.body);
+    if (row.bucket === 'overload_diploma') pack.overloadDiploma.push(row.body);
   }
 
   return { voices: nextVoices, packs: nextPacks };

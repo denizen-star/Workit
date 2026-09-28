@@ -1,6 +1,8 @@
 # Feature Spec — Goal-Based 6-Week Programs + Alt Exercises
 
-**Overall Progress:** `0%` — scoping only, not yet greenlit. Sent to the household (Kevin, Christine, Mike, Peter, Jared) for a vote on 2026-09-20; no decision yet.
+**Overall Progress:** `0%` — scoping only, not yet greenlit.
+
+> **Superseded (goal programs half):** the goal-based 6-week program shipped as **Overload Progressions**; see `PLAN_OVERLOAD_PROGRESSIONS.md`. Alt exercises shipped separately (`PLAN_ALT_EXERCISES.md`). Sent to the household (Kevin, Christine, Mike, Peter, Jared) for a vote on 2026-09-20; no decision yet.
 
 ## Origin
 

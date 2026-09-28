@@ -32,6 +32,27 @@ export async function lockedWeekCountFromTable(userId: number): Promise<number> 
   return Number((result.rows[0] as { n?: number } | undefined)?.n || 0);
 }
 
+/** Locked weeks in the main 48-week program only. `locked_weeks` also holds Overload
+ * Progressions weeks (201+), which count toward belts but never toward the 6-week
+ * gates for Hyrox or Overload Progressions themselves. */
+export async function lockedMainWeekCount(userId: number): Promise<number> {
+  const result = await query(
+    'SELECT COUNT(*) as n FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN 1 AND 48',
+    [userId]
+  );
+  return Number((result.rows[0] as { n?: number } | undefined)?.n || 0);
+}
+
+/** True once this exact main-program week is locked (e.g. week 6 for Overload
+ * Progressions, which opens only after the athlete completes week 6). */
+export async function mainWeekLocked(userId: number, weekNumber: number): Promise<boolean> {
+  const result = await query('SELECT 1 FROM locked_weeks WHERE user_id = ? AND week_number = ? LIMIT 1', [
+    userId,
+    weekNumber,
+  ]);
+  return result.rows.length > 0;
+}
+
 /** Every locked week_number for this athlete, ascending — used for streak math. */
 export async function lockedWeekNumbers(userId: number): Promise<number[]> {
   const result = await query(

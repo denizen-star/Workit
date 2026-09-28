@@ -20,6 +20,8 @@ const GROUPS: string[][] = [
     "Towel Door Rows or Table Inverted Rows",
   ],
   ["Overhead Dumbbell Shoulder Press", "Standing DB Shoulder Press", "Pike Push-Ups"],
+  // Overload Progressions Upper B and its travel swap.
+  ["Cable Chest Fly", "Backpack Floor Flyes"],
   [
     "Lat Pulldowns or Cable Rows",
     "Doorframe Towel Rows or Sliding Floor Lat Pulls",

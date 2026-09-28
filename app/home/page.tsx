@@ -48,6 +48,9 @@ import QuickstartTakeover from '@/components/QuickstartTakeover';
 import HyroxHome from '@/components/HyroxHome';
 import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
+import OverloadHome from '@/components/OverloadHome';
+import OverloadIntroTakeover from '@/components/OverloadIntroTakeover';
+import OverloadDiplomaTakeover from '@/components/OverloadDiplomaTakeover';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine, pickWeek1StartCopy } from '@/lib/coachLines';
 import { testDriveCountdown, testDriveTarget, type TestDriveState } from '@/lib/testDrive';
@@ -123,7 +126,18 @@ export default function Home() {
   const [showHyroxIntro, setShowHyroxIntro] = useState(false);
   const [hyroxStartError, setHyroxStartError] = useState('');
   const [showHyroxBanner, setShowHyroxBanner] = useState(false);
-  const [hyroxResumeFloor, setHyroxResumeFloor] = useState(1);
+  // Where the 48-week program resumes after a Hyrox or Overload run (the later of the two).
+  const [resumeFloor, setResumeFloor] = useState(1);
+  // Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md): GET /api/overload.
+  const [overload, setOverload] = useState<{
+    eligible: boolean;
+    active: boolean;
+    running: boolean;
+    daysUntilStart: number;
+    unseenDiploma: { run: number; tier: number } | null;
+  } | null>(null);
+  const [showOverloadIntro, setShowOverloadIntro] = useState(false);
+  const [overloadStartError, setOverloadStartError] = useState('');
   // Test Drive (lib/testDrive.ts): before Week 1's Monday, plus the one-time Monday takeover.
   const [testDrive, setTestDrive] = useState<(TestDriveState & { summary: TestDriveDoneSummary | null }) | null>(null);
   const [week1Start, setWeek1Start] = useState(false);
@@ -133,11 +147,12 @@ export default function Home() {
 
     const loadShell = async () => {
       try {
-        const [meRes, sessionsRes, catalogRes, hyroxRes] = await Promise.all([
+        const [meRes, sessionsRes, catalogRes, hyroxRes, overloadRes] = await Promise.all([
           fetch('/api/me'),
           fetch('/api/sessions?home=1'),
           fetch('/api/coach-catalog'),
           fetch('/api/hyrox'),
+          fetch('/api/overload'),
         ]);
 
         if (cancelled) return;
@@ -194,7 +209,7 @@ export default function Home() {
           const hyroxData = await hyroxRes.json();
           setHyroxActive(Boolean(hyroxData.active));
           setHyroxEligibleFlag(Boolean(hyroxData.eligible));
-          setHyroxResumeFloor(Number(hyroxData.resumeFloor) || 1);
+          setResumeFloor((floor) => Math.max(floor, Number(hyroxData.resumeFloor) || 1));
           if (hyroxData.eligible && !hyroxData.active) {
             try {
               setShowHyroxBanner(!localStorage.getItem(`hyrox_banner_seen_${resolvedUserId ?? ''}`));
@@ -208,6 +223,29 @@ export default function Home() {
               setShowHyroxIntro(true);
               window.history.replaceState(null, '', '/home');
             }
+          }
+        }
+
+        if (overloadRes.ok) {
+          const overloadData = await overloadRes.json();
+          setOverload({
+            eligible: Boolean(overloadData.eligible),
+            active: Boolean(overloadData.active),
+            running: Boolean(overloadData.running),
+            daysUntilStart: Number(overloadData.daysUntilStart) || 0,
+            unseenDiploma: overloadData.unseenDiploma ?? null,
+          });
+          // Its floor already folds in Hyrox's (lib/overloadState.ts `mainResumeFloor`).
+          setResumeFloor((floor) => Math.max(floor, Number(overloadData.resumeFloor) || 1));
+          // Same menu hand-off as ?hyrox=1 above, for the Overload Progressions item.
+          if (
+            overloadData.eligible &&
+            !overloadData.active &&
+            typeof window !== 'undefined' &&
+            window.location.search.includes('overload=1')
+          ) {
+            setShowOverloadIntro(true);
+            window.history.replaceState(null, '', '/home');
           }
         }
       } catch (error) {
@@ -255,12 +293,12 @@ export default function Home() {
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
-    if (homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays).type !== 'resume') {
+    if (homeTarget(sessions, testDrive, resumeFloor, userScheduleDays).type !== 'resume') {
       setResumeLine('');
       return;
     }
     setResumeLine(pickResumeLine(userTone, userName));
-  }, [sessions, testDrive, userTone, userName, hyroxResumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, userTone, userName, resumeFloor, userScheduleDays]);
 
   const week1Line = useMemo(() => {
     if (!week1Start) return '';
@@ -269,7 +307,7 @@ export default function Home() {
   }, [week1Start, userTone, userName]);
 
   useEffect(() => {
-    const target = homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays);
+    const target = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays);
     const typeName = target.day?.name;
     // A Your pick slot has no fixed workout yet, so there's no last-time line to hold.
     if (!typeName || target.type === 'hold' || target.type === 'done' || isYourPickSlot(target.day)) {
@@ -288,9 +326,9 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [sessions, testDrive, hyroxResumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, resumeFloor, userScheduleDays]);
 
-  const today = homeTarget(sessions, testDrive, hyroxResumeFloor, userScheduleDays);
+  const today = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays);
   const testDriveOn = Boolean(testDrive?.active);
   const testDriveDone = testDriveOn && Boolean(testDrive?.allDone) && today.type !== 'resume';
   const todayWeekNumber = today.week?.weekNumber ?? null;
@@ -346,9 +384,75 @@ export default function Home() {
     );
   }
 
+  // An earned Overload diploma tier shows once, on whichever Home is up (tier 3
+  // lands as the run closes, so normal Home has to show it too).
+  if (overload?.unseenDiploma) {
+    const { run, tier } = overload.unseenDiploma;
+    return (
+      <OverloadDiplomaTakeover
+        tier={tier}
+        tone={userTone}
+        name={userName}
+        onDone={() => {
+          setOverload((current) => (current ? { ...current, unseenDiploma: null } : current));
+          fetch('/api/overload', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'seen', run, tier }),
+          }).catch(() => {});
+        }}
+      />
+    );
+  }
+
   if (hyroxActive) {
     return <HyroxHome userName={userName} userEmail={userEmail} userTone={userTone} isAdmin={isAdmin} />;
   }
+
+  if (overload?.running) {
+    return (
+      <OverloadHome
+        userName={userName}
+        userEmail={userEmail}
+        userTone={userTone}
+        isAdmin={isAdmin}
+        scheduleDays={userScheduleDays}
+      />
+    );
+  }
+
+  // Opted in, waiting for Monday: normal Home stays up, with a countdown and a way out.
+  const overloadWaiting = Boolean(overload?.active && !overload.running);
+  const overloadAvailable = Boolean(overload?.eligible && !overload.active);
+
+  const startOverload = async () => {
+    setOverloadStartError('');
+    try {
+      const res = await fetch('/api/overload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      });
+      if (!res.ok) {
+        const reason = await res.json().then((data) => data?.error).catch(() => null);
+        setOverloadStartError(reason || "Couldn't start Overload Progressions. Try again in a moment.");
+        return;
+      }
+      setShowOverloadIntro(false);
+      window.location.assign('/home');
+    } catch {
+      setOverloadStartError("Couldn't start Overload Progressions. Try again in a moment.");
+    }
+  };
+
+  const leaveOverload = async () => {
+    await fetch('/api/overload', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'drop' }),
+    }).catch(() => {});
+    window.location.assign('/home');
+  };
 
   const startHyrox = async () => {
     setHyroxStartError('');
@@ -377,6 +481,18 @@ export default function Home() {
       // Best-effort only.
     }
   };
+
+  if (showOverloadIntro) {
+    return (
+      <OverloadIntroTakeover
+        tone={userTone}
+        name={userName}
+        onStart={startOverload}
+        onCancel={() => setShowOverloadIntro(false)}
+        error={overloadStartError}
+      />
+    );
+  }
 
   if (showHyroxIntro) {
     return (
@@ -408,8 +524,12 @@ export default function Home() {
               userScheduleDays={userScheduleDays}
               userGender={userGender}
               isAdmin={isAdmin}
-              hyroxAvailable={hyroxEligibleFlag}
+              hyroxAvailable={hyroxEligibleFlag && !overload?.active}
               onHyroxClick={() => setShowHyroxIntro(true)}
+              overloadAvailable={overloadAvailable}
+              onOverloadClick={() => setShowOverloadIntro(true)}
+              overloadActive={overloadWaiting}
+              onLeaveOverload={leaveOverload}
               onProfileSaved={(profile) => {
                 setUserName(profile.name);
                 setUserEmail(profile.email || '');
@@ -450,7 +570,31 @@ export default function Home() {
             How to use Work-It
           </Link>
         ) : null}
-        {showHyroxBanner ? (
+        {overloadWaiting ? (
+          <div className="mb-6 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3">
+            <p className="text-sm font-black text-[#e8c547]">
+              Overload Progressions starts Monday
+              {overload && overload.daysUntilStart > 0
+                ? ` · ${overload.daysUntilStart} day${overload.daysUntilStart === 1 ? '' : 's'}`
+                : ''}
+            </p>
+            <p className="mt-1 text-xs text-[#f6f1e3]/75">Keep training your program until then.</p>
+          </div>
+        ) : null}
+        {overloadAvailable ? (
+          // Appears once main-program week 6 is locked (lib/overloadState.ts `overloadEligible`).
+          <button
+            type="button"
+            onClick={() => setShowOverloadIntro(true)}
+            className="mb-6 block w-full rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 text-left"
+          >
+            <p className="text-sm font-black text-[#e8c547]">Overload Progressions is open</p>
+            <p className="mt-1 text-xs text-[#f6f1e3]/75">
+              You finished week 6. Six weeks of more weight, starting Monday. See what it is.
+            </p>
+          </button>
+        ) : null}
+        {overload?.active ? null : showHyroxBanner ? (
           <HyroxRewardBanner
             onClick={() => {
               dismissHyroxBanner();

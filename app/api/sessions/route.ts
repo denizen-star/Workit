@@ -16,7 +16,9 @@ import { applyExerciseMode } from '@/lib/workoutData';
 import { resolveSessionDay } from '@/lib/resolveDay';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
-import { HYROX_WEEK_OFFSET, getHyroxWorkoutDay } from '@/lib/hyroxProgram';
+import { getHyroxWorkoutDay } from '@/lib/hyroxProgram';
+import { programTrackForWeek } from '@/lib/programTrack';
+import { validateOverloadStart } from '@/lib/overloadState';
 import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { markDoneTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
 import { applyYourPickCredit } from '@/lib/yourPickCredit';
@@ -86,9 +88,9 @@ export async function POST(request: NextRequest) {
     const { weekNumber, scheduledDate, workoutMode, complete } = body;
     let { dayNumber, workoutType } = body;
     const mode = String(workoutMode || '').trim().toLowerCase() === 'travel' ? 'travel' : 'gym';
-    // Derived from the week number, not trusted from the client — Hyrox weeks are
-    // namespaced at 101+ (see lib/hyroxProgram.ts) specifically so this is authoritative.
-    const track = Number(weekNumber) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main';
+    // Derived from the week number, not trusted from the client — Hyrox (101+) and
+    // Overload Progressions (201+) weeks are namespaced specifically so this is authoritative.
+    const track = programTrackForWeek(Number(weekNumber));
     const markComplete = Boolean(complete);
 
     // Your pick (docs/plans/PLAN_YOUR_PICK.md): the server picks the day number and
@@ -121,6 +123,10 @@ export async function POST(request: NextRequest) {
       workoutType = checked.day.name;
     } else if (track === 'main' && (await programStartBlocked(user))) {
       return NextResponse.json({ error: 'Week 1 starts Monday' }, { status: 400 });
+    } else if (track === 'overload') {
+      // Only the athlete's running Overload run, from its Monday on (lib/overloadState.ts).
+      const checked = await validateOverloadStart(user.id, Number(weekNumber));
+      if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
     }
 
     const openSessionId = markComplete
@@ -161,9 +167,10 @@ export async function POST(request: NextRequest) {
         (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
       ).length;
       // Hyrox weeks (101+) have their own required-5 eligibility mechanism
-      // (lib/hyroxState.ts) — never persist them into the normal program's
-      // locked-weeks table, or they'd inflate the belt count.
-      if (track === 'main') {
+      // (lib/hyroxState.ts) — never persist them into the locked-weeks table, or
+      // they'd inflate the belt count. Overload Progressions weeks DO lock and
+      // count toward belts (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md).
+      if (track !== 'hyrox') {
         await recordWeekLockIfNeeded(user.id, Number(weekNumber), completedThisWeek, requiredForWeek(Number(weekNumber)));
       }
       const locked = await lockedWeekCountFromTable(user.id);
@@ -459,7 +466,7 @@ export async function PUT(request: NextRequest) {
       const all = await query(
         `SELECT week_number, day_number, workout_type, is_completed, pick_type, swap_for_day
          FROM workout_sessions WHERE user_id = ? AND program_track = ?`,
-        [user.id, Number(session.week_number) > HYROX_WEEK_OFFSET ? 'hyrox' : 'main']
+        [user.id, programTrackForWeek(Number(session.week_number))]
       );
       const rows = all.rows as Array<{
         week_number: number;
@@ -481,8 +488,8 @@ export async function PUT(request: NextRequest) {
       // A Test Drive (week 0) never locks a week or earns a belt (lib/testDrive.ts).
       const testDrive = isTestDriveWeek(session.week_number);
       const thisWeekLocked = !testDrive && completedThisWeek >= requiredForWeek(Number(session.week_number));
-      // Same Hyrox exclusion as the POST path above.
-      if (!testDrive && Number(session.week_number) <= HYROX_WEEK_OFFSET) {
+      // Same Hyrox exclusion as the POST path above (Overload weeks lock like main).
+      if (!testDrive && programTrackForWeek(Number(session.week_number)) !== 'hyrox') {
         await recordWeekLockIfNeeded(
           user.id,
           Number(session.week_number),
@@ -565,8 +572,9 @@ export async function PATCH(request: NextRequest) {
 
     // Hyrox weeks (101+, see lib/hyroxProgram.ts) aren't in the normal program's static
     // array, so they need their own day lookup — same namespacing rule POST already uses.
+    // Overload weeks (201+) resolve through resolveSessionDay.
     const day =
-      Number(session.week_number) > HYROX_WEEK_OFFSET
+      programTrackForWeek(Number(session.week_number)) === 'hyrox'
         ? getHyroxWorkoutDay(Number(session.week_number), Number(session.day_number))
         : resolveSessionDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);

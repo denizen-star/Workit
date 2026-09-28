@@ -15,6 +15,8 @@ const BUCKETS = [
   'week_place_1',
   'week_place_2',
   'week_place_3',
+  'overload_start',
+  'overload_diploma',
   'set_up',
   'set_down',
   'hardness_1',
@@ -43,6 +45,8 @@ function collectRows(): LineRow[] {
       [pack.weekPlace1, 'week_place_1'],
       [pack.weekPlace2, 'week_place_2'],
       [pack.weekPlace3, 'week_place_3'],
+      [pack.overloadStart, 'overload_start'],
+      [pack.overloadDiploma, 'overload_diploma'],
     ];
     for (const [bodies, bucket] of lists) {
       bodies.forEach((body, sort) => {
