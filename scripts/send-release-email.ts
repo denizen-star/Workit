@@ -2,6 +2,10 @@
  * Send release notes (Eli's voice) to every household user with an email.
  *
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts
+ *   npx tsx --env-file=.env.local scripts/send-release-email.ts --from=tom@workitapp.fit
+ *
+ * `--from=` swaps only the address (display name stays): Zoho 553-rejects the
+ * news@ group until send-as is enabled, while the coach aliases deliver.
  *
  * `/document` must run this after rewriting lib/emails/currentRelease.ts.
  */
@@ -80,6 +84,13 @@ async function householdRecipients() {
   });
 }
 
+/** `--from=<address>` override for the visible From address, keeping its display name. */
+const FROM_OVERRIDE = process.argv.find((arg) => arg.startsWith('--from='))?.slice('--from='.length).trim() || null;
+
+function withFromAddress(from: string): string {
+  return FROM_OVERRIDE ? from.replace(/<[^>]*>$/, `<${FROM_OVERRIDE}>`) : from;
+}
+
 async function main() {
   if (!isEmailEnabled()) {
     console.error('[send-release-email] EMAIL_ENABLED is off');
@@ -129,7 +140,7 @@ async function main() {
       subject: email.subject,
       html: email.html,
       text: email.text,
-      from: email.from,
+      from: withFromAddress(email.from),
       archive: {
         userId: user.id,
         athleteName: user.name,
