@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import PerformanceDesk from '@/components/PerformanceDesk';
 import YouPageShell from '@/components/YouPageShell';
-import BodyWeightChart from '@/components/BodyWeightChart';
+import BodyWeightHistory from '@/components/BodyWeightHistory';
 import { HomeFold } from '@/components/ScanCard';
 
 export default function PerformancePage() {
@@ -15,7 +15,7 @@ export default function PerformancePage() {
       {/* Private: only you (and Kevin, in Admin) see this — never a house board. */}
       <div className="mt-6">
         <HomeFold title="Body weight" trailing="Only you and Kevin">
-          <BodyWeightChart />
+          <BodyWeightHistory />
         </HomeFold>
       </div>
     </YouPageShell>

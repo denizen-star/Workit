@@ -1,10 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { CHART_YOU } from '@/lib/chartTrend';
 
-type Entry = { weightLb: number; createdAt: string };
+export type BodyWeightChartEntry = { weightLb: number; createdAt: string };
+type Entry = BodyWeightChartEntry;
 type Point = { t: number; lb: number };
 
 const tooltipStyle = {
@@ -14,11 +14,11 @@ const tooltipStyle = {
   color: '#f6f1e3',
 };
 
-function shortDate(t: number) {
+export function shortDate(t: number) {
   return new Date(t).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'America/New_York' });
 }
 
-function formatLb(lb: number) {
+export function formatLb(lb: number) {
   return `${Math.round(lb * 10) / 10} lb`;
 }
 
@@ -35,38 +35,15 @@ function WeighInTooltip({ active, payload }: { active?: boolean; payload?: { pay
 
 /**
  * Body weight over time (docs/plans/PLAN_BODY_WEIGHT.md). One cream line (you), a dot
- * per saved weigh-in on a real time axis — weigh-ins are irregular, so even spacing
- * would misstate the gaps. Neutral on purpose: no up/down colour, no verdict.
- * Private: the athlete's own history, or any athlete's for Kevin (`userId`, admin API).
+ * per weigh-in on a real time axis — weigh-ins are irregular, so even spacing would
+ * misstate the gaps. Neutral on purpose: no up/down colour, no verdict. Display only;
+ * BodyWeightHistory loads the entries and owns add/delete.
  */
-export default function BodyWeightChart({ userId }: { userId?: number }) {
-  const [points, setPoints] = useState<Point[] | null>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    fetch(userId ? `/api/body-weight?userId=${userId}` : '/api/body-weight')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (cancelled) return;
-        const history = (data?.history || []) as Entry[];
-        setPoints(
-          history
-            .map((entry) => ({ t: new Date(entry.createdAt).getTime(), lb: Number(entry.weightLb) }))
-            .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.lb))
-        );
-      })
-      .catch(() => {
-        if (!cancelled) setPoints([]);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [userId]);
-
-  if (points == null) return <p className="text-sm text-[#f6f1e3]/55">Loading…</p>;
-  if (points.length === 0) {
-    return <p className="text-sm text-[#f6f1e3]/55">No weight saved yet. Add it in Edit profile.</p>;
-  }
+export default function BodyWeightChart({ entries }: { entries: Entry[] }) {
+  const points: Point[] = entries
+    .map((entry) => ({ t: new Date(entry.createdAt).getTime(), lb: Number(entry.weightLb) }))
+    .filter((point) => Number.isFinite(point.t) && Number.isFinite(point.lb));
+  if (points.length === 0) return null;
 
   const latest = points[points.length - 1];
   return (

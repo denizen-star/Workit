@@ -78,3 +78,12 @@ export function bodyWeightBannerDue(
   }).length;
   return started <= BODY_WEIGHT_BANNER_WORKOUTS;
 }
+
+/**
+ * A jump this big from the last weigh-in is more likely a typo (20 for 200) than real,
+ * so the form asks once before saving it. 20% either way.
+ */
+export function isBigWeightJump(previousLb: number | null | undefined, nextLb: number): boolean {
+  if (previousLb == null || !(previousLb > 0)) return false;
+  return Math.abs(nextLb - previousLb) / previousLb > 0.2;
+}

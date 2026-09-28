@@ -7,9 +7,10 @@ import { BODY_WEIGHT_MISSING_LINE, bodyWeightUsedLine } from '@/lib/bodyWeightSh
 
 export { parseBodyWeightInput } from '@/lib/bodyWeightShared';
 
-export type BodyWeightSource = 'join' | 'profile' | 'checkin';
+/** `log` = a weigh-in added from Your performance → Body weight (+ Add weigh-in). */
+export type BodyWeightSource = 'join' | 'profile' | 'checkin' | 'log';
 
-export type BodyWeightEntry = { weightLb: number; source: BodyWeightSource; createdAt: string };
+export type BodyWeightEntry = { id: number; weightLb: number; source: BodyWeightSource; createdAt: string };
 
 /** DB timestamps are UTC with no zone ("2026-09-28 01:15:24"); make them unambiguous ISO. */
 function utcIso(value: unknown): string {
@@ -49,14 +50,42 @@ export async function saveBodyWeight(
   await logBodyWeightChange(userId, previousLb, nextLb, source);
 }
 
+/**
+ * An explicit weigh-in: always a new dated row (the same number again is still a
+ * weigh-in, unlike a profile save that didn't touch the field) and the new current weight.
+ */
+export async function addWeighIn(userId: number, lb: number): Promise<void> {
+  await query('UPDATE users SET body_weight_lb = ? WHERE id = ?', [lb, userId]);
+  await query('INSERT INTO body_weight_log (user_id, weight_lb, source) VALUES (?, ?, ?)', [userId, lb, 'log']);
+}
+
+/**
+ * Removes one of the athlete's own entries (a mistyped weight). The current weight
+ * becomes the newest entry left, or none if the log is now empty. Sets already stamped
+ * with a body-weight credit keep it — a stamp is never re-priced.
+ * Returns false when the id isn't this athlete's.
+ */
+export async function deleteWeighIn(userId: number, entryId: number): Promise<boolean> {
+  const result = await query('DELETE FROM body_weight_log WHERE id = ? AND user_id = ?', [entryId, userId]);
+  if (!Number(result.rowsAffected)) return false;
+  const latest = await query(
+    'SELECT weight_lb FROM body_weight_log WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+    [userId]
+  );
+  const lb = (latest.rows[0] as { weight_lb?: unknown } | undefined)?.weight_lb;
+  await query('UPDATE users SET body_weight_lb = ? WHERE id = ?', [lb == null ? null : Number(lb), userId]);
+  return true;
+}
+
 /** Oldest → newest, for the trend chart. */
 export async function bodyWeightHistory(userId: number): Promise<BodyWeightEntry[]> {
   const result = await query(
-    'SELECT weight_lb, source, created_at FROM body_weight_log WHERE user_id = ? ORDER BY created_at ASC, id ASC',
+    'SELECT id, weight_lb, source, created_at FROM body_weight_log WHERE user_id = ? ORDER BY created_at ASC, id ASC',
     [userId]
   );
-  return (result.rows as Array<{ weight_lb: number | string; source: string; created_at: string }>).map(
+  return (result.rows as Array<{ id: number; weight_lb: number | string; source: string; created_at: string }>).map(
     (row) => ({
+      id: Number(row.id),
       weightLb: Number(row.weight_lb),
       source: row.source as BodyWeightSource,
       createdAt: utcIso(row.created_at),

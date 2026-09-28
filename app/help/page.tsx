@@ -187,7 +187,7 @@ const APP_PAGES: AppPageGuide[] = [
       'Coach voices speaks the live lines when Workout sound is also on. Turn Coach voices off and the words stay; the chimes stay on their own switch',
       'Turn on or off: new-record pop-ups, better/worse-than-last-time pop-ups, and how-it-felt check-ins. If more than one applies, they play one after another',
       'Add extra minutes on top of the standard rest timer',
-      'Save your weight (lb or kg) so push-ups, dips and other bodyweight moves count toward your pounds. Only you and Kevin see it',
+      'Save your weight (lb or kg) so push-ups, dips and other bodyweight moves count toward your pounds. Only you and Kevin see it. Add weigh-ins or remove a mistyped one under Your performance → Body weight',
     ],
     image: '/help/page-profile.png',
     Icon: UserRound,
