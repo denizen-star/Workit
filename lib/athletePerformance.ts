@@ -54,6 +54,8 @@ type SetRow = {
   weight_lbs: number | string | null;
   actual_reps: number | string | null;
   hardness: number | string | null;
+  /** Body-weight credit stamped at completion (lib/bodyweightShare.ts). */
+  bodyweight_lb?: number | string | null;
   session_id: number;
   week_number: number;
   day_number: number;
@@ -69,6 +71,7 @@ type LoggedSet = {
   actual_reps: number | null;
   hardness: number | null;
   target_reps: string | null;
+  bodyweight_lb: number | null;
 };
 
 type SessionLift = {
@@ -89,14 +92,14 @@ const SPARK_CAP = 12;
 
 function liftVolume(name: string, sets: LoggedSet[]) {
   return sets.reduce(
-    (sum, set) => sum + setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps),
+    (sum, set) => sum + setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb),
     0
   );
 }
 
 function liftEffort(name: string, sets: LoggedSet[]) {
   return sets.reduce((sum, set) => {
-    const raw = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps);
+    const raw = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
     return sum + effortFromVolume(raw, set.hardness);
   }, 0);
 }
@@ -175,7 +178,7 @@ function tallyWindow(
         if (!isMechanicalSet(lift.name, set.target_reps)) continue;
         const weight = set.weight_lbs ?? 0;
         const reps = set.actual_reps ?? 0;
-        const vol = setVolume(lift.name, set.target_reps, set.weight_lbs, set.actual_reps);
+        const vol = setVolume(lift.name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
         setCount += 1;
         weightSum += weight;
         repSum += reps;
@@ -338,6 +341,7 @@ export async function athletePerformance(
   try {
     const result = await query(
       `SELECT es.exercise_name, es.set_number, es.target_reps, es.weight_lbs, es.actual_reps, es.hardness,
+              es.bodyweight_lb,
               ${sessionCols}
        ${fromWhere}`,
       params
@@ -394,6 +398,7 @@ export async function athletePerformance(
       actual_reps: row.actual_reps == null ? null : toNumber(row.actual_reps),
       hardness: parseHardness(row.hardness),
       target_reps: row.target_reps == null ? null : String(row.target_reps),
+      bodyweight_lb: row.bodyweight_lb == null ? null : toNumber(row.bodyweight_lb),
     });
   }
 
@@ -699,12 +704,12 @@ export async function athletePerformance(
       const name = currentSession?.lifts.get(key)?.name || row.name;
       const weight = set.weight_lbs ?? 0;
       const reps = set.actual_reps ?? 0;
-      const volume = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps);
+      const volume = setVolume(name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
       const effort = effortFromVolume(volume, set.hardness);
       const priorWeight = priorSet ? priorSet.weight_lbs ?? 0 : null;
       const priorReps = priorSet ? priorSet.actual_reps ?? 0 : null;
       const priorVolume = priorSet
-        ? setVolume(name, priorSet.target_reps, priorSet.weight_lbs, priorSet.actual_reps)
+        ? setVolume(name, priorSet.target_reps, priorSet.weight_lbs, priorSet.actual_reps, priorSet.bodyweight_lb)
         : null;
       const priorEffort = priorSet
         ? effortFromVolume(priorVolume || 0, priorSet.hardness)

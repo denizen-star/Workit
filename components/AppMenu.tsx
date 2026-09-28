@@ -52,7 +52,10 @@ interface AppMenuProps {
     hasPhoto?: boolean;
     gender: string;
     coachVoiceOn: boolean;
+    bodyWeightLb?: number | null;
   }) => void;
+  /** Bump to open Edit profile on the Weight field (Home's missing-weight banner). */
+  editWeightSignal?: number;
 }
 
 export default function AppMenu({
@@ -76,11 +79,14 @@ export default function AppMenu({
   onLeaveOverload,
   onOverloadClick,
   onProfileSaved,
+  editWeightSignal = 0,
 }: AppMenuProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
+  // `?profile=weight` deep link (docs/plans/PLAN_BODY_WEIGHT.md): open Edit profile on the Weight field.
+  const [focusWeight, setFocusWeight] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
   const [houses, setHouses] = useState<{ id: number; slug: string; name: string }[]>([]);
   const [houseId, setHouseId] = useState<number | null>(null);
@@ -92,6 +98,21 @@ export default function AppMenu({
   const buttonRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const [panelStyle, setPanelStyle] = useState<CSSProperties | null>(null);
+
+  useEffect(() => {
+    if (!editWeightSignal) return;
+    setFocusWeight(true);
+    setShowEdit(true);
+  }, [editWeightSignal]);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (url.searchParams.get('profile') !== 'weight') return;
+    setFocusWeight(true);
+    setShowEdit(true);
+    url.searchParams.delete('profile');
+    window.history.replaceState(window.history.state, '', url.pathname + url.search + url.hash);
+  }, []);
 
   useEffect(() => {
     setMounted(true);
@@ -435,7 +456,11 @@ export default function AppMenu({
         currentNoiseEffort={userNoiseEffort}
         currentShowPrs={userShowPrs}
         currentGender={userGender}
-        onClose={() => setShowEdit(false)}
+        focusWeight={focusWeight}
+        onClose={() => {
+          setShowEdit(false);
+          setFocusWeight(false);
+        }}
         onSaved={(profile) => {
           if (profile.hasPhoto) {
             setHasPhoto(true);

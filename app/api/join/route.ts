@@ -17,6 +17,7 @@ import { WAIVER_TEXT } from '@/lib/waiver';
 import { queueJoinWelcome } from '@/lib/emails/lifecycle';
 import { clampScheduleDays } from '@/lib/scheduleDays';
 import { joinSourceFrom, type JoinSource } from '@/lib/joinSource';
+import { logBodyWeightChange, parseBodyWeightInput } from '@/lib/bodyWeight';
 
 /** Best effort: the onboarding report reads it, a sign-up never fails on it (column may be unapplied). */
 async function recordJoinSource(userId: number, source: JoinSource) {
@@ -63,10 +64,7 @@ export async function POST(request: NextRequest) {
     const displayName = normalizeOptionalText(body.displayName, 120);
     const email = normalizeEmail(body.email);
     const phone = formatUsPhone(normalizeOptionalText(body.phone, 32) || '') || null;
-    const weight =
-      body.bodyWeightLb == null || body.bodyWeightLb === ''
-        ? null
-        : Number(body.bodyWeightLb);
+    const weight = parseBodyWeightInput(body.bodyWeightLb);
     const scheduleDaysPerWeek = clampScheduleDays(body.scheduleDaysPerWeek);
     const pin = typeof body.pin === 'string' ? body.pin : '';
     const confirmPin = typeof body.confirmPin === 'string' ? body.confirmPin : '';
@@ -93,7 +91,7 @@ export async function POST(request: NextRequest) {
     if (photo === undefined) {
       return NextResponse.json({ error: 'Use a smaller JPEG or PNG for the photo' }, { status: 400 });
     }
-    if (weight != null && (!Number.isFinite(weight) || weight <= 0 || weight > 999)) {
+    if (weight === undefined) {
       return NextResponse.json({ error: 'Weight must be a number in lb' }, { status: 400 });
     }
     if (!isValidPin(pin) || pin !== confirmPin) {
@@ -130,6 +128,7 @@ export async function POST(request: NextRequest) {
       await addHouseholdMember(house.id, waiting.id);
       await query('UPDATE users SET last_household_id = ? WHERE id = ?', [house.id, waiting.id]);
       await recordJoinSource(waiting.id, joinSource);
+      await logBodyWeightChange(waiting.id, null, weight, 'join');
       queueJoinWelcome({
         id: waiting.id,
         name,
@@ -186,6 +185,7 @@ export async function POST(request: NextRequest) {
     const id = Number(result.insertId);
     await addHouseholdMember(house.id, id);
     await recordJoinSource(id, joinSource);
+    await logBodyWeightChange(id, null, weight, 'join');
     queueJoinWelcome({
       id,
       name,

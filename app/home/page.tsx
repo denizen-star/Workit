@@ -48,6 +48,8 @@ import QuickstartTakeover from '@/components/QuickstartTakeover';
 import HyroxHome from '@/components/HyroxHome';
 import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
+import BodyWeightBanner from '@/components/BodyWeightBanner';
+import { bodyWeightBannerDue } from '@/lib/bodyWeightShared';
 import OverloadHome from '@/components/OverloadHome';
 import OverloadIntroTakeover from '@/components/OverloadIntroTakeover';
 import OverloadDiplomaTakeover from '@/components/OverloadDiplomaTakeover';
@@ -99,6 +101,10 @@ export default function Home() {
   const [userSoundOn, setUserSoundOn] = useState(true);
   const [userRestExtraMinutes, setUserRestExtraMinutes] = useState(0);
   const [userScheduleDays, setUserScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  // Weight on file — pre-fills the 6-week check-in (docs/plans/PLAN_BODY_WEIGHT.md).
+  const [userWeightLb, setUserWeightLb] = useState<number | null>(null);
+  // Missing-weight banner's "Add weight" bumps this; AppMenu opens Edit profile on Weight.
+  const [weightEditSignal, setWeightEditSignal] = useState(0);
   const [userGender, setUserGender] = useState('male');
   // Persisted count from `locked_weeks` (server), not recomputed locally — a week
   // that already locked stays locked even if the athlete later changes their day
@@ -171,6 +177,7 @@ export default function Home() {
           setCoachVoiceEnabled(normalizeSoundOn(meData.user?.coachVoiceOn));
           setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
           setUserScheduleDays(clampScheduleDays(meData.user?.scheduleDaysPerWeek));
+          setUserWeightLb(meData.user?.bodyWeightLb == null ? null : Number(meData.user.bodyWeightLb));
           setUserGender(meData.user?.gender || 'male');
           setScheduleDaysAskedWeek(
             meData.user?.scheduleDaysAskedWeek == null ? null : Number(meData.user.scheduleDaysAskedWeek)
@@ -530,7 +537,9 @@ export default function Home() {
               onOverloadClick={() => setShowOverloadIntro(true)}
               overloadActive={overloadWaiting}
               onLeaveOverload={leaveOverload}
+              editWeightSignal={weightEditSignal}
               onProfileSaved={(profile) => {
+                if (profile.bodyWeightLb !== undefined) setUserWeightLb(profile.bodyWeightLb);
                 setUserName(profile.name);
                 setUserEmail(profile.email || '');
                 setUserTone(profile.coachTone);
@@ -603,6 +612,9 @@ export default function Home() {
           />
         ) : hyroxEligibleFlag ? (
           <HyroxRewardBanner onClick={() => setShowHyroxIntro(true)} />
+        ) : null}
+        {bodyWeightBannerDue(userWeightLb, sessions) ? (
+          <BodyWeightBanner onAdd={() => setWeightEditSignal((n) => n + 1)} />
         ) : null}
         <div className="gold-hero p-6 sm:p-8">
           <div className="min-w-0">
@@ -856,9 +868,11 @@ export default function Home() {
       <ScheduleDaysAskTakeover
         open={showScheduleDaysAsk}
         currentDays={userScheduleDays}
-        onDone={(days) => {
+        currentWeightLb={userWeightLb}
+        onDone={(days, weightLb) => {
           setShowScheduleDaysAsk(false);
           setUserScheduleDays(days);
+          if (weightLb != null) setUserWeightLb(weightLb);
           if (todayWeekNumber != null) setScheduleDaysAskedWeek(todayWeekNumber);
           fetch('/api/me', {
             method: 'PATCH',
@@ -866,6 +880,7 @@ export default function Home() {
             body: JSON.stringify({
               scheduleDaysAskedWeek: todayWeekNumber,
               scheduleDaysPerWeek: days,
+              ...(weightLb != null ? { bodyWeightLb: weightLb } : {}),
             }),
           }).catch(() => {});
         }}

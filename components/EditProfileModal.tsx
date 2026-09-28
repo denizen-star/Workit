@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Volume2, VolumeX } from 'lucide-react';
 import PinPad from '@/components/PinPad';
@@ -16,6 +16,8 @@ import PhotoCropField from '@/components/PhotoCropField';
 import { photoSrc } from '@/lib/photo';
 import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, splitFullName } from '@/lib/profile';
 import { HomeFold } from '@/components/ScanCard';
+import BodyWeightField from '@/components/BodyWeightField';
+import { weightSavedLabel } from '@/lib/bodyWeightShared';
 
 const NOISE_LEVEL_LABEL: Record<NoiseLevel, string> = {
   set: 'On',
@@ -60,6 +62,8 @@ interface EditProfileModalProps {
   currentNoiseEffort?: NoiseLevel | string | null;
   currentShowPrs?: boolean | null;
   currentGender?: string | null;
+  /** Opened from the missing-weight banner: scroll to and focus the Weight field. */
+  focusWeight?: boolean;
   onClose: () => void;
   onSaved: (profile: {
     name: string;
@@ -74,6 +78,7 @@ interface EditProfileModalProps {
     hasPhoto?: boolean;
     gender: string;
     coachVoiceOn: boolean;
+    bodyWeightLb?: number | null;
   }) => void;
 }
 
@@ -89,9 +94,13 @@ export default function EditProfileModal({
   currentNoiseEffort = 'set',
   currentShowPrs = true,
   currentGender = 'male',
+  focusWeight = false,
   onClose,
   onSaved,
 }: EditProfileModalProps) {
+  const weightInputRef = useRef<HTMLInputElement>(null);
+  // "Weight saved · N lb" — the only feedback a weight change gets (neutral, no coach).
+  const [weightSavedNote, setWeightSavedNote] = useState('');
   const [name, setName] = useState(currentName);
   const [email, setEmail] = useState(currentEmail);
   const [firstName, setFirstName] = useState('');
@@ -128,6 +137,7 @@ export default function EditProfileModal({
     if (open) {
       setName(currentName);
       setEmail(currentEmail);
+      setWeightSavedNote('');
       setPhoto(null);
       setSavedPhotoSrc(null);
       fetch('/api/me')
@@ -141,6 +151,12 @@ export default function EditProfileModal({
           setDisplayName(user.displayName || '');
           setPhone(formatUsPhone(user.phone || ''));
           setBodyWeightLb(user.bodyWeightLb != null ? String(user.bodyWeightLb) : '');
+          if (focusWeight) {
+            requestAnimationFrame(() => {
+              weightInputRef.current?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+              weightInputRef.current?.focus({ preventScroll: true });
+            });
+          }
           setEmail(user.email || currentEmail);
           setName(composeFullName(user.firstName || split.first, user.lastName || split.last, user.name));
           if (user.hasPhoto && user.id != null) {
@@ -254,7 +270,14 @@ export default function EditProfileModal({
         hasPhoto: Boolean(data.user.hasPhoto),
         gender: data.user.gender ?? gender,
         coachVoiceOn: nextCoachVoiceOn,
+        bodyWeightLb: data.user.bodyWeightLb == null ? null : Number(data.user.bodyWeightLb),
       });
+      if (data.weightSaved && data.user.bodyWeightLb != null) {
+        // Hold the sheet a beat so the confirmation is actually seen, then close.
+        setWeightSavedNote(weightSavedLabel(Number(data.user.bodyWeightLb)));
+        window.setTimeout(onClose, 1400);
+        return;
+      }
       onClose();
     } catch {
       setError('Could not save profile. Try again.');
@@ -367,13 +390,7 @@ export default function EditProfileModal({
                 onChange={(e) => setPhone(formatUsPhone(e.target.value))}
                 className="glass-input mb-4 w-full"
               />
-              <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Weight (lb)</label>
-              <input
-                type="number"
-                value={bodyWeightLb}
-                onChange={(e) => setBodyWeightLb(e.target.value)}
-                className="glass-input mb-4 w-full"
-              />
+              <BodyWeightField ref={weightInputRef} value={bodyWeightLb} onChange={setBodyWeightLb} />
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Belt gender track</label>
               <div className="mb-4 grid grid-cols-3 gap-2">
                 {(['male', 'female', 'non-binary']).map((opt) => (
@@ -614,14 +631,24 @@ export default function EditProfileModal({
               >
                 Cancel
               </button>
-              <button
-                type="button"
-                disabled={submitting}
-                onClick={goToPin}
-                className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-50"
-              >
-                {changePin ? 'Next' : submitting ? 'Saving...' : 'Save'}
-              </button>
+              {weightSavedNote ? (
+                // Earth green = done: the save confirmation replaces the button until the sheet closes.
+                <p
+                  role="status"
+                  className="flex min-h-12 flex-1 items-center justify-center rounded-2xl bg-[#6d8b6e] px-3 text-center font-black text-[#f6f1e3]"
+                >
+                  {weightSavedNote}
+                </p>
+              ) : (
+                <button
+                  type="button"
+                  disabled={submitting}
+                  onClick={goToPin}
+                  className="min-h-12 flex-1 rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-50"
+                >
+                  {changePin ? 'Next' : submitting ? 'Saving...' : 'Save'}
+                </button>
+              )}
             </>
           ) : (
             <button

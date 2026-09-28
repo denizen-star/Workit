@@ -166,7 +166,8 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
          es.target_reps,
          es.weight_lbs,
          es.actual_reps,
-         es.hardness
+         es.hardness,
+         es.bodyweight_lb
        FROM exercise_sets es
        INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
        INNER JOIN users u ON u.id = ws.user_id
@@ -211,9 +212,10 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
     weight_lbs: number | null;
     actual_reps: number | null;
     hardness: number | null;
+    bodyweight_lb: number | null;
   }[]) {
     const userId = Number(row.user_id);
-    const raw = setVolume(row.exercise_name, row.target_reps, row.weight_lbs, row.actual_reps);
+    const raw = setVolume(row.exercise_name, row.target_reps, row.weight_lbs, row.actual_reps, row.bodyweight_lb);
     const effort = effortFromVolume(raw, row.hardness);
     volumeByUser.set(userId, (volumeByUser.get(userId) || 0) + raw);
     effortByUser.set(userId, (effortByUser.get(userId) || 0) + effort);

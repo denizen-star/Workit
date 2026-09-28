@@ -34,27 +34,36 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.0.1',
-  title: 'Your mail is back.',
-  subject: 'Your Work-It emails are back',
+  version: '11.1.0',
+  title: 'Your push-ups count now.',
+  subject: 'Your push-ups count now — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
+  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Quick one, and a good one. For a few days, some of our emails were not reaching you. That is fixed. Your reminders, your scoreboard and your recaps are coming through again.',
-  mid: 'If you have a friend who tried to join and never got their sign-up email, have them try again. It will land now. The house is only better with more people in it.',
+    'Big one today! Every push-up, every dip, every knee raise you have ever done was worth zero pounds on your board. Not anymore. Your own body is the weight now, and it finally counts.',
+  mid: 'All it takes is your weight in Edit profile. If you have not saved one, you will see a banner on Home asking for it. Tap Add weight, type it in, done. It is private. Only you and Kevin ever see it.',
   close:
-    'Nothing else changes for you. Keep training, keep locking weeks. Quit is still the only thing that never gets an email from me.',
+    'So drop down and give me twenty, and watch them land on your total this time. I believe in every rep you put in. Quit is the only thing that still counts for nothing.',
   lead: '',
   groups: [
     {
-      heading: 'Back on',
+      heading: 'New',
       wins: [
-        'Sign-up — new athletes get their verify and welcome email again.',
-        'Invites — the friends you invite get their invite.',
-        'Forgot PIN — the reset email arrives.',
-        'Reminders and the weekly scoreboard — back in your inbox.',
-        'Missed something — anything from Sep 24 on may not have reached you.',
+        'Bodyweight moves — push-ups, dips, squats, lunges, rows and knee raises count part of your weight on every rep.',
+        'Extra weight — a vest or backpack goes in the weight box and counts on top.',
+        'Your weight over time — Your performance, Body weight.',
+        'Add your weight — a banner on Home and your next few workouts until you save it.',
+        'Recap — shows the weight your bodyweight moves used.',
+      ],
+    },
+    {
+      heading: 'Also',
+      wins: [
+        'Past sets — if you had already saved a weight, your old bodyweight sets now count too.',
+        'Six-week check-in — now asks for your current weight as well.',
+        'Hip thrusts and leg extensions — now ask for the weight you actually lifted.',
       ],
     },
   ],

@@ -2,6 +2,21 @@
 
 ## Unreleased
 
+## 11.1.0 - 2026-09-27
+
+### Added
+- **Bodyweight moves count your weight.** Push-ups, dips, bodyweight squats and lunges, single-leg hinges, towel/table rows, leg raises and Hanging Knee Raises now count part of your saved weight on every rep (a push-up ≈ 64%, knee raises ≈ 35%). Anything you add on top counts extra — the field reads **Extra weight (optional)** and shows **+ N lb body weight counts**. Finished sets read like `134 lb body × 12`. Feeds your totals, the house board, badges, Best and Volume.
+- **Body weight history** — each saved weight is kept. Your performance → **Body weight** shows the trend. Only you and Kevin see it; it's never on a house board.
+- **Add your weight** banner on Home and on your next 3 workouts if you haven't saved one. **Add weight** opens Edit profile right on the weight field.
+- Weight field has an **lb/kg** toggle and a one-line “why we ask”. Saving shows **Weight saved · N lb** — nothing else.
+- The six-week check-in (screen and email) now asks for your current weight too.
+- The workout recap and recap email show the weight your bodyweight moves used, or a nudge to add one.
+- Admin: each athlete's weight history under Analytics → Athletes.
+
+### Changed
+- Past bodyweight sets were re-counted with the weight on file for athletes who had saved one.
+- **Barbell Hip Thrusts or Glute Bridges** and **Leg Extension Machine or Goblet Step-Ups** are treated as loaded lifts: no more “0 = BW” label, and a set needs a weight typed (0 is fine).
+
 ## 11.0.1 - 2026-09-27
 
 ### Fixed

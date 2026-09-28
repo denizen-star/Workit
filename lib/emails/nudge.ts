@@ -9,6 +9,7 @@ import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { claimAndSend } from '@/lib/emails/send';
 import { buildNudgeEmail, buildScheduleDaysAskEmail } from '@/lib/emails/templates';
 import { clampScheduleDays, daysForWeekFn, isScheduleDaysAskWeek } from '@/lib/scheduleDays';
+import { currentBodyWeight } from '@/lib/bodyWeight';
 
 const TRAINING_DAYS = new Set(['Monday', 'Tuesday', 'Thursday', 'Friday']);
 
@@ -96,6 +97,7 @@ export async function sendNudgesForUser(
       name: user.name,
       scheduleDaysPerWeek: scheduleDays,
       loginUrl: loginUrl(),
+      bodyWeight: await currentBodyWeight(user.id),
     });
     const askResult = await claimAndSend({
       userId: user.id,

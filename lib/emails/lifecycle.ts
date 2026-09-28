@@ -22,6 +22,7 @@ import { claimUrl, resetUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
 import { clampScheduleDays, daysForWeekFn } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
+import { sessionBodyWeightNote } from '@/lib/bodyWeight';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -309,6 +310,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     tone,
     badges: emailBadges,
     belt: earnedBelt ?? null,
+    bodyWeightNote: await sessionBodyWeightNote(opts.sessionId, opts.userId),
   });
 
   await claimAndSend({

@@ -40,6 +40,8 @@ Every lift card shows a **Next** line (the suggested next load) and an **Aim** l
 
 If you cannot get to a gym, flip the day to **Travel** — same session, no-equipment swaps.
 
+**Bodyweight moves count your weight.** Save your weight in Edit profile and moves like push-ups, dips, bodyweight squats and lunges count part of it on every rep (a push-up counts about 64%). Anything you add on top — a vest, a backpack — goes in the weight field as extra. Only you and Kevin see your weight, and Your performance shows how it has changed over time. No weight saved yet? A banner on Home and on your next few workouts links straight to the field. Every six weeks the check-in asks for your current weight too; saving it just says “Weight saved.”
+
 You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a short stretch/core circuit). Stretch and Core ask Easy, Medium, or Hard before they start. Nice extra, not required to lock the week. Starting a day that is already open resumes the session that has your sets.
 
 ## What you are chasing

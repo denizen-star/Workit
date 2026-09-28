@@ -19,6 +19,7 @@ export default function WorkoutRecapTakeover({
   optionalLbs = 0,
   warmup = false,
   cooldown = false,
+  bodyWeightNote = null,
   step,
   totalSteps,
   onClose,
@@ -30,6 +31,8 @@ export default function WorkoutRecapTakeover({
   optionalLbs?: number;
   warmup?: boolean;
   cooldown?: boolean;
+  /** Neutral body-weight line (docs/plans/PLAN_BODY_WEIGHT.md) — informational, no verdict. */
+  bodyWeightNote?: string | null;
   /** This screen's position in the post-finish sequence, for the segmented stepper. */
   step?: number;
   totalSteps?: number;
@@ -82,6 +85,9 @@ export default function WorkoutRecapTakeover({
         ) : (
           <p className="mt-6 text-center text-base text-[#f6f1e3]/70">No completed sets to score.</p>
         )}
+        {bodyWeightNote ? (
+          <p className="mt-4 text-center text-sm text-[#f6f1e3]/60">{bodyWeightNote}</p>
+        ) : null}
         <button
           type="button"
           onClick={onClose}

@@ -36,6 +36,7 @@ import {
 import { listHouseholdsForUser, setLastHousehold, userInHousehold } from '@/lib/household';
 import { parsePhotoDataUrl } from '@/lib/photo';
 import { WAIVER_TEXT } from '@/lib/waiver';
+import { logBodyWeightChange, parseBodyWeightInput, saveBodyWeight } from '@/lib/bodyWeight';
 
 export async function GET() {
   const user = await getCurrentUserOrBlocked();
@@ -99,14 +100,24 @@ export async function PATCH(request: NextRequest) {
     // Dismissing the 6-week re-ask (Home takeover) — records the checkpoint whether or
     // not the athlete actually changed their count in the same request, so it doesn't
     // resurface until the next boundary.
+    // Same takeover carries an optional weight check-in (docs/plans/PLAN_BODY_WEIGHT.md);
+    // a blank field keeps the weight on file.
     if (typeof body.scheduleDaysAskedWeek === 'number') {
+      const checkinWeight = parseBodyWeightInput(body.bodyWeightLb);
+      if (checkinWeight === undefined) {
+        return NextResponse.json({ error: 'Weight must be a number in lb' }, { status: 400 });
+      }
       await markScheduleDaysAsked(user.id, body.scheduleDaysAskedWeek);
       let scheduleDaysPerWeek = user.scheduleDaysPerWeek;
       if (body.scheduleDaysPerWeek !== undefined) {
         scheduleDaysPerWeek = clampScheduleDays(body.scheduleDaysPerWeek);
         await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
       }
-      return NextResponse.json({ success: true, user: { ...user, scheduleDaysPerWeek } });
+      const bodyWeightLb = checkinWeight ?? user.bodyWeightLb;
+      if (checkinWeight != null) {
+        await saveBodyWeight(user.id, user.bodyWeightLb, checkinWeight, 'checkin');
+      }
+      return NextResponse.json({ success: true, user: { ...user, scheduleDaysPerWeek, bodyWeightLb } });
     }
 
     // Edit profile's day-count control can update this alone, same as sound-only.
@@ -138,10 +149,7 @@ export async function PATCH(request: NextRequest) {
     const lastName = normalizeOptionalText(body.lastName, 120);
     const displayName = normalizeOptionalText(body.displayName, 120);
     const phone = formatUsPhone(normalizeOptionalText(body.phone, 32) || '') || null;
-    const weight =
-      body.bodyWeightLb == null || body.bodyWeightLb === ''
-        ? null
-        : Number(body.bodyWeightLb);
+    const weight = parseBodyWeightInput(body.bodyWeightLb);
     const photo = body.photo === undefined ? null : parsePhotoDataUrl(body.photo);
     const name =
       composeFullName(firstName, lastName, body.name) || normalizeName(body.name) || user.name;
@@ -181,7 +189,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Use a smaller JPEG or PNG for the photo' }, { status: 400 });
     }
 
-    if (weight != null && (!Number.isFinite(weight) || weight <= 0 || weight > 999)) {
+    if (weight === undefined) {
       return NextResponse.json({ error: 'Weight must be a number in lb' }, { status: 400 });
     }
 
@@ -213,6 +221,7 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
+    const weightLogged = await logBodyWeightChange(user.id, user.bodyWeightLb, weight, 'profile');
     await updateCoachTone(user.id, coachTone);
     await updateSoundOn(user.id, soundOn);
     await updateCoachVoiceOn(user.id, coachVoiceOn);
@@ -241,7 +250,10 @@ export async function PATCH(request: NextRequest) {
         noiseTakeover,
         noiseEffort,
         showPrs,
+        bodyWeightLb: weight,
       },
+      // True when this save changed the weight — the client shows "Weight saved · N lb".
+      weightSaved: weightLogged,
     });
   } catch (error) {
     if (isDuplicateEmailError(error)) {

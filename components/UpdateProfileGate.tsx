@@ -11,6 +11,8 @@ import {
   splitFullName,
 } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
+import BodyWeightField from '@/components/BodyWeightField';
+import { weightSavedLabel } from '@/lib/bodyWeightShared';
 
 export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
   const [firstName, setFirstName] = useState('');
@@ -26,6 +28,7 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [hasPhoto, setHasPhoto] = useState(false);
   const [userId, setUserId] = useState<number | null>(null);
+  const [weightSavedNote, setWeightSavedNote] = useState('');
 
   useEffect(() => {
     fetch('/api/me')
@@ -80,6 +83,12 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
       setError(data.error || 'Could not save');
       return;
     }
+    if (data.weightSaved && data.user?.bodyWeightLb != null) {
+      // Neutral confirmation, held a beat before the gate closes.
+      setWeightSavedNote(weightSavedLabel(Number(data.user.bodyWeightLb)));
+      window.setTimeout(onDone, 1400);
+      return;
+    }
     onDone();
   };
 
@@ -124,7 +133,7 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
             value={phone}
             onChange={(e) => setPhone(formatUsPhone(e.target.value))}
           />
-          <input className="glass-input w-full" placeholder="Weight lb" value={bodyWeightLb} onChange={(e) => setBodyWeightLb(e.target.value)} />
+          <BodyWeightField value={bodyWeightLb} onChange={setBodyWeightLb} className="" />
           <label className="flex items-start gap-3 text-sm text-[#f6f1e3]/80">
             <input type="checkbox" checked={accepted} onChange={(e) => setAccepted(e.target.checked)} className="mt-1" />
             <span>
@@ -136,14 +145,23 @@ export default function UpdateProfileGate({ onDone }: { onDone: () => void }) {
           </label>
         </div>
         {error ? <p className="mt-3 text-sm text-[#a35d52]">{error}</p> : null}
-        <button
-          type="button"
-          disabled={busy || !accepted}
-          onClick={save}
-          className="mt-6 min-h-12 w-full rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-40"
-        >
-          Continue
-        </button>
+        {weightSavedNote ? (
+          <p
+            role="status"
+            className="mt-6 flex min-h-12 w-full items-center justify-center rounded-2xl bg-[#6d8b6e] font-black text-[#f6f1e3]"
+          >
+            {weightSavedNote}
+          </p>
+        ) : (
+          <button
+            type="button"
+            disabled={busy || !accepted}
+            onClick={save}
+            className="mt-6 min-h-12 w-full rounded-2xl bg-[#e8c547] font-black text-[#1a1404] disabled:opacity-40"
+          >
+            Continue
+          </button>
+        )}
         <WaiverSheet open={open} onClose={() => setOpen(false)} />
       </div>
     </div>

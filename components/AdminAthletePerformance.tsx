@@ -21,6 +21,7 @@ import { isTestUserName } from '@/lib/householdUsers';
 import BeltChip from '@/components/BeltChip';
 import { firstName } from '@/lib/scoreboardTypes';
 import { HouseholdHardnessCharts } from '@/components/HardnessCharts';
+import BodyWeightChart from '@/components/BodyWeightChart';
 
 type HouseholdRow = AthletePerformanceBoard & {
   userId: number;
@@ -216,6 +217,11 @@ function AthleteFold({ row, lifts }: { row: HouseholdRow; lifts: LiftBoard[] }) 
           ) : (
             <AthletePerformanceBoardView board={row} page athleteName={row.name} />
           )}
+          {/* Kevin-only view of this athlete's weigh-ins (GET /api/body-weight?userId=, requireAdmin). */}
+          <div className="mt-4 border-t border-white/5 pt-3">
+            <p className="mb-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/55">Body weight</p>
+            <BodyWeightChart userId={row.userId} />
+          </div>
         </div>
       )}
     </div>

@@ -3,7 +3,18 @@ import { DEFAULT_HARDNESS, effortFromVolume, parseHardness } from './hardness';
 export type LoggedLoad = {
   weight_lbs: number | null;
   actual_reps: number | null;
+  /** Body-weight credit stamped at completion (lib/bodyweightShare.ts); counts toward volume only. */
+  bodyweight_lb?: number | string | null;
 };
+
+/**
+ * Load one rep moved: logged (extra) weight + body-weight credit. Volume-based rules use
+ * this; anything that shows or prefills a weight keeps `weight_lbs`, which is what the
+ * athlete typed — docs/plans/PLAN_BODY_WEIGHT.md.
+ */
+export function setLoad(set: { weight_lbs: number | null; bodyweight_lb?: number | string | null }): number {
+  return Number(set.weight_lbs ?? 0) + (Number(set.bodyweight_lb ?? 0) || 0);
+}
 
 /**
  * The "record" set between two logged sets, by volume (weight × reps) — docs/plans/PLAN_PR_VOLUME.md.
@@ -16,8 +27,8 @@ export function betterSet<T extends LoggedLoad>(a: T, b: T): T {
   const repsA = a.actual_reps ?? 0;
   const weightB = b.weight_lbs ?? 0;
   const repsB = b.actual_reps ?? 0;
-  const volumeA = weightA * repsA;
-  const volumeB = weightB * repsB;
+  const volumeA = setLoad(a) * repsA;
+  const volumeB = setLoad(b) * repsB;
   if (volumeA !== volumeB) return volumeA > volumeB ? a : b;
   if (weightA !== weightB) return weightA > weightB ? a : b;
   return repsA >= repsB ? a : b;
@@ -92,13 +103,13 @@ export type SetNumberHistory = Record<string, Record<number, SetNumberStats>>;
  */
 export function foldSetIntoHistory(
   base: SetNumberStats | null,
-  set: { weight_lbs: number | null; actual_reps: number | null; hardness?: number | null }
+  set: { weight_lbs: number | null; actual_reps: number | null; hardness?: number | null; bodyweight_lb?: number | string | null }
 ): SetNumberStats | null {
   if (set.actual_reps == null) return base;
   const weight = Number(set.weight_lbs ?? 0);
   const reps = Number(set.actual_reps);
   const score = parseHardness(set.hardness) ?? DEFAULT_HARDNESS;
-  const effective = effortFromVolume(weight * reps, score);
+  const effective = effortFromVolume(setLoad(set) * reps, score);
   const priorCount = base?.count ?? 0;
   const count = priorCount + 1;
   return {

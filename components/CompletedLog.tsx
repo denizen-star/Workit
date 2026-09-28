@@ -91,7 +91,7 @@ export default function CompletedLog({
     for (const session of sessions) {
       const volume = (session.sets || []).reduce(
         (sum, set) =>
-          sum + setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps),
+          sum + setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb),
         0
       );
       if (volume > bestVolume) {

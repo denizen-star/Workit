@@ -52,6 +52,7 @@ import {
   tileDelta,
   type SetNumberHistory,
 } from '@/lib/setHistory';
+import { bodyweightCreditLb } from '@/lib/bodyweightShare';
 import { formatWhen } from '@/lib/kpiView';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
@@ -88,6 +89,8 @@ interface ExerciseSet {
   is_completed: boolean;
   hardness?: HardnessScore | null;
   notes?: string;
+  /** Body-weight credit the server stamped at completion (lib/bodyweightShare.ts). */
+  bodyweight_lb?: number | string | null;
 }
 
 interface HistoryPayload {
@@ -113,6 +116,8 @@ interface ExerciseTrackerProps {
   sessionMode?: WorkoutMode | string | null;
   coachTone?: CoachTone | string | null;
   athleteName?: string | null;
+  /** Athlete's weight on file — drives the "+ N lb body weight" hint on listed movements. */
+  bodyWeightLb?: number | null;
   restExtraMinutes?: number;
   /** How often the post-set result flash shows: every set, once per exercise, or never. */
   noiseTakeover?: NoiseLevel;
@@ -231,9 +236,9 @@ function lastBestFor(exerciseName: string, history: HistoryPayload) {
 
 function setSummaryLabel(
   kind: ExerciseKind,
-  set: { weight_lbs: number | null; actual_reps: number | null }
+  set: { weight_lbs: number | null; actual_reps: number | null; bodyweight_lb?: number | string | null }
 ) {
-  return setLogLabel(kind, set.weight_lbs, set.actual_reps);
+  return setLogLabel(kind, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
 }
 
 
@@ -244,6 +249,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   sessionMode,
   coachTone,
   athleteName,
+  bodyWeightLb = null,
   restExtraMinutes = 0,
   noiseTakeover = 'set',
   noiseEffort = 'set',
@@ -574,7 +580,11 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
     if (!response.ok) return set;
     const data = await response.json();
-    return data.setId && !set.id ? { ...set, id: data.setId } : set;
+    return {
+      ...set,
+      id: set.id || data.setId || undefined,
+      bodyweight_lb: data.bodyweightLb === undefined ? set.bodyweight_lb : data.bodyweightLb,
+    };
   };
 
   /** The program exercise whose card a logged set belongs to (Alt / Gym-Travel aware). */
@@ -617,10 +627,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       const persistNow = Boolean(updatedSet.is_completed) || (Boolean(updatedSet.id) && wasComplete);
       if (persistNow) {
         const saved = await persistSet(updatedSet);
-        if (saved.id !== updatedSet.id) {
+        if (saved.id !== updatedSet.id || saved.bodyweight_lb !== updatedSet.bodyweight_lb) {
           setExerciseSets((current) => {
             const copy = [...current];
-            copy[index] = { ...copy[index], id: saved.id };
+            copy[index] = { ...copy[index], id: saved.id, bodyweight_lb: saved.bodyweight_lb };
             return copy;
           });
         }
@@ -1347,11 +1357,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                         <div className="mb-4 grid grid-cols-2 gap-3">
                           <div>
                             <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
-                              {unit === 'kg'
-                                ? kind === 'bodyweight'
-                                  ? 'Weight kg (0 = BW)'
-                                  : 'Weight (kg)'
-                                : weightFieldLabel(kind)}
+                              {weightFieldLabel(kind, set.exercise_name, unit)}
                             </label>
                             <input
                               type="number"
@@ -1374,6 +1380,18 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                               placeholder="0"
                               disabled={set.is_completed && !isEditing}
                             />
+                            {(() => {
+                              // Stamped credit once the set is done; otherwise what it will earn now.
+                              const credit =
+                                Number(set.bodyweight_lb ?? 0) || bodyweightCreditLb(set.exercise_name, bodyWeightLb);
+                              if (!(credit > 0)) return null;
+                              const shown = unit === 'kg' ? `${kgFromLbs(credit)} kg` : `${Math.round(credit)} lb`;
+                              return (
+                                <p className="mt-1 text-[11px] font-semibold text-[#f6f1e3]/55">
+                                  + {shown} body weight counts
+                                </p>
+                              );
+                            })()}
                           </div>
 
                           <div>
@@ -1513,7 +1531,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 // Volume: average (weight × reps) per completed set of this exercise today so far.
                 const volumeValues = sets
                   .filter((item) => item.is_completed)
-                  .map((item) => setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps));
+                  .map((item) =>
+                    setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps, item.bodyweight_lb)
+                  );
                 const volumeAvg = volumeValues.reduce((sum, value) => sum + value, 0) / volumeValues.length;
                 const volumeBeforeAvg =
                   volumeValues.length > 1

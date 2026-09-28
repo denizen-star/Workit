@@ -6,6 +6,7 @@ import { exerciseHistoryKey } from '@/lib/exerciseKey';
 import { parseExerciseModes } from '@/lib/exerciseModes';
 import { parseExerciseAlts } from '@/lib/exerciseAlts';
 import { parseHardness } from '@/lib/hardness';
+import { bodyweightCreditLb } from '@/lib/bodyweightShare';
 import { betterSet, foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 
@@ -15,6 +16,23 @@ async function assertSessionOwnership(sessionId: number, userId: number) {
     [sessionId, userId]
   );
   return result.rows.length > 0;
+}
+
+/**
+ * Body-weight credit (docs/plans/PLAN_BODY_WEIGHT.md): stamped once, when the set first
+ * completes, at the weight on file right then. An existing stamp is kept, so an Editing
+ * re-save or a later weigh-in never re-prices history. Unlisted movements stay NULL.
+ * Returns the credit now on the row (null = none).
+ */
+async function stampBodyweightCredit(setId: number, bodyWeightLb: number | null): Promise<number | null> {
+  const result = await query('SELECT exercise_name, bodyweight_lb FROM exercise_sets WHERE id = ? LIMIT 1', [setId]);
+  const row = result.rows[0] as { exercise_name?: string; bodyweight_lb?: unknown } | undefined;
+  if (!row) return null;
+  if (row.bodyweight_lb != null) return Number(row.bodyweight_lb);
+  const credit = bodyweightCreditLb(row.exercise_name, bodyWeightLb);
+  if (credit <= 0) return null;
+  await query('UPDATE exercise_sets SET bodyweight_lb = ? WHERE id = ?', [credit, setId]);
+  return credit;
 }
 
 export async function POST(request: NextRequest) {
@@ -132,6 +150,9 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    const bodyweightLb =
+      isCompleted && setId ? await stampBodyweightCredit(Number(setId), user.bodyWeightLb) : null;
+
     await updateDailyStats(workoutSessionId, user.id);
 
     if (isCompleted) {
@@ -142,7 +163,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, setId, hardness });
+    return NextResponse.json({ success: true, setId, hardness, bodyweightLb });
   } catch (error) {
     console.error('Error saving exercise set:', error);
     return NextResponse.json({ error: 'Failed to save exercise set' }, { status: 500 });
@@ -206,7 +227,7 @@ export async function GET(request: NextRequest) {
       const previousWeek = weekNumber > 1 ? weekNumber - 1 : 0;
 
       const result = await query(
-        `SELECT es.exercise_name, es.set_number, es.weight_lbs, es.actual_reps, es.hardness,
+        `SELECT es.exercise_name, es.set_number, es.weight_lbs, es.actual_reps, es.hardness, es.bodyweight_lb,
                 ws.week_number, ws.id as session_id,
                 COALESCE(ws.completed_at, ws.created_at) as done_at
          FROM exercise_sets es
@@ -234,7 +255,13 @@ export async function GET(request: NextRequest) {
       // set/session it came from. `done_at: null` means it was set in the session in progress.
       const bestSets: Record<
         string,
-        { weight_lbs: number | null; actual_reps: number | null; set_number: number | null; done_at: string | null }
+        {
+          weight_lbs: number | null;
+          actual_reps: number | null;
+          bodyweight_lb: number | null;
+          set_number: number | null;
+          done_at: string | null;
+        }
       > = {};
       // How "Set N" of each exercise has gone across every past completed session — the
       // live KPI grid folds today's own set into this average client-side (see LiveSetKpis).
@@ -245,9 +272,16 @@ export async function GET(request: NextRequest) {
         weightLbs: number | null,
         actualReps: number | null,
         setNumber: number | null,
-        doneAt: string | null
+        doneAt: string | null,
+        bodyweightLb: unknown
       ) => {
-        const candidate = { weight_lbs: weightLbs, actual_reps: actualReps, set_number: setNumber, done_at: doneAt };
+        const candidate = {
+          weight_lbs: weightLbs,
+          actual_reps: actualReps,
+          bodyweight_lb: bodyweightLb == null ? null : Number(bodyweightLb),
+          set_number: setNumber,
+          done_at: doneAt,
+        };
         const current = bestSets[name];
         bestSets[name] = current ? betterSet(current, candidate) : candidate;
       };
@@ -266,7 +300,8 @@ export async function GET(request: NextRequest) {
           row.weight_lbs == null ? null : weight,
           row.actual_reps == null ? null : reps,
           Number(row.set_number),
-          row.done_at ? new Date(row.done_at).toISOString() : null
+          row.done_at ? new Date(row.done_at).toISOString() : null,
+          row.bodyweight_lb
         );
 
         if (previousWeek && Number(row.week_number) === previousWeek) {
@@ -279,6 +314,7 @@ export async function GET(request: NextRequest) {
           weight_lbs: row.weight_lbs == null ? null : weight,
           actual_reps: row.actual_reps == null ? null : reps,
           hardness: row.hardness,
+          bodyweight_lb: row.bodyweight_lb,
         });
         if (folded) byNumber[setNumber] = folded;
       }
@@ -288,7 +324,7 @@ export async function GET(request: NextRequest) {
       // that weight fires "NEW PR" again.
       if (currentSessionId) {
         const ownRows = await query(
-          `SELECT exercise_name, weight_lbs, actual_reps, set_number
+          `SELECT exercise_name, weight_lbs, actual_reps, set_number, bodyweight_lb
            FROM exercise_sets
            WHERE workout_session_id = ? AND is_completed = 1`,
           [currentSessionId]
@@ -304,7 +340,8 @@ export async function GET(request: NextRequest) {
             row.weight_lbs == null ? null : weight,
             row.actual_reps == null ? null : reps,
             Number(row.set_number),
-            null
+            null,
+            row.bodyweight_lb
           );
         }
       }

@@ -31,6 +31,7 @@ import { CURRENT_RELEASE, type ReleaseGroup } from '@/lib/emails/currentRelease'
 import type { MailTemplateId } from '@/lib/emails/ids';
 import { badgeArtSrc } from '@/lib/badgeArt';
 import { beltArtSrc, beltCoachLine, currentBelt, nextBelt, type Belt } from '@/lib/belts';
+import { bodyWeightCheckinLine } from '@/lib/bodyWeightShared';
 
 export type BuiltEmail = {
   from: string;
@@ -68,6 +69,8 @@ export type ScheduleDaysAskEmailInput = {
   name: string;
   scheduleDaysPerWeek: number;
   loginUrl: string;
+  /** Weight check-in line (docs/plans/PLAN_BODY_WEIGHT.md); omitted = no line. */
+  bodyWeight?: { lb: number | null; savedAt: string | null };
 };
 
 export type NudgeEmailInput = {
@@ -103,6 +106,8 @@ export type WorkoutCompleteEmailInput = {
   badges?: Array<{ name: string; description: string }>;
   /** Belt earned by this same completed session (a week just locked into it), if any. */
   belt?: Belt | null;
+  /** Neutral body-weight line (lib/bodyWeight.ts sessionBodyWeightNote), or none. */
+  bodyWeightNote?: string | null;
 };
 
 export type BadgeEmailInput = {
@@ -607,6 +612,7 @@ export function buildPinResetEmail(input: PinResetEmailInput): BuiltEmail {
 export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): BuiltEmail {
   const name = firstName(input.name);
   const days = input.scheduleDaysPerWeek;
+  const weightLine = input.bodyWeight ? bodyWeightCheckinLine(input.bodyWeight.lb, input.bodyWeight.savedAt) : null;
   const html = wrapEmailHtml({
     eyebrow: 'six weeks in',
     title: 'Still the right pace?',
@@ -619,6 +625,7 @@ export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): Bui
         `You're set to train ${days} day${days === 1 ? '' : 's'} a week. That is still the plan unless you change it.`
       ),
       p('Open Edit profile from the menu to change it anytime.'),
+      weightLine ? p(esc(weightLine)) : '',
       cta(input.loginUrl, 'OPEN WORK-IT'),
     ].join(''),
   });
@@ -628,6 +635,7 @@ export function buildScheduleDaysAskEmail(input: ScheduleDaysAskEmailInput): Bui
     '',
     `You're set to train ${days} day${days === 1 ? '' : 's'} a week. That is still the plan unless you change it.`,
     'Open Edit profile from the menu to change it anytime.',
+    ...(weightLine ? [weightLine] : []),
     '',
     input.loginUrl,
     '',
@@ -829,6 +837,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
       p('<strong style="color:#fff;">' + esc(input.completeLine) + '</strong>'),
       input.replenishLine ? p(esc(input.replenishLine)) : '',
       statsTable(rows),
+      input.bodyWeightNote ? p(esc(input.bodyWeightNote)) : '',
       beltProgressBlock(input.lockedWeeks).html,
       beltBlockHtml,
       badgesBlockHtml,
@@ -868,6 +877,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     sessionWhereLabel(input.weekNumber, input.dayName),
     'Time: ' + formatDuration(input.durationSeconds),
     'Volume: ' + formatLbs(input.volumeLbs),
+    ...(input.bodyWeightNote ? [input.bodyWeightNote] : []),
     ...beltProgressBlock(input.lockedWeeks).text,
     ...(belt ? ['', 'Diploma earned: ' + belt.name, belt.quote, belt.saidBy] : []),
     ...(badges.length
@@ -1541,6 +1551,7 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       name: 'Kevin',
       scheduleDaysPerWeek: 4,
       loginUrl: loginUrl(),
+      bodyWeight: { lb: 182, savedAt: '2026-09-03T12:00:00Z' },
     });
   }
   if (template === 'nudge') {

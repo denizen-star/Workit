@@ -20,6 +20,7 @@ import { joinSourceFrom, joinStepContext } from '@/lib/joinSource';
 import { emailFieldHint, formatUsPhone, isValidEmailFormat } from '@/lib/profile';
 import { WAIVER_CHECKBOX_LABEL } from '@/lib/waiver';
 import { DEFAULT_SCHEDULE_DAYS, MAX_SCHEDULE_DAYS, MIN_SCHEDULE_DAYS, scheduleDaysHint } from '@/lib/scheduleDays';
+import { BODY_WEIGHT_WHY } from '@/lib/bodyWeightShared';
 
 const DRAFT_KEY = 'workit_join_draft';
 
@@ -284,7 +285,10 @@ export default function JoinPage() {
               type="tel"
               hint="optional"
             />
-            <Field label="Weight (lb)" value={bodyWeightLb} onChange={setBodyWeightLb} hint="optional" />
+            <div>
+              <Field label="Weight (lb)" value={bodyWeightLb} onChange={setBodyWeightLb} hint="optional" />
+              <p className="mt-1 text-xs text-[#f6f1e3]/50">{BODY_WEIGHT_WHY}</p>
+            </div>
             <div>
               <span className="text-[11px] font-black uppercase tracking-[0.18em] text-[#f6f1e3]/50">
                 Days per week · {scheduleDays}

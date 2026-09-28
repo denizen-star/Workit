@@ -74,6 +74,9 @@ import { beltWashStyle, displayBelt } from '@/lib/belts';
 import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
 import { recapExerciseRows, type CompareRow } from '@/lib/compareTable';
 import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
+import EditProfileModal from '@/components/EditProfileModal';
+import BodyWeightBanner from '@/components/BodyWeightBanner';
+import { bodyWeightBannerDue } from '@/lib/bodyWeightShared';
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -127,6 +130,8 @@ function WorkoutPageInner() {
   const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
   const [recapWarmup, setRecapWarmup] = useState(false);
   const [recapCooldown, setRecapCooldown] = useState(false);
+  // Neutral body-weight line from the Finish PUT (null = session had no bodyweight moves).
+  const [recapBodyWeightNote, setRecapBodyWeightNote] = useState<string | null>(null);
   const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
   const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
   const [earnedBelt, setEarnedBelt] = useState<TakeoverBelt | null>(null);
@@ -143,6 +148,10 @@ function WorkoutPageInner() {
   const startInFlight = useRef(false);
   const [coachTone, setCoachTone] = useState<CoachTone>('master');
   const [athleteName, setAthleteName] = useState('');
+  // Weight on file (null = none) — live cards show the body-weight credit it earns.
+  const [bodyWeightLb, setBodyWeightLb] = useState<number | null>(null);
+  // Missing-weight banner's "Add weight" opens Edit profile right here (no AppMenu on a live session).
+  const [showWeightEdit, setShowWeightEdit] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
   // Persisted count from `locked_weeks` (server), not recomputed locally — see
@@ -234,6 +243,7 @@ function WorkoutPageInner() {
         setHyroxLoaded(true);
         if (data?.user) {
           setAthleteName(data.user.name || '');
+          setBodyWeightLb(data.user.bodyWeightLb == null ? null : Number(data.user.bodyWeightLb));
           setCoachTone(normalizeCoachTone(data.user.coachTone));
           const enabled = normalizeSoundOn(data.user.soundOn);
           setSoundOn(enabled);
@@ -596,6 +606,7 @@ function WorkoutPageInner() {
     setOptionalFinishLbs(0);
     setRecapWarmup(false);
     setRecapCooldown(false);
+    setRecapBodyWeightNote(null);
     setOptionalKickerLbs(0);
     setAwardedBadges([]);
     setEarnedBelt(null);
@@ -756,6 +767,7 @@ function WorkoutPageInner() {
       setRecapWarmup(finished ? sessionWarmupDone(finished) : false);
       setRecapCooldown(finished ? sessionCooldownDone(finished) : false);
       setOptionalKickerLbs(kickerLbs);
+      setRecapBodyWeightNote(typeof data.bodyWeightNote === 'string' ? data.bodyWeightNote : null);
       const spoken =
         optionalLbs > 0
           ? pickOptionalCompleteClip(coachTone, athleteName)
@@ -1027,6 +1039,9 @@ function WorkoutPageInner() {
         </header>
 
         <div className="container mx-auto space-y-6 px-4 py-8 pb-28">
+          {bodyWeightBannerDue(bodyWeightLb, sessions) ? (
+            <BodyWeightBanner onAdd={() => setShowWeightEdit(true)} />
+          ) : null}
           {timedPick ? (
             <>
               <YourPickFlow
@@ -1064,6 +1079,7 @@ function WorkoutPageInner() {
             sessionMode={workoutMode}
             coachTone={coachTone}
             athleteName={athleteName}
+            bodyWeightLb={bodyWeightLb}
             restExtraMinutes={restExtraMinutes}
             noiseTakeover={noiseTakeover}
             noiseEffort={noiseEffort}
@@ -1114,6 +1130,24 @@ function WorkoutPageInner() {
           }}
         />
 
+        <EditProfileModal
+          open={showWeightEdit}
+          focusWeight
+          currentName={athleteName}
+          currentEmail=""
+          currentTone={coachTone}
+          currentSoundOn={soundOn}
+          currentRestExtraMinutes={restExtraMinutes}
+          currentScheduleDays={scheduleDays}
+          currentNoiseTakeover={noiseTakeover}
+          currentNoiseEffort={noiseEffort}
+          currentShowPrs={showPrs}
+          currentGender={userGender}
+          onClose={() => setShowWeightEdit(false)}
+          onSaved={(profile) => {
+            if (profile.bodyWeightLb !== undefined) setBodyWeightLb(profile.bodyWeightLb);
+          }}
+        />
         <WorkoutRecapTakeover
           open={showRecap}
           title={recapTitle}
@@ -1122,6 +1156,7 @@ function WorkoutPageInner() {
           optionalLbs={optionalFinishLbs}
           warmup={recapWarmup}
           cooldown={recapCooldown}
+          bodyWeightNote={recapBodyWeightNote}
           step={2}
           totalSteps={finishTotalSteps}
           onClose={openCoachLine}
@@ -1510,6 +1545,7 @@ function WorkoutPageInner() {
         optionalLbs={optionalFinishLbs}
         warmup={recapWarmup}
         cooldown={recapCooldown}
+        bodyWeightNote={recapBodyWeightNote}
         step={2}
         totalSteps={finishTotalSteps}
         onClose={openCoachLine}

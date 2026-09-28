@@ -20,6 +20,8 @@ export type HistorySet = {
   target_reps: string | null;
   actual_reps: number | null;
   weight_lbs: number | null;
+  /** Body-weight credit stamped at completion; counts toward lbs (lib/bodyweightShare.ts). */
+  bodyweight_lb?: number | string | null;
 };
 
 export type HistorySession = {
@@ -200,7 +202,7 @@ export default function CompletedSessionCard({
                         Set {set.set_number}
                       </span>
                       <span className="text-sm font-semibold text-[#f6f1e3]/85">
-                        {setLogLabel(kind, asNumber(set.weight_lbs), asNumber(set.actual_reps))}
+                        {setLogLabel(kind, asNumber(set.weight_lbs), asNumber(set.actual_reps), set.bodyweight_lb)}
                         {set.target_reps ? (
                           <span className="ml-2 text-xs font-medium text-white/40">
                             target {set.target_reps}

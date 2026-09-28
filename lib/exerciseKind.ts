@@ -1,4 +1,5 @@
 import { effortFromVolume } from '@/lib/hardness';
+import { bodyweightShare } from '@/lib/bodyweightShare';
 
 export type ExerciseKind = "weighted" | "bodyweight" | "timed" | "distance";
 
@@ -11,6 +12,10 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
   // flow as a Plank Hold, just with a longer target.
   if (r.includes("second") || /\bmin(ute)?s?\b/.test(r) || (n.includes("plank") && !n.includes("iso"))) return "timed";
   if (r.includes("meter") || r.includes("walk") || n.includes("carry")) return "distance";
+  // A barbell or machine option makes it a loaded lift even when its "or" half matches a
+  // bodyweight word below (Barbell Hip Thrusts or Glute Bridges, Leg Extension Machine or
+  // Goblet Step-Ups) — docs/plans/PLAN_BODY_WEIGHT.md.
+  if (n.includes("barbell") || n.includes("machine")) return "weighted";
   if (
     n.includes("push-up") ||
     n.includes("bodyweight") ||
@@ -66,19 +71,28 @@ export function primaryFieldLabel(kind: ExerciseKind): string {
   return "Reps";
 }
 
-export function weightFieldLabel(kind: ExerciseKind): string {
+/** Weight input label. A movement that counts body weight (lib/bodyweightShare.ts) asks for extra load only. */
+export function weightFieldLabel(kind: ExerciseKind, name?: string, unit: "lb" | "kg" = "lb"): string {
+  if (bodyweightShare(name) != null) return unit === "kg" ? "Extra weight kg (optional)" : "Extra weight (optional)";
+  if (unit === "kg") return kind === "bodyweight" ? "Weight kg (0 = BW)" : "Weight (kg)";
   if (kind === "bodyweight") return "Weight (0 = BW)";
   if (kind === "timed" || kind === "distance") return "Weight (optional)";
   return "Weight (lbs)";
 }
 
+/** `bodyweightLb` = the set's stamped body-weight credit; shown as "134 lb body (+ extra) × reps". */
 export function setLogLabel(
   kind: ExerciseKind,
   weightLbs: number | null,
-  actualReps: number | null
+  actualReps: number | null,
+  bodyweightLb?: number | string | null
 ) {
   const reps = actualReps ?? 0;
   const weight = weightLbs ?? 0;
+  const credit = Math.round(Number(bodyweightLb ?? 0) || 0);
+  if (credit > 0 && kind !== "timed" && kind !== "distance") {
+    return weight ? `${credit} lb body + ${weight} lb × ${reps}` : `${credit} lb body × ${reps}`;
+  }
   if (kind === "timed") return `${reps}s`;
   if (kind === "distance") return weight ? `${reps}m @ ${weight} lb` : `${reps}m`;
   if (kind === "bodyweight" && weight === 0) return `${reps} reps`;
@@ -108,15 +122,21 @@ export function suggestedNextWeight(lastWeight: number): number {
   return Math.round((lastWeight + bump) * 2) / 2;
 }
 
-/** Timed and distance count the load once, not seconds or meters. */
+/**
+ * Timed and distance count the load once, not seconds or meters. `bodyweightLb` is the
+ * body-weight credit stamped on the set when it completed (exercise_sets.bodyweight_lb,
+ * lib/bodyweightShare.ts); the logged weight is extra on top: (weight + credit) × reps.
+ */
 export function setVolume(
   name: string,
   targetReps: string | null | undefined,
   weightLbs: number | null | undefined,
-  actualReps: number | null | undefined
+  actualReps: number | null | undefined,
+  bodyweightLb?: number | string | null
 ): number {
-  if (weightLbs == null || actualReps == null) return 0;
-  const weight = Number(weightLbs);
+  const credit = Number(bodyweightLb ?? 0) || 0;
+  if ((weightLbs == null && credit === 0) || actualReps == null) return 0;
+  const weight = Number(weightLbs ?? 0) + credit;
   const reps = Number(actualReps);
   if (!Number.isFinite(weight) || !Number.isFinite(reps)) return 0;
   const kind = getExerciseKind(name, targetReps || "");
@@ -133,6 +153,7 @@ export function sessionSetTotals(
     actual_reps: number | null;
     is_completed: boolean;
     hardness?: number | null;
+    bodyweight_lb?: number | string | null;
   }>
 ) {
   let lbs = 0;
@@ -140,7 +161,7 @@ export function sessionSetTotals(
   let effort = 0;
   for (const set of sets) {
     if (!set.is_completed) continue;
-    const volume = setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps);
+    const volume = setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
     lbs += volume;
     effort += effortFromVolume(volume, set.hardness);
     const kind = getExerciseKind(set.exercise_name, set.target_reps || "");
@@ -151,20 +172,25 @@ export function sessionSetTotals(
   return { lbs, reps, effort };
 }
 
-/** Same timed/distance rules as getExerciseKind, for SUM() in SQL. */
+/**
+ * Same timed/distance rules as getExerciseKind, for SUM() in SQL. Adds the set's stamped
+ * body-weight credit (exercise_sets.bodyweight_lb) to the logged weight, same as setVolume.
+ * Every caller reads exercise_sets directly (alias or bare), so the column is always there.
+ */
 export function sqlSetVolume(alias?: string): string {
   const col = (column: string) => (alias ? `${alias}.${column}` : column);
   const name = `LOWER(COALESCE(${col("exercise_name")}, ''))`;
   const reps = `LOWER(COALESCE(${col("target_reps")}, ''))`;
+  const load = `(COALESCE(${col("weight_lbs")}, 0) + COALESCE(${col("bodyweight_lb")}, 0))`;
   return `CASE
-    WHEN ${col("weight_lbs")} IS NULL OR ${col("actual_reps")} IS NULL THEN 0
+    WHEN ${col("actual_reps")} IS NULL OR (${col("weight_lbs")} IS NULL AND ${col("bodyweight_lb")} IS NULL) THEN 0
     WHEN ${reps} LIKE '%second%'
       OR (${name} LIKE '%plank%' AND ${name} NOT LIKE '%iso%')
       OR ${reps} LIKE '%meter%'
       OR ${reps} LIKE '%walk%'
       OR ${name} LIKE '%carry%'
-    THEN ${col("weight_lbs")}
-    ELSE ${col("weight_lbs")} * ${col("actual_reps")}
+    THEN ${load}
+    ELSE ${load} * ${col("actual_reps")}
   END`;
 }
 

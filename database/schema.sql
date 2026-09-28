@@ -140,6 +140,7 @@ CREATE TABLE exercise_sets (
     weight_lbs DECIMAL(6,2),
     is_completed BOOLEAN DEFAULT FALSE,
     hardness TINYINT NULL,
+    bodyweight_lb DECIMAL(6,1) NULL, -- body-weight share credited at completion (lib/bodyweightShare.ts)
     rest_timer_seconds INT DEFAULT 90,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -257,3 +258,13 @@ CREATE TABLE IF NOT EXISTS device_blocks (
 
 -- Insert default user (can be modified)
 INSERT INTO users (name, email) VALUES ('Kevin', 'user@workit.kervinapps.com');
+
+-- One dated row per body-weight save (users.body_weight_lb = latest). migrate-body-weight.sql
+CREATE TABLE IF NOT EXISTS body_weight_log (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    user_id INT NOT NULL,
+    weight_lb DECIMAL(6, 1) NOT NULL,
+    source VARCHAR(16) NOT NULL, -- join | profile | checkin
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_body_weight_user_time (user_id, created_at)
+);

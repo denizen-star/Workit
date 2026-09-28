@@ -31,6 +31,7 @@ import {
   validateTestDriveStart,
 } from '@/lib/testDriveServer';
 import { hasSeenWeekTakeover, markWeekTakeoverSeen } from '@/lib/weekPodium';
+import { sessionBodyWeightNote } from '@/lib/bodyWeight';
 
 type OpenSessionRow = {
   id: number;
@@ -266,7 +267,7 @@ export async function GET(request: NextRequest) {
       const ids = sessions.map((row) => row.id);
       const placeholders = ids.map(() => '?').join(', ');
       const setResult = await query(
-        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs
+        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb
          FROM exercise_sets
          WHERE workout_session_id IN (${placeholders}) AND is_completed = 1
          ORDER BY workout_session_id, id, set_number`,
@@ -512,6 +513,8 @@ export async function PUT(request: NextRequest) {
       optionalLbs,
       kickerLbs: Number(session.optional_kicker_lbs || 0),
       earnedBelt,
+      // Neutral recap line for bodyweight moves (docs/plans/PLAN_BODY_WEIGHT.md); null = none.
+      bodyWeightNote: isCompleted ? await sessionBodyWeightNote(Number(sessionId), user.id) : null,
     });
   } catch (error) {
     console.error('Error updating workout session:', error);

@@ -187,6 +187,7 @@ const APP_PAGES: AppPageGuide[] = [
       'Coach voices speaks the live lines when Workout sound is also on. Turn Coach voices off and the words stay; the chimes stay on their own switch',
       'Turn on or off: new-record pop-ups, better/worse-than-last-time pop-ups, and how-it-felt check-ins. If more than one applies, they play one after another',
       'Add extra minutes on top of the standard rest timer',
+      'Save your weight (lb or kg) so push-ups, dips and other bodyweight moves count toward your pounds. Only you and Kevin see it',
     ],
     image: '/help/page-profile.png',
     Icon: UserRound,
@@ -288,6 +289,12 @@ const GLOSSARY: GlossaryTerm[] = [
     tag: 'today',
     definition:
       "How much work you've put into this exercise so far today — your average weight times reps across the sets you've completed.",
+  },
+  {
+    term: 'Body weight',
+    tag: 'bodyweight moves',
+    definition:
+      "On moves like push-ups, dips and bodyweight squats, part of your saved weight counts toward your pounds (about 64% of it on a push-up). Anything you add on top counts extra. Saved in Edit profile; only you and Kevin see it.",
   },
   {
     term: 'Effort',
