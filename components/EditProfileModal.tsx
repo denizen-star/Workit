@@ -17,6 +17,7 @@ import { photoSrc } from '@/lib/photo';
 import { composeFullName, emailFieldHint, formatUsPhone, isValidEmailFormat, splitFullName } from '@/lib/profile';
 import { HomeFold } from '@/components/ScanCard';
 import BodyWeightField from '@/components/BodyWeightField';
+import BodyWeightHistory from '@/components/BodyWeightHistory';
 import { weightSavedLabel } from '@/lib/bodyWeightShared';
 
 const NOISE_LEVEL_LABEL: Record<NoiseLevel, string> = {
@@ -391,6 +392,15 @@ export default function EditProfileModal({
                 className="glass-input mb-4 w-full"
               />
               <BodyWeightField ref={weightInputRef} value={bodyWeightLb} onChange={setBodyWeightLb} />
+              {/* Same log as Your performance. An add/delete here also updates the field above,
+                  so Save can't put the old number back. */}
+              <div className="mb-4">
+                <HomeFold title="Weight log" trailing="Weigh-ins & graph">
+                  <BodyWeightHistory
+                    onCurrentChange={(lb) => setBodyWeightLb(lb == null ? '' : String(lb))}
+                  />
+                </HomeFold>
+              </div>
               <label className="mb-1 block text-sm font-semibold text-[#f6f1e3]/65">Belt gender track</label>
               <div className="mb-4 grid grid-cols-3 gap-2">
                 {(['male', 'female', 'non-binary']).map((opt) => (

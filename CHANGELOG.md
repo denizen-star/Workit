@@ -4,6 +4,7 @@
 
 ### Added
 - **Body weight log** — Your performance → Body weight now lists every weigh-in. **+ Add weigh-in** saves a new one (it becomes your current weight); **✕** removes a mistyped one and your weight falls back to the one before it. A jump of more than 20% from your last weigh-in asks once before saving.
+- The **Body weight** card now sits at the top of Your performance, and the same **Weight log** is under the weight field in Edit profile.
 
 ## 11.1.0 - 2026-09-27
 

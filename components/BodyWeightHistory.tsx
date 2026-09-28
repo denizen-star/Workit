@@ -31,7 +31,14 @@ function whenLabel(iso: string) {
  * last weigh-in asks once before saving (catches 20 for 200). Neutral copy only.
  * With `userId` (Kevin, Admin → Athletes) it is the same view, read-only.
  */
-export default function BodyWeightHistory({ userId }: { userId?: number }) {
+export default function BodyWeightHistory({
+  userId,
+  onCurrentChange,
+}: {
+  userId?: number;
+  /** After an add or delete: the new current weight (null = none left). Edit profile keeps its field in step. */
+  onCurrentChange?: (lb: number | null) => void;
+}) {
   const editable = userId == null;
   const [entries, setEntries] = useState<Entry[] | null>(null);
   const [adding, setAdding] = useState(false);
@@ -81,6 +88,7 @@ export default function BodyWeightHistory({ userId }: { userId?: number }) {
         return;
       }
       setEntries(data.history as Entry[]);
+      onCurrentChange?.(lb);
       closeForm();
       setSavedNote(weightSavedLabel(lb));
       window.setTimeout(() => setSavedNote(''), 2500);
@@ -107,7 +115,11 @@ export default function BodyWeightHistory({ userId }: { userId?: number }) {
     try {
       const res = await fetch(`/api/body-weight?id=${id}`, { method: 'DELETE' });
       const data = await res.json().catch(() => null);
-      if (res.ok) setEntries(data.history as Entry[]);
+      if (res.ok) {
+        const next = data.history as Entry[];
+        setEntries(next);
+        onCurrentChange?.(next.length ? next[next.length - 1].weightLb : null);
+      }
     } finally {
       setBusy(false);
       setPendingDelete(null);
