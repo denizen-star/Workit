@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
@@ -359,7 +359,17 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     setWeightUnits(readExerciseUnits());
   }, []);
 
+  // Your pick and full-body days are rebuilt on every parent render (the live clock
+  // ticks once a second), so `exercises` is a new array each time. Keying the load on
+  // that identity reloaded every set from the server each second, wiping anything held
+  // only in memory — an effort pick made before a 45-second plank never survived to
+  // Stop. Reload only when the actual exercise list changes.
+  const exercisesKey = exercises.map((item) => `${item.name}|${item.sets}|${item.reps}`).join('\n');
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const loadExercises = useMemo(() => exercises, [exercisesKey]);
+
   useEffect(() => {
+    const exercises = loadExercises;
     let cancelled = false;
     setSetsReady(false);
 
@@ -520,7 +530,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     return () => {
       cancelled = true;
     };
-  }, [sessionId, weekNumber, defaultMode, exercises]);
+  }, [sessionId, weekNumber, defaultMode, loadExercises]);
 
   useEffect(() => {
     if (!setsReady) return;
