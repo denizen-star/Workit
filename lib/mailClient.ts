@@ -1,7 +1,7 @@
 import nodemailer from 'nodemailer';
 import type { SendMailOptions, Transporter } from 'nodemailer';
 import { archiveSentEmail, type MailArchiveMeta } from './emails/archive';
-import { MAIL_FROM } from './mailFrom';
+import { MAIL_FROM, OPS_BCC_ADDRESS } from './mailFrom';
 
 export function isEmailEnabled() {
   const v = process.env.EMAIL_ENABLED;
@@ -49,7 +49,7 @@ export type MailPayload = {
 
 export type { MailArchiveMeta };
 
-export const OPS_BCC = MAIL_FROM.info;
+export const OPS_BCC = OPS_BCC_ADDRESS;
 
 function normalizeAddressList(value?: string | string[]): string[] {
   if (!value) return [];

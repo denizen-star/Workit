@@ -1,16 +1,22 @@
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 
-/** Visible From addresses. SMTP still logs in as SENDER_EMAIL. */
+/** Visible From addresses. SMTP still logs in as SENDER_EMAIL, and Zoho only lets
+ * it send as a registered alias of that mailbox (a group address 553s).
+ * Registered aliases: tom@, luna@, grey@, eli.sparks@, workit-info@.
+ * Not yet registered: welcome@, news@, help@ — those sends 553 until they are. */
 export const MAIL_FROM = {
   tom: 'tom@workitapp.fit',
   luna: 'luna@workitapp.fit',
   grey: 'grey@workitapp.fit',
-  eli: 'eli@workitapp.fit',
+  eli: 'eli.sparks@workitapp.fit',
   welcome: 'welcome@workitapp.fit',
   news: 'news@workitapp.fit',
   help: 'help@workitapp.fit',
-  info: 'info@workitapp.fit',
+  info: 'workit-info@workitapp.fit',
 } as const;
+
+/** Where every send is BCC'd — the info@ group (receiving works; only sending as it 553s). */
+export const OPS_BCC_ADDRESS = 'info@workitapp.fit';
 
 const COACH_ADDRESS: Record<CoachTone, string> = {
   master: MAIL_FROM.tom,
