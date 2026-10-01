@@ -34,32 +34,28 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.4.0',
-  title: 'Less talk. More lifting.',
-  subject: 'Less talk. More lifting — Work-It',
+  version: '11.5.0',
+  title: 'See your week.',
+  subject: 'See your week — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Real talk: we coaches were chattering way too much! A line after every single rest adds up to thirty-plus a workout, and that is noise, not coaching. You are doing the work. You deserve a coach who knows when to let you lift.',
-  mid: 'So now when rest ends, the screen just says Next. Once per exercise, partway into a set, I will jump in with a little fire. And when you finish an exercise you get one line: your new record if you set one, else the gain you made on last time, else how hard it felt.',
+    'You have been putting the work in. I see it. Now The house shows your week, day by day, so the days you showed up are right there in front of you.',
+  mid: 'Under the time pills, your row runs Monday through Sunday. A green box means you finished a workout that day, and the number inside is how many. Open your row and you get each workout with its count. Right under you is the house: the average, rounded up, on those same seven days. Last 7 days is this calendar week. 30 days and all time roll every workout into its weekday.',
   close:
-    'Fewer words, and every one of them counts. I believe in every rep you put in. Quit is the only thing that ever gets the last word.',
+    'I believe in every day you show up. Keep stacking them. Quit is the only thing that stays off the week.',
   lead: '',
   groups: [
     {
-      heading: 'Changed',
+      heading: 'New',
       wins: [
-        'Rest over — the screen says Next. Horn and buzz, no talking.',
-        'Pep talk — once per exercise, partway into a set.',
-        'Finishing an exercise — one line: new record, else a gain, else how hard it felt.',
-        'Total — about 14 coach lines a workout, down from up to 37.',
+        'Your week — finished workouts for Monday through Sunday, with a count in each box.',
+        'Green — that weekday has a workout.',
+        'Open your row — each workout and how many times you did it.',
+        'The house — average workouts, rounded up, on the same seven days.',
+        'Last 7 days — this calendar week. 30 days and all time roll every workout into its weekday.',
       ],
-    },
-    {
-      heading: 'Gone',
-      wins: ['Set down — a weaker set than last time no longer gets a coach line.'],
     },
   ],
   wins: [],
