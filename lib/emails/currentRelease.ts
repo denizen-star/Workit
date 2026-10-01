@@ -34,34 +34,26 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.2.0',
-  title: 'More programs, one tap away.',
-  subject: 'More programs, one tap away — Work-It',
+  version: '11.2.1',
+  title: 'Nobody gets lost on the way in.',
+  subject: 'Nobody gets lost on the way in — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'Your menu just got a new home for the big stuff! Hyrox Training and Overload Progressions now live together under More programs, right at the top. No hunting. You always know where they are and how close you are.',
-  mid: 'Not open yet? You will see a lock. Tap it and it tells you how many locked weeks you have. Six opens both. And your weight log got better too: add a weigh-in any time, and fix a typo with one tap.',
+    'Every person who walks up to the door matters to me! Until now, if someone typed in their name and email and then stepped away before picking a PIN, we lost them. Not anymore.',
+  mid: 'The moment they tap Next, we hold their spot. If they come back with the same email, they pick up right where they left off. Their account stays quiet until they set a PIN and confirm their email, so nothing shows up on the board early.',
   close:
-    'Six locked weeks is closer than you think. I have watched you show up week after week, and I know you get there. Quit is the only thing that never unlocks anything.',
+    'Getting started is the hardest rep of all, and I want every new face to make it through. Quit is the only thing that ever really loses anyone.',
   lead: '',
   groups: [
     {
-      heading: 'New',
+      heading: 'Fixed',
       wins: [
-        'More programs — Hyrox Training and Overload Progressions, together at the top of the Home menu.',
-        'Locked programs — show a lock. Tap to see how many locked weeks you have.',
-        'Weight log — add a weigh-in any time, or remove one you mistyped.',
-        'Body weight — now at the top of Your performance and under the weight field in Edit profile.',
-      ],
-    },
-    {
-      heading: 'Also',
-      wins: [
-        'Overload Progressions — opens at 6 locked weeks, same as Hyrox.',
-        'Unlock banners on Home — show for 3 days, then step aside. Tap the ✕ to hide one sooner.',
+        'Joining — your details are saved the moment you tap Next.',
+        'Coming back — same email picks up where you stopped.',
+        'Privacy — nothing shows on the house board until the PIN is set and the email is confirmed.',
       ],
     },
   ],
