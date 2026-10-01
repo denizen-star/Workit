@@ -126,7 +126,7 @@ The Muscle Ladder book supersedes the goal-programs half of `PLAN_GOAL_PROGRAMS_
   - [x] 🟩 `ExerciseTracker` rest: use `exercise.restSeconds` when set and skip extra minutes; otherwise keep today's behaviour.
   - [x] 🟩 `lib/estimateDuration.ts`: use `restSeconds` in the time estimate.
 
-- [x] 🟩 **Step 8: Next-load suggestion and Aim line (both tracks)**
+- [x] 🟩 **Step 8: Next-load suggestion and Aim line (both tracks)** — superseded by docs/plans/PLAN_LIFT_CARD_HINTS.md: now one "Aim for" box on Overload only; the main program shows just Last time
   - [x] 🟩 `lib/nextLoad.ts`:
     - parse the rep range (a single number = top of the range);
     - apply the double-progression rule and the steps (+2.5 / +5 / +10);

@@ -222,13 +222,11 @@ export async function GET(request: NextRequest) {
     const sessionId = searchParams.get('sessionId');
 
     if (history) {
-      const weekNumber = Number(searchParams.get('weekNumber') || '0');
       const currentSessionId = Number(sessionId || '0');
-      const previousWeek = weekNumber > 1 ? weekNumber - 1 : 0;
 
       const result = await query(
         `SELECT es.exercise_name, es.set_number, es.weight_lbs, es.actual_reps, es.hardness, es.bodyweight_lb,
-                ws.week_number, ws.id as session_id,
+                ws.id as session_id,
                 COALESCE(ws.completed_at, ws.created_at) as done_at
          FROM exercise_sets es
          JOIN workout_sessions ws ON ws.id = es.workout_session_id
@@ -248,7 +246,6 @@ export async function GET(request: NextRequest) {
       // threshold in components/ExerciseTracker.tsx. Same underlying rule as `bestSets` below;
       // kept as its own field since the two serve different UI moments (flash vs. KPI tile).
       const personalRecords: Record<string, { weight: number; reps: number }> = {};
-      const lastWeekMax: Record<string, number> = {};
       // Best single set ever logged for this exercise (weight × reps, betterSet's tie-break).
       // This is the true all-time record the "Best" KPI tile shows, at any set position (not just
       // the same slot from the last session) — set_number/done_at let the client caption which
@@ -303,10 +300,6 @@ export async function GET(request: NextRequest) {
           row.done_at ? new Date(row.done_at).toISOString() : null,
           row.bodyweight_lb
         );
-
-        if (previousWeek && Number(row.week_number) === previousWeek) {
-          lastWeekMax[name] = Math.max(lastWeekMax[name] || 0, weight);
-        }
 
         const setNumber = Number(row.set_number);
         const byNumber = (setNumberHistory[name] ||= {});
@@ -366,7 +359,7 @@ export async function GET(request: NextRequest) {
         });
       }
 
-      return NextResponse.json({ lastSets, lastWeekMax, personalRecords, bestSets, setNumberHistory });
+      return NextResponse.json({ lastSets, personalRecords, bestSets, setNumberHistory });
     }
 
     if (!sessionId) {

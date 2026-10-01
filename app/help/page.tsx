@@ -303,16 +303,10 @@ const GLOSSARY: GlossaryTerm[] = [
       "Your own rating of how hard a set felt: Easy, Light, Fair, Hard, or Max. Don't rate it, and it's counted as Fair by default.",
   },
   {
-    term: 'Next',
-    tag: 'next load',
+    term: 'Aim for',
+    tag: 'Overload Progressions',
     definition:
-      'A suggestion above the last-time line. Hit the top of the rep range on every set at Hard or easier, and it tells you to add weight: 2.5 lb on dumbbell curls and raises, 5 lb on other upper-body lifts, 10 lb on legs. Otherwise, same weight and one more rep. It never changes what the app fills in for you.',
-  },
-  {
-    term: 'Aim',
-    tag: 'target effort',
-    definition:
-      'How hard each set should feel, as reps you could still do. Hard means about 2 reps left. Overload Progressions changes it by week; everywhere else it is Hard.',
+      "The gold box on each lift during Overload Progressions. Hit the top of the rep range on every set at Hard or easier, and it tells you to add weight: 2.5 lb on dumbbell curls and raises, 5 lb on other upper-body lifts, 10 lb on legs. Otherwise it's the same weight and one more rep. If last time was Max, it asks you to match it, never more. It also says how hard each set should feel (Hard = about 2 reps left), and shows You're past it once a set beats the target. It never changes what the app fills in for you. Every other program shows only your last time.",
   },
   {
     term: 'Noise Control',

@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 11.3.0 - 2026-09-30
+
+### Changed
+- **Cleaner lift cards.** The top of each lift now shows one line: **Last time: 105 lb × 15 · Effort 5**. The Next box, Aim line and Last week chip are gone from regular weeks.
+- **Overload Progressions gets one gold "Aim for" box** — target weight × reps, why, how hard to go (e.g. "At Hard · about 2 reps left") and your last time, all in one place.
+- **No more "one more rep" after a Max.** If you went all-out last time, Aim for asks you to match it, keep a rep in the tank.
+- **"You're past it"** — beat the target on any set and the box says so: "Log it and we'll aim higher next time."
+
+### Removed
+- **"Beat last week. Suggested next" chip.** It added 5 lb to today's heaviest set, so it could suggest numbers way off your target (like 165 when the target was 105).
+
 ## 11.2.1 - 2026-09-30
 
 ### Fixed

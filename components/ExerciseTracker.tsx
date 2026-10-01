@@ -40,7 +40,6 @@ import {
   sessionSetTotals,
   setLogLabel,
   setVolume,
-  suggestedNextWeight,
   weightFieldLabel,
   type ExerciseKind,
 } from '@/lib/exerciseKind';
@@ -56,7 +55,8 @@ import { bodyweightCreditLb } from '@/lib/bodyweightShare';
 import { formatWhen } from '@/lib/kpiView';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
-import { aimLine, nextLoadFor, nextLoadLabel } from '@/lib/nextLoad';
+import { aimEffortText, nextLoadFor, nextLoadLabel, pastTarget } from '@/lib/nextLoad';
+import { isOverloadWeek } from '@/lib/overloadProgram';
 import {
   kgFromLbs,
   lbsFromKg,
@@ -98,7 +98,6 @@ interface HistoryPayload {
     string,
     Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null; hardness?: number | null }>
   >;
-  lastWeekMax: Record<string, number>;
   personalRecords: Record<string, { weight: number; reps: number }>;
   /** Heaviest single set ever logged for this exercise (weight+reps as one pair), any set position. */
   bestSets: Record<
@@ -234,6 +233,18 @@ function lastBestFor(exerciseName: string, history: HistoryPayload) {
   return bestLoggedSet(lastSetsFor(exerciseName, history));
 }
 
+/** "Last time: 105 lb × 15 · Effort 5" — the plain chip on every card, and the small
+ * line inside Overload's Aim for box. */
+function lastTimeLabel(kind: ExerciseKind, lastTime: NonNullable<ReturnType<typeof lastBestFor>>) {
+  const load =
+    kind === 'timed'
+      ? `${lastTime.actual_reps ?? 0}s`
+      : kind === 'distance'
+        ? `${lastTime.actual_reps ?? 0}m${lastTime.weight_lbs ? ` @ ${lastTime.weight_lbs} lb` : ''}`
+        : `${lastTime.weight_lbs ?? 0} lb × ${lastTime.actual_reps ?? 0}`;
+  return `Last time: ${load} · Effort ${parseHardness(lastTime.hardness) ?? DEFAULT_HARDNESS}`;
+}
+
 function setSummaryLabel(
   kind: ExerciseKind,
   set: { weight_lbs: number | null; actual_reps: number | null; bodyweight_lb?: number | string | null }
@@ -282,7 +293,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; gym: Exercise; exercise: Exercise } | null>(
     null
   );
-  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} });
+  const [history, setHistory] = useState<HistoryPayload>({ lastSets: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} });
   const [thumbs, setThumbs] = useState<Record<string, ExerciseThumb>>({});
   // A PR can land on any set of an exercise, but the flash itself is now held
   // until that exercise's last planned set. Remember the best PR seen so far
@@ -381,7 +392,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const load = async () => {
       const [existingRes, historyRes] = await Promise.all([
         fetch(`/api/exercises?sessionId=${sessionId}`),
-        fetch(`/api/exercises?history=1&weekNumber=${weekNumber}&sessionId=${sessionId}`),
+        fetch(`/api/exercises?history=1&sessionId=${sessionId}`),
       ]);
 
       let saved: any[] = [];
@@ -394,7 +405,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         storedAlts = parseExerciseAlts(data.exerciseAlts ?? data.exercise_alts);
       }
 
-      let historyData: HistoryPayload = { lastSets: {}, lastWeekMax: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} };
+      let historyData: HistoryPayload = { lastSets: {}, personalRecords: {}, bestSets: {}, setNumberHistory: {} };
       if (historyRes.ok) {
         historyData = await historyRes.json();
       }
@@ -999,13 +1010,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         const photos = getExerciseImages(exercise.name);
         const kind = kindFor(exercise);
         const unit = unitForExercise(gym.name, weightUnits);
-        const lastWeek =
-          history.lastWeekMax[exerciseHistoryKey(exercise.name)] ?? history.lastWeekMax[exercise.name];
-        const completedWeights = sets
-          .filter((item) => item.is_completed && item.weight_lbs != null)
-          .map((item) => Number(item.weight_lbs));
-        const currentMax = completedWeights.length ? Math.max(...completedWeights) : 0;
-        const beatLastWeek = lastWeek != null && currentMax > lastWeek;
         const lastTime = lastBestFor(exercise.name, history);
         const how = howForExercise(exercise.name) || howForExercise(gym.name);
         // Next set the athlete should work on, for the gold "you're here" border.
@@ -1015,17 +1019,21 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         // hide them so the finished card reads as sets + KPIs, not leftover setup chrome.
         const plannedSets = sets.filter((item) => item.set_number <= exercise.sets);
         const exerciseFullyDone = plannedSets.length > 0 && plannedSets.every((item) => item.is_completed);
-        // Double-progression suggestion from the last time this lift ran, in this
-        // card's unit (lib/nextLoad.ts). Suggest only — prefill is unchanged.
-        const nextLoad = nextLoadFor({
-          name: exercise.name,
-          reps: exercise.reps,
-          kind,
-          lastSets: lastSetsFor(exercise.name, history),
-        });
+        // Overload Progressions only (docs/plans/PLAN_LIFT_CARD_HINTS.md): the "Aim for"
+        // double-progression box from the last time this lift ran, in this card's unit
+        // (lib/nextLoad.ts). Every other program shows just the Last time chip. Suggest
+        // only — prefill is unchanged.
+        const nextLoad = isOverloadWeek(weekNumber)
+          ? nextLoadFor({
+              name: exercise.name,
+              reps: exercise.reps,
+              kind,
+              lastSets: lastSetsFor(exercise.name, history),
+            })
+          : null;
         const nextLoadView = nextLoad ? nextLoadLabel(nextLoad, unit) : null;
-        // Rep-based lifts only — a timed hold or a distance has no "reps left".
-        const showAim = kind === 'weighted' || kind === 'bodyweight';
+        // A set today already beat the target → the box reads "You're past it".
+        const pastSet = nextLoad ? pastTarget(nextLoad, sets) : null;
 
         // Alt Exercise (docs/plans/PLAN_ALT_EXERCISES.md): no control shown at all when there's
         // nothing to swap to — Cardio/Mobility/AMRAP entries have no curated shortlist.
@@ -1187,44 +1195,41 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
               </div>
             )}
 
-            {!exerciseFullyDone && (nextLoadView || showAim) && (
-              <div className="mb-3 space-y-2">
-                {nextLoadView && (
-                  <div className="rounded-2xl border border-[#e8c547]/60 bg-[#e8c547]/10 px-4 py-3">
+            {nextLoadView && !exerciseFullyDone ? (
+              // Overload: one gold box — target, reason, effort, last time. Once every
+              // planned set is done it gives way to the plain Last time chip below.
+              <div className="mb-4 rounded-2xl border border-[#e8c547]/60 bg-[#e8c547]/10 px-4 py-3">
+                {pastSet ? (
+                  <>
+                    <p className="text-base font-black text-[#e8c547]">
+                      You&apos;re past it · {setSummaryLabel(kind, pastSet)}
+                    </p>
+                    <p className="text-xs font-semibold text-[#f6f1e3]/75">
+                      Log it and we&apos;ll aim higher next time.
+                    </p>
+                  </>
+                ) : (
+                  <>
                     <p className="text-base font-black text-[#e8c547]">{nextLoadView.title}</p>
                     <p className="text-xs font-semibold text-[#f6f1e3]/75">{nextLoadView.detail}</p>
-                  </div>
-                )}
-                {showAim && (
-                  <p className="text-sm font-bold text-[#f6f1e3]/85">
-                    {aimLine(exercise.targetEffort, exercise.lastSetCue)}
-                  </p>
+                    <p className="mt-1 text-xs font-bold text-[#f6f1e3]/85">
+                      {aimEffortText(exercise.targetEffort, exercise.lastSetCue)}
+                    </p>
+                    {lastTime && (
+                      <p className="mt-1 text-xs font-semibold text-[#f6f1e3]/60">{lastTimeLabel(kind, lastTime)}</p>
+                    )}
+                  </>
                 )}
               </div>
+            ) : (
+              lastTime && (
+                <div className="mb-4 flex flex-wrap gap-2">
+                  <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#f6f1e3]/80">
+                    {lastTimeLabel(kind, lastTime)}
+                  </span>
+                </div>
+              )
             )}
-
-            <div className="mb-4 flex flex-wrap gap-2">
-              {lastTime && (
-                <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold text-[#f6f1e3]/80">
-                  {kind === 'timed'
-                    ? `Last time: ${lastTime.actual_reps ?? 0}s`
-                    : kind === 'distance'
-                      ? `Last time: ${lastTime.actual_reps ?? 0}m${lastTime.weight_lbs ? ` @ ${lastTime.weight_lbs} lb` : ''}`
-                      : `Last time: ${lastTime.weight_lbs ?? 0} lb × ${lastTime.actual_reps ?? 0}`}
-                  {` · Effort ${parseHardness(lastTime.hardness) ?? DEFAULT_HARDNESS}`}
-                </span>
-              )}
-              {lastWeek != null && lastWeek > 0 && !beatLastWeek && (
-                <span className="rounded-full border border-white/30 bg-white/10 px-3 py-1 text-xs font-semibold text-white">
-                  Last week: {lastWeek} lbs
-                </span>
-              )}
-              {beatLastWeek && (
-                <span className="rounded-full bg-white px-3 py-1 text-xs font-black text-black">
-                  Beat last week. Suggested next: {suggestedNextWeight(currentMax)} lbs
-                </span>
-              )}
-            </div>
 
             <div className="space-y-4">
               {sets.map((set) => {

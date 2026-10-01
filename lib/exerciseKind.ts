@@ -117,11 +117,6 @@ export function canCompleteSet(
   return actualReps > 0 && weightLbs != null && !Number.isNaN(weightLbs);
 }
 
-export function suggestedNextWeight(lastWeight: number): number {
-  const bump = lastWeight >= 100 ? 5 : 2.5;
-  return Math.round((lastWeight + bump) * 2) / 2;
-}
-
 /**
  * Timed and distance count the load once, not seconds or meters. `bodyweightLb` is the
  * body-weight credit stamped on the set when it completed (exercise_sets.bodyweight_lb,

@@ -1,9 +1,11 @@
-// Next-load suggestion + Aim line on every live lift card, main program and
-// Overload Progressions alike (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md).
-// Suggest only: nothing here changes prefill (lib/setHistory.ts still seeds set 1).
+// "Aim for" box on Overload Progressions live lift cards only
+// (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md, docs/plans/PLAN_LIFT_CARD_HINTS.md).
+// The main program shows just the "Last time" chip. Suggest only: nothing here
+// changes prefill (lib/setHistory.ts still seeds set 1).
 //
 // Double progression: keep a weight until every set reaches the top of the rep
 // range at Hard or easier, then add the step and drop back to the bottom of the range.
+// A Max never earns more: match it, or drop if the reps fell short of the range.
 import { DEFAULT_HARDNESS, HARDNESS_LABELS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import type { ExerciseKind } from '@/lib/exerciseKind';
 import { movementPattern } from '@/lib/movementPattern';
@@ -37,7 +39,9 @@ const KG_STEP: Record<number, number> = { 2.5: 1, 5: 2.5, 10: 5 };
 type LoggedSet = { weight_lbs: number | null; actual_reps: number | null; hardness?: number | null };
 
 export type NextLoad = {
-  action: 'add' | 'reps' | 'drop';
+  /** add = earned the step; reps = same weight, one more rep; match = last time was
+   * Max, repeat it; drop = Max and short of the range, go lighter. */
+  action: 'add' | 'reps' | 'match' | 'drop';
   /** Last session's working weight, in lb — kg athletes step from its kg value. */
   workingLbs: number;
   /** Suggested working weight, in lb. */
@@ -87,6 +91,11 @@ export function nextLoadFor(input: {
     if (dropped >= step) return { action: 'drop', workingLbs: working, weightLbs: dropped, stepLbs: step, repTarget: rangeLabel };
   }
   const bestReps = Math.max(...reps);
+  // Max last time: asking for one more rep (or more weight) on top of an all-out set
+  // isn't realistic — repeat the same weight × reps with a rep in the tank instead.
+  if (avgEffort >= 5) {
+    return { action: 'match', workingLbs: working, weightLbs: working, stepLbs: step, repTarget: String(bestReps) };
+  }
   return { action: 'reps', workingLbs: working, weightLbs: working, stepLbs: step, repTarget: String(Math.min(range.max, bestReps + 1)) };
 }
 
@@ -107,10 +116,11 @@ function suggestedLoad(next: NextLoad, unit: WeightUnit): string {
 
 /** One line for the card, in the athlete's unit for this lift. */
 export function nextLoadLabel(next: NextLoad, unit: WeightUnit): { title: string; detail: string } {
-  const title = `Next: ${suggestedLoad(next, unit)} × ${next.repTarget}`;
+  const title = `Aim for: ${suggestedLoad(next, unit)} × ${next.repTarget}`;
   const step = unit === 'kg' ? `${KG_STEP[next.stepLbs] ?? kgFromLbs(next.stepLbs)} kg` : `${next.stepLbs} lb`;
   if (next.action === 'add') return { title, detail: `You earned +${step}` };
   if (next.action === 'drop') return { title, detail: 'Drop the weight and own the range' };
+  if (next.action === 'match') return { title, detail: 'Last time was Max — match it, keep a rep in the tank' };
   return { title, detail: 'Same weight, one more rep' };
 }
 
@@ -125,9 +135,29 @@ const REPS_LEFT: Record<HardnessScore, string> = {
 /** Target effort when a lift doesn't set one (the whole main program). */
 export const DEFAULT_TARGET_EFFORT: HardnessScore = 4;
 
-/** "Aim: Hard · about 2 reps left" (+ an optional last-set cue). */
-export function aimLine(targetEffort?: number | null, lastSetCue?: string | null): string {
+/** Effort line inside the Aim for box: "At Hard · about 2 reps left" (+ an optional
+ * last-set cue). Overload weeks set it per week via `Exercise.targetEffort`. */
+export function aimEffortText(targetEffort?: number | null, lastSetCue?: string | null): string {
   const score = parseHardness(targetEffort) ?? DEFAULT_TARGET_EFFORT;
-  const base = `Aim: ${HARDNESS_LABELS[score]} · ${REPS_LEFT[score]}`;
+  const base = `At ${HARDNESS_LABELS[score]} · ${REPS_LEFT[score]}`;
   return lastSetCue ? `${base} · ${lastSetCue}` : base;
+}
+
+/**
+ * The first set finished today that already beats the target — more weight, or the
+ * same weight with more reps than the top of the target — else null. Flips the box to
+ * "You're past it". Compared in lb, the unit sets are stored in.
+ */
+export function pastTarget<T extends LoggedSet & { is_completed?: boolean | number | null }>(
+  next: NextLoad,
+  todaySets: T[]
+): T | null {
+  const targetReps = Number(next.repTarget.split(/[-–]/).pop());
+  return (
+    todaySets.find((set) => {
+      if (!set.is_completed || set.weight_lbs == null || set.actual_reps == null) return false;
+      const weight = Number(set.weight_lbs);
+      return weight > next.weightLbs || (weight === next.weightLbs && Number(set.actual_reps) > targetReps);
+    }) ?? null
+  );
 }

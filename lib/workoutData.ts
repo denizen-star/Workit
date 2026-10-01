@@ -25,10 +25,10 @@ export interface Exercise {
   /** Rest after each set, in seconds. Overrides the stock 60s + the athlete's extra
    * rest minutes entirely (Overload Progressions: 180 heavy / 120 secondary / 75 iso). */
   restSeconds?: number;
-  /** "Aim" effort for this lift's sets, on the How hard 1-5 scale. Absent = Hard (4)
-   * everywhere the Aim line shows (lib/nextLoad.ts `aimLine`). */
+  /** "Aim" effort for this lift's sets, on the How hard 1-5 scale. Absent = Hard (4).
+   * Shown only inside Overload's Aim for box (lib/nextLoad.ts `aimEffortText`). */
   targetEffort?: 1 | 2 | 3 | 4 | 5;
-  /** Extra cue for the last set, appended to the Aim line (e.g. "last set to failure"). */
+  /** Extra cue for the last set, appended to the Aim for box's effort line (e.g. "last set to failure"). */
   lastSetCue?: string;
 }
 
