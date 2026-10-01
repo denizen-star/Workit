@@ -46,7 +46,7 @@ You can add an optional **warmup or cooldown** (easy run/bike, yoga, abs, or a s
 
 ## What you are chasing
 
-**The house** ranks everyone who hit their own days-per-week for the stretch first (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Weekly medals use the same rule. Piling on extra sessions never buys a spot.
+**The house** ranks everyone who hit their own days-per-week for the stretch first (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Weekly medals use the same rule. Piling on extra sessions never buys a spot. Under the time pills, weekday boxes show your finished workouts for Monday–Sunday and the house average, rounded up. Last 7 days is this calendar week.
 
 **Overload Progressions** (opens once you have 6 locked weeks, same as Hyrox — a card on Home for 3 days and an item under **More programs** in the menu): a 6-week muscle-building series that starts on a Monday and replaces the program while it runs — one opt-in track at a time, so not alongside Hyrox. Your days per week set the split (1–3 full body, 4 upper/lower, 5 upper/lower/push/pull/legs). Heavy lifts rest 3 minutes, secondary 2, isolation 75 seconds. Weeks 1–2 aim Fair, 3–4 Hard, 5–6 push the last isolation set further. A week locks at your day count and counts toward belts. Diplomas land as weeks 2, 4 and 6 end. Leave any time (a restart begins at week 1); the program picks back up moved ahead by the weeks you locked. You can run it again later.
 

@@ -96,7 +96,8 @@ Header via `YouPageShell` (Dashboard back + title + menu). On for Test.
 ## `/scoreboard` — The house
 
 - Kevin: Week medals table (gold / silver / bronze counts, Test out)
-- Period pills: 7d / 30d / All time (You vs, pack, and athlete cards share one window)
+- Period pills: 7d / 30d / All time (weekday rows, You vs, pack, and athlete cards share one window)
+- Weekday rows (hidden for Test): your finished-workout total and M–S boxes, then House averages rounded up. 7d is this Eastern calendar week. Opening your row lists workout names with a count
 - You vs (hidden for Test): You | Last | Next+arrows / House. Always three columns (House if you are alone). Honor, Place, Best day in this table. Rank is this house only.
 - Pack weight chart
 - Household athlete cards (Belt column)

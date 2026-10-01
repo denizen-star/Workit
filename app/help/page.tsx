@@ -120,6 +120,7 @@ const APP_PAGES: AppPageGuide[] = [
       "See how your whole house is doing — who's lifting the most, where you land next to everyone else, and who's put in extra work like Your picks past their week or cardio.",
     bullets: [
       'Switch between last 7 days, last 30 days, or all time',
+      'Weekday boxes: your finished workouts for Monday–Sunday, then the house average rounded up. Green means that day has a workout. Last 7 days is this calendar week. Open your row for each workout and how many times',
       'Rank: first everyone who hit their own days-per-week for that stretch (30 days = 4 weeks of it; all time = one locked week), then by average weight per session. Extra sessions alone never buy a spot',
       'A table of everyone in your house, with their current belt',
       "A running list of who's earned gold, silver, or bronze each week",

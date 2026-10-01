@@ -64,6 +64,20 @@ export type HouseholdScoreboardRow = {
   trackingDown?: number;
 };
 
+/** Monday-first finished-workout counts. Index 0 is Monday, index 6 is Sunday. */
+export type HouseWeekdayYou = {
+  name: string;
+  total: number;
+  days: number[];
+  workouts: { name: string; count: number }[];
+};
+
+/** House averages are already rounded up. `null` when the caller is Test. */
+export type HouseWeekdayBlock = {
+  you: HouseWeekdayYou;
+  house: { total: number; days: number[] };
+};
+
 export type ScoreboardDailyPoint = {
   userId: number;
   name: string;

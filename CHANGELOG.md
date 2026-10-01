@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 11.5.0 - 2026-10-01
+
+### Added
+- **Weekdays on The house.** Under the time pills: your finished workouts for Monday–Sunday, then the house average, rounded up. A green box means that weekday has a workout. Open your row to see each workout and how many times you did it. Last 7 days is this calendar week. 30 days and all time roll every workout into its weekday.
+
 ## 11.4.0 - 2026-09-30
 
 ### Changed

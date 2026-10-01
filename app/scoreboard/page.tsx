@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import HouseWeekdayLine from '@/components/HouseWeekdayLine';
 import HouseholdScoreboard from '@/components/HouseholdScoreboard';
 import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
 import WeekMedalCountTable from '@/components/WeekMedalCountTable';
@@ -51,6 +52,7 @@ export default function ScoreboardPage() {
     <YouPageShell title="The house">
       {isAdmin && <WeekMedalCountTable rows={medalCounts} />}
       <ScoreboardPeriodPills period={period} onChange={setPeriod} />
+      <HouseWeekdayLine period={period} />
       {!isTestUserName(userName) && (
         <div className="mb-6">
           <YouVsLeader
