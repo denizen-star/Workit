@@ -34,32 +34,32 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.3.0',
-  title: 'One clear number before every lift.',
-  subject: 'One clear number before every lift — Work-It',
+  version: '11.4.0',
+  title: 'Less talk. More lifting.',
+  subject: 'Less talk. More lifting — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   onlyAthletes: ['Kevin'],
   includeNewAthletes: false,
   intro:
-    'You told me the top of every lift card was a lot to read, and you were right! Four hints, two of them pointing at different weights. That is noise between you and the bar, and you deserve better.',
-  mid: 'So now it is one line: what you did last time and how hard it felt. Beat it. On Overload Progressions you get one gold Aim for box with your target, why, and how hard to go. And if you went all-out last time, it asks you to match it, not pile on more.',
+    'Real talk: we coaches were chattering way too much! A line after every single rest adds up to thirty-plus a workout, and that is noise, not coaching. You are doing the work. You deserve a coach who knows when to let you lift.',
+  mid: 'So now when rest ends, the screen just says Next. Once per exercise, partway into a set, I will jump in with a little fire. And when you finish an exercise you get one line: your new record if you set one, else the gain you made on last time, else how hard it felt.',
   close:
-    'Less reading, more lifting. I believe you have more in you than last time, every single time you walk in. Quit is the only thing that never moves the bar.',
+    'Fewer words, and every one of them counts. I believe in every rep you put in. Quit is the only thing that ever gets the last word.',
   lead: '',
   groups: [
     {
       heading: 'Changed',
       wins: [
-        'Lift cards — one line on top: Last time, with your Effort.',
-        'Overload Progressions — one gold Aim for box: target, reason, how hard, last time.',
-        'After a Max — Aim for asks you to match it, keep a rep in the tank. Never more.',
-        "Beat the target — the box says You're past it.",
+        'Rest over — the screen says Next. Horn and buzz, no talking.',
+        'Pep talk — once per exercise, partway into a set.',
+        'Finishing an exercise — one line: new record, else a gain, else how hard it felt.',
+        'Total — about 14 coach lines a workout, down from up to 37.',
       ],
     },
     {
       heading: 'Gone',
-      wins: ['Beat last week chip — it could suggest weights way off your target.'],
+      wins: ['Set down — a weaker set than last time no longer gets a coach line.'],
     },
   ],
   wins: [],
