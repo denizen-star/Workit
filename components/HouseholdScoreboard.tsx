@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { ChevronDown, ChevronUp, Trophy } from 'lucide-react';
 import { KpiList } from '@/components/KpiList';
 import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
+import { fetchScoreboard } from '@/lib/scoreboardClient';
 import { formatHardnessWithPct } from '@/lib/hardness';
 import { kpisFromScoreboard } from '@/lib/kpi';
 import { athleteCallName } from '@/lib/profile';
@@ -75,14 +76,11 @@ export default function HouseholdScoreboard({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    fetch('/api/scoreboard?period=' + period)
-      .then((res) => (res.ok ? res.json() : null))
+    fetchScoreboard(period)
       .then((data) => {
         if (cancelled) return;
-        setRows(Array.isArray(data?.rows) ? data.rows : []);
-      })
-      .catch(() => {
-        if (!cancelled) setRows([]);
+        const body = data && typeof data === 'object' ? (data as { rows?: unknown }) : null;
+        setRows(Array.isArray(body?.rows) ? (body.rows as HouseholdScoreboardRow[]) : []);
       })
       .finally(() => {
         if (!cancelled) setLoading(false);

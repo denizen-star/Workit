@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 11.6.0 - 2026-10-01
+
+### Added
+- **Kevin sees every athlete's week.** On The house, one weekday row per athlete who finished a workout in the selected period, real names, most workouts first. Everyone else still sees only their own row and the house average.
+
+### Changed
+- **Weekday rows show with the rest of The house.** They use the same load as You vs and the pack, so they no longer pop in after a second wait.
+
 ## 11.5.0 - 2026-10-01
 
 ### Added

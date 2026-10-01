@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import CompareTable from '@/components/CompareTable';
 import ScoreboardPeriodPills from '@/components/ScoreboardPeriodPills';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
+import { fetchScoreboard } from '@/lib/scoreboardClient';
 import {
   scoreboardRangeLabel,
   scoreboardRangeTitle,
@@ -89,25 +90,23 @@ export default function YouVsLeader({
 
   useEffect(() => {
     let cancelled = false;
-    fetch('/api/scoreboard?period=' + period)
-      .then((res) => (res.ok ? res.json() : null))
-      .then((board) => {
-        if (cancelled) return;
-        const payload = scoreboardPayload(board);
-        setWeekRows(payload.rows);
-        setRankRows(houseRankRows(payload.rows, payload.members));
-        setBonusHonor(payload.bonus);
-        setOptionalHonor(payload.optionals);
-        setCardioHonor(payload.cardio);
-      })
-      .catch(() => {
-        if (cancelled) return;
+    fetchScoreboard(period).then((board) => {
+      if (cancelled) return;
+      if (!board) {
         setWeekRows([]);
         setRankRows([]);
         setBonusHonor([]);
         setOptionalHonor([]);
         setCardioHonor([]);
-      });
+        return;
+      }
+      const payload = scoreboardPayload(board);
+      setWeekRows(payload.rows);
+      setRankRows(houseRankRows(payload.rows, payload.members));
+      setBonusHonor(payload.bonus);
+      setOptionalHonor(payload.optionals);
+      setCardioHonor(payload.cardio);
+    });
     return () => {
       cancelled = true;
     };

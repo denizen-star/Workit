@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
       householdCardioHonor(period, houseId),
       householdWeightSeries(period, houseId),
       listHouseholdAthletes(houseId),
-      loadHouseWeekdays(period, houseId, { id: user.id, name: user.name }),
+      loadHouseWeekdays(period, houseId, { id: user.id, name: user.name, isAdmin: user.isAdmin }),
     ]);
     const rows = await attachHouseTracking(rawRows, period);
 

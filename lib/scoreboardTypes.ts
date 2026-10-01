@@ -66,15 +66,20 @@ export type HouseholdScoreboardRow = {
 
 /** Monday-first finished-workout counts. Index 0 is Monday, index 6 is Sunday. */
 export type HouseWeekdayYou = {
+  id: number;
   name: string;
   total: number;
   days: number[];
   workouts: { name: string; count: number }[];
 };
 
-/** House averages are already rounded up. `null` when the caller is Test. */
+/**
+ * House averages are already rounded up. `null` when the caller is Test.
+ * `athletes` is Kevin only: one row per athlete with a finished workout in the window.
+ */
 export type HouseWeekdayBlock = {
   you: HouseWeekdayYou;
+  athletes?: HouseWeekdayYou[];
   house: { total: number; days: number[] };
 };
 

@@ -16,8 +16,16 @@ const EMPTY_DAYS = [0, 0, 0, 0, 0, 0, 0];
 
 type FinishedSession = {
   userId: number;
+  name: string;
   workoutType: string;
   completedAt: string | Date | null;
+};
+
+type AthleteFold = {
+  name: string;
+  days: number[];
+  total: number;
+  workouts: Map<string, number> | null;
 };
 
 /**
@@ -49,17 +57,35 @@ function weekdayWindow(period: ScoreboardPeriod): { sql: string; params: string[
   return { sql: ' AND ws.completed_at >= ? AND ws.completed_at < ?', params: [start, end] };
 }
 
+function workoutList(workouts: Map<string, number> | null) {
+  return [...(workouts?.entries() ?? [])]
+    .map(([name, count]) => ({ name, count }))
+    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+}
+
+function toAthleteRow(id: number, name: string, row: AthleteFold | undefined): HouseWeekdayBlock['you'] {
+  return {
+    id,
+    name,
+    total: row?.total ?? 0,
+    days: row?.days ?? [...EMPTY_DAYS],
+    workouts: workoutList(row?.workouts ?? null),
+  };
+}
+
 /**
- * Fold finished sessions into the caller's row and the house averages.
- * Athletes with no finished workout in the window are absent here, so they
- * stay out of the divisor. A weekday they skipped still counts as zero
- * because every active athlete has a seven-box row.
+ * Fold finished sessions into weekday rows and the house averages.
+ * Athletes with no finished workout in the window stay out of the divisor.
+ * A weekday they skipped still counts as zero because every active athlete
+ * has a seven-box row. `allAthletes` is Kevin: one real-name row each.
+ * Everyone else gets only their own row.
  */
 export function foldHouseWeekdays(
   sessions: FinishedSession[],
-  viewer: { id: number; name: string }
+  viewer: { id: number; name: string },
+  options: { allAthletes: boolean }
 ): HouseWeekdayBlock {
-  const byUser = new Map<number, { days: number[]; total: number; workouts: Map<string, number> | null }>();
+  const byUser = new Map<number, AthleteFold>();
 
   for (const session of sessions) {
     const ms = parseDbTime(session.completedAt);
@@ -68,9 +94,10 @@ export function foldHouseWeekdays(
     let row = byUser.get(session.userId);
     if (!row) {
       row = {
+        name: session.name,
         days: [...EMPTY_DAYS],
         total: 0,
-        workouts: session.userId === viewer.id ? new Map() : null,
+        workouts: options.allAthletes || session.userId === viewer.id ? new Map() : null,
       };
       byUser.set(session.userId, row);
     }
@@ -89,18 +116,17 @@ export function foldHouseWeekdays(
     totalSum += row.total;
     for (let i = 0; i < houseDays.length; i += 1) houseDays[i] += row.days[i];
   }
-  const mine = byUser.get(viewer.id);
-  const workouts = [...(mine?.workouts?.entries() ?? [])]
-    .map(([name, count]) => ({ name, count }))
-    .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+
+  const you = toAthleteRow(viewer.id, viewer.name, byUser.get(viewer.id));
+  const athletes = options.allAthletes
+    ? [...byUser.entries()].map(([id, row]) => toAthleteRow(id, row.name || 'Athlete', row))
+    : undefined;
+  if (athletes && !athletes.some((row) => row.id === viewer.id)) athletes.push(you);
+  athletes?.sort((a, b) => b.total - a.total || a.name.localeCompare(b.name));
 
   return {
-    you: {
-      name: viewer.name,
-      total: mine?.total ?? 0,
-      days: mine?.days ?? [...EMPTY_DAYS],
-      workouts,
-    },
+    you,
+    ...(athletes ? { athletes } : {}),
     house: {
       total: ceilAverage(totalSum, active.length),
       days: houseDays.map((sum) => ceilAverage(sum, active.length)),
@@ -111,18 +137,18 @@ export function foldHouseWeekdays(
 /**
  * Finished workouts for The house weekday rows. Test gets nothing.
  * Test Drive sessions stay off, matching the rest of this page.
- * Other athletes' names never leave this function.
+ * Kevin receives one row per active athlete. Everyone else receives only their own.
  */
 export async function loadHouseWeekdays(
   period: ScoreboardPeriod,
   householdId: number | null,
-  viewer: { id: number; name: string }
+  viewer: { id: number; name: string; isAdmin: boolean }
 ): Promise<HouseWeekdayBlock | null> {
   if (isTestUserName(viewer.name)) return null;
   const window = weekdayWindow(period);
   const house = sqlInHousehold('u.id', householdId);
   const result = await query(
-    `SELECT ws.user_id, ws.workout_type, ws.completed_at
+    `SELECT ws.user_id, u.name, ws.workout_type, ws.completed_at
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id
      WHERE ws.is_completed = 1
@@ -132,12 +158,13 @@ export async function loadHouseWeekdays(
        ${house.sql}`,
     [...window.params, ...house.params]
   );
-  const sessions = (result.rows as { user_id: number; workout_type: string; completed_at: string | Date | null }[]).map(
-    (row) => ({
-      userId: Number(row.user_id),
-      workoutType: row.workout_type,
-      completedAt: row.completed_at,
-    })
-  );
-  return foldHouseWeekdays(sessions, viewer);
+  const sessions = (
+    result.rows as { user_id: number; name: string; workout_type: string; completed_at: string | Date | null }[]
+  ).map((row) => ({
+    userId: Number(row.user_id),
+    name: row.name,
+    workoutType: row.workout_type,
+    completedAt: row.completed_at,
+  }));
+  return foldHouseWeekdays(sessions, viewer, { allAthletes: viewer.isAdmin });
 }
