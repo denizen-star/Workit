@@ -935,6 +935,7 @@ function WorkoutPageInner() {
                     const exit = pickExitClip(coachTone, athleteName);
                     setExitLine(exit.text);
                     setExitClip(exit.clipTemplate);
+                    exerciseTrackerRef.current?.cancelMotivator();
                     setConfirmExit(true);
                   }}
                   className="flex min-h-11 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-[#f6f1e3]/75 hover:text-white sm:flex-none sm:justify-start sm:gap-2 sm:text-base sm:font-normal"
@@ -1106,7 +1107,10 @@ function WorkoutPageInner() {
           </div>
           <button
             type="button"
-            onClick={() => setConfirmComplete(true)}
+            onClick={() => {
+              exerciseTrackerRef.current?.cancelMotivator();
+              setConfirmComplete(true);
+            }}
             className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404]"
           >
             Finish it

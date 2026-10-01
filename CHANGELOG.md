@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 11.4.0 - 2026-09-30
+
+### Changed
+- **A quieter coach.** About 14 lines a workout instead of up to 37.
+- **Rest over = "Next".** The end-of-rest screen just says **Next** — horn and buzz, no talking.
+- **One pep talk per exercise.** Your coach chimes in once, 10–30 seconds into one random set (never the first). Finish that set first and they stay quiet.
+- **One line when you finish an exercise.** A new record if you set one, else a gain on last time, else how hard it felt — never all three.
+
+### Removed
+- **"Set down" call.** A weaker set than last time no longer gets a coach line.
+
 ## 11.3.0 - 2026-09-30
 
 ### Changed

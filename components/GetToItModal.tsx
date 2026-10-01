@@ -1,20 +1,21 @@
 "use client";
 
 import { useEffect, useRef } from "react";
-import { cancelRestAlarm, playCoachClip, playHorn, stopCoachClip } from "@/lib/playChime";
-import type { CoachTone } from "@/lib/coachTone";
+import { cancelRestAlarm, playHorn } from "@/lib/playChime";
 
 interface GetToItModalProps {
   open: boolean;
-  line: string;
-  clipTemplate?: string;
-  tone?: CoachTone;
   onClose: () => void;
 }
 
 const DISMISS_MS = 10000;
 
-export default function GetToItModal({ open, line, clipTemplate, tone = "master", onClose }: GetToItModalProps) {
+/**
+ * Rest-over screen. Deliberately just "Next" (horn + buzz, no coach voice): the coach's
+ * motivating line moved to a mid-set bubble once per exercise (docs/plans/PLAN_COACH_QUIETER.md),
+ * so the end of every rest stays a short, quiet cue instead of a spoken line after every set.
+ */
+export default function GetToItModal({ open, onClose }: GetToItModalProps) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
   const openedAtRef = useRef<number | null>(null);
@@ -56,12 +57,6 @@ export default function GetToItModal({ open, line, clipTemplate, tone = "master"
     };
   }, [open]);
 
-  useEffect(() => {
-    if (!open) return;
-    playCoachClip(clipTemplate, tone);
-    return () => stopCoachClip();
-  }, [open, clipTemplate, tone]);
-
   if (!open) return null;
 
   return (
@@ -85,7 +80,7 @@ export default function GetToItModal({ open, line, clipTemplate, tone = "master"
           Rest is over
         </p>
         <h2 className="get-to-it-text text-3xl font-black leading-tight tracking-tight text-white drop-shadow-[0_0_28px_rgba(255,255,255,0.45)] sm:text-5xl">
-          {line}
+          Next
         </h2>
         <p className="mt-10 text-sm font-semibold uppercase tracking-[0.25em] text-white/70">
           Tap anywhere to continue

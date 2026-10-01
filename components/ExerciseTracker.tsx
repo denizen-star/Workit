@@ -137,6 +137,8 @@ interface ExerciseTrackerProps {
  * so the celebration never gets cut off. See `resolveFinish` / `awaitPendingCelebration` below. */
 export interface ExerciseTrackerHandle {
   awaitPendingCelebration: () => Promise<void>;
+  /** Drop a pending mid-set motivator so it can't speak over the Finish or Exit screen. */
+  cancelMotivator: () => void;
 }
 
 const EXTRA_SET_CAP = 5;
@@ -144,6 +146,9 @@ const EXTRA_SET_CAP = 5;
 // animation durations in globals.css) before the deferred PR/gain-loss/hardness
 // flash is allowed to show, so the two never render on top of each other.
 const CELEBRATION_MS = 2400;
+/** Mid-set coach motivator lands this many seconds after its set's rest ends. */
+const MOTIVATOR_MIN_S = 10;
+const MOTIVATOR_MAX_S = 30;
 
 function parseMaybeNumber(value: string): number | null {
   if (value === '') return null;
@@ -287,8 +292,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const restClock = restSecondsWithExtra(restExtraMinutes, REST_SECONDS);
   const [restToken, setRestToken] = useState(0);
   const [restSeconds, setRestSeconds] = useState(restClock);
-  const [restLine, setRestLine] = useState('Finish it. Make me proud.');
-  const [restClip, setRestClip] = useState<string | undefined>();
   const [weightUnits, setWeightUnits] = useState<Record<string, WeightUnit>>({});
   const [timedTimer, setTimedTimer] = useState<{ index: number; target: number; gym: Exercise; exercise: Exercise } | null>(
     null
@@ -310,6 +313,59 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   useEffect(() => {
     exerciseSetsRef.current = exerciseSets;
   }, [exerciseSets]);
+
+  // Mid-set coach motivator (docs/plans/PLAN_COACH_QUIETER.md): at most one per
+  // exercise, spoken in the coach bubble 10–30 s into one randomly chosen set — set 2
+  // or later, since the rest before set 1 belongs to the previous exercise. It arms when
+  // the set before the chosen one completes, starts counting when that rest ends, and is
+  // dropped (never retried) if the athlete completes the set before it fires.
+  const motivatorSetRef = useRef<Record<string, number>>({});
+  const motivatedRef = useRef<Set<string>>(new Set());
+  const armedMotivatorRef = useRef<string | null>(null);
+  const motivatorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  /** The set number this exercise's motivator lands on, picked once per session. */
+  const motivatorSetFor = (exercise: Exercise) => {
+    if (motivatorSetRef.current[exercise.name] == null) {
+      motivatorSetRef.current[exercise.name] = 2 + Math.floor(Math.random() * (exercise.sets - 1));
+    }
+    return motivatorSetRef.current[exercise.name];
+  };
+
+  const clearMotivator = () => {
+    if (motivatorTimerRef.current) clearTimeout(motivatorTimerRef.current);
+    motivatorTimerRef.current = null;
+    armedMotivatorRef.current = null;
+  };
+
+  // SetRestTimer's onRestEnd: the armed exercise's chosen set is now underway.
+  const startMotivatorCountdown = () => {
+    const exerciseName = armedMotivatorRef.current;
+    if (!exerciseName) return;
+    armedMotivatorRef.current = null;
+    const delayMs = (MOTIVATOR_MIN_S + Math.random() * (MOTIVATOR_MAX_S - MOTIVATOR_MIN_S)) * 1000;
+    motivatorTimerRef.current = setTimeout(() => {
+      motivatorTimerRef.current = null;
+      const sets = exerciseSetsRef.current;
+      const completed = sets.filter((item) => item.is_completed).length;
+      const coach = pickCoachClip(completed, sets.length, tone, athleteName);
+      onCoachMoment?.({
+        tone,
+        expression: 'happy',
+        kicker: exerciseName,
+        title: 'Keep going',
+        body: coach.text,
+        clipTemplate: coach.clipTemplate,
+      });
+    }, delayMs);
+  };
+
+  useEffect(
+    () => () => {
+      if (motivatorTimerRef.current) clearTimeout(motivatorTimerRef.current);
+    },
+    []
+  );
 
   // Exercise-complete celebration (gold sweep + checkmark stamp) — always plays once
   // per exercise, fully, before the PR/gain-loss/hardness flash it gates is allowed
@@ -375,6 +431,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         };
         waitForQueue();
       }),
+    cancelMotivator: clearMotivator,
   }));
 
   useEffect(() => {
@@ -657,10 +714,6 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           // A program-set rest (Overload Progressions) replaces the stock clock and
           // the athlete's extra minutes entirely; everything else keeps restClock.
           setRestSeconds(gym?.restSeconds ?? restClock);
-          const completed = newSets.filter((item) => item.is_completed).length;
-          const coach = pickCoachClip(completed, newSets.length, tone, athleteName);
-          setRestLine(coach.text);
-          setRestClip(coach.clipTemplate);
           setRestToken((token) => token + 1);
         }
       }
@@ -683,6 +736,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const actualReps = overrideReps ?? set.actual_reps;
     const kind = kindFor(exercise);
     if (!canCompleteSet(kind, actualReps, set.weight_lbs)) return;
+
+    // Any completion ends whatever set a pending motivator was riding on — drop it.
+    clearMotivator();
+    // Arm this exercise's one motivator if the next planned set is its chosen one.
+    // Marked spent on arming, so a drop (set completed first) is never retried.
+    if (
+      !exercise.noRestAfter &&
+      set.set_number < exercise.sets &&
+      !motivatedRef.current.has(exercise.name) &&
+      motivatorSetFor(exercise) === set.set_number + 1
+    ) {
+      motivatedRef.current.add(exercise.name);
+      armedMotivatorRef.current = exercise.name;
+    }
 
     // Moving on to a different exercise resolves any still-pending finish from the
     // one just left — this is the fallback for a last planned set that finished but
@@ -744,6 +811,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       const exerciseName = exercise.name;
       const exerciseSetCount = exercise.sets;
       pendingFinishRef.current[exercise.name] = () => {
+        // One line per exercise, first match wins: New PR → Gains → Effort call
+        // (docs/plans/PLAN_COACH_QUIETER.md). A tier whose Noise Control switch is
+        // off, or that doesn't apply, falls through to the next. Losses say nothing.
         if (pendingPr && showPrs) {
           onCoachMoment?.({
             tone,
@@ -753,24 +823,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             body: `${exerciseName} · ${pendingPr.valueLabel}`,
             clipTemplate: PR_CLIPS[tone],
           });
-        }
-        if (noiseTakeover === 'set' && direction) {
-          const copy = setProgressCopy(direction, tone, athleteName);
+        } else if (noiseTakeover === 'set' && direction === 'up') {
+          const copy = setProgressCopy('up', tone, athleteName);
           onCoachMoment?.({
             tone,
-            expression: direction === 'up' ? 'happy' : 'mad',
-            kicker: direction === 'up' ? 'Set up' : 'Set down',
+            expression: 'happy',
+            kicker: 'Set up',
             title: copy.title,
             body: copy.body,
             clipTemplate: copy.clipTemplate,
           });
-        }
-        if (noiseEffort === 'set') {
-          // The "How hard?" takeover fires once per exercise (on its last planned
-          // set) instead of once per vote, since votes are optional and skippable.
+        } else if (noiseEffort === 'set') {
           // Read hardness fresh here, not from the `plannedSets` snapshot taken when
-          // this exercise's last set completed — the athlete rates that set's effort
-          // AFTER completing it, so the snapshot never had the real vote on it.
+          // this exercise's last set completed — a timed hold can still be rated on
+          // its folded row after completion, so the snapshot may not have the vote.
           const freshPlanned = setsForCard(exerciseSetsRef.current, gym.name, exerciseName).filter(
             (item) => item.set_number <= exerciseSetCount
           );
@@ -1601,14 +1667,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
       <SetRestTimer
         startToken={restToken}
-        line={restLine}
-        clipTemplate={restClip}
-        tone={tone}
         cancelled={allSetsComplete}
         completedSets={completedSetCount}
         totalSets={totalSetCount}
         seconds={restSeconds}
         onBannerChange={onRestBannerChange}
+        onRestEnd={startMotivatorCountdown}
       />
 
       <TimedSetTimer

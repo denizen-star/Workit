@@ -3,16 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import { Timer } from "lucide-react";
 import { formatClock } from "@/lib/formatDuration";
-import type { CoachTone } from "@/lib/coachTone";
 import { armRestAlarm, cancelRestAlarm, unlockAudio } from "@/lib/playChime";
 import GetToItModal from "./GetToItModal";
 import { REST_SECONDS } from "@/lib/estimateDuration";
 
 interface SetRestTimerProps {
   startToken: number;
-  line: string;
-  clipTemplate?: string;
-  tone?: CoachTone;
   cancelled?: boolean;
   completedSets?: number;
   totalSets?: number;
@@ -21,18 +17,19 @@ interface SetRestTimerProps {
    * changes, with that exact pixel height — so a sibling docked element (the floating
    * coach avatar) can lift clear of it by a measured amount instead of a guessed one. */
   onBannerChange?: (info: { active: boolean; height: number }) => void;
+  /** Fires once per rest when it ends — the clock hitting 0 or Skip — but not when the
+   * rest is cancelled (session's last set done). The mid-set coach motivator times off this. */
+  onRestEnd?: () => void;
 }
 
 export default function SetRestTimer({
   startToken,
-  line,
-  clipTemplate,
-  tone,
   cancelled = false,
   completedSets = 0,
   totalSets = 0,
   seconds = REST_SECONDS,
   onBannerChange,
+  onRestEnd,
 }: SetRestTimerProps) {
   const restFor = Math.max(1, seconds);
   const [remaining, setRemaining] = useState(restFor);
@@ -61,6 +58,10 @@ export default function SetRestTimer({
   const urgent = running && remaining > 0 && remaining <= 5;
 
   const closeGetToIt = () => setShowGetToIt(false);
+  // Held in a ref so the ticking interval below always calls the latest callback
+  // without re-arming itself every render.
+  const onRestEndRef = useRef(onRestEnd);
+  onRestEndRef.current = onRestEnd;
 
   useEffect(() => {
     if (startToken === 0) return;
@@ -107,6 +108,7 @@ export default function SetRestTimer({
       finishedRef.current = true;
       setRunning(false);
       setShowGetToIt(true);
+      onRestEndRef.current?.();
     };
 
     tick();
@@ -200,7 +202,10 @@ export default function SetRestTimer({
                   cancelRestAlarm();
                   setRunning(false);
                   setRemaining(0);
-                  if (!cancelled) setShowGetToIt(true);
+                  if (!cancelled) {
+                    setShowGetToIt(true);
+                    onRestEndRef.current?.();
+                  }
                 }}
                 className="min-h-12 shrink-0 rounded-2xl bg-white px-4 text-base font-black text-black hover:bg-gray-200 sm:px-5"
               >
@@ -210,13 +215,7 @@ export default function SetRestTimer({
           </div>
         </div>
       )}
-      <GetToItModal
-        open={showGetToIt && !cancelled}
-        line={line}
-        clipTemplate={clipTemplate}
-        tone={tone}
-        onClose={closeGetToIt}
-      />
+      <GetToItModal open={showGetToIt && !cancelled} onClose={closeGetToIt} />
     </>
   );
 }
