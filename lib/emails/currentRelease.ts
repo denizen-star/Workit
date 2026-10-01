@@ -34,27 +34,25 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.5.0',
-  title: 'See your week.',
-  subject: 'See your week — Work-It',
+  version: '11.6.0',
+  title: 'Your week, right away.',
+  subject: 'Your week, right away — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    'You have been putting the work in. I see it. Now The house shows your week, day by day, so the days you showed up are right there in front of you.',
-  mid: 'Under the time pills, your row runs Monday through Sunday. A green box means you finished a workout that day, and the number inside is how many. Open your row and you get each workout with its count. Right under you is the house: the average, rounded up, on those same seven days. Last 7 days is this calendar week. 30 days and all time roll every workout into its weekday.',
-  close:
-    'I believe in every day you show up. Keep stacking them. Quit is the only thing that stays off the week.',
+    'The weekday boxes on The house were showing up a beat late. You already had the house on screen. Those boxes should have been there with it. They are now.',
+  mid: 'Same seven days, Monday through Sunday. Green still means you finished a workout that day. Open your row for each workout and how many times. The house average sits right under you, rounded up. It all lands together now, with the rest of The house.',
+  close: 'I believe in the days you show up. Keep stacking them. Quit is the only thing that stays off the week.',
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Your week — finished workouts for Monday through Sunday, with a count in each box.',
-        'Green — that weekday has a workout.',
+        'Weekday boxes — they show with the rest of The house, not a moment later.',
+        'Your week — Monday through Sunday, a count in each box. Green means that day has a workout.',
         'Open your row — each workout and how many times you did it.',
         'The house — average workouts, rounded up, on the same seven days.',
-        'Last 7 days — this calendar week. 30 days and all time roll every workout into its weekday.',
       ],
     },
   ],
