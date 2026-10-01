@@ -1,5 +1,5 @@
 import { query } from '@/lib/db';
-import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { SQL_EXCLUDE_TEST_USER, SQL_NOT_JOIN_DRAFT } from '@/lib/householdUsers';
 import { exerciseCanonicalName, exerciseHistoryKey } from '@/lib/exerciseKey';
 import { getExerciseKind, setVolume } from '@/lib/exerciseKind';
 import { DAY_TYPE_ORDER } from '@/lib/feedback';
@@ -788,7 +788,7 @@ export async function householdAthletePerformance(
 ): Promise<HouseholdPerformanceRow[]> {
   const resolved = normalizePerformancePeriod(period);
   const users = options?.includeTest
-    ? await query('SELECT id, name FROM users ORDER BY name ASC, id ASC')
+    ? await query(`SELECT u.id, u.name FROM users u WHERE ${SQL_NOT_JOIN_DRAFT} ORDER BY u.name ASC, u.id ASC`)
     : await query(
         `SELECT DISTINCT u.id, u.name
          FROM users u

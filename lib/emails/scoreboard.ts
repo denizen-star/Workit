@@ -1,7 +1,7 @@
 import { query } from '@/lib/db';
 import { householdExerciseCompare, rankingSummary, standingSummary } from '@/lib/exerciseCompare';
 import { sqlSetVolume } from '@/lib/exerciseKind';
-import { isTestUserName, SQL_NOT_BLOCKED_USER } from '@/lib/householdUsers';
+import { isTestUserName, SQL_NOT_BLOCKED_USER, SQL_NOT_JOIN_DRAFT } from '@/lib/householdUsers';
 import { householdOptionalHonor, sqlUserOptionalVolume } from '@/lib/optionals';
 import { lockedWeeksByUserFromTable } from '@/lib/lockedWeeks';
 import { displayBelt } from '@/lib/belts';
@@ -123,7 +123,9 @@ function scoreboardRecipients(users: RosterUser[]) {
 
 export async function sendScoreboardEmail(opts?: { force?: boolean }) {
   // Recipients only: blocked athletes still appear on the board itself (loadScoreboardBoard).
-  const users = await query(`SELECT u.id, u.name, u.email FROM users u WHERE ${SQL_NOT_BLOCKED_USER} ORDER BY u.id ASC`);
+  const users = await query(
+    `SELECT u.id, u.name, u.email FROM users u WHERE ${SQL_NOT_BLOCKED_USER} AND ${SQL_NOT_JOIN_DRAFT} ORDER BY u.id ASC`
+  );
   const recipients = scoreboardRecipients(users.rows as RosterUser[]);
   if (recipients.length === 0) return { sent: false, skipped: 'no-recipients', results: [] };
 

@@ -242,6 +242,9 @@ async function loadRecentUsers(): Promise<UserRow[]> {
           >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${ONBOARDING_WINDOW_DAYS} DAY))
         OR (u.pin_hash IS NULL AND u.invite_token IS NOT NULL
           AND COALESCE(u.invited_at, u.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 30 DAY))
+        OR (u.pin_hash IS NULL AND u.invite_token IS NULL AND u.invited_by IS NULL
+          AND u.email_verified_at IS NULL
+          AND u.created_at >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${ONBOARDING_WINDOW_DAYS} DAY))
       )
     ORDER BY COALESCE(u.adult_risk_confirmed_at, u.invited_at, u.created_at) DESC`;
   try {
@@ -446,20 +449,37 @@ export async function loadOnboardingReport(now = Date.now()): Promise<Onboarding
     if (joinedMs >= funnelSince) funnelRow(user.house_slug || 'unknown').joined += 1;
   }
 
-  const stuckVisitors: OnboardingVisitorRow[] = visitors
-    .filter((v) => v.lastMs >= funnelSince && v.stage !== 'joined' && !withAccounts.has(v.id) && !v.claimHash)
-    .sort((a, b) => b.lastMs - a.lastMs)
-    .slice(0, 20)
-    .map((v) => ({
-      house: houseName(v.house),
-      source: JOIN_SOURCE_LABEL[v.source],
-      furthest: STAGE_LABEL[v.stage],
-      lastSeen: agoLabel(v.lastMs, now),
-      where: v.where,
+  // Public sign-ups that saved their details (form Next) but never set a PIN.
+  const isJoinDraft = (user: UserRow) => !Number(user.has_pin) && !user.invite_token;
+  const draftVisitors: OnboardingVisitorRow[] = users
+    .filter(isJoinDraft)
+    .map((user) => ({
+      name: user.name,
+      email: user.email,
+      house: user.house_name || '—',
+      source: user.join_source ? JOIN_SOURCE_LABEL[user.join_source as JoinSource] : 'Unknown',
+      furthest: 'Gave details, no PIN yet',
+      lastSeen: agoLabel(parseDbTime(user.created_at), now),
+      where: null,
     }));
 
+  const stuckVisitors: OnboardingVisitorRow[] = [
+    ...draftVisitors,
+    ...visitors
+      .filter((v) => v.lastMs >= funnelSince && v.stage !== 'joined' && !withAccounts.has(v.id) && !v.claimHash)
+      .sort((a, b) => b.lastMs - a.lastMs)
+      .slice(0, 20)
+      .map((v) => ({
+        house: houseName(v.house),
+        source: JOIN_SOURCE_LABEL[v.source],
+        furthest: STAGE_LABEL[v.stage],
+        lastSeen: agoLabel(v.lastMs, now),
+        where: v.where,
+      })),
+  ];
+
   const invites: OnboardingInviteRow[] = users
-    .filter((user) => !Number(user.has_pin))
+    .filter((user) => !Number(user.has_pin) && user.invite_token)
     .map((user) => {
       const opened = visitors
         .filter((v) => v.claimHash && v.claimHash === user.invite_token)

@@ -129,6 +129,44 @@ export default function JoinPage() {
     });
   }, [ready, step, h, src, claim]);
 
+  const joinBody = () => ({
+    h,
+    claim,
+    src,
+    firstName,
+    lastName,
+    displayName,
+    email,
+    phone,
+    bodyWeightLb,
+    photo,
+    scheduleDaysPerWeek: scheduleDays,
+    acceptedWaiver: accepted,
+    adultRiskConfirmed: adultConfirmed,
+  });
+
+  // Saves an unverified, PIN-less account now so a drop-off on the PIN screen isn't lost.
+  const saveDetails = async () => {
+    setBusy(true);
+    setError('');
+    const res = await fetch('/api/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...joinBody(), action: 'details' }),
+    }).catch(() => null);
+    const data = res ? await res.json().catch(() => ({})) : {};
+    setBusy(false);
+    if (data.exists) {
+      router.replace('/login');
+      return;
+    }
+    if (!res?.ok) {
+      setError(data.error || 'Could not save your details');
+      return;
+    }
+    setStep('pin');
+  };
+
   // Takes confirmPinValue explicitly rather than reading the `confirmPin` state
   // directly: the auto-submit call fires from the same PinPad onChange handler
   // that just called setConfirmPin(value), and since that update hasn't
@@ -140,23 +178,7 @@ export default function JoinPage() {
     const res = await fetch('/api/join', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        h,
-        claim,
-        src,
-        firstName,
-        lastName,
-        displayName,
-        email,
-        phone,
-        bodyWeightLb,
-        photo,
-        scheduleDaysPerWeek: scheduleDays,
-        acceptedWaiver: accepted,
-        adultRiskConfirmed: adultConfirmed,
-        pin,
-        confirmPin: confirmPinValue,
-      }),
+      body: JSON.stringify({ ...joinBody(), pin, confirmPin: confirmPinValue }),
     });
     const data = await res.json();
     setBusy(false);
@@ -325,7 +347,7 @@ export default function JoinPage() {
           {error ? <p className="mt-3 text-sm text-[#a35d52]">{error}</p> : null}
           <button
             type="button"
-            disabled={!accepted}
+            disabled={!accepted || busy}
             onClick={() => {
               if (!adultConfirmed) {
                 setStep('agree');
@@ -339,8 +361,7 @@ export default function JoinPage() {
                 setError('Enter a valid email');
                 return;
               }
-              setError('');
-              setStep('pin');
+              void saveDetails();
             }}
             className="mt-8 min-h-12 rounded-2xl bg-[#e8c547] text-lg font-black text-[#1a1404] disabled:opacity-40"
           >

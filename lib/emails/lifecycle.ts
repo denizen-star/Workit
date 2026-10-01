@@ -23,6 +23,7 @@ import { feedbackMailTo } from '@/lib/emails/feedback';
 import { clampScheduleDays, daysForWeekFn } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
 import { sessionBodyWeightNote } from '@/lib/bodyWeight';
+import { SQL_NOT_JOIN_DRAFT } from '@/lib/householdUsers';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -186,9 +187,9 @@ export async function sendWelcomeEmail(user: { id: number; name: string; email: 
 
 export async function resendWelcomeEmails() {
   const result = await query(
-    `SELECT id, name, email FROM users
-     WHERE email IS NOT NULL AND email != ''
-     ORDER BY id ASC`
+    `SELECT u.id, u.name, u.email FROM users u
+     WHERE u.email IS NOT NULL AND u.email != '' AND ${SQL_NOT_JOIN_DRAFT}
+     ORDER BY u.id ASC`
   );
   const results = [];
   for (const user of result.rows as { id: number; name: string; email: string }[]) {

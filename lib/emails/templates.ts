@@ -1195,6 +1195,9 @@ export type OnboardingFunnelRow = {
 };
 
 export type OnboardingVisitorRow = {
+  /** Set only for sign-ups that saved their details; anonymous browsers have neither. */
+  name?: string;
+  email?: string | null;
   house: string;
   source: string;
   furthest: string;
@@ -1388,6 +1391,7 @@ export function buildOnboardingReportEmail(input: OnboardingReportInput): BuiltE
         .map(
           (v) =>
             '<div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.08);font-size:13px;color:#f6f1e3;">' +
+            (v.name ? '<strong>' + esc(v.name) + '</strong>' + (v.email ? ' · ' + esc(v.email) : '') + ' · ' : '') +
             '<strong style="color:' +
             REPORT_COPPER +
             ';">' +
@@ -1470,7 +1474,12 @@ export function buildOnboardingReportEmail(input: OnboardingReportInput): BuiltE
     'LEFT THE WIZARD PARTWAY',
     ...(input.stuckVisitors.length
       ? input.stuckVisitors.map(
-          (v) => '  ' + v.house + ' · ' + v.source + ' · ' + v.furthest + ' · ' + v.lastSeen + (v.where ? ' · ' + v.where : '')
+          (v) =>
+            '  ' +
+            (v.name ? v.name + (v.email ? ' <' + v.email + '>' : '') + ' · ' : '') +
+            v.house +
+            ' · ' +
+            v.source + ' · ' + v.furthest + ' · ' + v.lastSeen + (v.where ? ' · ' + v.where : '')
         )
       : ['  None.']),
     ...(input.invites.length

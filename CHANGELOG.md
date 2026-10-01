@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 11.2.1 - 2026-09-30
+
+### Fixed
+- **Sign-ups aren't lost on the PIN screen.** Tapping **Next** after your name and email now saves you right away as a pending account. If you stop before choosing a PIN, coming back with the same email picks up where you left off. The account can't sign in until the PIN is set and the email is verified, and it doesn't appear on any house board until then.
+
+### Internal
+- Kevin's nightly onboarding report lists those unfinished sign-ups by name and email under "Left the wizard partway".
+- Unfinished sign-ups are kept out of the weekly scoreboard mail, the welcome resend and the athlete filter on Your performance.
+
 ## 11.2.0 - 2026-09-27
 
 ### Added
