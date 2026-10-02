@@ -12,6 +12,7 @@ export const MAIL_TEMPLATES = [
   'belt',
   'scoreboard',
   'release',
+  'scorecard',
   'schedule_days_ask',
   'onboarding',
 ] as const;

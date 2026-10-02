@@ -1,3 +1,4 @@
+import { buildScorecardEmail } from '@/lib/emails/scorecard';
 import { athleteCallName, firstName } from '@/lib/profile';
 import { sessionWhereLabel, TEST_DRIVE_EMAIL_LINE } from '@/lib/testDrive';
 import { formatDuration } from '@/lib/formatDuration';
@@ -1676,6 +1677,17 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
           ],
         },
       ],
+    });
+  }
+  if (template === 'scorecard') {
+    return buildScorecardEmail('Sample', {
+      sessions: 20,
+      totalSets: 300,
+      avgHardness: '3.5',
+      avgSec: '110.0',
+      rushedRate: '15.0',
+      houseAvgSec: '115.0',
+      houseRushedRate: '25.0'
     });
   }
   if (template === 'onboarding') {

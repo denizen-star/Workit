@@ -27,6 +27,7 @@ const LABELS: Record<MailTemplateId, string> = {
   belt: 'Diploma',
   scoreboard: 'Scoreboard',
   release: "What's new",
+  scorecard: 'Scorecard',
   schedule_days_ask: 'Days per week check-in',
   onboarding: 'Onboarding report',
 };
@@ -39,7 +40,7 @@ export default function AdminMailPage() {
   const [busy, setBusy] = useState(false);
 
   const load = async (next: MailTemplateId) => {
-    const response = await fetch('/api/admin/mail?template=' + next + (next === 'scoreboard' || next === 'onboarding' ? '&live=1' : ''));
+    const response = await fetch('/api/admin/mail?template=' + next + ((next === 'scoreboard' || next === 'onboarding' || next === 'scorecard') ? '&live=1' : ''));
     if (response.status === 401 || response.status === 403) {
       router.replace('/home');
       return;
@@ -78,6 +79,10 @@ export default function AdminMailPage() {
               ? data.result?.sent
                 ? 'Onboarding report sent'
                 : 'Onboarding report not sent (' + (data.result?.skipped || 'SMTP') + ')'
+            : body.action === 'scorecards'
+              ? data.result?.sent
+                ? 'Scorecards sent to ' + data.result?.count + ' athletes'
+                : 'Scorecards not sent (' + (data.result?.skipped || 'SMTP') + ')'
               : 'Sample sent to ' + data.to
       );
     } catch {
@@ -95,25 +100,7 @@ export default function AdminMailPage() {
           SMTP {preview?.enabled ? 'is on' : 'is off or not loaded'}. Samples go to {preview?.adminEmail || 'your profile email'}.
         </p>
 
-        <div className="mt-6 flex flex-wrap gap-2">
-          {MAIL_TEMPLATES.map((id) => (
-            <button
-              key={id}
-              type="button"
-              onClick={() => setTemplate(id)}
-              className={
-                'min-h-10 rounded-2xl px-3 text-sm font-semibold ' +
-                (template === id
-                  ? 'bg-[#e8c547] text-[#1a1404]'
-                  : 'border border-white/10 text-[#f6f1e3]/80')
-              }
-            >
-              {LABELS[id]}
-            </button>
-          ))}
-        </div>
-
-        <div className="mt-4 flex flex-wrap gap-3">
+        <div className="mt-4 flex flex-wrap justify-center gap-3">
           <button
             type="button"
             disabled={busy}
@@ -146,9 +133,50 @@ export default function AdminMailPage() {
           >
             Send onboarding report
           </button>
+          <button
+            type="button"
+            disabled={busy}
+            onClick={() => post({ action: 'scorecards' })}
+            className="min-h-11 rounded-2xl border border-white/10 px-4 font-semibold text-[#f6f1e3]/85 disabled:opacity-50"
+          >
+            Send Pacing
+          </button>
         </div>
 
-        {status && <p className="mt-4 text-sm font-semibold text-[#e8c547]">{status}</p>}
+        <div className="mt-6 flex justify-center">
+          <select
+            value={template}
+            onChange={(e) => setTemplate(e.target.value as MailTemplateId)}
+            className="min-h-11 w-full max-w-sm rounded-2xl border border-white/10 bg-[#12121a] px-4 py-2 text-sm font-semibold text-[#f6f1e3] outline-none focus:border-[#e8c547]"
+          >
+            <optgroup label="Onboarding & Auth">
+              <option value="welcome">{LABELS.welcome}</option>
+              <option value="verify">{LABELS.verify}</option>
+              <option value="invite">{LABELS.invite}</option>
+              <option value="pin_reset">{LABELS.pin_reset}</option>
+            </optgroup>
+            <optgroup label="Active Workouts">
+              <option value="nudge">{LABELS.nudge}</option>
+              <option value="resume">{LABELS.resume}</option>
+              <option value="complete">{LABELS.complete}</option>
+            </optgroup>
+            <optgroup label="Achievements">
+              <option value="week">{LABELS.week}</option>
+              <option value="program">{LABELS.program}</option>
+              <option value="badge">{LABELS.badge}</option>
+              <option value="belt">{LABELS.belt}</option>
+            </optgroup>
+            <optgroup label="Reports & Broadcasts">
+              <option value="scoreboard">{LABELS.scoreboard}</option>
+              <option value="scorecard">{LABELS.scorecard}</option>
+              <option value="schedule_days_ask">{LABELS.schedule_days_ask}</option>
+              <option value="onboarding">{LABELS.onboarding}</option>
+              <option value="release">{LABELS.release}</option>
+            </optgroup>
+          </select>
+        </div>
+
+        {status && <p className="mt-4 text-center text-sm font-semibold text-[#e8c547]">{status}</p>}
 
         {preview && (
           <div className="mt-8 overflow-hidden rounded-2xl border border-white/10 bg-[#12121a]">

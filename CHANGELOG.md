@@ -2,7 +2,11 @@
 
 ## Unreleased
 
-## 11.6.0 - 2026-10-01
+### Added
+- **Performance Scorecards.** Added a new "Scorecard" email template in the Admin Mailing Suite that sends athletes personalized pacing telemetry. The email details their average time per set and rushed set percentage compared against the house average, along with a custom coach's note addressing injury risks if they are speedrunning through their sets.
+- **Mailing Suite Categories.** The Admin Mailing Suite template selector is now a categorized dropdown.
+
+## 11.7.0 - 2026-10-02
 
 ### Added
 - **Kevin sees every athlete's week.** On The house, one weekday row per athlete who finished a workout in the selected period, real names, most workouts first. Everyone else still sees only their own row and the house average.

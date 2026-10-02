@@ -29,30 +29,28 @@ export const CURRENT_RELEASE: {
   mid?: string;
   close?: string;
   groups: ReleaseGroup[];
-  /** Extra / replacement copy for Kevin only. Athletes never see this. */
   kevin?: ReleaseCopy;
   wins: string[];
   also: string[];
 } = {
-  version: '11.6.0',
-  title: 'Your week, right away.',
-  subject: 'Your week, right away — Work-It',
+  version: '11.7.0',
+  title: 'The numbers are in.',
+  subject: 'Performance Scorecards — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
+  onlyAthletes: ['Kevin Leacock'],
   includeNewAthletes: false,
-  intro:
-    'The weekday boxes on The house were showing up a beat late. You already had the house on screen. Those boxes should have been there with it. They are now.',
-  mid: 'Same seven days, Monday through Sunday. Green still means you finished a workout that day. Open your row for each workout and how many times. The house average sits right under you, rounded up. It all lands together now, with the rest of The house.',
-  close: 'I believe in the days you show up. Keep stacking them. Quit is the only thing that stays off the week.',
+  intro: 'We have been watching the clock. Every set, every rest, every moment you hold the line. Now we are showing you exactly what that looks like.',
+  mid: 'We just rolled out Performance Scorecards. This is a personalized breakdown of your pacing and rest times. We see the average time you spend per set, and we see when you rush through an accessory movement in under 15 seconds. If you are speedrunning, we are going to tell you to slow down to prevent injury. If you are holding the standard, we are going to tell you exactly how you beat the house.',
+  close: 'Take your full rests. Keep your form tight. I believe in the work you are doing. Quit is the only thing we do not measure.',
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Weekday boxes — they show with the rest of The house, not a moment later.',
-        'Your week — Monday through Sunday, a count in each box. Green means that day has a workout.',
-        'Open your row — each workout and how many times you did it.',
-        'The house — average workouts, rounded up, on the same seven days.',
+        'Performance Scorecards — personalized telemetry showing your average time per set and your rate of rushed sets.',
+        'House Averages — your scorecard compares your pacing directly to the rest of the house.',
+        'Injury Prevention — we flag when you skip your 90-second rests so you can fix it before an injury happens.',
       ],
     },
   ],
