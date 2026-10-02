@@ -67,6 +67,26 @@ function cloneExercises(exercises: Exercise[], note?: string): Exercise[] {
   }));
 }
 
+/**
+ * Week 7+ swaps from the weeks 1–6 source days. Same slot and sets; the old move stays
+ * one Alt tap away (lib/altExercises.ts). New names start their own history — they are
+ * not grouped with what they replace in lib/exerciseKey.ts.
+ * - Upper B: the decline (lower chest) instead of the incline.
+ * - Lower B: Leg Press as the main quad lift instead of the leg extension / step-up
+ *   finisher, at heavier-lift reps.
+ */
+const WEEK_7_SWAPS: Record<string, Partial<Exercise> & { name: string }> = {
+  'Incline Dumbbell Bench Press': { name: 'Decline Dumbbell Bench Press' },
+  'Leg Extension Machine or Goblet Step-Ups': { name: 'Leg Press', reps: '10-12' },
+};
+
+function withWeek7Swaps(exercises: Exercise[]): Exercise[] {
+  return exercises.map((exercise) => {
+    const swap = WEEK_7_SWAPS[exercise.name];
+    return swap ? { ...exercise, ...swap } : exercise;
+  });
+}
+
 /** Phase title + note by program week. Also used by Your pick (lib/yourPick.ts). */
 export function blockFor(weekNumber: number) {
   const easy = weekNumber % 6 === 0;
@@ -145,12 +165,12 @@ export function buildYearWeeks(firstSix: WeekPlan[]): WeekPlan[] {
           ...lower,
           dayNumber: 2,
           suggestedDay: 'Tuesday',
-          exercises: cloneExercises(lower.exercises, block.note),
+          exercises: cloneExercises(withWeek7Swaps(lower.exercises), block.note),
         },
         {
           ...upperB,
           dayNumber: 3,
-          exercises: cloneExercises(upperB.exercises, block.note),
+          exercises: cloneExercises(withWeek7Swaps(upperB.exercises), block.note),
         },
         {
           dayNumber: 4,

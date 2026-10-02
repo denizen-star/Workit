@@ -51,9 +51,20 @@ const EXPLICIT_TRAVEL_SUBSTITUTE_NAMES = [
   'Towel Straight-Arm Pulls',
   'Wall Lateral ISO Raises',
   'Backpack Floor Flyes',
+  'Backpack Woodchops',
+  'Inchworm Walkouts',
+  'Lying Leg Raises',
 ];
 
-const ALREADY_BODYWEIGHT_NAMES = ['Plank Hold', 'Dead Bugs', 'Hanging Knee Raises'];
+const ALREADY_BODYWEIGHT_NAMES = [
+  'Plank Hold',
+  'Dead Bugs',
+  'Hanging Knee Raises',
+  'Reverse Crunches',
+  'Crunches',
+  'Bicycle Crunches',
+  'Russian Twists',
+];
 
 export const TRAVEL_FRIENDLY_EXERCISE_NAMES = new Set([
   ...EXPLICIT_TRAVEL_SUBSTITUTE_NAMES,

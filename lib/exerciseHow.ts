@@ -5,6 +5,14 @@ const HOW: Record<string, string> = {
     'Lie on the bench, feet planted. Lower the bar or dumbbells to mid-chest. Press up without bouncing.',
   'Incline Dumbbell Bench Press':
     'Set the bench on a slight incline. Lower the dumbbells to the upper chest. Press up in a straight line.',
+  'Decline Dumbbell Bench Press':
+    'Set the bench on a slight decline, feet hooked. Lower the dumbbells to the lower chest. Press up and slightly back over the chest.',
+  'Chest Dips':
+    'Hands on parallel bars. Lean the chest forward, elbows slightly out. Lower until the shoulders dip just below the elbows. Press up.',
+  'High-to-Low Cable Fly':
+    'Pulleys high, one handle in each hand, step forward. Soft elbows. Sweep the hands down and together in front of the hips. Open slow.',
+  'Incline Push-Ups':
+    'Hands on a bench, desk or counter. Body in one line. Lower the chest to the edge. Press up. Higher hands makes it easier.',
   'Single-Arm Dumbbell Rows':
     'Hinge, one hand on a bench. Pull the dumbbell to the hip. Keep the shoulder down. Do not twist.',
   'Barbell or Chest-Supported Rows':
@@ -51,6 +59,12 @@ const HOW: Record<string, string> = {
     'Upper back on a bench, or shoulders on the floor. Drive through the heels. Squeeze the glutes at the top. Do not arch the ribs.',
   'Leg Extension Machine or Goblet Step-Ups':
     'Extension: extend the knees, pause, lower slow. Step-up: whole foot on the box, drive up, control the down.',
+  'Leg Press':
+    'Back flat on the pad, feet shoulder width mid-platform. Lower until the knees reach about 90 degrees. Press through the whole foot. Do not lock the knees.',
+  'Leg Extension Machine':
+    'Pad on the front of the ankles, knees in line with the pivot. Extend the knees, pause at the top, lower slow.',
+  'Goblet Step-Ups':
+    'Hold a dumbbell at the chest. Whole foot on the box. Drive up through that heel. Control the step down.',
   "Farmer's Carries":
     'Stand tall with a weight in each hand. Walk even steps. Shoulders packed. Do not lean or shrug.',
   'Dumbbell or Barbell Shrugs':
@@ -67,6 +81,28 @@ const HOW: Record<string, string> = {
     'On the back, ribs down. Opposite arm and leg reach long. Do not let the low back lift. Return and switch.',
   'Side Plank':
     'On one forearm. Stack or stagger the feet. Lift the hips. Head to heels in one line. Do not roll forward.',
+  'Hanging Knee Raises':
+    'Hang from the bar. Pack your shoulder blades down and back, proud chest, before you lift. Lift the knees toward the chest without swinging. Lower slow.',
+  'Hanging Leg Raises':
+    'Hang from the bar, shoulders packed. Legs straight, lift them to hip height or higher. No swing. Lower slow.',
+  'Ab Wheel Rollouts':
+    'Knees on a mat, hands on the wheel. Roll out as far as the low back stays flat. Ribs down. Pull back with the abs.',
+  'Reverse Crunches':
+    'On the back, knees bent up. Curl the hips off the floor toward the ribs. Lower slow. No swinging the legs.',
+  Crunches:
+    'On the back, knees bent, hands by the ears. Curl the shoulders off the floor. Pause. Lower slow. Do not pull the neck.',
+  'Bicycle Crunches':
+    'On the back, hands by the ears. Elbow to the opposite knee while the other leg reaches long. Slow and controlled.',
+  'Russian Twists':
+    'Sit, lean back a little, chest tall. Rotate the shoulders side to side. Feet down or up. Spine stays long.',
+  'Cable Woodchops':
+    'Cable high and to one side. Arms long. Pull it down and across the body, pivoting the back foot. Control it back up.',
+  'Lying Leg Raises':
+    'On the back, hands by the hips. Legs straight, lift them to vertical. Lower slow without the low back lifting.',
+  'Inchworm Walkouts':
+    'Stand, fold, hands to the floor. Walk the hands out to a plank. Hold a beat. Walk them back and stand.',
+  'Backpack Woodchops':
+    'Hold a packed backpack high to one side. Chop it down and across to the opposite hip, pivoting the back foot. Control it back up.',
 
   'Push-Ups / Incline Push-Ups':
     'Hands under the shoulders. Body in one line. Lower the chest toward the floor or a surface. Press up. Hands on a desk makes it easier. Feet on a chair makes it harder.',

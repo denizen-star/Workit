@@ -17,6 +17,7 @@ export const BODYWEIGHT_SHARES: Record<string, number> = {
   'Pike Push-Ups': 0.7,
   'Bench Dips': 0.6,
   'Bench Dips or Bodyweight Triceps Extensions': 0.6,
+  'Chest Dips': 0.9,
   // Legs
   'Bodyweight Squats': 0.7,
   'Bodyweight Squats or Tempo Squats': 0.7,
@@ -37,6 +38,9 @@ export const BODYWEIGHT_SHARES: Record<string, number> = {
   // Core
   'Floor Leg Raises or Bodyweight Wall Rollouts': 0.3,
   'Hanging Knee Raises or Ab Wheel Rollouts': 0.35,
+  'Hanging Knee Raises': 0.35,
+  'Hanging Leg Raises': 0.35,
+  'Lying Leg Raises': 0.3,
 };
 
 /** Share of body weight one rep of this movement moves, or null when it earns no credit. */

@@ -47,6 +47,8 @@ const GROUPS: string[][] = [
   [
     "Hanging Knee Raises or Ab Wheel Rollouts",
     "Floor Leg Raises or Bodyweight Wall Rollouts",
+    // The rotation split the pair (lib/abCoreRotation.ts); knee raises keep the combo's history.
+    "Hanging Knee Raises",
   ],
   [
     "Barbell Back Squats or Goblet Squats",

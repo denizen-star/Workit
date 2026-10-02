@@ -83,6 +83,11 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "cable chest fly": { images: gym.bench, videoId: "QcTcWpkn_bw" },
   "backpack floor flyes": { images: gym.hotel, videoId: "bgC53-J-6gA" },
   "dumbbell flyes": { images: gym.bench, videoId: "QENKPHhQVi4" },
+  // Week 7+ Upper B lower-chest press and its Alt options.
+  "decline dumbbell bench press": { images: gym.bench, videoId: "EUzyhT_fwVs" },
+  "chest dips": { images: gym.bench, videoId: "CclRYasxxio" },
+  "high-to-low cable fly": { images: gym.bench, videoId: "Rwz69lvgJys" },
+  "incline push-ups": { images: gym.hotel, videoId: "0JUrOH--Kdk" },
   "dumbbell biceps curls": { images: gym.dumbbell, videoId: "XE_pHwbst04" },
   "db biceps curls": { images: gym.hotel, videoId: "XE_pHwbst04" },
   "hanging knee raises or ab wheel rollouts": {
@@ -144,6 +149,19 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "reverse wrist curls": { images: gym.dumbbell, videoId: "SfENsl5klVA" },
   "dead bugs": { images: gym.core, videoId: "4XLEnwUr1d8" },
   "side plank": { images: gym.core, videoId: "rCxF2nG9vQ0" },
+  // Ab/core rotation pool (lib/abCoreRotation.ts) + travel swaps. Exact keys so the
+  // substring fallback never hands "hanging knee raises" the two-tab combo video.
+  "hanging knee raises": { images: gym.core, videoId: "G6a5267YpHM" },
+  "hanging leg raises": { images: gym.core, videoId: "JXztA3fLp50" },
+  "ab wheel rollouts": { images: gym.core, videoId: "kISuoI7QCYk" },
+  "reverse crunches": { images: gym.core, videoId: "ue6j6k0Vgbc" },
+  crunches: { images: gym.core, videoId: "GWIEON0VSaY" },
+  "bicycle crunches": { images: gym.core, videoId: "PAEo-zRSanM" },
+  "russian twists": { images: gym.core, videoId: "RUNrHkbP4Pc" },
+  "cable woodchops": { images: gym.core, videoId: "PCQCwP1Xy0g" },
+  "lying leg raises": { images: gym.hotel, videoId: "JB2oyawG9KI" },
+  "inchworm walkouts": { images: gym.hotel, videoId: "dUoWvQZeuAA" },
+  "backpack woodchops": { images: gym.hotel, videoId: "tH8ZeVgupYY" },
   "backpack shrugs": { images: gym.hotel, videoId: "xiLT85G_GuU" },
   "floor pullovers or towel straight-arm pulls": { images: gym.hotel, videoId: "FK4rHfWKObA" },
   "close-grip push-ups or backpack skull crushers": { images: gym.hotel, videoId: "tj81tVq3wLo" },

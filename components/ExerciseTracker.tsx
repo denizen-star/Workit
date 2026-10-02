@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Check, ChevronDown, Edit2, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, CircleDashed, Edit2, Play, Plus, Trash2 } from 'lucide-react';
 import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
@@ -41,6 +41,7 @@ import {
   setLogLabel,
   setVolume,
   weightFieldLabel,
+  weightFieldOptional,
   type ExerciseKind,
 } from '@/lib/exerciseKind';
 import {
@@ -1427,8 +1428,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
                         <div className="mb-4 grid grid-cols-2 gap-3">
                           <div>
-                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                            <label className="mb-1 flex items-center gap-1 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
                               {weightFieldLabel(kind, set.exercise_name, unit)}
+                              {weightFieldOptional(kind, set.exercise_name) && (
+                                <span title="Optional" className="inline-flex">
+                                  <CircleDashed aria-hidden="true" className="h-3 w-3" />
+                                  <span className="sr-only">(optional)</span>
+                                </span>
+                              )}
                             </label>
                             <input
                               type="number"
@@ -1466,7 +1473,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           </div>
 
                           <div>
-                            <label className="mb-1 block text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
+                            <label className="mb-1 block whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-[#f6f1e3]/55">
                               {primaryFieldLabel(kind)}
                             </label>
                             <input

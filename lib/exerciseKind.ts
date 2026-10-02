@@ -38,6 +38,11 @@ export function getExerciseKind(name: string, reps: string): ExerciseKind {
     n.includes("wall rollout") ||
     n.includes("backpack") ||
     n.includes("dead bug") ||
+    // Ab/core rotation pool (lib/abCoreRotation.ts): no load to log, so "0 = BW".
+    n.includes("crunch") ||
+    n.includes("russian twist") ||
+    n.includes("knee raise") ||
+    n.includes("ab wheel") ||
     r === "max"
   ) {
     return "bodyweight";
@@ -71,13 +76,19 @@ export function primaryFieldLabel(kind: ExerciseKind): string {
   return "Reps";
 }
 
-/** Weight input label. A movement that counts body weight (lib/bodyweightShare.ts) asks for extra load only. */
+/** Weight input label. A movement that counts body weight (lib/bodyweightShare.ts) asks for extra load only.
+ * Kept to one line so the weight and reps inputs stay level; "optional" is an icon (`weightFieldOptional`). */
 export function weightFieldLabel(kind: ExerciseKind, name?: string, unit: "lb" | "kg" = "lb"): string {
-  if (bodyweightShare(name) != null) return unit === "kg" ? "Extra weight kg (optional)" : "Extra weight (optional)";
+  if (bodyweightShare(name) != null) return unit === "kg" ? "Extra kg" : "Extra weight";
   if (unit === "kg") return kind === "bodyweight" ? "Weight kg (0 = BW)" : "Weight (kg)";
   if (kind === "bodyweight") return "Weight (0 = BW)";
-  if (kind === "timed" || kind === "distance") return "Weight (optional)";
+  if (kind === "timed" || kind === "distance") return "Weight";
   return "Weight (lbs)";
+}
+
+/** Whether the weight field can be left blank: extra load on a body-weight move, or a timed / distance set. */
+export function weightFieldOptional(kind: ExerciseKind, name?: string): boolean {
+  return bodyweightShare(name) != null || kind === "timed" || kind === "distance";
 }
 
 /** `bodyweightLb` = the set's stamped body-weight credit; shown as "134 lb body (+ extra) × reps". */

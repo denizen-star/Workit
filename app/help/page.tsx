@@ -531,6 +531,12 @@ export default function HelpPage() {
             <span className="font-black text-[#e8c547]">Belts</span> page.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
+            From week 4, every workout carries one ab/core move from a pool of 12. It changes every week, never
+            repeats inside a week, and switches between the start and the end of the workout. From week 7, Upper B
+            opens with a decline press (lower chest) and Lower B swaps the leg extension for the leg press — the old
+            moves are one <span className="font-black text-[#e8c547]">Alt</span> tap away.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
             Training fewer or more days a week? Set your own pace (1 to 5 days) in{' '}
             <span className="font-black text-[#e8c547]">Edit profile</span> — 1 to 3 day plans swap the split for
             full-body days so nothing gets skipped, and a 5-day plan&apos;s 5th day is a Your pick. A week you&apos;ve already locked stays locked even if you

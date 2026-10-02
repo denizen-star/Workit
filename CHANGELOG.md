@@ -2,6 +2,22 @@
 
 ## Unreleased
 
+## 11.9.0 - 2026-10-02
+
+### Added
+- **12 ab/core moves, not 5.** From week 4, every workout gets one of: plank, side plank, dead bugs, Pallof press, crunches, reverse crunches, bicycle crunches, Russian twists, cable woodchops, hanging knee raises, hanging leg raises, ab wheel rollouts. Moves that need a bar, wheel or cable get a no-equipment swap on travel days.
+- **Lower chest on Upper B.** From week 7, Upper B opens with a decline dumbbell press. The incline is the first Alt option, along with chest dips, high-to-low cable fly and incline push-ups.
+- **Leg press on Lower B.** From week 7, leg press replaces leg extension / goblet step-ups as Lower B's quad lift (3 × 10–12). Both old moves are on its Alt list. Leg press now has photos, a How tip and a travel swap everywhere it appears.
+
+### Changed
+- **The core move actually rotates.** It used to land on the same move for the same day for weeks, and always at the same end of the workout. Now it changes every week, never repeats inside a week, and flips between start and end.
+- **Hanging knee raises** are their own move now (split from "or ab wheel rollouts"), and keep your history. Their How tip says to pack the shoulder blades down and back first.
+- **Weight and Reps boxes line up.** "Extra weight (optional)" no longer wraps; a small dashed-circle icon marks the weight as optional.
+
+### Fixed
+- **Goblet step-ups** show step-up photos, not leg-extension photos.
+- **Your pick no longer gets stuck on Loading.** Upper, Lower and Full body Your picks (and Overload days) could sit on the Loading screen forever.
+
 ## 11.8.0 - 2026-10-02
 
 ### Added

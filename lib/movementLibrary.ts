@@ -136,6 +136,8 @@ const ATOMIC_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
   'Trap Bar Deadlifts': 'Hamstrings', 'Triceps Cable Pushdowns': 'Arms', 'Walking Lunges': 'Quads',
   'Wall Lateral ISO Raises': 'Shoulders',
   'Bicycle Crunches': 'Core', 'Forearm Plank': 'Core', 'Reverse Crunches': 'Core', 'Russian Twists': 'Core',
+  'Crunches': 'Core', 'Hanging Leg Raises': 'Core', 'Cable Woodchops': 'Core', 'Lying Leg Raises': 'Core',
+  'Inchworm Walkouts': 'Core', 'Backpack Woodchops': 'Core', 'Decline Dumbbell Bench Press': 'Chest',
   'Adductors': 'Quads', 'Bear hold': 'Core', 'Bird dog': 'Core', 'Boat': 'Core', 'Breathe down': 'Core',
   'Butterfly': 'Mobility', 'Calves': 'Calves', 'Cat-cow': 'Mobility', 'Chest': 'Chest',
   "Child's pose": 'Mobility', 'Clams': 'Glutes', 'Cow-face arms': 'Shoulders', 'Criss-cross': 'Core',

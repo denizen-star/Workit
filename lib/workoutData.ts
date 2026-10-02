@@ -460,11 +460,14 @@ function isRetiredDay(day: WorkoutDay): boolean {
   return Boolean(day.bonus) || day.name === EXTRA_UPPER_NAME;
 }
 
-/** The full built program, retired days included — built this way so
- * `applyAbCoreRotation`'s global counter lands every day on the same ab/core move it
- * always had. Use it for catalogs (Library, canonical reps) and legacy lookups; use
- * `workoutProgram` for what athletes actually train. */
-export const programWithRetiredDays: WeekPlan[] = applyAbCoreRotation([...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)]);
+/** The full built program, retired days included. `applyAbCoreRotation` gives each
+ * visible day its ab/core move and skips retired days (they keep their built-in move and
+ * take no rotation slot). Use it for catalogs (Library, canonical reps) and legacy
+ * lookups; use `workoutProgram` for what athletes actually train. */
+export const programWithRetiredDays: WeekPlan[] = applyAbCoreRotation(
+  [...FIRST_SIX, ...buildYearWeeks(FIRST_SIX)],
+  isRetiredDay
+);
 
 export const workoutProgram: WeekPlan[] = programWithRetiredDays.map((week) => ({
   ...week,

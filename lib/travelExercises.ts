@@ -6,6 +6,12 @@ export type TravelSubstitution = {
   videoId?: string;
 };
 
+/** Quad work with no machine — shared by the leg-extension slot and Leg Press. */
+const STEP_UP_SWAP: TravelSubstitution = {
+  name: 'Bodyweight Step-Ups or Sissy Squats',
+  notes: 'Step onto a sturdy chair or stair step, or lean back into bodyweight leg extensions.',
+};
+
 const BY_GYM_NAME: Record<string, TravelSubstitution> = {
   'Barbell or Dumbbell Bench Press': {
     name: 'Push-Ups / Incline Push-Ups',
@@ -18,6 +24,12 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     notes:
       'Elevate feet on a chair for upper chest (incline press alternative); elevate hands on a desk for an easier variation.',
     videoId: 'VXo1UwiAInM',
+  },
+  // Week 7+ Upper B. Hands raised puts the press angle on the lower chest, like the decline.
+  'Decline Dumbbell Bench Press': {
+    name: 'Incline Push-Ups',
+    notes: 'Hands on a desk, counter or sturdy chair. Lower the chest to the edge. Hands-high is the lower-chest angle.',
+    videoId: '0JUrOH--Kdk',
   },
   'Single-Arm Dumbbell Rows': {
     name: 'Towel Door Rows or Table Inverted Rows',
@@ -123,10 +135,9 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
       'Lie flat, bend knees, elevate one leg, and drive through the grounded heel to work the glutes.',
     videoId: 'X_IGw8U_e38',
   },
-  'Leg Extension Machine or Goblet Step-Ups': {
-    name: 'Bodyweight Step-Ups or Sissy Squats',
-    notes: 'Step onto a sturdy chair or stair step, or lean back into bodyweight leg extensions.',
-  },
+  'Leg Extension Machine or Goblet Step-Ups': STEP_UP_SWAP,
+  // Week 7+ Lower B took over the leg-extension slot; same no-machine swap.
+  'Leg Press': STEP_UP_SWAP,
   "Farmer's Carries": {
     name: 'Loaded Water Jug / Backpack Carries',
     notes:
@@ -169,6 +180,28 @@ const BY_GYM_NAME: Record<string, TravelSubstitution> = {
     name: 'Side Plank',
     notes: 'No equipment. Stack feet, lift hips, keep a straight line from head to heels.',
     videoId: 'rCxF2nG9vQ0',
+  },
+  // Gym-only moves in the ab/core rotation pool (lib/abCoreRotation.ts). The crunches and
+  // twists need nothing, so they have no entry and stay as they are on a travel day.
+  'Hanging Knee Raises': {
+    name: 'Lying Leg Raises',
+    notes: 'No bar needed. Lie on your back, hands by the hips, and lift straight legs. Keep the low back down.',
+    videoId: 'JB2oyawG9KI',
+  },
+  'Hanging Leg Raises': {
+    name: 'Lying Leg Raises',
+    notes: 'No bar needed. Lie on your back, hands by the hips, and lift straight legs. Keep the low back down.',
+    videoId: 'JB2oyawG9KI',
+  },
+  'Ab Wheel Rollouts': {
+    name: 'Inchworm Walkouts',
+    notes: 'No wheel needed. Walk the hands out from a fold to a long plank, hold a beat, and walk back.',
+    videoId: 'dUoWvQZeuAA',
+  },
+  'Cable Woodchops': {
+    name: 'Backpack Woodchops',
+    notes: 'Hold a packed backpack high to one side and chop it down across the body. Both sides.',
+    videoId: 'tH8ZeVgupYY',
   },
 };
 
