@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import YourPickIcon from '@/components/YourPickIcon';
 import type { WorkoutDay } from '@/lib/workoutData';
 import {
+  defaultYourPickVariant,
   isTimedPickType,
   pickModesFor,
-  yourPickLabel,
-  YOUR_PICK_TYPES,
+  resolveYourPickDay,
+  yourPickVariantGroups,
   type YourPickMode,
   type YourPickType,
 } from '@/lib/yourPick';
@@ -15,6 +16,8 @@ import {
 export type YourPickChoice = {
   pickType: YourPickType;
   pickMode: YourPickMode;
+  /** The specific workout picked (its Your pick day number, lib/yourPick.ts). */
+  pickDay: number;
   /** Program day this pick stands in for, or null for an add. */
   swapForDay: number | null;
 };
@@ -30,7 +33,8 @@ function shortName(name: string) {
 }
 
 /**
- * Your pick picker (docs/plans/PLAN_YOUR_PICK.md): type → (Yoga/Core) Timed or Mark
+ * Your pick picker (docs/plans/PLAN_YOUR_PICK.md): a grouped dropdown of specific
+ * workouts (Upper / Lower / Full body / Core & other) → (Yoga/Core) Timed or Mark
  * done → Add to the week, or Swap for an unstarted program day. Holds no network
  * calls — the caller starts the session, same pattern as AltExerciseTakeover. The
  * caller mounts it only while open, so every open starts from a fresh choice.
@@ -52,15 +56,22 @@ export default function YourPickSheet({
   onStart: (choice: YourPickChoice) => void;
   onClose: () => void;
 }) {
-  const [pickType, setPickType] = useState<YourPickType>('upper');
+  const groups = useMemo(() => yourPickVariantGroups(), []);
+  const [pickDay, setPickDay] = useState<number>(() => defaultYourPickVariant(weekNumber).dayNumber);
   const [pickMode, setPickMode] = useState<YourPickMode>('sets');
   const [swapForDay, setSwapForDay] = useState<number | null>(initialSwapForDay);
 
+  const variant = groups.flatMap((group) => group.variants).find((item) => item.dayNumber === pickDay);
+  const pickType: YourPickType = variant?.type ?? 'upper';
+  const preview = useMemo(() => resolveYourPickDay(weekNumber, pickDay), [weekNumber, pickDay]);
+
   if (!open) return null;
 
-  const chooseType = (type: YourPickType) => {
-    setPickType(type);
-    setPickMode(pickModesFor(type)[0]);
+  const chooseWorkout = (dayNumber: number) => {
+    const next = groups.flatMap((group) => group.variants).find((item) => item.dayNumber === dayNumber);
+    if (!next) return;
+    setPickDay(dayNumber);
+    setPickMode(pickModesFor(next.type)[0]);
   };
   const pill = (active: boolean) =>
     `min-h-11 rounded-2xl border px-3 text-sm font-black ${
@@ -79,13 +90,36 @@ export default function YourPickSheet({
         </p>
 
         <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Workout</p>
-        <div className="mt-2 grid grid-cols-3 gap-2">
-          {YOUR_PICK_TYPES.map((type) => (
-            <button key={type} type="button" onClick={() => chooseType(type)} className={pill(pickType === type)}>
-              {yourPickLabel(type)}
-            </button>
+        <select
+          value={pickDay}
+          onChange={(event) => chooseWorkout(Number(event.target.value))}
+          aria-label="Workout"
+          className="mt-2 min-h-12 w-full rounded-2xl border border-[#e8c547] bg-[#1a1404] px-3 text-base font-black text-[#f6f1e3]"
+        >
+          {groups.map((group) => (
+            <optgroup key={group.label} label={group.label}>
+              {group.variants.map((item) => (
+                <option key={item.dayNumber} value={item.dayNumber}>
+                  {item.label}
+                </option>
+              ))}
+            </optgroup>
           ))}
-        </div>
+        </select>
+        {variant ? (
+          <div className="mt-3 rounded-2xl border border-[#e8c547] bg-black p-4">
+            <p className="text-sm font-black text-white">{variant.description}</p>
+            {preview && !isTimedPickType(pickType) ? (
+              <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#f6f1e3] marker:text-[#e8c547]">
+                {preview.exercises.map((exercise) => (
+                  <li key={exercise.name}>
+                    {exercise.name} · {exercise.sets} × {exercise.reps}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+        ) : null}
 
         {isTimedPickType(pickType) ? (
           <>
@@ -120,11 +154,11 @@ export default function YourPickSheet({
 
         <button
           type="button"
-          onClick={() => onStart({ pickType, pickMode, swapForDay })}
+          onClick={() => onStart({ pickType, pickMode, pickDay, swapForDay })}
           className="mt-5 flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl bg-[#e8c547] text-sm font-black text-[#1a1404]"
         >
           <YourPickIcon className="h-4 w-4 text-[#1a1404]" />
-          Start {yourPickLabel(pickType)}
+          Start {variant?.label ?? 'Your pick'}
         </button>
         <button type="button" onClick={onClose} className="mt-3 w-full py-2 text-sm font-semibold text-[#f6f1e3]/55">
           Not now

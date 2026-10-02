@@ -9,6 +9,7 @@ import {
   isYourPickMode,
   isYourPickType,
   pickModesFor,
+  resolveYourPickDay,
   yourPickDay,
   yourPickSwapTargets,
   yourPickWeekAllowed,
@@ -45,7 +46,7 @@ type Row = {
 export async function validateYourPickStart(
   userId: number,
   scheduleDays: number,
-  input: { weekNumber: unknown; pickType: unknown; pickMode: unknown; swapForDay: unknown }
+  input: { weekNumber: unknown; pickType: unknown; pickMode: unknown; swapForDay: unknown; pickDay?: unknown }
 ): Promise<{ ok: true; start: YourPickStart } | { ok: false; error: string }> {
   const weekNumber = Number(input.weekNumber);
   if (!isYourPickType(input.pickType)) return { ok: false, error: 'Unknown Your pick type' };
@@ -88,7 +89,14 @@ export async function validateYourPickStart(
     if (doneToday) return { ok: false, error: 'One mark-done a day. Try the timed flow.' };
   }
 
-  const day = yourPickDay(weekNumber, pickType);
+  // The picker's dropdown names a specific workout by day number; it must be one of
+  // this type's. Without one (older clients), the week's rotating pack.
+  let day = yourPickDay(weekNumber, pickType);
+  if (input.pickDay != null && input.pickDay !== '') {
+    const chosen = resolveYourPickDay(weekNumber, Number(input.pickDay));
+    if (!chosen || chosen.pick !== pickType) return { ok: false, error: 'Unknown Your pick workout' };
+    day = chosen;
+  }
   return {
     ok: true,
     start: { pickType, pickMode, swapForDay, dayNumber: day.dayNumber, workoutType: day.name },

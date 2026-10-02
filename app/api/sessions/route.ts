@@ -106,6 +106,7 @@ export async function POST(request: NextRequest) {
         pickType: body.pickType,
         pickMode: body.pickMode,
         swapForDay: body.swapForDay,
+        pickDay: body.pickDay,
       });
       if (!checked.ok) return NextResponse.json({ error: checked.error }, { status: 400 });
       pick = checked.start;

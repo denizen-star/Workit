@@ -2,13 +2,21 @@
 
 ## Unreleased
 
+## 11.8.0 - 2026-10-02
+
 ### Added
-- **Performance Scorecards.** Added a new "Scorecard" email template in the Admin Mailing Suite that sends athletes personalized pacing telemetry. The email details their average time per set and rushed set percentage compared against the house average, along with a custom coach's note addressing injury risks if they are speedrunning through their sets.
-- **Mailing Suite Categories.** The Admin Mailing Suite template selector is now a categorized dropdown.
+- **Pick the exact workout.** Your pick is now one dropdown grouped Upper / Lower / Full body / Core & other. Choose Upper A or B, Lower A or B, or a pack like Hinge, Glutes or Chest and arms.
+- **See it before you start.** The workout you pick shows in a gold-bordered card: one line on what makes it different, then every lift with sets × reps.
+
+### Fixed
+- **Your pick Upper, Lower and Full body start the right workout.** They were opening a full-body workout instead.
+- **Pacing scorecards** come from Tom, leave Test out of the house numbers, and only call you the fastest or slowest when that's true.
 
 ## 11.7.0 - 2026-10-02
 
 ### Added
+- **Performance Scorecards.** Added a new "Scorecard" email template in the Admin Mailing Suite that sends athletes personalized pacing telemetry. The email details their average time per set and rushed set percentage compared against the house average, along with a custom coach's note addressing injury risks if they are speedrunning through their sets.
+- **Mailing Suite Categories.** The Admin Mailing Suite template selector is now a categorized dropdown.
 - **Kevin sees every athlete's week.** On The house, one weekday row per athlete who finished a workout in the selected period, real names, most workouts first. Everyone else still sees only their own row and the house average.
 
 ### Changed

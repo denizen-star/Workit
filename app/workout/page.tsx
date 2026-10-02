@@ -9,7 +9,6 @@ import {
   isTimedPickType,
   isYourPickSlot,
   sessionIsYourPick,
-  yourPickDayNumber,
   yourPickSwapTargets,
   yourPickWeekAllowed,
 } from '@/lib/yourPick';
@@ -1534,7 +1533,7 @@ function WorkoutPageInner() {
           const weekNumber = pickSheetWeek;
           setPickSheetWeek(null);
           if (weekNumber != null) {
-            startWorkout(weekNumber, yourPickDayNumber(choice.pickType), undefined, { mode: 'gym', pick: choice });
+            startWorkout(weekNumber, choice.pickDay, undefined, { mode: 'gym', pick: choice });
           }
         }}
         onClose={() => setPickSheetWeek(null)}

@@ -27,6 +27,9 @@ export function scheduleDaysForUser(user: { schedule_days_per_week?: unknown } |
  * collides. 1-3 day/week athletes train full-body instead of a split (`FULL_BODY_PACKS`,
  * lib/yourPick.ts), so a short week never leaves a muscle group untouched. */
 const FULL_BODY_DAY_NUMBER_BASE = 6;
+/** Full body is only for 1-3 day athletes, so it owns day numbers 6-8 and nothing
+ * above — 20+ is Your pick, 30+ Test Drive. */
+const FULL_BODY_MAX_DAYS = 3;
 
 function fullBodyDay(week: WeekPlan, index: number): WorkoutDay {
   const pack = FULL_BODY_PACKS[(week.weekNumber + index) % FULL_BODY_PACKS.length];
@@ -78,7 +81,7 @@ export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): Worko
 
 /** True if `day` is one of this athlete's full-body substitute days (dayNumber 6+). */
 export function isFullBodyDay(day: Pick<WorkoutDay, 'dayNumber'>): boolean {
-  return day.dayNumber >= FULL_BODY_DAY_NUMBER_BASE;
+  return day.dayNumber >= FULL_BODY_DAY_NUMBER_BASE && day.dayNumber < FULL_BODY_DAY_NUMBER_BASE + FULL_BODY_MAX_DAYS;
 }
 
 /** Full-body days aren't part of the static `workoutProgram` array (they're
@@ -86,7 +89,7 @@ export function isFullBodyDay(day: Pick<WorkoutDay, 'dayNumber'>): boolean {
  * This reconstructs the same deterministic day for lookups keyed off an existing
  * `workout_sessions` row (e.g. re-deriving exercises for a Gym/Travel toggle). */
 export function resolveFullBodyDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
-  if (dayNumber < FULL_BODY_DAY_NUMBER_BASE) return undefined;
+  if (!isFullBodyDay({ dayNumber })) return undefined;
   const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
   return week ? fullBodyDay(week, dayNumber - FULL_BODY_DAY_NUMBER_BASE) : undefined;
 }

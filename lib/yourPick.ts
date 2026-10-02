@@ -1,6 +1,6 @@
 import type { OptionalCircuitStep } from '@/lib/optionals';
 import { yourPickCoreFlow, yourPickYogaFlow } from '@/lib/optionalCircuits';
-import type { Exercise, WorkoutDay } from '@/lib/workoutData';
+import { programWithRetiredDays, type Exercise, type WorkoutDay } from '@/lib/workoutData';
 import { blockFor, EXTRA_UPPER_PACKS } from '@/lib/yearProgram';
 
 /**
@@ -86,6 +86,8 @@ export function yourPickDayNumber(type: YourPickType): number {
 }
 
 export function pickTypeFromDayNumber(dayNumber: number): YourPickType | null {
+  const variant = variantFromDayNumber(dayNumber);
+  if (variant) return variant.type;
   return YOUR_PICK_TYPES[dayNumber - YOUR_PICK_DAY_BASE] ?? null;
 }
 
@@ -247,9 +249,198 @@ export function yourPickDay(weekNumber: number, type: YourPickType): WorkoutDay 
   };
 }
 
+/* ---------------------------------------------------------------------------
+ * Specific workouts — the picker's grouped dropdown (Upper / Lower / Full body /
+ * Core & other). Upper and Lower offer the week's own program days (Upper A/B,
+ * Lower A/B) plus every pack; Full body every pack. Each lifting choice gets its
+ * own day number so an open session resumes on exactly what was picked: upper
+ * 40-59, lower 60-79, full 80-99 (clear of program 1-5, full body 6-8, the
+ * rotating picks 20-24 still used by older sessions, and Test Drive 30-32).
+ * Yoga and Core have one flow each and keep 22 / 23.
+ * ------------------------------------------------------------------------- */
+
+type LiftPickType = 'upper' | 'lower' | 'full';
+
+const VARIANT_DAY_BASE: Record<LiftPickType, number> = { upper: 40, lower: 60, full: 80 };
+const VARIANT_SPAN = 20;
+
+/** Program days offered first under Upper / Lower, by their program name. */
+const PROGRAM_VARIANTS: Record<LiftPickType, { label: string; dayName: string; description: string }[]> = {
+  upper: [
+    { label: 'Upper A', dayName: 'Upper Body A', description: 'Flat bench, overhead press, and a row.' },
+    { label: 'Upper B', dayName: 'Upper Body B', description: 'Incline bench, a heavy row, then arms and rear delts.' },
+  ],
+  lower: [
+    { label: 'Lower A', dayName: 'Lower Body A', description: 'Back squat plus an RDL.' },
+    { label: 'Lower B', dayName: 'Lower Body B', description: 'Deadlift plus a split squat and a hip thrust.' },
+  ],
+  full: [],
+};
+
+/** Dropdown names for each pack, in pool order — keep in step with the pools above. */
+const PACK_LABELS: Record<LiftPickType, string[]> = {
+  upper: [
+    'Traps and arms',
+    'Shoulders and arms',
+    'Light push and pull',
+    'Traps, delts and arms',
+    'Lats and arms',
+    'Shoulders and back',
+    'Chest and arms',
+    'Traps, lats and arms',
+  ],
+  lower: ['Squat', 'Hinge', 'Single leg', 'Glutes', 'Machines', 'Front squat'],
+  full: ['Full body A', 'Full body B', 'Full body C', 'Full body D', 'Full body E'],
+};
+
+/** One line on what sets each pack apart, shown above its lift list — same order as PACK_LABELS. */
+const PACK_DESCRIPTIONS: Record<LiftPickType, string[]> = {
+  upper: [
+    'Shrugs and wrists. No press, no row.',
+    'Side delts and face pulls, finished with a plank.',
+    'The only pack with both a press and a row.',
+    'Shrugs plus side delts.',
+    'Straight-arm pulldown and face pulls. The only Pallof.',
+    'Overhead press plus a row.',
+    'Incline bench, no row.',
+    'Shrugs, a straight-arm pulldown, and both arm moves.',
+  ],
+  lower: [
+    'Back squat for 4 sets. No hinge.',
+    'Deadlift for 4 sets, then an RDL. No squat or lunge.',
+    'Split squat and single-leg press. No two-leg squat or deadlift.',
+    'Hip thrust for 4 sets. No squat, no deadlift.',
+    'Leg press. No free-weight squat, hinge, or lunge.',
+    'Front squat, RDL, lunge, and hip thrust in one session.',
+  ],
+  full: [
+    'Free squat plus both a flat bench and an overhead press.',
+    'The only deadlift day. Shoulder work is a lateral raise.',
+    'Hip thrust and a lunge. No press.',
+    'Leg press, overhead press, and incline bench.',
+    'Front squat, flat bench, and a hip thrust, plus hammer curls.',
+  ],
+};
+
+const TIMED_DESCRIPTIONS: Record<'core' | 'yoga', string> = {
+  core: '12 core holds, 75 seconds each.',
+  yoga: '15 poses, 2 minutes each. A 30-minute flow.',
+};
+
+export type YourPickVariant = {
+  type: YourPickType;
+  /** What the dropdown shows. */
+  label: string;
+  /** The day number the session is stored on. */
+  dayNumber: number;
+  /** One line on what sets it apart, shown above the lift list. */
+  description: string;
+};
+
+export type YourPickVariantGroup = { label: string; variants: YourPickVariant[] };
+
+function liftVariants(type: LiftPickType): YourPickVariant[] {
+  const items = [
+    ...PROGRAM_VARIANTS[type],
+    ...PACK_LABELS[type].map((label, index) => ({ label, description: PACK_DESCRIPTIONS[type][index] })),
+  ];
+  return items.map((item, index) => ({
+    type,
+    label: item.label,
+    description: item.description,
+    dayNumber: VARIANT_DAY_BASE[type] + index,
+  }));
+}
+
+/** Every specific workout the picker offers, grouped for the dropdown. */
+export function yourPickVariantGroups(): YourPickVariantGroup[] {
+  return [
+    { label: 'Upper', variants: liftVariants('upper') },
+    { label: 'Lower', variants: liftVariants('lower') },
+    { label: 'Full body', variants: liftVariants('full') },
+    {
+      label: 'Core & other',
+      variants: (['core', 'yoga'] as const).map((type) => ({
+        type,
+        label: LABELS[type],
+        description: TIMED_DESCRIPTIONS[type],
+        dayNumber: yourPickDayNumber(type),
+      })),
+    },
+  ];
+}
+
+/** The dropdown's starting choice for a week: the Upper pack the week used to rotate to. */
+export function defaultYourPickVariant(weekNumber: number): YourPickVariant {
+  const variants = liftVariants('upper');
+  const offset = PROGRAM_VARIANTS.upper.length;
+  return variants[offset + (Math.max(0, weekNumber - 1) % PACK_LABELS.upper.length)];
+}
+
+function variantFromDayNumber(dayNumber: number): { type: LiftPickType; index: number } | null {
+  const day = Number(dayNumber);
+  for (const type of Object.keys(VARIANT_DAY_BASE) as LiftPickType[]) {
+    const index = day - VARIANT_DAY_BASE[type];
+    if (index >= 0 && index < VARIANT_SPAN) {
+      return index < PROGRAM_VARIANTS[type].length + LIFT_POOLS[type].length ? { type, index } : null;
+    }
+  }
+  return null;
+}
+
+/** True for a specific-workout day number this build knows (40-99 range). */
+export function isYourPickVariantDayNumber(dayNumber: number): boolean {
+  return variantFromDayNumber(dayNumber) != null;
+}
+
+/** The week's version of a program day (e.g. Lower Body B). Weeks 7+ carry one lower
+ * a week, so walk back to the nearest week that has it. */
+function programDayFor(weekNumber: number, dayName: string): WorkoutDay | undefined {
+  for (let week = Math.min(Math.max(1, weekNumber), YOUR_PICK_LAST_WEEK); week >= 1; week -= 1) {
+    const found = programWithRetiredDays
+      .find((item) => item.weekNumber === week)
+      ?.days.find((day) => day.name === dayName);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function variantDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
+  const variant = variantFromDayNumber(dayNumber);
+  if (!variant) return undefined;
+  const { type, index } = variant;
+  const programs = PROGRAM_VARIANTS[type];
+  let label: string;
+  let exercises: Exercise[];
+  if (index < programs.length) {
+    const source = programDayFor(weekNumber, programs[index].dayName);
+    if (!source) return undefined;
+    label = programs[index].label;
+    exercises = source.exercises.map((exercise) => ({ ...exercise }));
+  } else {
+    const packIndex = index - programs.length;
+    // Full body packs are already named "Full body A"; the others read "Lower · Hinge".
+    label = type === 'full' ? PACK_LABELS.full[packIndex] : `${LABELS[type]} · ${PACK_LABELS[type][packIndex]}`;
+    const note = pickPhaseNote(weekNumber);
+    exercises = LIFT_POOLS[type][packIndex].map((exercise) => ({ ...exercise, notes: note }));
+  }
+  return {
+    dayNumber,
+    // Stored as workout_type: keeps "Upper"/"Lower" in it for the badge/rest-hint
+    // checks (see yourPickWorkoutType), and names the exact workout picked.
+    name: `${YOUR_PICK_NAME} · ${label}`,
+    focus: FOCUS[type],
+    suggestedDay: '',
+    pick: type,
+    exercises,
+  };
+}
+
 /** Re-derive a Your pick day from a session row's week + day number. */
 export function resolveYourPickDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
-  const type = pickTypeFromDayNumber(Number(dayNumber));
+  const variant = variantDay(Number(weekNumber), Number(dayNumber));
+  if (variant) return variant;
+  const type = YOUR_PICK_TYPES[Number(dayNumber) - YOUR_PICK_DAY_BASE];
   return type ? yourPickDay(Number(weekNumber), type) : undefined;
 }
 

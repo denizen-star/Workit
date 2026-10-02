@@ -20,7 +20,9 @@ export function resolveSessionDay(weekNumber: number, dayNumber: number): Workou
     resolveTestDriveDay(week, day) ??
     getOverloadWorkoutDay(week, day) ??
     getWorkoutDay(week, day) ??
-    resolveFullBodyDay(week, day) ??
-    resolveYourPickDay(week, day)
+    // Your pick (20-24) before full body: resolveFullBodyDay only owns 6-8, but
+    // checking picks first keeps a Lower/Upper pick from ever rendering as full body.
+    resolveYourPickDay(week, day) ??
+    resolveFullBodyDay(week, day)
   );
 }
