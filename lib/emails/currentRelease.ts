@@ -33,25 +33,31 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.7.0',
-  title: 'The numbers are in.',
-  subject: 'Performance Scorecards — Work-It',
+  version: '11.8.0',
+  title: 'Your pick, your exact workout.',
+  subject: 'Pick the exact workout — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
-  onlyAthletes: ['Kevin Leacock'],
   includeNewAthletes: false,
-  intro: 'We have been watching the clock. Every set, every rest, every moment you hold the line. Now we are showing you exactly what that looks like.',
-  mid: 'We just rolled out Performance Scorecards. This is a personalized breakdown of your pacing and rest times. We see the average time you spend per set, and we see when you rush through an accessory movement in under 15 seconds. If you are speedrunning, we are going to tell you to slow down to prevent injury. If you are holding the standard, we are going to tell you exactly how you beat the house.',
-  close: 'Take your full rests. Keep your form tight. I believe in the work you are doing. Quit is the only thing we do not measure.',
+  intro:
+    'You asked for more say on your Your pick day, and I love that. You know what your body needs this week, so now you get to choose exactly what you train.',
+  mid:
+    'Tap Pick and you get one dropdown grouped Upper, Lower, Full body and Core. Want Lower B on a one-lower week? It is right there. Feel like a hinge day, or glutes, or chest and arms? Pick it. Before you start, a gold card tells you what makes that workout different and lists every lift, so there are no surprises. We also fixed a bug where Upper, Lower and Full body picks opened a full-body workout. Whatever you pick is what you get now.',
+  close:
+    'Choose it, own it, finish it. I believe in every rep you put in this week. Quit does not get a vote.',
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Performance Scorecards — personalized telemetry showing your average time per set and your rate of rushed sets.',
-        'House Averages — your scorecard compares your pacing directly to the rest of the house.',
-        'Injury Prevention — we flag when you skip your 90-second rests so you can fix it before an injury happens.',
+        'One dropdown — Upper, Lower, Full body and Core, all in one list.',
+        'Exact workouts — Upper A or B, Lower A or B, or packs like Hinge, Glutes or Chest and arms.',
+        'Preview card — one line on what sets it apart, then every lift with sets × reps.',
       ],
+    },
+    {
+      heading: 'Fixed',
+      wins: ['Your pick — Upper, Lower and Full body now open the workout you chose, not a full-body one.'],
     },
   ],
   wins: [],
