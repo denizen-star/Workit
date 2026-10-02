@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { MAIL_TEMPLATES, type MailTemplateId } from '@/lib/emails/ids';
+import { type MailTemplateId } from '@/lib/emails/ids';
 
 type PreviewResponse = {
   enabled: boolean;
@@ -144,11 +144,16 @@ export default function AdminMailPage() {
         </div>
 
         <div className="mt-6 flex justify-center">
-          <select
-            value={template}
-            onChange={(e) => setTemplate(e.target.value as MailTemplateId)}
-            className="min-h-11 w-full max-w-sm rounded-2xl border border-white/10 bg-[#12121a] px-4 py-2 text-sm font-semibold text-[#f6f1e3] outline-none focus:border-[#e8c547]"
-          >
+          <label className="w-full max-w-sm">
+            <span className="mb-2 block text-center text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">
+              Email template
+            </span>
+            <select
+              value={template}
+              onChange={(e) => setTemplate(e.target.value as MailTemplateId)}
+              aria-label="Email template"
+              className="min-h-11 w-full rounded-2xl border border-white/10 bg-[#12121a] px-4 py-2 text-sm font-semibold text-[#f6f1e3] outline-none focus:border-[#e8c547]"
+            >
             <optgroup label="Onboarding & Auth">
               <option value="welcome">{LABELS.welcome}</option>
               <option value="verify">{LABELS.verify}</option>
@@ -174,6 +179,7 @@ export default function AdminMailPage() {
               <option value="release">{LABELS.release}</option>
             </optgroup>
           </select>
+          </label>
         </div>
 
         {status && <p className="mt-4 text-center text-sm font-semibold text-[#e8c547]">{status}</p>}

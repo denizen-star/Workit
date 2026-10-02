@@ -1687,7 +1687,10 @@ export function sampleEmail(template: MailTemplateId): BuiltEmail {
       avgSec: '110.0',
       rushedRate: '15.0',
       houseAvgSec: '115.0',
-      houseRushedRate: '25.0'
+      houseRushedRate: '25.0',
+      fasterThanHouse: false,
+      highestRushed: false,
+      lowestRushed: true,
     });
   }
   if (template === 'onboarding') {
