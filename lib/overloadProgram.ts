@@ -159,15 +159,24 @@ function buildExercise([name, role]: Slot, spec: WeekSpec): Exercise {
   };
 }
 
+// Same object per template + week: the live session re-resolves its day every render,
+// and ExerciseTracker reloads whenever `exercises` changes identity.
+const builtDays = new Map<string, WorkoutDay>();
+
 function buildDay(template: Template, displayWeek: number): WorkoutDay {
+  const key = `${template.dayNumber}:${displayWeek}`;
+  const cached = builtDays.get(key);
+  if (cached) return cached;
   const spec = WEEK_SPEC[clampWeek(displayWeek)];
-  return {
+  const day: WorkoutDay = {
     dayNumber: template.dayNumber,
     name: template.name,
     focus: template.focus,
     suggestedDay: '',
     exercises: template.slots.map((slot) => buildExercise(slot, spec)),
   };
+  builtDays.set(key, day);
+  return day;
 }
 
 function splitFor(scheduleDays: number): number[] {

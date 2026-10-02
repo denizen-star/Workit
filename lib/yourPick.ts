@@ -436,12 +436,22 @@ function variantDay(weekNumber: number, dayNumber: number): WorkoutDay | undefin
   };
 }
 
+// Resolved days are static per week + day, so hand back the same object every time.
+// The live session re-resolves on every render and ExerciseTracker reloads its sets
+// whenever `exercises` changes identity — a fresh array per call loops it on Loading.
+const resolvedPickDays = new Map<string, WorkoutDay | undefined>();
+
 /** Re-derive a Your pick day from a session row's week + day number. */
 export function resolveYourPickDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
-  const variant = variantDay(Number(weekNumber), Number(dayNumber));
-  if (variant) return variant;
-  const type = YOUR_PICK_TYPES[Number(dayNumber) - YOUR_PICK_DAY_BASE];
-  return type ? yourPickDay(Number(weekNumber), type) : undefined;
+  const week = Number(weekNumber);
+  const day = Number(dayNumber);
+  const key = `${week}:${day}`;
+  if (resolvedPickDays.has(key)) return resolvedPickDays.get(key);
+  const variant = variantDay(week, day);
+  const type = YOUR_PICK_TYPES[day - YOUR_PICK_DAY_BASE];
+  const resolved = variant ?? (type ? yourPickDay(week, type) : undefined);
+  resolvedPickDays.set(key, resolved);
+  return resolved;
 }
 
 /** A required "any Your pick" tile (see YOUR_PICK_SLOT_DAYS). */
