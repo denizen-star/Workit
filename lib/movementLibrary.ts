@@ -12,6 +12,9 @@ import { programWithRetiredDays } from './workoutData';
 import { hyroxProgram } from './hyroxProgram';
 import { overloadProgram } from './overloadProgram';
 import { toTravelExercise } from './travelExercises';
+import { ALT_EXERCISES } from './altExercises';
+import { isTravelFriendly } from './travelFriendly';
+import { resolveYourPickDay, yourPickVariantGroups } from './yourPick';
 import { getExerciseImages } from './exerciseImages';
 import { getExerciseMedia } from './exerciseMedia';
 import { guidedOptionalCircuit, guidedYogaCircuit, absCircuit } from './optionalCircuits';
@@ -126,7 +129,7 @@ const ATOMIC_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
   'Leg Extension Machine': 'Quads', 'Loaded Backpack Curls': 'Arms', 'Loaded Water Jug Carries': 'Full Body',
   'Lying Triceps Extensions (Skull Crushers)': 'Arms', 'Overhead Dumbbell Shoulder Press': 'Shoulders',
   'Overhead Extensions': 'Arms', 'Pallof Press': 'Core', 'Pike Push-Ups': 'Shoulders', 'Plank Hold': 'Core',
-  'Prone Y-T-W Raises': 'Shoulders', 'Push-Ups': 'Chest', 'Cable Chest Fly': 'Chest', 'Backpack Floor Flyes': 'Chest', 'Dumbbell Flyes': 'Chest', 'Reverse Lunges': 'Quads',
+  'Prone Y-T-W Raises': 'Shoulders', 'Push-Ups': 'Chest', 'Cable Chest Fly': 'Chest', 'Backpack Floor Flyes': 'Chest', 'Dumbbell Flyes': 'Chest', 'Chest Dips': 'Chest', 'High-to-Low Cable Fly': 'Chest', 'Reverse Lunges': 'Quads',
   'Reverse Wrist Curls': 'Arms', 'Romanian Deadlifts (RDLs)': 'Hamstrings', 'Side Plank': 'Core',
   'Single-Arm Dumbbell Rows': 'Back', 'Single-Leg Bodyweight Calf Raises': 'Calves',
   'Single-Leg Glute Bridges': 'Glutes', 'Single-Leg Good Mornings': 'Hamstrings', 'Sissy Squats': 'Quads',
@@ -225,6 +228,28 @@ function buildLibrary(): MovementEntry[] {
           addExercise(travel.name, 'main', 'travel', day.name);
         }
       }
+    }
+  }
+
+  // Your pick lift packs (Upper / Lower / Full body): today they reuse program lifts, but a
+  // new pack movement must land in the Library without anyone remembering to add it.
+  for (const group of yourPickVariantGroups()) {
+    for (const variant of group.variants) {
+      if (variant.type === 'core' || variant.type === 'yoga') continue;
+      for (const exercise of resolveYourPickDay(7, variant.dayNumber)?.exercises || []) {
+        addExercise(exercise.name, 'main', 'gym', variant.label);
+      }
+    }
+  }
+
+  // Alt Exercise options for main-program lifts (lib/altExercises.ts) — athletes can swap
+  // onto these mid-session, so they belong here too (Chest Dips, Dumbbell Flyes, ...).
+  // Before Hyrox, so a Hyrox movement that is also a main-program Alt files under main.
+  const mainNames = new Set(rows.keys());
+  for (const [key, alternatives] of Object.entries(ALT_EXERCISES)) {
+    if (!splitAtomic(key).some(([atomicName]) => mainNames.has(atomicName))) continue;
+    for (const name of alternatives) {
+      addExercise(name, 'main', isTravelFriendly(name) ? 'travel' : 'gym', 'Alt option');
     }
   }
 

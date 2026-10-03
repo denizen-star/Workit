@@ -408,23 +408,32 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
   // and lets a same-exercise finish celebration resolve once they've clearly left it.
   const [lastTouchedExercise, setLastTouchedExercise] = useState<string | null>(null);
-  // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): for 25s after any set completes, the
-  // next tap is a skip. The server judges for real; this only drives the Skip button and
-  // keeps a skip out of PRs, gains and copy-forward. Skip stays up for the server's whole
-  // window: load/resume seeds it from the server's remaining time, and each confirmed
-  // save restarts it (the server stamps the set later than the tap).
+  // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md). Scoring: a set completed within 25s
+  // of the previous one is a skip — the server judges for real; `lastCompletedAtRef` mirrors
+  // it here to keep a skip out of PRs, gains and copy-forward. Button: the white Skip shows
+  // for longer, through the rest timer plus 25s (a nudge to take the rest), and never closes
+  // before the scoring window does. A Skip tap after the first 25s still counts as a set.
   const lastCompletedAtRef = useRef<number | null>(null);
   const skipWindowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const skipDeadlineRef = useRef(0);
   const [skipWindowOpen, setSkipWindowOpen] = useState(false);
-  const openSkipWindow = (ms: number = SKIP_WINDOW_MS) => {
+  const setSkipDeadline = (deadline: number) => {
+    skipDeadlineRef.current = deadline;
     if (skipWindowTimerRef.current) clearTimeout(skipWindowTimerRef.current);
+    const ms = deadline - Date.now();
     if (ms <= 0) {
       setSkipWindowOpen(false);
       return;
     }
-    lastCompletedAtRef.current = Date.now() - (SKIP_WINDOW_MS - ms);
     setSkipWindowOpen(true);
     skipWindowTimerRef.current = setTimeout(() => setSkipWindowOpen(false), ms);
+  };
+  /** Keeps Skip up for at least `ms` more; never shortens it. */
+  const extendSkipWindow = (ms: number) => setSkipDeadline(Math.max(skipDeadlineRef.current, Date.now() + ms));
+  /** Rest over (clock hit 0, or the athlete skipped it): Skip stays 25s more, then goes. */
+  const handleRestEnd = () => {
+    setSkipDeadline(Date.now() + SKIP_WINDOW_MS);
+    startMotivatorCountdown();
   };
 
   const playNextCelebration = () => {
@@ -523,7 +532,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
       if (cancelled) return;
       setHistory(historyData);
-      if (skipWindowMs > 0) openSkipWindow(skipWindowMs);
+      if (skipWindowMs > 0) {
+        // Resumed mid-window: no rest clock is running after a reload, so the server's
+        // remaining scoring window is all that's left of the button too.
+        lastCompletedAtRef.current = Date.now() - (SKIP_WINDOW_MS - skipWindowMs);
+        extendSkipWindow(skipWindowMs);
+      }
       setEdits(storedEdits);
       const list = applyExerciseEdits(programExercises, storedEdits);
 
@@ -708,7 +722,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     if (!response.ok) return set;
     const data = await response.json();
     // The server's window starts at its own stamp, a beat after the tap — restart ours to match.
-    if (data.judged) openSkipWindow();
+    if (data.judged) extendSkipWindow(SKIP_WINDOW_MS);
     return {
       ...set,
       id: set.id || data.setId || undefined,
@@ -780,8 +794,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         if (remaining > 0) {
           // A program-set rest (Overload Progressions) replaces the stock clock and
           // the athlete's extra minutes entirely; everything else keeps restClock.
-          setRestSeconds(gym?.restSeconds ?? restClock);
+          const restFor = gym?.restSeconds ?? restClock;
+          setRestSeconds(restFor);
           setRestToken((token) => token + 1);
+          extendSkipWindow(restFor * 1000 + SKIP_WINDOW_MS);
         }
       }
 
@@ -807,7 +823,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // Same rule the server applies (lib/skippedSets.ts). A skip never counts as a PR or a
     // gain and never copies forward; every completion, skipped or not, restarts the window.
     const willSkip = !isSkipExempt(exercise) && withinSkipWindow(lastCompletedAtRef.current);
-    openSkipWindow();
+    lastCompletedAtRef.current = Date.now();
+    extendSkipWindow(SKIP_WINDOW_MS);
 
     // Any completion ends whatever set a pending motivator was riding on — drop it.
     clearMotivator();
@@ -1818,7 +1835,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 <button
                   type="button"
                   onClick={() => withRiskOk(() => removeExercise(gym, exercise))}
-                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-xs font-bold text-white/45 hover:text-[#a35d52]"
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl border border-[#a35d52]/40 text-xs font-bold text-[#a35d52] hover:bg-[#a35d52]/10"
                 >
                   <Trash2 className="h-4 w-4" />
                   Remove exercise
@@ -1867,7 +1884,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         totalSets={totalSetCount}
         seconds={restSeconds}
         onBannerChange={onRestBannerChange}
-        onRestEnd={startMotivatorCountdown}
+        onRestEnd={handleRestEnd}
       />
 
       <TimedSetTimer
@@ -1905,7 +1922,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
       <AddExerciseTakeover
         open={addOpen}
-        exclude={exercises.map((exercise) => exercise.name)}
+        exclude={groupedSets.flatMap((item) => [item.gym.name, item.exercise.name])}
         onSelect={addExercise}
         onClose={() => setAddOpen(false)}
       />

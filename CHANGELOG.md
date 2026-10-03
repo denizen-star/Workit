@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 12.0.0 - 2026-10-03
+
+### Changed
+- **Add exercise has the whole Library.** The list now holds every lift in The Library (gym, travel and Alt picks) — about 78 instead of 40. Chest alone goes from 3 to 10: flyes, dips, cable fly and push-ups join the presses.
+- **Remove exercise is red.**
+- **Skip waits out your rest.** The Skip button now stays up through the rest timer plus 25 seconds, including between exercises.
+- **The Library is complete.** Chest Dips, Dumbbell Flyes and High-to-Low Cable Fly (Alt picks) now have their own cards.
+
 ## 11.11.0 - 2026-10-03
 
 ### Added

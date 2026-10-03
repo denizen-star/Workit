@@ -1,5 +1,8 @@
 import { AB_CORE_POOL } from '@/lib/abCoreRotation';
-import { muscleGroupForExercise, type MuscleGroup } from '@/lib/muscleGroups';
+import { COMBO_SPLITS, MOVEMENT_LIBRARY, type LibraryMuscleGroup } from '@/lib/movementLibrary';
+import { overloadProgram } from '@/lib/overloadProgram';
+import { toTravelExercise } from '@/lib/travelExercises';
+import { resolveYourPickDay, yourPickVariantGroups } from '@/lib/yourPick';
 import { programWithRetiredDays, type Exercise } from '@/lib/workoutData';
 
 /**
@@ -49,9 +52,9 @@ export function serializeExerciseEdits(edits: ExerciseEdits): string {
   return JSON.stringify(edits);
 }
 
-export type AddableGroup = { group: MuscleGroup | 'Other'; exercises: AddedExercise[] };
+export type AddableGroup = { group: LibraryMuscleGroup; exercises: AddedExercise[] };
 
-const GROUP_ORDER: Array<MuscleGroup | 'Other'> = [
+const GROUP_ORDER: LibraryMuscleGroup[] = [
   'Chest',
   'Back',
   'Shoulders',
@@ -62,23 +65,57 @@ const GROUP_ORDER: Array<MuscleGroup | 'Other'> = [
   'Hamstrings',
   'Calves',
   'Full Body',
-  'Other',
 ];
 
-/** Every lifting movement in the main program (first definition wins for sets × reps), so an
- * added card keeps that movement's own history and video. Cardio / Mobility are left out. */
-function buildCatalog(): Map<string, AddedExercise & { group: MuscleGroup | 'Other' }> {
-  const out = new Map<string, AddedExercise & { group: MuscleGroup | 'Other' }>();
+/** Sets × reps for a movement an athlete didn't get from this day's program. */
+const DEFAULT_SETS = 3;
+const DEFAULT_REPS = '10-12';
+
+/** First definition of every name the app programs anywhere (main + travel, retired days,
+ * ab-core pool, Your pick packs, Overload) — so an added card keeps that movement's own
+ * sets × reps. Alt-only movements fall back to 3 × 10-12. */
+function buildDefinitions(): Map<string, Exercise> {
+  const out = new Map<string, Exercise>();
   const add = (exercise: Exercise) => {
-    if (out.has(exercise.name) || exercise.circuitGroup) return;
-    const group = muscleGroupForExercise(exercise.name) ?? 'Other';
-    if (group === 'Cardio' || group === 'Mobility') return;
-    out.set(exercise.name, { name: exercise.name, sets: exercise.sets, reps: exercise.reps, group });
+    if (!out.has(exercise.name)) out.set(exercise.name, exercise);
+    const travel = toTravelExercise(exercise);
+    if (!out.has(travel.name)) out.set(travel.name, travel);
   };
-  for (const week of programWithRetiredDays) {
-    for (const day of week.days) day.exercises.forEach(add);
-  }
+  for (const week of programWithRetiredDays) for (const day of week.days) day.exercises.forEach(add);
   AB_CORE_POOL.forEach(add);
+  for (const group of yourPickVariantGroups()) {
+    for (const variant of group.variants) {
+      if (variant.type === 'core' || variant.type === 'yoga') continue;
+      (resolveYourPickDay(7, variant.dayNumber)?.exercises || []).forEach(add);
+    }
+  }
+  for (const days of [3, 4, 5]) for (const day of overloadProgram(1, days)[0].days) day.exercises.forEach(add);
+  return out;
+}
+
+/** The Add exercise list is The Library's main-program movements (gym + travel + Alt
+ * options; lib/movementLibrary.ts), Cardio / Mobility out. The Library splits "X or Y"
+ * names into two cards; here a half that the app never programs on its own folds back into
+ * its "X or Y" name, so the added card logs under the name the athlete's history is on. */
+function buildCatalog(): Map<string, AddedExercise & { group: LibraryMuscleGroup }> {
+  const definitions = buildDefinitions();
+  const comboOf = new Map<string, string>();
+  for (const [combo, halves] of Object.entries(COMBO_SPLITS)) halves.forEach((half) => comboOf.set(half, combo));
+
+  const out = new Map<string, AddedExercise & { group: LibraryMuscleGroup }>();
+  for (const entry of MOVEMENT_LIBRARY) {
+    if (entry.group !== 'main' || entry.muscleGroup === 'Cardio' || entry.muscleGroup === 'Mobility') continue;
+    const name = definitions.has(entry.name) ? entry.name : (comboOf.get(entry.name) ?? entry.name);
+    if (out.has(name)) continue;
+    const definition = definitions.get(name);
+    if (definition?.circuitGroup) continue;
+    out.set(name, {
+      name,
+      sets: definition?.sets ?? DEFAULT_SETS,
+      reps: definition?.reps ?? DEFAULT_REPS,
+      group: entry.muscleGroup,
+    });
+  }
   return out;
 }
 

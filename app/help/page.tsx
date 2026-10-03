@@ -241,7 +241,7 @@ const MECHANICS: MechanicsRow[] = [
   {
     label: 'Add or remove exercises',
     description:
-      'From week 7, tap Add exercise at the end of a workout to add any lift from the program (up to 4), or Remove exercise under a card you haven\'t started. Your call, your risk — the program is built to cover every muscle group each week. Changes are for today only.',
+      'From week 7, tap Add exercise at the end of a workout to add any lift from The Library (up to 4), or Remove exercise under a card you haven\'t started. Your call, your risk — the program is built to cover every muscle group each week. Changes are for today only.',
     tone: 'gold',
   },
   {

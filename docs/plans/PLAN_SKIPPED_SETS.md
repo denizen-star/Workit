@@ -3,7 +3,7 @@
 **Overall Progress:** `100%`
 
 ## TLDR
-A lifting set completed less than 25 seconds after the session's previous completed set is a **skipped set**. While that window is open, the active set's button reads **Skip** (white, black text, fast-forward icon) instead of gold **Complete Set**. A skipped set keeps its numbers but counts for nothing: volume, the board, badges, Best/PR, set history, prefill and the Last time chip all ignore it. If half or more of a session's completed sets are skipped, that workout doesn't count toward the week. The athlete only ever sees **Skipped**. No reasons and no rule text. Reopening a skipped set with **Editing** and completing it makes it count again.
+A lifting set completed less than 25 seconds after the session's previous completed set is a **skipped set**. The active set's button reads **Skip** through the rest timer plus 25s (2026-10-03; a nudge, not the rule — only the 25s window scores) (white, black text, fast-forward icon) instead of gold **Complete Set**. A skipped set keeps its numbers but counts for nothing: volume, the board, badges, Best/PR, set history, prefill and the Last time chip all ignore it. If half or more of a session's completed sets are skipped, that workout doesn't count toward the week. The athlete only ever sees **Skipped**. No reasons and no rule text. Reopening a skipped set with **Editing** and completing it makes it count again.
 
 ## Critical Decisions
 - **Rule:** under 25s since the previous (was 15s until 2026-10-03) completed set in the same session. Fixed. Same definition the pacing scorecard already uses (`lib/emails/scorecard.ts`).
