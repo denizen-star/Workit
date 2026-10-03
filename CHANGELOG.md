@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+### Added
+- **Add or remove exercises (week 7 on).** On a live workout, **Add exercise** puts any lift from the program at the end (up to 4, searchable by muscle), and **Remove exercise** drops a card you haven't started. Your own risk — the first change each workout asks you to confirm. For that workout only.
+
+### Changed
+- **Skip lasts 25 seconds, not 15.**
+
+### Fixed
+- **Skip stays on for its full time.** The Skip button could switch back to Complete Set early (or after a reload) while the set still saved as Skipped.
+
 ## 11.10.0 - 2026-10-03
 
 ### Added

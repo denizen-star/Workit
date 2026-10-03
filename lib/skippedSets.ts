@@ -3,13 +3,13 @@ import type { Exercise } from '@/lib/workoutData';
 
 /**
  * Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md). A lifting set completed less than
- * 15 seconds after the session's previous completed set is stored completed but
+ * 25 seconds after the session's previous completed set is stored completed but
  * skipped (`exercise_sets.is_skipped`): it still finishes its card, but counts for
  * nothing — volume, board, badges, Best/PR, set history, prefill, Last time. The
  * athlete only ever sees "Skipped", never the rule. Client-safe; the server half
  * (judging and the week rule) lives in lib/skippedSetsServer.ts.
  */
-export const SKIP_WINDOW_MS = 15_000;
+export const SKIP_WINDOW_MS = 25_000;
 
 /** Half or more of a session's completed sets skipped → it doesn't count toward the week. */
 export const SKIPPED_HEAVY_SHARE = 0.5;

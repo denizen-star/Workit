@@ -13,6 +13,7 @@ export const ALLOWED_EVENT_TYPES = [
   'workout_complete',
   'workout_mode',
   'set_logged',
+  'exercise_edit',
   'badge_awarded',
   'profile_edit',
   'admin_page_view',

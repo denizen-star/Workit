@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import { useState, useEffect, useMemo, useRef, forwardRef, useImperativeHandle } from 'react';
 import { Check, ChevronDown, CircleDashed, Edit2, FastForward, Play, Plus, Trash2 } from 'lucide-react';
 import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
@@ -8,6 +8,8 @@ import TimedSetTimer from './TimedSetTimer';
 import UnitToggle from './UnitToggle';
 import AltButton from './AltButton';
 import AltExerciseTakeover from './AltExerciseTakeover';
+import AddExerciseTakeover from './AddExerciseTakeover';
+import Modal from './Modal';
 import PlaneIcon from './PlaneIcon';
 import PatternPill from './PatternPill';
 import { pickCoachClip, setProgressCopy, hardnessCopy, PR_CLIPS } from '@/lib/coachLines';
@@ -15,6 +17,16 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { exerciseHistoryKey, sameExerciseMovement } from '@/lib/exerciseKey';
 import { modeForExercise, parseExerciseModes, type ExerciseModeMap } from '@/lib/exerciseModes';
 import { parseExerciseAlts, type ExerciseAltMap } from '@/lib/exerciseAlts';
+import {
+  applyExerciseEdits,
+  canEditExercises,
+  EMPTY_EXERCISE_EDITS,
+  isAddedExercise,
+  MAX_ADDED_EXERCISES,
+  parseExerciseEdits,
+  type AddedExercise,
+  type ExerciseEdits,
+} from '@/lib/exerciseEdits';
 import { altsForExercise } from '@/lib/altExercises';
 import { muscleGroupForExercise } from '@/lib/muscleGroups';
 import { isTravelFriendly } from '@/lib/travelFriendly';
@@ -265,7 +277,7 @@ function setSummaryLabel(
 const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(function ExerciseTracker({
   sessionId,
   weekNumber,
-  exercises,
+  exercises: programExercises,
   sessionMode,
   coachTone,
   athleteName,
@@ -284,6 +296,15 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   const [exerciseSets, setExerciseSets] = useState<ExerciseSet[]>([]);
   const [modes, setModes] = useState<ExerciseModeMap>({});
   const [alts, setAlts] = useState<ExerciseAltMap>({});
+  // Add / remove exercises (weeks 7–48, lib/exerciseEdits.ts): today's cards are the
+  // program's minus removed, plus added. Every card below reads `exercises`, not the prop.
+  const [edits, setEdits] = useState<ExerciseEdits>(EMPTY_EXERCISE_EDITS);
+  const exercises = useMemo(() => applyExerciseEdits(programExercises, edits), [programExercises, edits]);
+  const editable = canEditExercises(weekNumber);
+  const [addOpen, setAddOpen] = useState(false);
+  // "Your own risk" confirm: asked once per live session, before the first add or remove.
+  const [riskAction, setRiskAction] = useState<(() => void) | null>(null);
+  const riskAcceptedRef = useRef(false);
   // Which card's gym.name currently has the Alt Exercise takeover open, if any.
   const [altTakeoverFor, setAltTakeoverFor] = useState<string | null>(null);
   const [setsReady, setSetsReady] = useState(false);
@@ -387,12 +408,24 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
   // and lets a same-exercise finish celebration resolve once they've clearly left it.
   const [lastTouchedExercise, setLastTouchedExercise] = useState<string | null>(null);
-  // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): for 15s after any set completes, the
+  // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): for 25s after any set completes, the
   // next tap is a skip. The server judges for real; this only drives the Skip button and
-  // keeps a skip out of PRs, gains and copy-forward. Starts closed on load/resume.
+  // keeps a skip out of PRs, gains and copy-forward. Skip stays up for the server's whole
+  // window: load/resume seeds it from the server's remaining time, and each confirmed
+  // save restarts it (the server stamps the set later than the tap).
   const lastCompletedAtRef = useRef<number | null>(null);
   const skipWindowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [skipWindowOpen, setSkipWindowOpen] = useState(false);
+  const openSkipWindow = (ms: number = SKIP_WINDOW_MS) => {
+    if (skipWindowTimerRef.current) clearTimeout(skipWindowTimerRef.current);
+    if (ms <= 0) {
+      setSkipWindowOpen(false);
+      return;
+    }
+    lastCompletedAtRef.current = Date.now() - (SKIP_WINDOW_MS - ms);
+    setSkipWindowOpen(true);
+    skipWindowTimerRef.current = setTimeout(() => setSkipWindowOpen(false), ms);
+  };
 
   const playNextCelebration = () => {
     const next = celebrationQueueRef.current.shift();
@@ -472,9 +505,13 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       let saved: any[] = [];
       let storedModes: ExerciseModeMap = {};
       let storedAlts: ExerciseAltMap = {};
+      let skipWindowMs = 0;
+      let storedEdits: ExerciseEdits = EMPTY_EXERCISE_EDITS;
       if (existingRes.ok) {
         const data = await existingRes.json();
         saved = data.sets || [];
+        skipWindowMs = Number(data.skipWindowMs) || 0;
+        storedEdits = parseExerciseEdits(data.exerciseEdits);
         storedModes = parseExerciseModes(data.exerciseModes ?? data.exercise_modes);
         storedAlts = parseExerciseAlts(data.exerciseAlts ?? data.exercise_alts);
       }
@@ -486,16 +523,19 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
       if (cancelled) return;
       setHistory(historyData);
+      if (skipWindowMs > 0) openSkipWindow(skipWindowMs);
+      setEdits(storedEdits);
+      const list = applyExerciseEdits(programExercises, storedEdits);
 
       const nextModes: ExerciseModeMap = { ...storedModes };
-      for (const gym of exercises) {
+      for (const gym of list) {
         nextModes[gym.name] = inferExerciseMode(gym, saved, storedModes, defaultMode);
       }
       setModes(nextModes);
       setAlts(storedAlts);
 
       const template: Array<ExerciseSet & { gymName: string }> = [];
-      exercises.forEach((gym) => {
+      list.forEach((gym) => {
         // An Alt swap replaces the whole movement, so it wins over Gym/Travel mode.
         const exercise = storedAlts[gym.name]
           ? { ...gym, name: storedAlts[gym.name] }
@@ -566,7 +606,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       });
 
       const extras: ExerciseSet[] = [];
-      for (const gym of exercises) {
+      for (const gym of list) {
         const displayName = storedAlts[gym.name]
           ? storedAlts[gym.name]
           : applyExerciseMode(gym, nextModes[gym.name] || defaultMode).name;
@@ -601,7 +641,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       console.error('Error loading sets:', error);
       if (!cancelled) {
         const template: ExerciseSet[] = [];
-        exercises.forEach((gym) => {
+        programExercises.forEach((gym) => {
           const exercise = applyExerciseMode(gym, defaultMode);
           for (let i = 1; i <= gym.sets; i++) {
             template.push({
@@ -622,7 +662,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     return () => {
       cancelled = true;
     };
-  }, [sessionId, weekNumber, defaultMode, exercises]);
+  }, [sessionId, weekNumber, defaultMode, programExercises]);
 
   useEffect(() => {
     if (!setsReady) return;
@@ -667,6 +707,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
     if (!response.ok) return set;
     const data = await response.json();
+    // The server's window starts at its own stamp, a beat after the tap — restart ours to match.
+    if (data.judged) openSkipWindow();
     return {
       ...set,
       id: set.id || data.setId || undefined,
@@ -765,10 +807,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // Same rule the server applies (lib/skippedSets.ts). A skip never counts as a PR or a
     // gain and never copies forward; every completion, skipped or not, restarts the window.
     const willSkip = !isSkipExempt(exercise) && withinSkipWindow(lastCompletedAtRef.current);
-    lastCompletedAtRef.current = Date.now();
-    setSkipWindowOpen(true);
-    if (skipWindowTimerRef.current) clearTimeout(skipWindowTimerRef.current);
-    skipWindowTimerRef.current = setTimeout(() => setSkipWindowOpen(false), SKIP_WINDOW_MS);
+    openSkipWindow();
 
     // Any completion ends whatever set a pending motivator was riding on — drop it.
     clearMotivator();
@@ -1079,6 +1118,76 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     }
   };
 
+  /** Runs `action` now if the athlete already took the risk this session, else asks first. */
+  const withRiskOk = (action: () => void) => {
+    if (riskAcceptedRef.current) {
+      action();
+      return;
+    }
+    setRiskAction(() => action);
+  };
+
+  /** Optimistic: cards change at once; a failed save puts both the edits and the sets back. */
+  const saveEdits = async (next: ExerciseEdits, previous: ExerciseEdits, previousSets: ExerciseSet[]) => {
+    setEdits(next);
+    try {
+      const response = await fetch('/api/sessions', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, exerciseEdits: next }),
+      });
+      if (!response.ok) throw new Error(await response.text());
+    } catch (error) {
+      console.error('Error saving exercise edits:', error);
+      setEdits(previous);
+      setExerciseSets(previousSets);
+    }
+  };
+
+  const addExercise = (item: AddedExercise) => {
+    setAddOpen(false);
+    if (exercises.some((exercise) => exercise.name === item.name)) return;
+    // A program card removed earlier comes back in its own place instead of as an add.
+    const restoring = edits.removed.includes(item.name);
+    if (!restoring && edits.added.length >= MAX_ADDED_EXERCISES) return;
+    const program = programExercises.find((exercise) => exercise.name === item.name);
+    const card = restoring && program ? applyExerciseMode(program, modes[program.name] || defaultMode) : item;
+    const lastBest = lastBestFor(card.name, history);
+    const newSets: ExerciseSet[] = Array.from({ length: card.sets }, (_, index) => ({
+      exercise_name: card.name,
+      set_number: index + 1,
+      target_reps: card.reps,
+      actual_reps: index === 0 && lastBest ? lastBest.actual_reps : null,
+      weight_lbs: index === 0 && lastBest ? lastBest.weight_lbs : null,
+      is_completed: false,
+    }));
+    const previousSets = exerciseSets;
+    setExerciseSets([...exerciseSets, ...newSets]);
+    void saveEdits(
+      restoring
+        ? { ...edits, removed: edits.removed.filter((name) => name !== item.name) }
+        : { ...edits, added: [...edits.added, item] },
+      edits,
+      previousSets
+    );
+  };
+
+  /** Only a card with no finished sets, and never the last card left. */
+  const removeExercise = (gym: Exercise, exercise: Exercise) => {
+    if (exercises.length <= 1) return;
+    if (setsForCard(exerciseSets, gym.name, exercise.name).some((item) => item.is_completed)) return;
+    const previousSets = exerciseSets;
+    setExerciseSets(exerciseSets.filter((item) => !setOnCard(item.exercise_name, gym.name, exercise.name)));
+    setEditingSet(null);
+    void saveEdits(
+      isAddedExercise(gym.name, edits)
+        ? { ...edits, added: edits.added.filter((item) => item.name !== gym.name) }
+        : { ...edits, removed: [...edits.removed, gym.name] },
+      edits,
+      previousSets
+    );
+  };
+
   const groupedSets = exercises.map((gym) => {
     const altName = alts[gym.name];
     const mode = modes[gym.name] || defaultMode;
@@ -1201,7 +1310,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                     <span className="min-w-0 shrink truncate text-xs font-bold text-[#f6f1e3]/70">
                       {exercise.sets}×{exercise.reps}
                     </span>
-                    {altMuscleGroup && altOptions.length > 0 && (
+                    {altMuscleGroup && altOptions.length > 0 && !isAddedExercise(gym.name, edits) && (
                       <AltButton
                         active={Boolean(alts[gym.name])}
                         locked={locked}
@@ -1705,10 +1814,31 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   Add set
                 </button>
               )}
+              {editable && !locked && exercises.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => withRiskOk(() => removeExercise(gym, exercise))}
+                  className="flex min-h-11 w-full items-center justify-center gap-2 rounded-2xl text-xs font-bold text-white/45 hover:text-[#a35d52]"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Remove exercise
+                </button>
+              )}
             </div>
           </div>
         );
       })
+      )}
+
+      {editable && setsReady && edits.added.length < MAX_ADDED_EXERCISES && (
+        <button
+          type="button"
+          onClick={() => withRiskOk(() => setAddOpen(true))}
+          className="flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl border border-dashed border-[#e8c547]/40 text-base font-black text-[#e8c547] hover:bg-[#e8c547]/10"
+        >
+          <Plus className="h-5 w-5" />
+          Add exercise
+        </button>
       )}
 
       <div className="glass-card p-5">
@@ -1772,6 +1902,31 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           onClose={() => setAltTakeoverFor(null)}
         />
       )}
+
+      <AddExerciseTakeover
+        open={addOpen}
+        exclude={exercises.map((exercise) => exercise.name)}
+        onSelect={addExercise}
+        onClose={() => setAddOpen(false)}
+      />
+
+      <Modal
+        open={riskAction != null}
+        title="Your call, your risk"
+        confirmLabel="I understand"
+        cancelLabel="Back"
+        onCancel={() => setRiskAction(null)}
+        onConfirm={() => {
+          const action = riskAction;
+          riskAcceptedRef.current = true;
+          setRiskAction(null);
+          action?.();
+        }}
+      >
+        The program is built so each week covers every muscle group. Adding or removing exercises changes that,
+        and you do it at your own risk. Only add what you can do with good form, and stop if anything hurts.
+        Changes are for today only.
+      </Modal>
 
     </div>
   );

@@ -10,7 +10,8 @@ import { bodyweightCreditLb } from '@/lib/bodyweightShare';
 import { betterSet, foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 import { setIsSkipped } from '@/lib/skippedSets';
-import { judgeFirstCompletion, unskipSet } from '@/lib/skippedSetsServer';
+import { parseExerciseEdits } from '@/lib/exerciseEdits';
+import { judgeFirstCompletion, skipWindowRemainingMs, unskipSet } from '@/lib/skippedSetsServer';
 import { sqlSetCounts } from '@/lib/skippedSets';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
@@ -161,8 +162,10 @@ export async function POST(request: NextRequest) {
     // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): a first completion is judged; an
     // Editing re-save of a skipped set makes it count again.
     let skipped = false;
+    let judged = false;
     if (isCompleted && setId) {
       if (!Boolean(Number(before?.is_completed))) {
+        judged = true;
         skipped = await judgeFirstCompletion(Number(setId), Number(workoutSessionId));
       } else if (setIsSkipped(before)) {
         await unskipSet(Number(setId), Number(workoutSessionId), user.id, user.scheduleDaysPerWeek);
@@ -182,7 +185,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, setId, hardness, bodyweightLb, skipped });
+    return NextResponse.json({ success: true, setId, hardness, bodyweightLb, skipped, judged });
   } catch (error) {
     console.error('Error saving exercise set:', error);
     return NextResponse.json({ error: 'Failed to save exercise set' }, { status: 500 });
@@ -390,20 +393,24 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
-    const sessionResult = await query(
-      'SELECT exercise_modes, exercise_alts FROM workout_sessions WHERE id = ? AND user_id = ?',
-      [sessionId, user.id]
-    );
-    const sessionRow = sessionResult.rows[0] as { exercise_modes?: unknown; exercise_alts?: unknown } | undefined;
+    // `SELECT *` so the read still works before migrate-exercise-edits.sql is applied.
+    const sessionResult = await query('SELECT * FROM workout_sessions WHERE id = ? AND user_id = ?', [
+      sessionId,
+      user.id,
+    ]);
+    const sessionRow = sessionResult.rows[0] as
+      | { exercise_modes?: unknown; exercise_alts?: unknown; exercise_edits?: unknown }
+      | undefined;
     const exerciseModes = parseExerciseModes(sessionRow?.exercise_modes);
     const exerciseAlts = parseExerciseAlts(sessionRow?.exercise_alts);
+    const exerciseEdits = parseExerciseEdits(sessionRow?.exercise_edits);
 
-    const result = await query(
-      'SELECT * FROM exercise_sets WHERE workout_session_id = ? ORDER BY exercise_name, set_number',
-      [sessionId]
-    );
+    const [result, skipWindowMs] = await Promise.all([
+      query('SELECT * FROM exercise_sets WHERE workout_session_id = ? ORDER BY exercise_name, set_number', [sessionId]),
+      skipWindowRemainingMs(Number(sessionId)),
+    ]);
 
-    return NextResponse.json({ sets: result.rows, exerciseModes, exerciseAlts });
+    return NextResponse.json({ sets: result.rows, exerciseModes, exerciseAlts, exerciseEdits, skipWindowMs });
   } catch (error) {
     console.error('Error getting exercise sets:', error);
     return NextResponse.json({ error: 'Failed to get exercise sets' }, { status: 500 });

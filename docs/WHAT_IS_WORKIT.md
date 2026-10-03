@@ -24,6 +24,8 @@ If you're at 1 to 3 days a week, you'll see **full-body days** instead of the sp
 
 **Week 7 onward:** Upper A, **one** lower (A and B take turns), Upper B, and a **Your pick** day on Friday (it replaced the old Extra Upper — pick Upper if you want that workout). From week 7, Upper B opens with a **decline** dumbbell press for the lower chest instead of the incline; the incline is one **Alt** tap away. Lower B swaps the leg extension for the **leg press**, a heavier quad lift; leg extension and goblet step-ups are on its Alt list.
 
+**Add or remove exercises (week 7 onward):** on a live workout you can **Remove exercise** from any card with no finished sets (never the last card), or **Add exercise** from any lift in the program (up to 4 per workout). It's at your own risk: the first change in a workout asks you to confirm. Changes are for that workout only.
+
 **Abs and core:** from week 4, every workout carries one ab/core move from a pool of 12 (planks, crunches, reverse crunches, bicycle crunches, Russian twists, dead bugs, Pallof press, woodchops, hanging knee and leg raises, ab wheel). It changes every week, no two workouts in a week get the same one, and it switches between the start and the end of the workout. Moves that need a bar, wheel or cable have a no-equipment version on travel days.
 
 **The count is what matters.** Your week locks once you finish your days-per-week number of workouts — any mix of plan days, swaps and Your picks.

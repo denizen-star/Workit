@@ -12,6 +12,7 @@ import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
 import { liveExerciseName, parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
+import { canEditExercises, parseExerciseEdits, serializeExerciseEdits } from '@/lib/exerciseEdits';
 import { resolveAnySessionDay } from '@/lib/resolveDay';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
@@ -542,6 +543,10 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
     }
 
+    if (body.exerciseEdits !== undefined) {
+      return patchExerciseEdits(sessionId, user.id, body.exerciseEdits);
+    }
+
     const existing = await query(
       `SELECT id, week_number, day_number, workout_mode, is_completed, exercise_modes, exercise_alts
        FROM workout_sessions WHERE id = ? AND user_id = ?`,
@@ -604,6 +609,88 @@ export async function PATCH(request: NextRequest) {
     console.error('Error updating exercise modes:', error);
     return NextResponse.json({ error: 'Failed to update exercise modes' }, { status: 500 });
   }
+}
+
+/** Add / remove exercises (lib/exerciseEdits.ts): weeks 7–48, open sessions only. The body
+ * is the whole new edit set. A card that leaves today (a removed program exercise, or an
+ * added one taken back off) must have no completed sets; its open rows are deleted. */
+async function patchExerciseEdits(sessionId: number, userId: number, raw: unknown) {
+  const existing = await query('SELECT * FROM workout_sessions WHERE id = ? AND user_id = ?', [sessionId, userId]);
+  const session = existing.rows[0] as
+    | {
+        week_number: number;
+        day_number: number;
+        workout_mode: string | null;
+        is_completed: number | boolean;
+        exercise_modes?: unknown;
+        exercise_alts?: unknown;
+        exercise_edits?: unknown;
+      }
+    | undefined;
+  if (!session) {
+    return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+  }
+  if (Boolean(Number(session.is_completed))) {
+    return NextResponse.json({ error: 'Finished sessions cannot change exercises' }, { status: 400 });
+  }
+  const weekNumber = Number(session.week_number);
+  if (!canEditExercises(weekNumber)) {
+    return NextResponse.json({ error: 'Exercises can be added or removed from week 7 on' }, { status: 400 });
+  }
+
+  const day = resolveAnySessionDay(weekNumber, Number(session.day_number));
+  const programNames = new Set((day?.exercises || []).map((exercise) => exercise.name));
+  const previous = parseExerciseEdits(session.exercise_edits);
+  const incoming = parseExerciseEdits(raw);
+  const next = {
+    removed: incoming.removed.filter((name) => programNames.has(name)),
+    added: incoming.added.filter((item) => !programNames.has(item.name)),
+  };
+
+  // Every name a leaving card's sets could be logged under today.
+  const alts = parseExerciseAlts(session.exercise_alts);
+  const modes = parseExerciseModes(session.exercise_modes);
+  const fallback = normalizeWorkoutMode(session.workout_mode);
+  const leaving = new Set<string>();
+  for (const exercise of day?.exercises || []) {
+    if (!next.removed.includes(exercise.name) || previous.removed.includes(exercise.name)) continue;
+    leaving.add(exercise.name);
+    leaving.add(liveExerciseName(exercise, alts, modes, fallback));
+    exerciseGroupNames(exercise.name).forEach((name) => leaving.add(name));
+  }
+  for (const item of previous.added) {
+    if (!next.added.some((kept) => kept.name === item.name)) leaving.add(item.name);
+  }
+
+  if (leaving.size > 0) {
+    const names = Array.from(leaving);
+    const placeholders = names.map(() => '?').join(', ');
+    const done = await query(
+      `SELECT COUNT(*) AS n FROM exercise_sets
+       WHERE workout_session_id = ? AND is_completed = 1 AND exercise_name IN (${placeholders})`,
+      [sessionId, ...names]
+    );
+    if (Number((done.rows[0] as { n?: unknown } | undefined)?.n ?? 0) > 0) {
+      return NextResponse.json({ error: 'That exercise already has finished sets' }, { status: 409 });
+    }
+    await query(
+      `DELETE FROM exercise_sets
+       WHERE workout_session_id = ? AND is_completed = 0 AND exercise_name IN (${placeholders})`,
+      [sessionId, ...names]
+    );
+  }
+
+  await query('UPDATE workout_sessions SET exercise_edits = ? WHERE id = ? AND user_id = ?', [
+    serializeExerciseEdits(next),
+    sessionId,
+    userId,
+  ]);
+  void trackServerEvent({
+    eventType: 'exercise_edit',
+    pageCategory: 'workout',
+    articleSlug: `${next.removed.length} removed · ${next.added.length} added`,
+  });
+  return NextResponse.json({ success: true, exerciseEdits: next });
 }
 
 export async function DELETE(request: NextRequest) {

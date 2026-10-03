@@ -3,10 +3,10 @@
 **Overall Progress:** `100%`
 
 ## TLDR
-A lifting set completed less than 15 seconds after the session's previous completed set is a **skipped set**. While that window is open, the active set's button reads **Skip** (white, black text, fast-forward icon) instead of gold **Complete Set**. A skipped set keeps its numbers but counts for nothing: volume, the board, badges, Best/PR, set history, prefill and the Last time chip all ignore it. If half or more of a session's completed sets are skipped, that workout doesn't count toward the week. The athlete only ever sees **Skipped**. No reasons and no rule text. Reopening a skipped set with **Editing** and completing it makes it count again.
+A lifting set completed less than 25 seconds after the session's previous completed set is a **skipped set**. While that window is open, the active set's button reads **Skip** (white, black text, fast-forward icon) instead of gold **Complete Set**. A skipped set keeps its numbers but counts for nothing: volume, the board, badges, Best/PR, set history, prefill and the Last time chip all ignore it. If half or more of a session's completed sets are skipped, that workout doesn't count toward the week. The athlete only ever sees **Skipped**. No reasons and no rule text. Reopening a skipped set with **Editing** and completing it makes it count again.
 
 ## Critical Decisions
-- **Rule:** under 15s since the previous completed set in the same session. Fixed. Same definition the pacing scorecard already uses (`lib/emails/scorecard.ts`).
+- **Rule:** under 25s since the previous (was 15s until 2026-10-03) completed set in the same session. Fixed. Same definition the pacing scorecard already uses (`lib/emails/scorecard.ts`).
 - **Server decides:** `POST /api/exercises` judges each first completion. The client button is only a hint.
 - **Exempt (never skipped):** the first completed set of a session, timed/distance holds (`getExerciseKind`), and Hyrox circuit movements (exercise has a `circuitGroup`).
 - **Storage:** a skipped set stays `is_completed = 1` (so the card still finishes, and Finish doesn't delete it) plus a new `is_skipped = 1`. A new `completed_at` is stamped on first completion. `created_at` isn't reliable for extras, which are inserted before they complete.
@@ -23,7 +23,7 @@ A lifting set completed less than 15 seconds after the session's previous comple
 
 - [x] 🟩 **Step 2: Skip rule (server)**
   - [x] 🟩 `lib/skippedSets.ts`: `SKIP_WINDOW_MS = 15000`, `sqlSetCounts(alias)`, and `isSkipExempt(exerciseName, day)` (timed/distance, circuitGroup)
-  - [x] 🟩 `POST /api/exercises`: on a set's first completion, stamp `completed_at` and compare to the latest `completed_at` (fallback `created_at`) of the session's other completed sets. Under 15s and not exempt → `is_skipped = 1`. Return `skipped` in the response
+  - [x] 🟩 `POST /api/exercises`: on a set's first completion, stamp `completed_at` and compare to the latest `completed_at` (fallback `created_at`) of the session's other completed sets. Under 25s and not exempt → `is_skipped = 1`. Return `skipped` in the response
   - [x] 🟩 Editing re-save of an already-completed skipped set → `is_skipped = 0`; hardness-only re-rates don't touch it
   - [x] 🟩 On undo in a finished session, recompute `skipped_heavy` and re-run `recordWeekLockIfNeeded`
 
@@ -37,7 +37,7 @@ A lifting set completed less than 15 seconds after the session's previous comple
   - [x] 🟩 `lib/bonusDay.ts` `completedInWeek` ignores `skipped_heavy` sessions, so the tile, the "N / M" count, `coveredDayNumbers` and Home Start/nudges follow automatically
 
 - [x] 🟩 **Step 5: Live card**
-  - [x] 🟩 `components/ExerciseTracker.tsx`: track the session's last completion time (seeded from loaded sets, updated on each complete) with a 1s tick. While inside 15s and the active set isn't exempt, render **Skip** (white bg, black text, fast-forward SVG) in place of gold **Complete Set**; same handler
+  - [x] 🟩 `components/ExerciseTracker.tsx`: track the session's last completion time (seeded from loaded sets, updated on each complete) with a 1s tick. While inside 25s and the active set isn't exempt, render **Skip** (white bg, black text, fast-forward SVG) in place of gold **Complete Set**; same handler
   - [x] 🟩 Use the server's `skipped` response: skipped sets don't fold into live KPI tiles, PR/gain detection, the Today bar or copy-forward prefill
   - [x] 🟩 Folded / one-line set row reads `Set N · Skipped` (earth red `#a35d52`), with no reason text
 

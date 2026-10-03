@@ -39,7 +39,7 @@ function isCircuitMove(session: SessionRow, exerciseName: string): boolean {
 
 /**
  * A set's first completion: stamps `completed_at` and judges it. Skipped when another
- * set in the session completed under 15s ago, unless the movement is exempt (timed /
+ * set in the session completed under 25s ago, unless the movement is exempt (timed /
  * distance, Hyrox circuit). The session's first completed set has nothing to measure
  * from, so it never skips. Returns whether the set was skipped.
  */
@@ -70,6 +70,20 @@ export async function judgeFirstCompletion(setId: number, sessionId: number): Pr
 
   await query('UPDATE exercise_sets SET completed_at = NOW(), is_skipped = ? WHERE id = ?', [skipped ? 1 : 0, setId]);
   return skipped;
+}
+
+/** How much of the session's skip window is still open, in ms (0 when closed). Measured
+ * on the server's own clock so a reloaded or remounted live card shows **Skip** for
+ * exactly as long as `judgeFirstCompletion` will still judge a skip. */
+export async function skipWindowRemainingMs(sessionId: number): Promise<number> {
+  const result = await query(
+    `SELECT TIMESTAMPDIFF(SECOND, MAX(COALESCE(completed_at, created_at)), NOW()) AS ago
+     FROM exercise_sets WHERE workout_session_id = ? AND is_completed = 1`,
+    [sessionId]
+  );
+  const ago = (result.rows[0] as { ago?: unknown } | undefined)?.ago;
+  if (ago == null) return 0;
+  return Math.max(0, SKIP_WINDOW_MS - Number(ago) * 1000);
 }
 
 /** Recounts a session's skipped share into `workout_sessions.skipped_heavy`. */
