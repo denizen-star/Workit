@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+## 11.11.0 - 2026-10-03
+
 ### Added
 - **Add or remove exercises (week 7 on).** On a live workout, **Add exercise** puts any lift from the program at the end (up to 4, searchable by muscle), and **Remove exercise** drops a card you haven't started. Your own risk — the first change each workout asks you to confirm. For that workout only.
 
