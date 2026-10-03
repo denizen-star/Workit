@@ -33,42 +33,26 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.9.0',
-  title: 'Your core gets a real rotation.',
-  subject: 'New core moves, decline press, leg press — Work-It',
+  version: '11.10.0',
+  title: 'Every set you log should be a set you did.',
+  subject: 'Skipped sets are here — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    'Some of you noticed your ab move kept coming back as the same two or three. You were right, and I love that you were paying attention. Your core deserves more than a rerun.',
+    "Your numbers are yours, and I want every one of them to mean something. When you look back at a week of work, I want you to trust every pound on that board.",
   mid:
-    'From week 4 there are now 12 core moves, not 5: crunches, reverse crunches, bicycle crunches, Russian twists, woodchops, hanging leg raises, the ab wheel and more. It changes every week, never repeats inside a week, and switches between the start and the end of your workout. From week 7, Upper B opens with a decline press for the lower chest, and Lower B swaps the leg extension for the leg press, a heavier quad lift. The old moves are one Alt tap away if your gym is missing something. Your hanging knee raises keep all their history, and the weight and reps boxes now sit level.',
+    "So some sets now save as Skipped. You'll see it right on the button: it turns white, says Skip, and shows a little fast-forward arrow. A skipped set stays in your log and your recap, but it doesn't count toward your totals, your records or your history. Did the work and it got marked anyway? No problem. Open that set with Editing, tap Complete Set, and it counts again.",
   close:
-    'New moves, same you. Show up, brace that core, and leave quit at the door. I believe in you this week.',
+    "Real reps, real growth. Take the set, own the set, and leave quit at the door. I believe in you this week.",
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        '12 core moves — a different one every week, starting week 4.',
-        'Decline press — Upper B leads with it from week 7. Incline is your first Alt.',
-        'Leg press — Lower B\'s main quad lift from week 7. Leg extension and goblet step-ups are on its Alt list.',
-        'Travel days — bar, wheel and cable core moves have a no-equipment version.',
-      ],
-    },
-    {
-      heading: 'Better',
-      wins: [
-        'Core spot — flips between the start and the end of your workout each week.',
-        'Hanging knee raises — their own move now, history kept, with a new shoulder tip.',
-        'Weight and reps boxes — side by side and level.',
-      ],
-    },
-    {
-      heading: 'Fixed',
-      wins: [
-        'Your pick — no more getting stuck on the Loading screen.',
-        'Goblet step-ups — real step-up photos.',
+        'Skip button — white, with a fast-forward arrow. A set saved with it is marked Skipped.',
+        "Skipped sets — shown in your log and recap, but they don't add to totals, records or history.",
+        'Changed your mind — open the set with Editing and tap Complete Set. It counts again.',
       ],
     },
   ],
