@@ -33,31 +33,33 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.11.0',
-  title: 'Your workout, your call.',
-  subject: 'Add or remove exercises — Work-It',
+  version: '12.0.0',
+  title: 'More lifts to pick from, and a Skip that waits for you.',
+  subject: 'More lifts in Add exercise — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "You've put in the weeks, and it shows. From week 7 on, you know your body and you know your gym. So I'm handing you more of the wheel.",
+    "You told me the Add exercise list felt thin. You were right, and I love that you're hungry for more.",
   mid:
-    "On a live workout you can now add an exercise or take one off. Tap Add exercise at the end of your workout to pick any lift from the program, up to four. Tap Remove exercise under a card you haven't started to drop it. The program is built so every week hits every muscle group, so this one's your call and your risk. The first change in a workout asks you to confirm, and it's for that workout only. Next time, you're back on the plan.",
+    "So Add exercise now pulls from the whole Library: gym lifts, travel moves and the Alt picks, close to 80 to choose from. Chest alone went from 3 to 10, with flyes, dips, cable fly and push-ups next to the presses. Remove exercise is red now, so you can't miss it. And the Skip button waits out your rest before it goes away, even when you move to the next exercise.",
   close:
-    "Make it yours, keep the form clean, and leave quit at the door. I'm right here with you.",
+    "More tools, same mission: show up, do the work, and leave quit at the door. I believe in you.",
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Add exercise — from week 7, put any lift from the program at the end of your workout. Up to four.',
-        "Remove exercise — drop a card you haven't started yet.",
-        'Your call — the first change in a workout asks you to confirm. Changes last for that workout only.',
+        'Add exercise — pick from the whole Library, about 80 lifts. Chest has 10 now.',
+        'The Library — Chest Dips, Dumbbell Flyes and High-to-Low Cable Fly have their own cards.',
       ],
     },
     {
-      heading: 'Fixed',
-      wins: ['Skip button — it stays put now instead of switching back early.'],
+      heading: 'Changed',
+      wins: [
+        'Remove exercise — red, so it stands out.',
+        'Skip button — stays up through your rest timer, then a little longer.',
+      ],
     },
   ],
   wins: [],
