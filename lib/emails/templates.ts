@@ -95,6 +95,8 @@ export type WorkoutCompleteEmailInput = {
   durationSeconds?: number | null;
   volumeLbs?: number | null;
   setCount?: number | null;
+  /** Skipped sets (lib/skippedSets.ts); not in Sets or Volume. Row hidden at 0. */
+  skippedCount?: number | null;
   exerciseCount?: number | null;
   completeLine: string;
   replenishLine?: string | null;
@@ -780,6 +782,7 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
     ['Time under the iron', formatDuration(input.durationSeconds)],
     ['Volume', formatLbs(input.volumeLbs)],
     ['Sets', String(input.setCount ?? '—')],
+    ...(input.skippedCount ? [['Skipped', String(input.skippedCount)] as [string, string]] : []),
     ['Exercises', String(input.exerciseCount ?? '—')],
   ];
 

@@ -122,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     // Snapshot where the main program stands (past any earlier Hyrox/Overload floor).
     const main = await query(
-      `SELECT week_number, day_number, is_completed, swap_for_day, pick_type
+      `SELECT week_number, day_number, is_completed, skipped_heavy, swap_for_day, pick_type
        FROM workout_sessions WHERE user_id = ? AND program_track = 'main'`,
       [user.id]
     );

@@ -1,3 +1,6 @@
+import { applyExerciseMode, type Exercise } from '@/lib/workoutData';
+import type { WorkoutMode } from '@/lib/workoutMode';
+
 /** Per-session Alt Exercise choices (docs/plans/PLAN_ALT_EXERCISES.md) — same JSON-column
  * shape as lib/exerciseModes.ts's Gym/Travel map, keyed by the original program exercise
  * name, but the value is a swapped-in exercise NAME (not a mode enum), since an Alt swap
@@ -25,4 +28,16 @@ export function parseExerciseAlts(raw: unknown): ExerciseAltMap {
 
 export function serializeExerciseAlts(alts: ExerciseAltMap): string {
   return JSON.stringify(alts);
+}
+
+/** The name a program exercise is logged under this session: an Alt swap replaces the
+ * whole movement and wins over Gym/Travel; otherwise its mode (per-exercise, else the
+ * session's) picks gym or travel. */
+export function liveExerciseName(
+  exercise: Exercise,
+  alts: ExerciseAltMap,
+  modes: Record<string, WorkoutMode>,
+  fallback: WorkoutMode
+): string {
+  return alts[exercise.name] || applyExerciseMode(exercise, modes[exercise.name] || fallback).name;
 }

@@ -9,6 +9,7 @@ import { householdBonusHonor } from '@/lib/scoreboard';
 import { claimAndSend, sendNow } from '@/lib/emails/send';
 import { buildScoreboardEmail, type ScoreboardRow } from '@/lib/emails/templates';
 import { todayInNewYork } from '@/lib/emails/nudge';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 type RosterUser = { id: number; name: string; email: string | null };
 
@@ -37,7 +38,7 @@ async function loadScoreboardBoard() {
              `AND optws.is_completed = 1 AND COALESCE(optws.completed_at, optws.started_at, optws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`
            )} as volume
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
        WHERE ws.user_id = ?
          AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`,
       [user.id]

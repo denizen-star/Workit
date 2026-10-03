@@ -2,7 +2,7 @@
 
 import type { ReactNode } from 'react';
 import { useEffect, useState } from 'react';
-import { Check, ChevronDown, ChevronUp } from 'lucide-react';
+import { Check, ChevronDown, ChevronUp, FastForward } from 'lucide-react';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { formatDuration } from '@/lib/formatDuration';
 import { getExerciseKind, sessionSetTotals, setLogLabel } from '@/lib/exerciseKind';
@@ -10,6 +10,7 @@ import { sessionCreditLbs, sessionOptionalLbs } from '@/lib/optionals';
 import { workoutModeLabel, normalizeWorkoutMode } from '@/lib/workoutMode';
 import { sessionDateLabel, sessionDurationSeconds } from '@/lib/sessionLog';
 import { sessionIsYourPick } from '@/lib/yourPick';
+import { setIsSkipped } from '@/lib/skippedSets';
 import YourPickIcon from '@/components/YourPickIcon';
 import PatternPill from '@/components/PatternPill';
 
@@ -22,6 +23,8 @@ export type HistorySet = {
   weight_lbs: number | null;
   /** Body-weight credit stamped at completion; counts toward lbs (lib/bodyweightShare.ts). */
   bodyweight_lb?: number | string | null;
+  /** Skipped set (lib/skippedSets.ts): shown as Skipped, counts for nothing. */
+  is_skipped?: number | boolean | null;
 };
 
 export type HistorySession = {
@@ -43,6 +46,8 @@ export type HistorySession = {
   swap_for_day?: number | null;
   credit_lbs?: number | null;
   session_hardness?: number | null;
+  /** Half or more sets skipped — doesn't count toward the week (lib/bonusDay.ts countsForWeek). */
+  skipped_heavy?: number | null;
   sets: HistorySet[];
 };
 
@@ -70,6 +75,7 @@ export function historySessionTotals(session: HistorySession) {
     (session.sets || []).map((set) => ({
       ...set,
       is_completed: true,
+      is_skipped: setIsSkipped(set),
     }))
   );
   return {
@@ -198,17 +204,25 @@ export default function CompletedSessionCard({
                       className="flex items-center justify-between gap-3 rounded-xl bg-black/25 px-3 py-2"
                     >
                       <span className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-white/45">
-                        <Check className="h-4 w-4 text-[#6d8b6e]" strokeWidth={3} />
+                        {setIsSkipped(set) ? (
+                          <FastForward className="h-4 w-4 text-[#a35d52]" strokeWidth={3} />
+                        ) : (
+                          <Check className="h-4 w-4 text-[#6d8b6e]" strokeWidth={3} />
+                        )}
                         Set {set.set_number}
                       </span>
-                      <span className="text-sm font-semibold text-[#f6f1e3]/85">
-                        {setLogLabel(kind, asNumber(set.weight_lbs), asNumber(set.actual_reps), set.bodyweight_lb)}
-                        {set.target_reps ? (
-                          <span className="ml-2 text-xs font-medium text-white/40">
-                            target {set.target_reps}
-                          </span>
-                        ) : null}
-                      </span>
+                      {setIsSkipped(set) ? (
+                        <span className="text-sm font-semibold text-[#a35d52]">Skipped</span>
+                      ) : (
+                        <span className="text-sm font-semibold text-[#f6f1e3]/85">
+                          {setLogLabel(kind, asNumber(set.weight_lbs), asNumber(set.actual_reps), set.bodyweight_lb)}
+                          {set.target_reps ? (
+                            <span className="ml-2 text-xs font-medium text-white/40">
+                              target {set.target_reps}
+                            </span>
+                          ) : null}
+                        </span>
+                      )}
                     </li>
                   ))}
                 </ul>

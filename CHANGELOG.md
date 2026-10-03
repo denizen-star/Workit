@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 11.10.0 - 2026-10-03
+
+### Added
+- **Skipped sets.** Some sets now save as **Skipped** (the button reads Skip, with a fast-forward icon). A skipped set shows in your log and recap but doesn't count toward your totals, records or history. Did the work? Open the set with Editing and tap Complete Set — it counts again.
+
+### Changed
+- **Mail comes from the right address.** Welcome, invite and verify emails come from `workit-welcome@workitapp.fit`, new-PIN emails from `workit-help@`, release notes and the days-per-week check-in from `workit-news@`. They all used `workit-info@` until now.
+- **Release notes go to Kevin first.** `npm run mail:release` mails Kevin only; the house gets them only when Kevin asks (`npm run mail:release:house`).
+
 ## 11.9.0 - 2026-10-02
 
 ### Added

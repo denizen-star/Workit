@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume } from '@/lib/optionals';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export async function updateDailyStats(workoutSessionId: number, userId: number) {
   try {
@@ -20,7 +21,7 @@ export async function updateDailyStats(workoutSessionId: number, userId: number)
         SUM(${sqlSetVolume()}) as total_weight
        FROM exercise_sets es
        JOIN workout_sessions ws ON es.workout_session_id = ws.id
-       WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ? AND es.is_completed = true`,
+       WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ? AND ${sqlSetCounts('es')}`,
       [user_id, workout_date]
     );
 

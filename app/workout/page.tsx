@@ -71,7 +71,8 @@ import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt } from '@/lib/belts';
 import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
-import { recapExerciseRows, type CompareRow } from '@/lib/compareTable';
+import { recapExerciseRows, recapSkippedRow, type CompareRow } from '@/lib/compareTable';
+import { setIsSkipped } from '@/lib/skippedSets';
 import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
 import EditProfileModal from '@/components/EditProfileModal';
 import BodyWeightBanner from '@/components/BodyWeightBanner';
@@ -573,9 +574,17 @@ function WorkoutPageInner() {
     const short = (workoutType || 'Workout').replace(' Body ', ' ');
     setRecapTitle(short);
     try {
-      const data = await fetch('/api/athlete-performance?period=t-15').then((res) =>
-        res.ok ? res.json() : null
-      );
+      const [data, sessionSets] = await Promise.all([
+        fetch('/api/athlete-performance?period=t-15').then((res) => (res.ok ? res.json() : null)),
+        // Skipped sets are left out of the numbers above; the recap just counts them.
+        currentSession
+          ? fetch(`/api/exercises?sessionId=${currentSession}`).then((res) => (res.ok ? res.json() : null))
+          : null,
+      ]);
+      const skippedCount = (Array.isArray(sessionSets?.sets) ? sessionSets.sets : []).filter(
+        (set: { is_completed?: unknown; is_skipped?: unknown }) => Number(set.is_completed) && setIsSkipped(set)
+      ).length;
+      const skippedRow = recapSkippedRow(skippedCount);
       const rows = (Array.isArray(data?.workouts) ? data.workouts : []) as WorkoutTrend[];
       const match = workoutType
         ? rows.find(
@@ -584,7 +593,7 @@ function WorkoutPageInner() {
               row.workoutType.replace(' Body ', ' ') === workoutType.replace(' Body ', ' ')
           )
         : rows[0];
-      setRecapRows(match ? recapExerciseRows(match.exercises || []) : []);
+      setRecapRows([...(match ? recapExerciseRows(match.exercises || []) : []), ...(skippedRow ? [skippedRow] : [])]);
     } catch {
       setRecapRows([]);
     }

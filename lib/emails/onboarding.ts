@@ -24,6 +24,7 @@ import {
   type OnboardingReportInput,
   type OnboardingVisitorRow,
 } from '@/lib/emails/templates';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export const ONBOARDING_WINDOW_DAYS = 14;
 const FUNNEL_DAYS = 7;
@@ -281,7 +282,7 @@ async function athleteRow(
       `SELECT COUNT(*) AS sets, COALESCE(SUM(${sqlSetVolume('es')}), 0) AS volume, AVG(es.hardness) AS effort
        FROM exercise_sets es
        JOIN workout_sessions ws ON ws.id = es.workout_session_id
-       WHERE ws.user_id = ? AND es.is_completed = 1`,
+       WHERE ws.user_id = ? AND ${sqlSetCounts('es')}`,
       [user.id]
     )
   ).rows[0] as { sets: number; volume: number; effort: number | null } | undefined;

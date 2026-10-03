@@ -9,6 +9,7 @@
     "lint": "next lint",
     "generate-icons": "node scripts/generateIcons.js",
     "mail:release": "npx tsx --env-file=.env.local scripts/send-release-email.ts",
+    "mail:release:house": "npx tsx --env-file=.env.local scripts/send-release-email.ts --house",
     "mail:scoreboard": "npx tsx --env-file=.env.local scripts/send-scoreboard-email.ts"
   },
   "dependencies": {

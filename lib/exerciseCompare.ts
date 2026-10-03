@@ -8,6 +8,7 @@ import { sqlSessionOptionalOnlyVolume } from '@/lib/optionals';
 import { effortFromVolume } from '@/lib/hardness';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export type CompareMetric = 'weight' | 'reps';
 
@@ -172,7 +173,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
        INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
-         AND es.is_completed = 1
+         AND ${sqlSetCounts('es')}
          AND ${SQL_EXCLUDE_TEST_USER}
          ${filter.sql}`,
       filter.params

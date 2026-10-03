@@ -4,6 +4,7 @@
 import { query } from '@/lib/db';
 import { BODYWEIGHT_SHARES } from '@/lib/bodyweightShare';
 import { BODY_WEIGHT_MISSING_LINE, bodyWeightUsedLine } from '@/lib/bodyWeightShared';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export { parseBodyWeightInput } from '@/lib/bodyWeightShared';
 
@@ -121,7 +122,7 @@ export async function sessionBodyWeightNote(sessionId: number, userId: number): 
     `SELECT COUNT(*) AS listed, SUM(es.bodyweight_lb IS NOT NULL) AS credited
      FROM exercise_sets es
      JOIN workout_sessions ws ON ws.id = es.workout_session_id
-     WHERE es.workout_session_id = ? AND ws.user_id = ? AND es.is_completed = 1
+     WHERE es.workout_session_id = ? AND ws.user_id = ? AND ${sqlSetCounts('es')}
        AND es.exercise_name IN (${names.map(() => '?').join(', ')})`,
     [sessionId, userId, ...names]
   );

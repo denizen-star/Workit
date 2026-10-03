@@ -31,6 +31,7 @@ import {
   snapshotFromRows,
 } from '@/lib/scoreboard';
 import { emptyWindowLine, type PerformanceSnapshot } from '@/lib/scoreboardTypes';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export type {
   AthletePerformanceBoard,
@@ -334,7 +335,7 @@ export async function athletePerformance(
   const params = programTrack ? [userId, programTrack] : [userId];
   const fromWhere = `FROM exercise_sets es
      JOIN workout_sessions ws ON ws.id = es.workout_session_id
-     WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.is_completed = 1 ${trackFilter}
+     WHERE ws.user_id = ? AND ${sqlSetCounts('es')} AND ws.is_completed = 1 ${trackFilter}
      ORDER BY done_at ASC, ws.id ASC, es.set_number ASC`;
 
   let rows: SetRow[] = [];

@@ -6,6 +6,7 @@ import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals
 import { lockedWeekStreak } from '@/lib/bonusDay';
 import { householdHomeStats } from '@/lib/statsHousehold';
 import { lockedWeekNumbers } from '@/lib/lockedWeeks';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,7 +30,7 @@ export async function GET(request: NextRequest) {
         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${optionalTotal} as total_weight_lifted,
         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${optionalTotal} as total_effort_lifted
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND ${sqlSetCounts('es')}
        WHERE ws.user_id = ?${excludeThis ? ' AND ws.id != ?' : ''}`,
       excludeThis ? [userId, excludeSession] : [userId]
     );
@@ -102,7 +103,7 @@ export async function GET(request: NextRequest) {
            INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
            WHERE ws.user_id = ?
              AND ws.is_completed = 1
-             AND es.is_completed = 1
+             AND ${sqlSetCounts('es')}
            GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))`,
           [userId]
         ),
@@ -143,7 +144,7 @@ export async function GET(request: NextRequest) {
          INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
          WHERE ws.user_id = ?
            AND ws.is_completed = 1
-           AND es.is_completed = 1
+           AND ${sqlSetCounts('es')}
            AND es.hardness IS NOT NULL
          GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
          ORDER BY workout_date DESC`,

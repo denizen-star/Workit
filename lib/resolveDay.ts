@@ -1,4 +1,6 @@
+import { getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { getOverloadWorkoutDay } from '@/lib/overloadProgram';
+import { programTrackForWeek } from '@/lib/programTrack';
 import { resolveFullBodyDay } from '@/lib/scheduleDays';
 import { resolveTestDriveDay } from '@/lib/testDrive';
 import { getWorkoutDay, type WorkoutDay } from '@/lib/workoutData';
@@ -25,4 +27,12 @@ export function resolveSessionDay(weekNumber: number, dayNumber: number): Workou
     resolveYourPickDay(week, day) ??
     resolveFullBodyDay(week, day)
   );
+}
+
+/** `resolveSessionDay` plus Hyrox weeks (101+, lib/hyroxProgram.ts), which aren't in the
+ * main resolvers — for code that handles a session row from any track. */
+export function resolveAnySessionDay(weekNumber: number, dayNumber: number): WorkoutDay | undefined {
+  return programTrackForWeek(Number(weekNumber)) === 'hyrox'
+    ? getHyroxWorkoutDay(Number(weekNumber), Number(dayNumber)) ?? undefined
+    : resolveSessionDay(weekNumber, dayNumber);
 }

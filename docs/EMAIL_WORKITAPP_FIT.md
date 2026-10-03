@@ -2,7 +2,7 @@
 
 Website cutover is [`DOMAIN_WORKITAPP_FIT.md`](./DOMAIN_WORKITAPP_FIT.md). This file is **only** inbound mail at `@workitapp.fit`.
 
-Goal: `tom@`, `luna@`, `grey@`, `eli@`, `welcome@`, `news@`, `help@`, and `info@` **workitapp.fit** all land in the existing **info@kervinapps.com** Zoho inbox. The app sends from those addresses (`lib/mailFrom.ts`). SMTP still logs in as **info@kervinapps.com**.
+Goal: every **workitapp.fit** address below lands in the existing **info@kervinapps.com** Zoho inbox. The app sends from the aliases (`lib/mailFrom.ts`); `info@` is receive-only (the BCC on every send). SMTP still logs in as **info@kervinapps.com**.
 
 Netlify does **not** receive mail. You add **MX on workitapp.fit** at GoDaddy and create **email aliases** in Zoho (same org as `info@kervinapps.com`).
 
@@ -55,14 +55,19 @@ Rules:
 1. Admin Console → **Users** → the **info@kervinapps.com** user.
 2. **Mailbox Settings** → **Email Alias** → **Add**.
 3. Add each, domain `workitapp.fit`:
-   - `tom@workitapp.fit`
-   - `luna@workitapp.fit`
-   - `grey@workitapp.fit`
-   - `welcome@workitapp.fit`
+   - `tom@workitapp.fit` (Tom Iron)
+   - `luna@workitapp.fit` (Luna Meadows)
+   - `grey@workitapp.fit` (James Grey)
+   - `eli.sparks@workitapp.fit` (Eli Sparks)
+   - `workit-welcome@workitapp.fit`
+   - `workit-help@workitapp.fit`
+   - `workit-news@workitapp.fit`
+   - `workit-info@workitapp.fit`
 4. Do **not** set any of these as the primary mailbox address. Keep **info@kervinapps.com**.
-5. Zoho error **AS101** blocks `eli`, `info`, `help`, and `news` as aliases. Add those four as **Groups** on `workitapp.fit`, only member **info@kervinapps.com**, anyone can email the group. Turn on send-as for that member or the app cannot send from the group address.
+5. Zoho error **AS101** blocks `eli`, `info`, `help`, `news` and `welcome` as aliases (those names are groups). That's why the app uses `eli.sparks@` and the `workit-*` names. A From that isn't an alias of the SMTP login 553s (`Sender is not allowed to relay`), so the app never sends **as** a group.
+6. `info@workitapp.fit` stays a **Group** (member **info@kervinapps.com**): receive-only, BCC on every send.
 
-Mail to all eight addresses lands in the **info@** inbox.
+`workit-welcome@`, `workit-help@` and `workit-news@` were added 2026-10-02 and confirmed by a live test send to Kevin.
 
 Official: [Create an email alias](https://www.zoho.com/mail/how-to/create-email-alias.html).
 
@@ -74,11 +79,15 @@ SMTP login stays `SENDER_EMAIL=info@kervinapps.com`. The address on the message 
 
 | Mail | From |
 |------|------|
-| Welcome, invite (including resend), verify email | `welcome@` (coach display name) |
-| New PIN | `help@` |
-| Nudge, resume, workout recap, badge, belt | Athlete's coach: `tom@` / `grey@` / `luna@` / `eli@` |
-| Six-week pace check, release notes, "your feature is live", "I will not do this" | `news@` |
-| Scoreboard, invite alert to Kevin, Talk to me, feedback digest, nightly onboarding report | `info@` |
+| Welcome, invite (including resend), verify email | `workit-welcome@` (coach display name) |
+| New PIN | `workit-help@` |
+| Workout recap, badge, belt | Athlete's coach: `tom@` / `grey@` / `luna@` / `eli.sparks@` |
+| Nudge, resume | `eli.sparks@` (broadcast voice) |
+| Days-per-week check-in, release notes, "your feature is live", "I will not do this" | `workit-news@` |
+| Scoreboard, invite alert to Kevin, Talk to me, feedback digest | `workit-info@` |
+| Nightly onboarding report | SMTP login itself (`info@kervinapps.com`) |
+
+Release notes: `npm run mail:release` sends to **Kevin only**. `npm run mail:release:house` sends to the household — run it only when Kevin asks.
 
 Cron (`workit-mail-cron` → `POST /api/cron/mail`, 8am Eastern; `workit-onboarding-cron` → `?task=onboarding`, 8pm Eastern) does not use these aliases. Keep `CRON_SECRET` and set `APP_URL` to `https://workitapp.fit` as in the domain runbook.
 

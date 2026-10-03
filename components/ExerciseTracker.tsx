@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import { Check, ChevronDown, CircleDashed, Edit2, Play, Plus, Trash2 } from 'lucide-react';
+import { Check, ChevronDown, CircleDashed, Edit2, FastForward, Play, Plus, Trash2 } from 'lucide-react';
 import EffortBar from './EffortBar';
 import SetRestTimer from './SetRestTimer';
 import TimedSetTimer from './TimedSetTimer';
@@ -23,6 +23,7 @@ import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
+import { isSkipExempt, setIsSkipped, SKIP_WINDOW_MS, withinSkipWindow } from '@/lib/skippedSets';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import { HowTrigger } from './HelpSheet';
 import { howForExercise } from '@/lib/exerciseHow';
@@ -88,6 +89,8 @@ interface ExerciseSet {
   actual_reps: number | null;
   weight_lbs: number | null;
   is_completed: boolean;
+  /** Completed too soon after the previous set — counts for nothing (lib/skippedSets.ts). */
+  is_skipped?: boolean;
   hardness?: HardnessScore | null;
   notes?: string;
   /** Body-weight credit the server stamped at completion (lib/bodyweightShare.ts). */
@@ -384,6 +387,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   // but-unrated set in a DIFFERENT, now-inactive exercise fold anyway ("moved on"),
   // and lets a same-exercise finish celebration resolve once they've clearly left it.
   const [lastTouchedExercise, setLastTouchedExercise] = useState<string | null>(null);
+  // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): for 15s after any set completes, the
+  // next tap is a skip. The server judges for real; this only drives the Skip button and
+  // keeps a skip out of PRs, gains and copy-forward. Starts closed on load/resume.
+  const lastCompletedAtRef = useRef<number | null>(null);
+  const skipWindowTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [skipWindowOpen, setSkipWindowOpen] = useState(false);
 
   const playNextCelebration = () => {
     const next = celebrationQueueRef.current.shift();
@@ -442,6 +451,13 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
   useEffect(() => {
     setWeightUnits(readExerciseUnits());
   }, []);
+
+  useEffect(
+    () => () => {
+      if (skipWindowTimerRef.current) clearTimeout(skipWindowTimerRef.current);
+    },
+    []
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -522,6 +538,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             actual_reps,
             weight_lbs,
             is_completed: completed,
+            is_skipped: completed && setIsSkipped(found),
             notes: found.notes,
             hardness: parseHardness(found.hardness),
           };
@@ -568,6 +585,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
             actual_reps: asNumber(found.actual_reps),
             weight_lbs: asNumber(found.weight_lbs),
             is_completed: Boolean(Number(found.is_completed)),
+            is_skipped: Boolean(Number(found.is_completed)) && setIsSkipped(found),
             id: found.id,
             notes: found.notes,
             hardness: parseHardness(found.hardness),
@@ -653,6 +671,8 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       ...set,
       id: set.id || data.setId || undefined,
       bodyweight_lb: data.bodyweightLb === undefined ? set.bodyweight_lb : data.bodyweightLb,
+      // The server alone decides a skip; an Editing re-save clears it.
+      is_skipped: set.is_completed ? Boolean(data.skipped) : false,
     };
   };
 
@@ -696,10 +716,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       const persistNow = Boolean(updatedSet.is_completed) || (Boolean(updatedSet.id) && wasComplete);
       if (persistNow) {
         const saved = await persistSet(updatedSet);
-        if (saved.id !== updatedSet.id || saved.bodyweight_lb !== updatedSet.bodyweight_lb) {
+        if (
+          saved.id !== updatedSet.id ||
+          saved.bodyweight_lb !== updatedSet.bodyweight_lb ||
+          saved.is_skipped !== updatedSet.is_skipped
+        ) {
           setExerciseSets((current) => {
             const copy = [...current];
-            copy[index] = { ...copy[index], id: saved.id, bodyweight_lb: saved.bodyweight_lb };
+            copy[index] = { ...copy[index], id: saved.id, bodyweight_lb: saved.bodyweight_lb, is_skipped: saved.is_skipped };
             return copy;
           });
         }
@@ -738,6 +762,14 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const kind = kindFor(exercise);
     if (!canCompleteSet(kind, actualReps, set.weight_lbs)) return;
 
+    // Same rule the server applies (lib/skippedSets.ts). A skip never counts as a PR or a
+    // gain and never copies forward; every completion, skipped or not, restarts the window.
+    const willSkip = !isSkipExempt(exercise) && withinSkipWindow(lastCompletedAtRef.current);
+    lastCompletedAtRef.current = Date.now();
+    setSkipWindowOpen(true);
+    if (skipWindowTimerRef.current) clearTimeout(skipWindowTimerRef.current);
+    skipWindowTimerRef.current = setTimeout(() => setSkipWindowOpen(false), SKIP_WINDOW_MS);
+
     // Any completion ends whatever set a pending motivator was riding on — drop it.
     clearMotivator();
     // Arm this exercise's one motivator if the next planned set is its chosen one.
@@ -773,11 +805,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     // Weight PR is now by volume (weight × reps — docs/plans/PLAN_PR_VOLUME.md), not weight
     // alone: a lighter, higher-rep set can beat a heavier, lower-rep one. Timed/distance PRs
     // are untouched — there's no weight to multiply, so they still compare on duration/distance.
-    const isWeightPr = kind !== 'timed' && kind !== 'distance' && weight > 0 && weight * reps > record.weight * record.reps;
-    const isTimedPr = (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
+    const isWeightPr =
+      !willSkip && kind !== 'timed' && kind !== 'distance' && weight > 0 && weight * reps > record.weight * record.reps;
+    const isTimedPr = !willSkip && (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
     const prior = priorSetFor(gym.name, exercise.name, set.set_number, exerciseSets, history);
-    const direction = setDirection({ ...set, actual_reps: actualReps }, prior);
+    const direction = willSkip ? null : setDirection({ ...set, actual_reps: actualReps }, prior);
 
     // This exercise's planned (non-extra) sets, as they stand right before this
     // completion lands. `plannedSets.length` never changes (extras only add set
@@ -877,10 +910,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
 
     updateSet(
       index,
-      { is_completed: true, weight_lbs: set.weight_lbs ?? 0, actual_reps: actualReps },
+      { is_completed: true, is_skipped: willSkip, weight_lbs: set.weight_lbs ?? 0, actual_reps: actualReps },
       // Circuit movements (noRestAfter) flow straight into the next one — only the
       // round's last movement should fire the shared rest timer.
-      { copyForward: true, startRest: !exercise.noRestAfter }
+      { copyForward: !willSkip, startRest: !exercise.noRestAfter }
     );
   };
 
@@ -1310,11 +1343,16 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 const ready = canCompleteSet(kind, set.actual_reps, set.weight_lbs);
                 const isExtra = set.set_number > exercise.sets;
                 const folded = set.is_completed && !isEditing;
+                const skipped = Boolean(set.is_completed && set.is_skipped);
+                // Too soon after the last set: this tap is a skip (lib/skippedSets.ts).
+                const showSkip = !set.is_completed && skipWindowOpen && !isSkipExempt(exercise);
                 const completeButtonClass = set.is_completed
                   ? isEditing
                     ? 'bg-[#e8c547] text-[#1a1404]'
                     : 'bg-white/10 text-white/45'
-                  : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35';
+                  : showSkip
+                    ? 'bg-white text-black disabled:bg-white/10 disabled:text-white/35'
+                    : 'bg-[#e8c547] text-[#1a1404] disabled:bg-white/10 disabled:text-white/35';
 
                 // A folded set collapses all the way to one line once it's rated, OR once
                 // the athlete has clearly moved on without rating it — either a LATER set in
@@ -1329,7 +1367,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   (item) => item.set_number > set.set_number && item.is_completed
                 );
                 const movedToOtherExercise = lastTouchedExercise != null && lastTouchedExercise !== exercise.name;
-                const resolved = folded && (hardnessScore != null || laterSetTouched || movedToOtherExercise);
+                // A skipped set has nothing to rate — it goes straight to its one line.
+                const resolved =
+                  folded && (skipped || hardnessScore != null || laterSetTouched || movedToOtherExercise);
 
                 return (
                   <div
@@ -1358,8 +1398,10 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                                 <div className="text-xs font-black uppercase tracking-[0.2em] text-white/45">
                                   Set {set.set_number}
                                 </div>
-                                <p className="mt-1 truncate text-xs font-semibold text-white/40">
-                                  {setSummaryLabel(kind, set)}
+                                <p
+                                  className={`mt-1 truncate text-xs font-semibold ${skipped ? 'text-[#a35d52]' : 'text-white/40'}`}
+                                >
+                                  {skipped ? 'Skipped' : setSummaryLabel(kind, set)}
                                 </p>
                               </div>
                               <button
@@ -1398,10 +1440,11 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                               className="flex w-full items-center justify-between gap-3 pt-1 text-left"
                             >
                               <span className="min-w-0 flex-1 truncate text-sm font-bold text-white">
-                                Set {set.set_number} · {setSummaryLabel(kind, set)}
+                                Set {set.set_number} ·{' '}
+                                {skipped ? <span className="text-[#a35d52]">Skipped</span> : setSummaryLabel(kind, set)}
                               </span>
                               <span className="flex shrink-0 items-center gap-2">
-                                <EffortBar score={hardnessScore ?? DEFAULT_HARDNESS} />
+                                {!skipped && <EffortBar score={hardnessScore ?? DEFAULT_HARDNESS} />}
                                 <ChevronDown className="h-4 w-4 text-white/40" />
                               </span>
                             </button>
@@ -1524,7 +1567,12 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                         <button
                           type="button"
                           onClick={() => {
-                            if (set.is_completed) {
+                            if (skipped && isEditing) {
+                              // Completing a skipped set from Editing makes it count again —
+                              // the re-save clears the skip server-side.
+                              updateSet(globalIndex, { is_completed: true });
+                              setEditingSet(null);
+                            } else if (set.is_completed) {
                               setEditingSet(isEditing ? null : `${set.exercise_name}-${set.set_number}`);
                             } else {
                               completeSet(globalIndex, gym, exercise);
@@ -1533,10 +1581,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                           disabled={!set.is_completed && !ready}
                           className={`mt-3 flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl text-base font-black transition-colors ${completeButtonClass}`}
                         >
-                          {set.is_completed ? (
+                          {skipped && isEditing ? (
+                            <>
+                              <Check className="h-6 w-6" />
+                              Complete Set
+                            </>
+                          ) : set.is_completed ? (
                             <>
                               <Edit2 className="h-5 w-5" />
                               Editing
+                            </>
+                          ) : showSkip ? (
+                            <>
+                              <FastForward className="h-6 w-6" />
+                              Skip
                             </>
                           ) : (
                             <>
@@ -1552,7 +1610,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
               })}
 
               {(() => {
-                const lastDone = [...sets].reverse().find((item) => item.is_completed);
+                // Skipped sets count for nothing, so they never feed the tiles.
+                const counted = sets.filter((item) => item.is_completed && !item.is_skipped);
+                const lastDone = counted[counted.length - 1];
                 if (!lastDone) return null;
                 const key = exerciseHistoryKey(exercise.name);
 
@@ -1607,11 +1667,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                   bestBeaten && allTimeBest ? tileDelta(Number(lastDone.weight_lbs ?? 0), Number(allTimeBest.weight_lbs ?? 0)) : null;
 
                 // Volume: average (weight × reps) per completed set of this exercise today so far.
-                const volumeValues = sets
-                  .filter((item) => item.is_completed)
-                  .map((item) =>
-                    setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps, item.bodyweight_lb)
-                  );
+                const volumeValues = counted.map((item) =>
+                  setVolume(item.exercise_name, item.target_reps, item.weight_lbs, item.actual_reps, item.bodyweight_lb)
+                );
                 const volumeAvg = volumeValues.reduce((sum, value) => sum + value, 0) / volumeValues.length;
                 const volumeBeforeAvg =
                   volumeValues.length > 1

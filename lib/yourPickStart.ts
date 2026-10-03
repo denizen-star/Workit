@@ -60,7 +60,7 @@ export async function validateYourPickStart(
   }
 
   const result = await query(
-    `SELECT week_number, day_number, is_completed, swap_for_day, pick_mode, started_at
+    `SELECT week_number, day_number, is_completed, skipped_heavy, swap_for_day, pick_mode, started_at
      FROM workout_sessions WHERE user_id = ? AND program_track = 'main'`,
     [userId]
   );

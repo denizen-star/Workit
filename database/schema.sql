@@ -121,6 +121,7 @@ CREATE TABLE workout_sessions (
     swap_for_day INT NULL, -- program day_number a Your pick swap stands in for
     credit_lbs DECIMAL(10,2) NOT NULL DEFAULT 0, -- Yoga/Core credit (lib/yourPickCredit.ts)
     session_hardness DECIMAL(3,2) NULL, -- Yoga/Core whole-session How hard 1-5
+    skipped_heavy TINYINT NOT NULL DEFAULT 0, -- half or more sets skipped: does not count toward the week
     is_completed BOOLEAN DEFAULT FALSE,
     notes TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -139,6 +140,8 @@ CREATE TABLE exercise_sets (
     actual_reps INT,
     weight_lbs DECIMAL(6,2),
     is_completed BOOLEAN DEFAULT FALSE,
+    is_skipped TINYINT NOT NULL DEFAULT 0, -- completed under 15s after the previous set; counts for nothing (lib/skippedSets.ts)
+    completed_at TIMESTAMP NULL, -- first completion; what the skip rule measures from
     hardness TINYINT NULL,
     bodyweight_lb DECIMAL(6,1) NULL, -- body-weight share credited at completion (lib/bodyweightShare.ts)
     rest_timer_seconds INT DEFAULT 90,

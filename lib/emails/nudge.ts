@@ -55,7 +55,7 @@ export async function sendNudgesForUser(
   if (!user.email) return { sent: false, skipped: 'no-address' };
 
   const result = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ? ORDER BY week_number, day_number',
+    'SELECT id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ? ORDER BY week_number, day_number',
     [user.id]
   );
   const sessions = result.rows as WorkoutSessionRow[];

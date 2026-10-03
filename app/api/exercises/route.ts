@@ -9,6 +9,9 @@ import { parseHardness } from '@/lib/hardness';
 import { bodyweightCreditLb } from '@/lib/bodyweightShare';
 import { betterSet, foldSetIntoHistory, type SetNumberStats } from '@/lib/setHistory';
 import { trackServerEvent } from '@/lib/trackServerEvent';
+import { setIsSkipped } from '@/lib/skippedSets';
+import { judgeFirstCompletion, unskipSet } from '@/lib/skippedSetsServer';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 async function assertSessionOwnership(sessionId: number, userId: number) {
   const result = await query(
@@ -105,10 +108,13 @@ export async function POST(request: NextRequest) {
     }
 
     let setId = id ?? null;
+    // The row as it stood before this save — tells a first completion (judged for a
+    // skip) apart from an Editing re-save of an already-completed set (lib/skippedSets.ts).
+    let before: { is_completed?: unknown; is_skipped?: unknown } | undefined;
 
     if (setId) {
       const setCheck = await query(
-        `SELECT es.id FROM exercise_sets es
+        `SELECT es.id, es.is_completed, es.is_skipped FROM exercise_sets es
          JOIN workout_sessions ws ON ws.id = es.workout_session_id
          WHERE es.id = ? AND ws.user_id = ?`,
         [setId, user.id]
@@ -116,6 +122,7 @@ export async function POST(request: NextRequest) {
       if (setCheck.rows.length === 0) {
         return NextResponse.json({ error: 'Set not found' }, { status: 404 });
       }
+      before = setCheck.rows[0] as typeof before;
 
       await query(
         `UPDATE exercise_sets
@@ -126,7 +133,7 @@ export async function POST(request: NextRequest) {
       );
     } else {
       const existing = await query(
-        `SELECT id FROM exercise_sets
+        `SELECT id, is_completed, is_skipped FROM exercise_sets
          WHERE workout_session_id = ? AND exercise_name = ? AND set_number = ?
          LIMIT 1`,
         [workoutSessionId, exerciseName, setNumber]
@@ -134,6 +141,7 @@ export async function POST(request: NextRequest) {
 
       if (existing.rows[0]) {
         setId = existing.rows[0].id;
+        before = existing.rows[0] as typeof before;
         await query(
           `UPDATE exercise_sets
            SET actual_reps = ?, weight_lbs = ?, is_completed = ?, notes = ?, target_reps = ?, hardness = COALESCE(?, hardness)
@@ -150,6 +158,17 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Skipped sets (docs/plans/PLAN_SKIPPED_SETS.md): a first completion is judged; an
+    // Editing re-save of a skipped set makes it count again.
+    let skipped = false;
+    if (isCompleted && setId) {
+      if (!Boolean(Number(before?.is_completed))) {
+        skipped = await judgeFirstCompletion(Number(setId), Number(workoutSessionId));
+      } else if (setIsSkipped(before)) {
+        await unskipSet(Number(setId), Number(workoutSessionId), user.id, user.scheduleDaysPerWeek);
+      }
+    }
+
     const bodyweightLb =
       isCompleted && setId ? await stampBodyweightCredit(Number(setId), user.bodyWeightLb) : null;
 
@@ -163,7 +182,7 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    return NextResponse.json({ success: true, setId, hardness, bodyweightLb });
+    return NextResponse.json({ success: true, setId, hardness, bodyweightLb, skipped });
   } catch (error) {
     console.error('Error saving exercise set:', error);
     return NextResponse.json({ error: 'Failed to save exercise set' }, { status: 500 });
@@ -230,7 +249,7 @@ export async function GET(request: NextRequest) {
                 COALESCE(ws.completed_at, ws.created_at) as done_at
          FROM exercise_sets es
          JOIN workout_sessions ws ON ws.id = es.workout_session_id
-         WHERE ws.user_id = ? AND es.is_completed = 1 AND ws.id != ?
+         WHERE ws.user_id = ? AND ${sqlSetCounts('es')} AND ws.id != ?
          ORDER BY done_at DESC, es.set_number ASC`,
         [user.id, currentSessionId]
       );
@@ -319,7 +338,7 @@ export async function GET(request: NextRequest) {
         const ownRows = await query(
           `SELECT exercise_name, weight_lbs, actual_reps, set_number, bodyweight_lb
            FROM exercise_sets
-           WHERE workout_session_id = ? AND is_completed = 1`,
+           WHERE workout_session_id = ? AND ${sqlSetCounts()}`,
           [currentSessionId]
         );
         for (const row of ownRows.rows as any[]) {

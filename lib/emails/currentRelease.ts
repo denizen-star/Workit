@@ -33,31 +33,43 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.8.0',
-  title: 'Your pick, your exact workout.',
-  subject: 'Pick the exact workout — Work-It',
+  version: '11.9.0',
+  title: 'Your core gets a real rotation.',
+  subject: 'New core moves, decline press, leg press — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    'You asked for more say on your Your pick day, and I love that. You know what your body needs this week, so now you get to choose exactly what you train.',
+    'Some of you noticed your ab move kept coming back as the same two or three. You were right, and I love that you were paying attention. Your core deserves more than a rerun.',
   mid:
-    'Tap Pick and you get one dropdown grouped Upper, Lower, Full body and Core. Want Lower B on a one-lower week? It is right there. Feel like a hinge day, or glutes, or chest and arms? Pick it. Before you start, a gold card tells you what makes that workout different and lists every lift, so there are no surprises. We also fixed a bug where Upper, Lower and Full body picks opened a full-body workout. Whatever you pick is what you get now.',
+    'From week 4 there are now 12 core moves, not 5: crunches, reverse crunches, bicycle crunches, Russian twists, woodchops, hanging leg raises, the ab wheel and more. It changes every week, never repeats inside a week, and switches between the start and the end of your workout. From week 7, Upper B opens with a decline press for the lower chest, and Lower B swaps the leg extension for the leg press, a heavier quad lift. The old moves are one Alt tap away if your gym is missing something. Your hanging knee raises keep all their history, and the weight and reps boxes now sit level.',
   close:
-    'Choose it, own it, finish it. I believe in every rep you put in this week. Quit does not get a vote.',
+    'New moves, same you. Show up, brace that core, and leave quit at the door. I believe in you this week.',
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'One dropdown — Upper, Lower, Full body and Core, all in one list.',
-        'Exact workouts — Upper A or B, Lower A or B, or packs like Hinge, Glutes or Chest and arms.',
-        'Preview card — one line on what sets it apart, then every lift with sets × reps.',
+        '12 core moves — a different one every week, starting week 4.',
+        'Decline press — Upper B leads with it from week 7. Incline is your first Alt.',
+        'Leg press — Lower B\'s main quad lift from week 7. Leg extension and goblet step-ups are on its Alt list.',
+        'Travel days — bar, wheel and cable core moves have a no-equipment version.',
+      ],
+    },
+    {
+      heading: 'Better',
+      wins: [
+        'Core spot — flips between the start and the end of your workout each week.',
+        'Hanging knee raises — their own move now, history kept, with a new shoulder tip.',
+        'Weight and reps boxes — side by side and level.',
       ],
     },
     {
       heading: 'Fixed',
-      wins: ['Your pick — Upper, Lower and Full body now open the workout you chose, not a full-body one.'],
+      wins: [
+        'Your pick — no more getting stuck on the Loading screen.',
+        'Goblet step-ups — real step-up photos.',
+      ],
     },
   ],
   wins: [],

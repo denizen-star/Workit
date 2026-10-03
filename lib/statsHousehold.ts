@@ -6,6 +6,7 @@ import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export type HouseholdHomeStats = {
   workoutsCompleted: number;
@@ -90,7 +91,7 @@ export async function householdHomeStats(
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
          COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND ${sqlSetCounts('es')}
        WHERE ws.user_id IN (${sql}) ${notTestDrive}
        GROUP BY ws.user_id`,
       params
@@ -150,7 +151,7 @@ export async function householdHomeStats(
              INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
              WHERE ws.user_id IN (${sql})
                AND ws.is_completed = 1
-               AND es.is_completed = 1 ${notTestDrive}
+               AND ${sqlSetCounts('es')} ${notTestDrive}
                AND DATE(COALESCE(ws.completed_at, ws.created_at)) IN (${dailyDates.map(() => '?').join(', ')})
              GROUP BY DATE(COALESCE(ws.completed_at, ws.created_at))
              UNION ALL

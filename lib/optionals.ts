@@ -6,6 +6,7 @@ import { absCircuit, guidedOptionalCircuit, guidedYogaCircuit } from '@/lib/opti
 import { performancePeriodWindow, sqlPeriodWindow } from '@/lib/performancePeriod';
 import { type PerformancePeriod } from '@/lib/athletePerformanceTypes';
 import { type CardioHonorRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export const OPTIONAL_SLOT_LBS = 500;
 export const OPTIONAL_SECONDS = 10 * 60;
@@ -403,7 +404,7 @@ async function sevenDayIronByUser() {
     `SELECT ws.user_id, COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE ws.is_completed = 1
        AND ${SQL_EXCLUDE_TEST_USER}
        AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}
@@ -440,7 +441,7 @@ async function userSevenDayVolume(userId: number) {
   const iron = await query(
     `SELECT COALESCE(SUM(${sqlSetVolume('es')}), 0) as volume
      FROM workout_sessions ws
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE ws.user_id = ?
        AND ws.is_completed = 1
        AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}`,

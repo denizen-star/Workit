@@ -9,6 +9,8 @@ type SessionLike = {
   pick_type?: string | null;
   swap_for_day?: number | null;
   is_completed?: unknown;
+  /** Half or more of its sets skipped (lib/skippedSets.ts) — finished, but not toward the week. */
+  skipped_heavy?: unknown;
   completed_at?: string | null;
   ended_at?: string | null;
   started_at?: string | null;
@@ -17,6 +19,12 @@ type SessionLike = {
 
 function isComplete(session: { is_completed?: unknown }): boolean {
   return Boolean(Number(session.is_completed));
+}
+
+/** Finished and counts toward its week: a skipped-heavy session (half or more of its
+ * sets skipped, docs/plans/PLAN_SKIPPED_SETS.md) stays in the log but never does. */
+export function countsForWeek(session: { is_completed?: unknown; skipped_heavy?: unknown }): boolean {
+  return isComplete(session) && !Number(session.skipped_heavy ?? 0);
 }
 
 /** Four finished sessions lock a week. Any session counts: program days, Your picks,
@@ -74,7 +82,7 @@ export function bonusTypeSql(alias = 'ws'): string {
 
 export function completedInWeek(sessions: SessionLike[], weekNumber: number): SessionLike[] {
   return sessions.filter(
-    (session) => isComplete(session) && Number(session.week_number) === weekNumber
+    (session) => countsForWeek(session) && Number(session.week_number) === weekNumber
   );
 }
 
@@ -195,7 +203,7 @@ export function bonusCount(
 ): number {
   const weeks = new Map<number, { completed: number; picks: number; legacyBonus: number }>();
   for (const session of sessions) {
-    if (!isComplete(session)) continue;
+    if (!countsForWeek(session)) continue;
     const week = Number(session.week_number);
     const tally = weeks.get(week) || { completed: 0, picks: 0, legacyBonus: 0 };
     tally.completed += 1;

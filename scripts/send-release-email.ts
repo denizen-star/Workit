@@ -1,7 +1,9 @@
 /**
- * Send release notes (Eli's voice) to every household user with an email.
+ * Send release notes (Eli's voice). Goes to **Kevin only** by default; the
+ * household gets it only when asked for with `--house` (`npm run mail:release:house`).
  *
- *   npx tsx --env-file=.env.local scripts/send-release-email.ts
+ *   npx tsx --env-file=.env.local scripts/send-release-email.ts            # Kevin only
+ *   npx tsx --env-file=.env.local scripts/send-release-email.ts --house    # household
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts --from=tom@workitapp.fit
  *
  * `--from=` swaps only the address (display name stays): Zoho 553-rejects the
@@ -91,6 +93,22 @@ function withFromAddress(from: string): string {
   return FROM_OVERRIDE ? from.replace(/<[^>]*>$/, `<${FROM_OVERRIDE}>`) : from;
 }
 
+/** `--house` sends to the household audience in CURRENT_RELEASE; without it, Kevin only. */
+const TO_HOUSE = process.argv.includes('--house');
+
+type Recipient = { id: number; name: string; email: string | null; coach_tone?: string | null };
+
+async function kevinRecipient(): Promise<Recipient[]> {
+  const result = await query(
+    `SELECT id, name, email, coach_tone FROM users WHERE id = 1 AND email IS NOT NULL AND email != ''`
+  );
+  const row = (result.rows as Recipient[])[0];
+  if (row) return [row];
+  const to = (process.env.WORKIT_SCOREBOARD_TO || 'leacock.kervin@gmail.com').split(',')[0].trim();
+  console.log('[send-release-email] Kevin has no users.email — using WORKIT_SCOREBOARD_TO');
+  return to ? [{ id: 1, name: 'Kevin Leacock', email: to, coach_tone: 'master' }] : [];
+}
+
 async function main() {
   if (!isEmailEnabled()) {
     console.error('[send-release-email] EMAIL_ENABLED is off');
@@ -98,16 +116,8 @@ async function main() {
     return;
   }
 
-  let recipients = await householdRecipients();
-  const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) => name.trim().toLowerCase());
-  const kevinOnly = only.length === 1 && only[0] === 'kevin';
-  if (recipients.length === 0 && kevinOnly) {
-    const to = (process.env.WORKIT_SCOREBOARD_TO || 'leacock.kervin@gmail.com').split(',')[0].trim();
-    if (to) {
-      recipients = [{ id: 1, name: 'Kevin Leacock', email: to, coach_tone: 'master' }];
-      console.log('[send-release-email] Kevin has no users.email — using WORKIT_SCOREBOARD_TO');
-    }
-  }
+  const recipients = TO_HOUSE ? await householdRecipients() : await kevinRecipient();
+  console.log('[send-release-email] audience:', TO_HOUSE ? 'household (--house)' : 'Kevin only');
   if (recipients.length === 0) {
     console.error('[send-release-email] no users with email');
     process.exitCode = 1;

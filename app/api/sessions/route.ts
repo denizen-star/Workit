@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
 import { BELTS, getBelts, serializeBelt } from '@/lib/belts';
-import { bonusCount, sessionIsBonus, weekBonusDone } from '@/lib/bonusDay';
+import { bonusCount, completedInWeek, sessionIsBonus, weekBonusDone } from '@/lib/bonusDay';
 import { sessionIsYourPick } from '@/lib/yourPick';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -10,16 +10,14 @@ import { updateDailyStats } from '@/lib/dailyStats';
 import { queueWorkoutCompleteEmails } from '@/lib/emails/lifecycle';
 import { trackServerEvent } from '@/lib/trackServerEvent';
 import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes';
-import { parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
+import { liveExerciseName, parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
-import { applyExerciseMode } from '@/lib/workoutData';
-import { resolveSessionDay } from '@/lib/resolveDay';
+import { resolveAnySessionDay } from '@/lib/resolveDay';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
-import { getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { programTrackForWeek } from '@/lib/programTrack';
 import { validateOverloadStart } from '@/lib/overloadState';
-import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
+import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import { markDoneTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
 import { applyYourPickCredit } from '@/lib/yourPickCredit';
 import { isTestDriveWeek } from '@/lib/testDrive';
@@ -32,6 +30,7 @@ import {
 } from '@/lib/testDriveServer';
 import { hasSeenWeekTakeover, markWeekTakeoverSeen } from '@/lib/weekPodium';
 import { sessionBodyWeightNote } from '@/lib/bodyWeight';
+import { refreshSkippedHeavy } from '@/lib/skippedSetsServer';
 
 type OpenSessionRow = {
   id: number;
@@ -161,12 +160,14 @@ export async function POST(request: NextRequest) {
       await updateDailyStats(sessionId, user.id);
       const awardedBadges = await checkAndAwardBadges(user.id);
       const all = await query(
-        'SELECT week_number, is_completed FROM workout_sessions WHERE user_id = ?',
+        'SELECT week_number, day_number, is_completed, skipped_heavy FROM workout_sessions WHERE user_id = ?',
         [user.id]
       );
       const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
-      const completedThisWeek = (all.rows as Array<{ week_number: number; is_completed: unknown }>).filter(
-        (row) => Number(row.week_number) === Number(weekNumber) && Boolean(Number(row.is_completed))
+      // Skipped-heavy sessions don't count toward the week (lib/bonusDay.ts countsForWeek).
+      const completedThisWeek = completedInWeek(
+        all.rows as Array<{ week_number: number; day_number: number }>,
+        Number(weekNumber)
       ).length;
       // Hyrox weeks (101+) have their own required-5 eligibility mechanism
       // (lib/hyroxState.ts) — never persist them into the locked-weeks table, or
@@ -229,7 +230,7 @@ export async function GET(request: NextRequest) {
         `SELECT id, week_number, day_number, workout_type, workout_mode,
                 started_at, completed_at, ended_at, created_at,
                 warmup_lbs, cooldown_lbs, optional_kicker_lbs,
-                pick_type, pick_mode, swap_for_day, credit_lbs, session_hardness
+                pick_type, pick_mode, swap_for_day, credit_lbs, session_hardness, skipped_heavy
          FROM workout_sessions
          WHERE user_id = ? AND is_completed = 1
          ORDER BY week_number, day_number, COALESCE(completed_at, created_at) DESC`,
@@ -254,6 +255,7 @@ export async function GET(request: NextRequest) {
         swap_for_day?: number | null;
         credit_lbs?: number | null;
         session_hardness?: number | null;
+        skipped_heavy?: number | null;
       }[];
 
       // The completed log's week-fold check (components/CompletedLog.tsx) needs the
@@ -268,7 +270,7 @@ export async function GET(request: NextRequest) {
       const ids = sessions.map((row) => row.id);
       const placeholders = ids.map(() => '?').join(', ');
       const setResult = await query(
-        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb
+        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb, is_skipped
          FROM exercise_sets
          WHERE workout_session_id IN (${placeholders}) AND is_completed = 1
          ORDER BY workout_session_id, id, set_number`,
@@ -464,9 +466,11 @@ export async function PUT(request: NextRequest) {
     let uniqueBonusWeeks = 0;
     let earnedBelt = null;
     if (isCompleted) {
+      // Half or more sets skipped → finished, but not toward the week (lib/skippedSets.ts).
+      await refreshSkippedHeavy(Number(sessionId));
       await updateDailyStats(Number(sessionId), user.id);
       const all = await query(
-        `SELECT week_number, day_number, workout_type, is_completed, pick_type, swap_for_day
+        `SELECT week_number, day_number, workout_type, is_completed, skipped_heavy, pick_type, swap_for_day
          FROM workout_sessions WHERE user_id = ? AND program_track = ?`,
         [user.id, programTrackForWeek(Number(session.week_number))]
       );
@@ -475,6 +479,7 @@ export async function PUT(request: NextRequest) {
         day_number: number;
         workout_type: string;
         is_completed: number | boolean;
+        skipped_heavy: number | null;
         pick_type: string | null;
         swap_for_day: number | null;
       }>;
@@ -484,9 +489,7 @@ export async function PUT(request: NextRequest) {
       if (sessionIsYourPick(session)) {
         bonus = weekBonusDone(rows, Number(session.week_number), requiredForWeek(Number(session.week_number)));
       }
-      const completedThisWeek = rows.filter(
-        (row) => Number(row.week_number) === Number(session.week_number) && Boolean(Number(row.is_completed))
-      ).length;
+      const completedThisWeek = completedInWeek(rows, Number(session.week_number)).length;
       // A Test Drive (week 0) never locks a week or earns a belt (lib/testDrive.ts).
       const testDrive = isTestDriveWeek(session.week_number);
       const thisWeekLocked = !testDrive && completedThisWeek >= requiredForWeek(Number(session.week_number));
@@ -574,20 +577,13 @@ export async function PATCH(request: NextRequest) {
       user.id,
     ]);
 
-    // Hyrox weeks (101+, see lib/hyroxProgram.ts) aren't in the normal program's static
-    // array, so they need their own day lookup — same namespacing rule POST already uses.
-    // Overload weeks (201+) resolve through resolveSessionDay.
-    const day =
-      programTrackForWeek(Number(session.week_number)) === 'hyrox'
-        ? getHyroxWorkoutDay(Number(session.week_number), Number(session.day_number))
-        : resolveSessionDay(Number(session.week_number), Number(session.day_number));
+    // Hyrox weeks (101+) need their own day lookup; resolveAnySessionDay handles it.
+    const day = resolveAnySessionDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);
 
     for (const exercise of day?.exercises || []) {
       // An Alt swap replaces the whole movement — it wins over Gym/Travel mode entirely.
-      const altName = nextAlts[exercise.name];
-      const mode = (nextModes[exercise.name] || fallback) as WorkoutMode;
-      const displayName = altName || applyExerciseMode(exercise, mode).name;
+      const displayName = liveExerciseName(exercise, nextAlts, nextModes, fallback);
       const previousAlt = previousAlts[exercise.name];
       const aliases = Array.from(
         new Set([...exerciseGroupNames(exercise.name), displayName, exercise.name, ...(previousAlt ? [previousAlt] : [])])

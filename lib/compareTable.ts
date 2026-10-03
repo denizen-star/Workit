@@ -46,6 +46,17 @@ export function recapExerciseRows(
   }));
 }
 
+/** Finish recap row for skipped sets (lib/skippedSets.ts) — just the count, no reason. */
+export function recapSkippedRow(count: number): CompareRow | null {
+  if (count <= 0) return null;
+  return {
+    id: 'skipped',
+    label: 'Skipped',
+    you: { value: `${count} ${count === 1 ? 'set' : 'sets'}` },
+    last: { value: '—' },
+  };
+}
+
 export function optionalLbsCompareRow(lbs: number, lastLbs?: number | null): CompareRow | null {
   if (!lbs && lastLbs == null) return null;
   if (!lbs && !lastLbs) return null;

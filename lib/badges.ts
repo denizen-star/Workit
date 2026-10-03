@@ -4,6 +4,7 @@ import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals
 import { clampScheduleDays, requiredCountForWeek } from '@/lib/scheduleDays';
 import { lockedWeekNumbers } from '@/lib/lockedWeeks';
 import { bonusWeeksForUser, yourPickBadgeStats } from '@/lib/yourPickBonus';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export type AwardedBadge = {
   id: number;
@@ -39,7 +40,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
         COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as completed_workouts,
         SUM(${sqlSetVolume('es')}) + ${sqlUserOptionalVolume('ws.user_id')} as total_weight_lifted
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON ws.id = es.workout_session_id AND ${sqlSetCounts('es')}
        WHERE ws.user_id = ?`,
       [userId]
     );
@@ -136,7 +137,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
          TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) as duration_seconds,
          COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalVolume('ws')} as volume
        FROM workout_sessions ws
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
        WHERE ws.user_id = ? AND ws.is_completed = 1
        GROUP BY ws.id, ws.started_at, ws.ended_at`,
       [userId]

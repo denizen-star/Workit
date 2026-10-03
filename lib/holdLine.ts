@@ -1,6 +1,7 @@
 import { query } from '@/lib/db';
 import { formatHardnessWithPct } from '@/lib/hardness';
 import { bestLoggedSet } from '@/lib/setHistory';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export async function holdLineForDay(userId: number, workoutType: string) {
   const last = await query(
@@ -23,7 +24,7 @@ export async function holdLineForDay(userId: number, workoutType: string) {
     `SELECT weight_lbs, actual_reps, hardness
      FROM exercise_sets
      WHERE workout_session_id = ?
-       AND is_completed = 1`,
+       AND ${sqlSetCounts()}`,
     [sessionId]
   );
   const rows = sets.rows as {

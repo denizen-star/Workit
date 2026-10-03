@@ -25,6 +25,7 @@ import {
 } from '@/lib/scoreboardTypes';
 import { normalizePerformancePeriod, type PerformancePeriod } from '@/lib/athletePerformanceTypes';
 import { avgPerSession, compareRank, rankEligible } from '@/lib/rankRule';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 /** Window length in days for the rank eligibility bar (lib/rankRule.ts). null = all time. */
 function scoreboardWindowDays(period: ScoreboardPeriod): number | null {
@@ -173,7 +174,7 @@ async function householdScoreboardFiltered(
        )} as volume,
        COALESCE(SUM(${sqlSetVolume('es')}), 0) as raw_volume,
        COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as effort_sets,
-       COUNT(CASE WHEN es.is_completed = 1 THEN es.id END) as sets,
+       COUNT(CASE WHEN ${sqlSetCounts('es')} THEN es.id END) as sets,
        COALESCE(MAX(es.weight_lbs), 0) as heaviest,
        COALESCE(SUM(es.weight_lbs), 0) as weight_sum,
        COALESCE(SUM(es.actual_reps), 0) as reps_sum,
@@ -187,7 +188,7 @@ async function householdScoreboardFiltered(
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE 1=1 ${house.sql}
      GROUP BY u.id, u.name, u.display_name, u.schedule_days_per_week
      HAVING COUNT(DISTINCT ws.id) > 0`,
@@ -229,7 +230,7 @@ async function householdScoreboardFiltered(
        FROM users u
        INNER JOIN workout_sessions ws
          ON ws.user_id = u.id AND ws.is_completed = 1 ${priorSessionWindow.sql}
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
        WHERE 1=1 ${house.sql}
        GROUP BY u.id`,
       [...priorSessionWindow.params, ...house.params]
@@ -260,7 +261,7 @@ async function householdScoreboardFiltered(
            ws.user_id,
            COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
          FROM workout_sessions ws
-         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
          WHERE ws.is_completed = 1 ${sessionWindow.sql}
          GROUP BY ws.user_id, ws.id
        ) session_totals
@@ -274,7 +275,7 @@ async function householdScoreboardFiltered(
            ws.user_id,
            COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
          FROM workout_sessions ws
-         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
          WHERE ws.is_completed = 1 ${sessionWindow.sql}
          GROUP BY ws.user_id, ws.id
        ) session_totals
@@ -482,7 +483,7 @@ export async function householdWeightSeries(
        INNER JOIN workout_sessions ws ON ws.id = es.workout_session_id
        INNER JOIN users u ON u.id = ws.user_id
        WHERE ws.is_completed = 1
-         AND es.is_completed = 1
+         AND ${sqlSetCounts('es')}
          ${dateWindow.sql} ${house.sql}
        GROUP BY ws.user_id, u.name, ${day}`,
       [...dateWindow.params, ...house.params]

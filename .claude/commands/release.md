@@ -24,6 +24,6 @@ Only run this after step 3 has pushed successfully — this mail tells athletes 
 1. Rewrite `lib/emails/currentRelease.ts` from the **CHANGELOG Unreleased** section you just released. Sandwich: `intro` / `mid` / `close` in **Eli Sparks** (high-energy, encouraging, believes-in-you; quit as a noun). Every athlete gets the same Eli letter whatever their own coach is (`BROADCAST_TONE` in `lib/mailFrom.ts`). The `groups` middle is **plain English and visual** (`label — fact`). No developer words. The signer is Eli automatically — do not set `signer` / `tone`. No Add-to-Home-Screen block on release.
 2. This mail is **for users**, not ops. No Netlify, env vars, cron secrets, Admin Mail, BCC, or deploy checklists.
 3. Keep `version` / `title` / `groups` current (match the version you just tagged). Feature lines are facts, not a dump.
-4. Set `onlyAthletesWithWorkouts: true` and `activeInDays: 14` so it only goes to athletes who've trained in the last two weeks.
-5. Run `npm run mail:release` (needs `.env.local` SMTP). That sends to every qualifying `users.email` from `news@workitapp.fit` and BCCs `info@workitapp.fit`.
+4. Set `onlyAthletesWithWorkouts: true` and `activeInDays: 14` so a later household send only goes to athletes who've trained in the last two weeks.
+5. Run `npm run mail:release` (needs `.env.local` SMTP). That sends to **Kevin only**, from `workit-news@workitapp.fit`, BCC `info@workitapp.fit`. **Never** run `npm run mail:release:house` (the household send) unless Kevin explicitly asks for it in this conversation.
 6. In the reply, say who it went to (count, not a dump of secrets) and the subject. If SMTP fails, say so — still finish the release.

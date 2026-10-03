@@ -158,6 +158,8 @@ export function sessionSetTotals(
     weight_lbs: number | null;
     actual_reps: number | null;
     is_completed: boolean;
+    /** Skipped sets (lib/skippedSets.ts) count for nothing. */
+    is_skipped?: boolean;
     hardness?: number | null;
     bodyweight_lb?: number | string | null;
   }>
@@ -166,7 +168,7 @@ export function sessionSetTotals(
   let reps = 0;
   let effort = 0;
   for (const set of sets) {
-    if (!set.is_completed) continue;
+    if (!set.is_completed || set.is_skipped) continue;
     const volume = setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb);
     lbs += volume;
     effort += effortFromVolume(volume, set.hardness);

@@ -2,6 +2,7 @@ import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { effortFactorFromScore, DEFAULT_HARDNESS } from '@/lib/hardness';
 import { isTimedPickType } from '@/lib/yourPick';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 /** Used when an athlete has no lifting history at all to average. */
 export const YOUR_PICK_CREDIT_FLOOR_LBS = 2000;
@@ -18,7 +19,7 @@ async function averageLiftingSession(userId: number, excludeSessionId: number, s
      FROM (
        SELECT ws.id, SUM(${sqlSetVolume('es')}) AS session_volume
        FROM workout_sessions ws
-       INNER JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+       INNER JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
        WHERE ws.user_id = ? AND ws.is_completed = 1 AND ws.id <> ?
          AND COALESCE(ws.credit_lbs, 0) = 0
          ${window}

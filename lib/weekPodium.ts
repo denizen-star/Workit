@@ -12,6 +12,7 @@ import { isTestUserName, SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { workoutDateKey } from '@/lib/statsHousehold';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 export const WEEK_PODIUM_BACKFILL = 2;
 
@@ -113,7 +114,7 @@ export async function rankClosedWeek(monday: string): Promise<WeekPodiumRow[]> {
      FROM users u
      INNER JOIN workout_sessions ws
        ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow}
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND es.is_completed = 1
+     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE ${SQL_EXCLUDE_TEST_USER}
      GROUP BY u.id, u.name, u.schedule_days_per_week
      HAVING COUNT(DISTINCT ws.id) > 0`,

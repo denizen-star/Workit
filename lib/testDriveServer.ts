@@ -3,6 +3,7 @@ import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlSessionOptionalVolume } from '@/lib/optionals';
 import { accountGetsTestDrive, TEST_DRIVE_WEEK, testDriveState, type TestDriveState } from '@/lib/testDrive';
 import type { WorkoutDay } from '@/lib/workoutData';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 /** Server side of Test Drive (lib/testDrive.ts): load its state, validate a start, clean up after Monday. */
 
@@ -60,7 +61,7 @@ export async function testDriveSummary(userId: number): Promise<TestDriveSummary
   const result = await query(
     `SELECT COUNT(*) as workouts,
             COALESCE(SUM((SELECT COALESCE(SUM(${sqlSetVolume('es')}), 0) FROM exercise_sets es
-                          WHERE es.workout_session_id = ws.id AND es.is_completed = 1)
+                          WHERE es.workout_session_id = ws.id AND ${sqlSetCounts('es')})
                          + ${sqlSessionOptionalVolume('ws')}), 0) as lbs,
             COALESCE(SUM(CASE WHEN ws.started_at IS NOT NULL AND ws.ended_at IS NOT NULL
                               THEN TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) END), 0) as seconds

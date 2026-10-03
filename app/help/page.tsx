@@ -304,6 +304,12 @@ const GLOSSARY: GlossaryTerm[] = [
       "Your own rating of how hard a set felt: Easy, Light, Fair, Hard, or Max. Don't rate it, and it's counted as Fair by default.",
   },
   {
+    term: 'Skipped',
+    tag: 'set',
+    definition:
+      "A set marked Skipped doesn't count toward your totals, records, or history. If you did the work, open it with Editing and tap Complete Set — it counts again.",
+  },
+  {
     term: 'Aim for',
     tag: 'Overload Progressions',
     definition:

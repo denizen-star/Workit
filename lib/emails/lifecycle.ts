@@ -24,6 +24,7 @@ import { clampScheduleDays, daysForWeekFn } from '@/lib/scheduleDays';
 import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
 import { sessionBodyWeightNote } from '@/lib/bodyWeight';
 import { SQL_NOT_JOIN_DRAFT } from '@/lib/householdUsers';
+import { sqlSetCounts } from '@/lib/skippedSets';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -238,10 +239,11 @@ export async function sendWorkoutCompleteBundle(opts: {
 
   const totals = await query(
     `SELECT
-       COALESCE(SUM(CASE WHEN is_completed = 1 THEN ${sqlSetVolume()} ELSE 0 END), 0)
+       COALESCE(SUM(CASE WHEN ${sqlSetCounts()} THEN ${sqlSetVolume()} ELSE 0 END), 0)
          + (SELECT ${sqlSessionOptionalVolume('ws')} FROM workout_sessions ws WHERE ws.id = ?) as volume,
-       COUNT(CASE WHEN is_completed = 1 THEN id END) as set_count,
-       COUNT(DISTINCT CASE WHEN is_completed = 1 THEN exercise_name END) as exercise_count
+       COUNT(CASE WHEN ${sqlSetCounts()} THEN id END) as set_count,
+       COUNT(DISTINCT CASE WHEN ${sqlSetCounts()} THEN exercise_name END) as exercise_count,
+       COUNT(CASE WHEN is_skipped = 1 THEN id END) as skipped_count
      FROM exercise_sets
      WHERE workout_session_id = ? AND is_completed = 1`,
     [opts.sessionId, opts.sessionId]
@@ -252,7 +254,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     [opts.sessionId, opts.userId]
   );
   const sessions = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ?',
+    'SELECT id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ?',
     [opts.userId]
   );
   const userRow = await query('SELECT schedule_days_per_week, gender FROM users WHERE id = ?', [opts.userId]);
@@ -261,6 +263,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     volume: number;
     set_count: number;
     exercise_count: number;
+    skipped_count: number;
   };
   const duration = (timing.rows[0] as { duration_seconds: number | null } | undefined)
     ?.duration_seconds;
@@ -301,6 +304,7 @@ export async function sendWorkoutCompleteBundle(opts: {
     durationSeconds: duration,
     volumeLbs: Number(totalRow.volume || 0),
     setCount: Number(totalRow.set_count || 0),
+    skippedCount: Number(totalRow.skipped_count || 0),
     exerciseCount: Number(totalRow.exercise_count || 0),
     completeLine: pickCompleteLine(tone, opts.name),
     replenishLine: pickReplenishLine(),
