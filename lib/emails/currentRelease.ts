@@ -33,27 +33,31 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '11.10.0',
-  title: 'Every set you log should be a set you did.',
-  subject: 'Skipped sets are here — Work-It',
+  version: '11.11.0',
+  title: 'Your workout, your call.',
+  subject: 'Add or remove exercises — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Your numbers are yours, and I want every one of them to mean something. When you look back at a week of work, I want you to trust every pound on that board.",
+    "You've put in the weeks, and it shows. From week 7 on, you know your body and you know your gym. So I'm handing you more of the wheel.",
   mid:
-    "So some sets now save as Skipped. You'll see it right on the button: it turns white, says Skip, and shows a little fast-forward arrow. A skipped set stays in your log and your recap, but it doesn't count toward your totals, your records or your history. Did the work and it got marked anyway? No problem. Open that set with Editing, tap Complete Set, and it counts again.",
+    "On a live workout you can now add an exercise or take one off. Tap Add exercise at the end of your workout to pick any lift from the program, up to four. Tap Remove exercise under a card you haven't started to drop it. The program is built so every week hits every muscle group, so this one's your call and your risk. The first change in a workout asks you to confirm, and it's for that workout only. Next time, you're back on the plan.",
   close:
-    "Real reps, real growth. Take the set, own the set, and leave quit at the door. I believe in you this week.",
+    "Make it yours, keep the form clean, and leave quit at the door. I'm right here with you.",
   lead: '',
   groups: [
     {
       heading: 'New',
       wins: [
-        'Skip button — white, with a fast-forward arrow. A set saved with it is marked Skipped.',
-        "Skipped sets — shown in your log and recap, but they don't add to totals, records or history.",
-        'Changed your mind — open the set with Editing and tap Complete Set. It counts again.',
+        'Add exercise — from week 7, put any lift from the program at the end of your workout. Up to four.',
+        "Remove exercise — drop a card you haven't started yet.",
+        'Your call — the first change in a workout asks you to confirm. Changes last for that workout only.',
       ],
+    },
+    {
+      heading: 'Fixed',
+      wins: ['Skip button — it stays put now instead of switching back early.'],
     },
   ],
   wins: [],
