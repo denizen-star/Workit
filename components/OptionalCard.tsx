@@ -551,7 +551,7 @@ export default function OptionalCard({
                   </p>
                   {!guided && cardioReady ? (
                     <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
-                      Counting up · done when you are
+                      Counting up · +{formatCompact(optionalSlotLbs(state.track, state.runMinutes, elapsed))} lb so far
                     </p>
                   ) : null}
                   {showRest ? (

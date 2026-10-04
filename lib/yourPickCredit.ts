@@ -1,7 +1,7 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { effortFactorFromScore, DEFAULT_HARDNESS } from '@/lib/hardness';
-import { OPTIONAL_SLOT_LBS } from '@/lib/optionals';
+import { cardioCreditLbs, parseDbTime } from '@/lib/optionals';
 import { isTimedPickType, runPickMinutes } from '@/lib/yourPick';
 import { sqlSetCounts } from '@/lib/skippedSets';
 
@@ -59,16 +59,21 @@ export async function computeYourPickCredit(
  */
 export async function applyYourPickCredit(
   userId: number,
-  session: { id: number; pick_type?: string | null; day_number?: number | null },
+  session: { id: number; pick_type?: string | null; day_number?: number | null; started_at?: string | Date | null },
   sessionHardness: unknown
 ): Promise<number> {
   const isRun = session.pick_type === 'run';
   if (!isRun && !isTimedPickType(session.pick_type)) return 0;
   const raw = Number(sessionHardness);
   const hardness = Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null;
-  // Run is flat by length, like the optional run: 10 → 500, 20 → 1,000, 30 → 1,500.
+  // Run pays for the time actually run (start → Finish), like the optional run: 50 lb a
+  // minute, never under the picked 10/20/30 (runTooSoon blocks an early Finish).
+  const started = parseDbTime(session.started_at);
   const credit = isRun
-    ? ((runPickMinutes(Number(session.day_number)) ?? 10) / 10) * OPTIONAL_SLOT_LBS
+    ? cardioCreditLbs(
+        started == null ? 0 : Math.floor((Date.now() - started) / 1000),
+        (runPickMinutes(Number(session.day_number)) ?? 10) * 60
+      )
     : await computeYourPickCredit(userId, Number(session.id), hardness);
   await query('UPDATE workout_sessions SET credit_lbs = ?, session_hardness = ? WHERE id = ? AND user_id = ?', [
     credit,

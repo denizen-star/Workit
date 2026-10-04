@@ -6,6 +6,8 @@ import SetHardness from '@/components/SetHardness';
 import VideoModal from '@/components/VideoModal';
 import YourPickIcon from '@/components/YourPickIcon';
 import { formatClock } from '@/lib/formatDuration';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
+import { cardioCreditLbs } from '@/lib/optionals';
 import type { HardnessScore } from '@/lib/hardness';
 import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
@@ -170,7 +172,7 @@ export default function YourPickFlow({
             {formatClock(runReady ? elapsed : runSeconds - elapsed)}
           </p>
           <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
-            {runReady ? 'Counting up · done when you are' : 'Easy run'}
+            {runReady ? `Counting up · +${formatCompact(cardioCreditLbs(elapsed, runSeconds))} lb so far` : 'Easy run'}
           </p>
           <p className="mx-auto mt-4 max-w-md text-base text-[#f6f1e3]/85">
             {runReady

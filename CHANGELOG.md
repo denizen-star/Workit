@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 12.3.0 - 2026-10-04
+
+### Changed
+- **Run and bike pay for the time you actually go.** Picked 20 minutes but ran 35? You get credit for 35. 50 lb a minute (500 per 10), never less than what you picked. The live clock shows what you've earned so far. Works for the warmup/cooldown run and bike and for Your pick runs.
+
 ## 12.2.0 - 2026-10-04
 
 ### Added

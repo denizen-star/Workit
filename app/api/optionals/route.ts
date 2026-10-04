@@ -224,7 +224,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      const slotLbs = optionalSlotLbs(current.track, current.runMinutes);
+      const slotLbs = optionalSlotLbs(current.track, current.runMinutes, optionalElapsedSeconds(current.startedAt));
       await query(
         `UPDATE workout_sessions
          SET ${columns.completed} = NOW(), ${columns.lbs} = ?

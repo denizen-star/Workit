@@ -71,9 +71,24 @@ export function optionalTargetSeconds(track: unknown, level?: unknown) {
   return track === 'run' ? parseRunMinutes(level) * 60 : OPTIONAL_SECONDS;
 }
 
-/** Lbs a finished slot credits. Run scales with its length (10 → 500, 20 → 1,000, 30 → 1,500). */
-export function optionalSlotLbs(track: unknown, level?: unknown) {
-  return track === 'run' ? (parseRunMinutes(level) / 10) * OPTIONAL_SLOT_LBS : OPTIONAL_SLOT_LBS;
+/** Run/bike credit rate: 500 lb per 10 minutes. */
+export const CARDIO_LBS_PER_MINUTE = OPTIONAL_SLOT_LBS / 10;
+/** Credit stops growing here, so a timer left running by mistake can't pay out forever. */
+export const CARDIO_CREDIT_MAX_MINUTES = 120;
+
+/** Run/bike credit for the time actually done: whole minutes × 50 lb, never under the
+ * picked length (they can't finish before it) and never over CARDIO_CREDIT_MAX_MINUTES. */
+export function cardioCreditLbs(elapsedSeconds: number, targetSeconds: number) {
+  const seconds = Math.min(Math.max(elapsedSeconds, targetSeconds), CARDIO_CREDIT_MAX_MINUTES * 60);
+  return Math.floor(seconds / 60) * CARDIO_LBS_PER_MINUTE;
+}
+
+/** Lbs a finished slot credits. Run/bike pay for the time actually done (`cardioCreditLbs`;
+ * without `elapsedSeconds`, the picked length's minimum — 10 → 500, 20 → 1,000, 30 → 1,500).
+ * Stretch/core/yoga/abs are a flat +500. */
+export function optionalSlotLbs(track: unknown, level?: unknown, elapsedSeconds = 0) {
+  if (track !== 'run' && track !== 'bike') return OPTIONAL_SLOT_LBS;
+  return cardioCreditLbs(elapsedSeconds, optionalTargetSeconds(track, level));
 }
 
 const LEVEL_LABELS: Record<OptionalLevel, string> = {

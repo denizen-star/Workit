@@ -66,7 +66,7 @@ const RUNNING_A_WORKOUT: GuideStep[] = [
   {
     title: 'Add a warmup or cooldown (optional)',
     description:
-      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Stretch and Core ask Easy, Medium, or Hard in a bar above your coach; the run asks 10, 20, or 30 minutes and earns more the longer you go. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
+      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Stretch and Core ask Easy, Medium, or Hard in a bar above your coach; the run asks 10, 20, or 30 minutes. Run and bike earn 50 lb for every minute you actually go, so going past your pick still counts. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
     image: '/help/workout-optional.png',
   },
   {

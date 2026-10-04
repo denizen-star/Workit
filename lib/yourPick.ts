@@ -356,7 +356,7 @@ function runVariants(): YourPickVariant[] {
   return Object.entries(RUN_PICK_DAYS).map(([day, minutes]) => ({
     type: 'run' as const,
     label: `Run · ${minutes} min`,
-    description: `Easy run. The clock counts down ${minutes} minutes, then keeps going until you stop. +${(minutes / 10) * 500} lb.`,
+    description: `Easy run. The clock counts down ${minutes} minutes, then keeps going until you stop. +${(minutes / 10) * 500} lb, plus 50 lb for every extra minute.`,
     dayNumber: Number(day),
   }));
 }
