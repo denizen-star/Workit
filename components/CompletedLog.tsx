@@ -6,6 +6,7 @@ import { Check, ChevronDown, ChevronUp } from 'lucide-react';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import { weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import { formatDuration } from '@/lib/formatDuration';
+import { resolveSessionDay } from '@/lib/resolveDay';
 import { workoutProgram } from '@/lib/workoutData';
 import { resolveTestDriveDay, TEST_DRIVE_NAME, TEST_DRIVE_WEEK } from '@/lib/testDrive';
 import { athleteRequiredDays, clampScheduleDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
@@ -227,32 +228,53 @@ export default function CompletedLog({
 
               {open && (
                 <div className="space-y-3 px-5 pb-5">
-                  {week.days.map((day) => {
-                    const daySessions = weekSessions.filter(
-                      (session) => Number(session.day_number) === day.dayNumber
-                    );
-                    if (daySessions.length === 0) {
+                  {(() => {
+                    const shown = new Set<number>();
+                    const card = (session: HistorySession, focus: string) => {
+                      shown.add(Number(session.id));
                       return (
-                        <div
-                          key={day.dayNumber}
-                          className="rounded-2xl border border-white/10 bg-black/25 p-4"
-                        >
-                          <h4 className="text-lg font-black text-white/50">{day.name}</h4>
-                          <p className="mt-1 text-sm text-[#f6f1e3]/45">Not finished yet</p>
-                        </div>
+                        <CompletedSessionCard
+                          key={session.id}
+                          session={session}
+                          focus={focus}
+                          defaultOpen={openSessionId === Number(session.id)}
+                          bestDay={bestSessionId === Number(session.id)}
+                        />
                       );
-                    }
-
-                    return daySessions.map((session) => (
-                      <CompletedSessionCard
-                        key={session.id}
-                        session={session}
-                        focus={day.focus}
-                        defaultOpen={openSessionId === Number(session.id)}
-                        bestDay={bestSessionId === Number(session.id)}
-                      />
-                    ));
-                  })}
+                    };
+                    const programDays = week.days.map((day) => {
+                      const daySessions = weekSessions.filter(
+                        (session) => Number(session.day_number) === day.dayNumber
+                      );
+                      if (daySessions.length === 0) {
+                        const swap = weekSessions.find(
+                          (session) => Number(session.swap_for_day) === day.dayNumber
+                        );
+                        if (swap) return card(swap, day.focus);
+                        return (
+                          <div
+                            key={day.dayNumber}
+                            className="rounded-2xl border border-white/10 bg-black/25 p-4"
+                          >
+                            <h4 className="text-lg font-black text-white/50">{day.name}</h4>
+                            <p className="mt-1 text-sm text-[#f6f1e3]/45">Not finished yet</p>
+                          </div>
+                        );
+                      }
+                      return daySessions.map((session) => card(session, day.focus));
+                    });
+                    // Your pick, full-body, and retired bonus days aren't in the static
+                    // program list, so a week fold used to count their lbs and hide the card.
+                    const extras = weekSessions
+                      .filter((session) => !shown.has(Number(session.id)))
+                      .map((session) =>
+                        card(
+                          session,
+                          resolveSessionDay(week.weekNumber, Number(session.day_number))?.focus || ''
+                        )
+                      );
+                    return [...programDays.flat(), ...extras];
+                  })()}
                 </div>
               )}
             </div>

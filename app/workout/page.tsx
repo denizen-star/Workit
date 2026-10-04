@@ -9,6 +9,7 @@ import {
   isTimedPickType,
   isYourPickSlot,
   sessionIsYourPick,
+  yourPickCurrentWeek,
   yourPickSwapTargets,
   yourPickWeekAllowed,
 } from '@/lib/yourPick';
@@ -452,11 +453,21 @@ function WorkoutPageInner() {
         );
         if (!selectWeekInit.current) {
           selectWeekInit.current = true;
-          setExpandedWeek(
-            overloadMode
-              ? defaultSelectWeek(rows, program)
-              : defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays))
-          );
+          let opened = overloadMode
+            ? defaultSelectWeek(rows, program)
+            : defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays));
+          // Weekend hold: Home stays on the locked week through Sunday. Open that
+          // week here too, so Add a workout files on it instead of the next one.
+          if (!overloadMode && opened != null) {
+            const filing = yourPickCurrentWeek(
+              rows,
+              (data.lockedWeeksDetail || []).map(
+                (row: { weekNumber: number }) => row.weekNumber
+              )
+            );
+            if (filing < opened) opened = filing;
+          }
+          setExpandedWeek(opened);
         }
         if (historyRes.ok) {
           const historyData = await historyRes.json();
@@ -799,7 +810,7 @@ function WorkoutPageInner() {
     }
   };
 
-  /** Your pick can be added to this week (current, or an earlier unlocked week). */
+  /** Your pick can be added to this week (current, including the weekend-held locked week, or an earlier unlocked week). */
   const pickAllowed = (weekNumber: number) =>
     yourPickWeekAllowed(weekNumber, sessions, lockedWeeksDetail.keys());
 

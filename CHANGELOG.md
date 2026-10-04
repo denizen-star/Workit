@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 12.1.0 - 2026-10-04
+
+### Changed
+- **Weekend Your picks land on the week you just locked.** Lock your week and add a workout on Saturday or Sunday: it counts on that week, not next week. Select Workout opens on that week too.
+
+### Fixed
+- **Your pick workouts show in your Completed log.** They used to be missing there.
+
 ## 12.0.0 - 2026-10-03
 
 ### Changed

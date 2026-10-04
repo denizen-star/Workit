@@ -1,3 +1,4 @@
+import { isEasternWeekend } from '@/lib/analyticsTime';
 import type { OptionalCircuitStep } from '@/lib/optionals';
 import { yourPickCoreFlow, yourPickYogaFlow } from '@/lib/optionalCircuits';
 import { programWithRetiredDays, type Exercise, type WorkoutDay } from '@/lib/workoutData';
@@ -490,27 +491,57 @@ type PickSessionLike = {
 /** Last week of the main program. Hyrox weeks (101+) never take a Your pick. */
 export const YOUR_PICK_LAST_WEEK = 48;
 
-/**
- * The athlete's current program week for Your pick filing: the later of the first
- * week that isn't locked yet and the latest week they've logged any session in (so a
- * Hyrox returner resuming at week 20 isn't pinned to a skipped early week).
- */
-export function yourPickCurrentWeek(sessions: PickSessionLike[], lockedWeeks: Iterable<number>): number {
-  const locked = new Set(lockedWeeks);
+function firstOpenWeek(locked: Set<number>): number {
   let firstOpen = 1;
   while (firstOpen < YOUR_PICK_LAST_WEEK && locked.has(firstOpen)) firstOpen += 1;
-  const latestLogged = Math.max(
+  return firstOpen;
+}
+
+function latestLoggedWeek(sessions: PickSessionLike[]): number {
+  return Math.max(
     0,
     ...sessions
       .map((session) => Number(session.week_number))
       .filter((week) => week >= 1 && week <= YOUR_PICK_LAST_WEEK)
   );
-  return Math.max(firstOpen, latestLogged);
+}
+
+/**
+ * After a week locks, Home keeps showing it through Sunday as long as the next
+ * week has no session yet (`getTodayTarget`'s weekend hold). An extra workout
+ * during that hold belongs on the held week, not the next one.
+ */
+export function yourPickHeldWeek(
+  sessions: PickSessionLike[],
+  lockedWeeks: Iterable<number>
+): number | null {
+  if (!isEasternWeekend()) return null;
+  const locked = new Set(lockedWeeks);
+  const next = firstOpenWeek(locked);
+  const prior = next - 1;
+  if (prior < 1 || !locked.has(prior)) return null;
+  const nextTouched = sessions.some((session) => Number(session.week_number) === next);
+  if (nextTouched) return null;
+  return prior;
+}
+
+/**
+ * The athlete's current program week for Your pick filing: the weekend-held week
+ * when one applies, otherwise the later of the first week that isn't locked yet
+ * and the latest week they've logged any session in (so a Hyrox returner resuming
+ * at week 20 isn't pinned to a skipped early week).
+ */
+export function yourPickCurrentWeek(sessions: PickSessionLike[], lockedWeeks: Iterable<number>): number {
+  const held = yourPickHeldWeek(sessions, lockedWeeks);
+  if (held != null) return held;
+  const locked = new Set(lockedWeeks);
+  return Math.max(firstOpenWeek(locked), latestLoggedWeek(sessions));
 }
 
 /** A Your pick is filed under the week being viewed, but only the current week or an
  * earlier week that isn't locked yet — never a future week (that would let anyone
- * lock week 30 early and walk up the belts). */
+ * lock week 30 early and walk up the belts). The weekend-held week stays allowed
+ * after it locks, through Sunday, until the next week is touched. */
 export function yourPickWeekAllowed(
   weekNumber: number,
   sessions: PickSessionLike[],
@@ -519,8 +550,10 @@ export function yourPickWeekAllowed(
   const locked = new Set(lockedWeeks);
   const week = Number(weekNumber);
   if (!Number.isInteger(week) || week < 1 || week > YOUR_PICK_LAST_WEEK) return false;
-  if (locked.has(week)) return false;
-  return week <= yourPickCurrentWeek(sessions, locked);
+  const held = yourPickHeldWeek(sessions, locked);
+  if (locked.has(week) && week !== held) return false;
+  const current = held ?? Math.max(firstOpenWeek(locked), latestLoggedWeek(sessions));
+  return week <= current;
 }
 
 /** Program days of `requiredDays` a Your pick can swap in for: real program days (not
