@@ -33,27 +33,33 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '12.1.0',
-  title: 'Your weekend work counts where it should.',
-  subject: 'Weekend workouts count on your week — Work-It',
+  version: '12.2.0',
+  title: 'Lace up. Running counts now.',
+  subject: 'Run as its own workout — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Locked your week and still showed up on the weekend? That's the kind of hunger I love to see, and it deserves credit in the right place.",
+    "Some days your legs want the road, not the rack. I love that, and now Work-It gives you credit for it.",
   mid:
-    "Now when you lock your week and add a Your pick on Saturday or Sunday, it counts on that week, not next week. Select Workout opens right on it. And every Your pick you finish now shows up in your Completed log, so you can look back at all of it.",
+    "Open Your pick and you'll find Run: 10, 20 or 30 minutes. The clock counts down, then keeps going as long as you do. Rate it, Finish it, and it counts toward your week, your belts and your medals. Your warmup and cooldown run asks for a length too now, and longer runs earn more. Finish your first one and there's a badge waiting for you.",
   close:
-    "Extra work is still work. Keep stacking it, and leave quit at the door. I'm proud of you.",
+    "Every step is stamina in the bank. Pick a length, go get it, and leave quit at the door. I believe in you.",
   lead: '',
   groups: [
     {
-      heading: 'Changed',
-      wins: ['Weekend Your pick — after your week locks, a Saturday or Sunday workout counts on that week.'],
+      heading: 'New',
+      wins: [
+        'Run in Your pick — 10, 20 or 30 minutes. Earns 500, 1,000 or 1,500 lb and counts toward your week.',
+        'First Run badge — finish your first Your pick run.',
+      ],
     },
     {
-      heading: 'Fixed',
-      wins: ['Completed log — your Your pick workouts show up there now.'],
+      heading: 'Changed',
+      wins: [
+        'Warmup and cooldown run — pick 10, 20 or 30 minutes. Longer runs earn more.',
+        'Run time — your Your pick runs add to the run and bike totals on Your performance and The house.',
+      ],
     },
   ],
   wins: [],
