@@ -44,7 +44,7 @@ export interface WorkoutDay {
   milestone?: number;
   /** Your pick day (lib/yourPick.ts) — synthesized per week, not part of `workoutProgram`.
    * `slot` is a 5-day athlete's required "any Your pick" tile, not a startable day. */
-  pick?: 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'slot';
+  pick?: 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'run' | 'slot';
 }
 
 const COMPOUND_BUILD = 'Add 2.5-5 lb or 1-2 reps';

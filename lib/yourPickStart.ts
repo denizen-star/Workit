@@ -7,6 +7,7 @@ import { workoutProgram } from '@/lib/workoutData';
 import {
   isTimedPickType,
   isYourPickMode,
+  runPickMinutes,
   isYourPickType,
   pickModesFor,
   resolveYourPickDay,
@@ -101,6 +102,18 @@ export async function validateYourPickStart(
     ok: true,
     start: { pickType, pickMode, swapForDay, dayNumber: day.dayNumber, workoutType: day.name },
   };
+}
+
+/** A Run Your pick can't finish before its picked length (small slack for a slow POST). */
+export function runTooSoon(
+  session: { pick_type?: string | null; day_number?: number | null; started_at?: string | Date | null },
+  now = Date.now()
+): number | null {
+  if (session.pick_type !== 'run') return null;
+  const minutes = runPickMinutes(Number(session.day_number)) ?? 10;
+  const started = parseDbTime(session.started_at);
+  if (started == null) return minutes;
+  return now - started < (minutes * 60 - 5) * 1000 ? minutes : null;
 }
 
 /** Mark done can't finish before 30 minutes of wall clock (YOUR_PICK_DONE_MIN_SECONDS). */

@@ -185,6 +185,7 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
       { type: 'pick_all_types', value: picks.pickTypes, comparison: 'gte' },
       { type: 'pick_yoga', value: picks.yoga, comparison: 'gte' },
       { type: 'pick_lower', value: picks.lower, comparison: 'gte' },
+      { type: 'pick_run', value: picks.run, comparison: 'gte' },
       { type: 'pick_locked_week', value: picks.lockedWithPick },
       { type: 'optional_weeks', value: Number(optionalRow?.optional_weeks || 0), comparison: 'gte' },
       { type: 'optionals', value: Number(optionalRow?.optional_slots || 0), comparison: 'gte' },

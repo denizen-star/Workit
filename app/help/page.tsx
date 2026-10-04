@@ -66,7 +66,7 @@ const RUNNING_A_WORKOUT: GuideStep[] = [
   {
     title: 'Add a warmup or cooldown (optional)',
     description:
-      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Stretch and Core ask Easy, Medium, or Hard in a bar above your coach. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
+      'Pick from a run, bike, stretch, core, yoga, or abs circuit before or after your lifts. Stretch and Core ask Easy, Medium, or Hard in a bar above your coach; the run asks 10, 20, or 30 minutes and earns more the longer you go. Entirely optional — it adds credit to your total, but skipping it never holds up your workout.',
     image: '/help/workout-optional.png',
   },
   {
@@ -258,7 +258,7 @@ const MECHANICS: MechanicsRow[] = [
   {
     label: 'Your pick & optionals',
     description:
-      "Your pick (Upper, Lower, Yoga, Core or Full body) counts like any session toward the week, belts and medals — add it on top, or swap it for a program day you haven't started. Warmup/cooldown add-ons are extra credit; skipping them never stops your week from locking.",
+      "Your pick (Upper, Lower, Yoga, Core, Full body or a 10/20/30-minute Run) counts like any session toward the week, belts and medals — add it on top, or swap it for a program day you haven't started. Warmup/cooldown add-ons are extra credit; skipping them never stops your week from locking.",
     tone: 'gold',
   },
 ];
@@ -537,7 +537,7 @@ export default function HelpPage() {
           <p className="text-sm leading-relaxed text-[#f6f1e3]/80">
             Weeks 1–6 run a 4-day upper/lower saddle. Week 7 on, it&apos;s Upper A, one lower day, Upper B, and a{' '}
             <span className="font-black text-[#e8c547]">Your pick</span> day. Any week, Your pick adds an Upper,
-            Lower, Yoga, Core or Full body workout — on top, or swapped in for a day you haven&apos;t started. The
+            Lower, Yoga, Core, Full body or Run workout — on top, or swapped in for a day you haven&apos;t started. The
             count locks the week, not which days: any mix of your weekly workouts. Belts mark the miles — earn
             one, aim at the next. See the full list on the{' '}
             <span className="font-black text-[#e8c547]">Belts</span> page.

@@ -11,12 +11,13 @@ import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
   ABS_REST_SECONDS,
   OPTIONAL_LEVELS,
-  OPTIONAL_SECONDS,
   OPTIONAL_SLOT_LBS,
+  RUN_MINUTES,
   isGuidedOptionalTrack,
   isIntervalOptionalTrack,
   isOptionalTrack,
   needsLevelPicker,
+  needsMinutesPicker,
   optionalCircuit,
   optionalCircuitStep,
   optionalElapsedSeconds,
@@ -24,12 +25,15 @@ import {
   optionalLevelLabel,
   optionalRemainingSeconds,
   optionalSlotLabel,
+  optionalSlotLbs,
+  optionalTargetSeconds,
   optionalTimerReady,
   optionalTrackLabel,
   optionalThumbName,
   optionalTrackLevelLabel,
   optionalTracks,
   parseOptionalLevel,
+  parseRunMinutes,
   type OptionalCircuitStep,
   type OptionalLevel,
   type OptionalRegion,
@@ -40,6 +44,8 @@ import {
 type SlotState = {
   track: OptionalTrack | null;
   level: OptionalLevel | null;
+  /** Easy run's picked length (10/20/30). Null for every other track. */
+  runMinutes: number | null;
   startedAt: string | null;
   completedAt: string | null;
   lbs: number;
@@ -52,6 +58,10 @@ function asTrack(value: unknown): OptionalTrack | null {
 function slotLevel(track: OptionalTrack | null, raw: unknown): OptionalLevel | null {
   if (!isGuidedOptionalTrack(track)) return null;
   return parseOptionalLevel(raw);
+}
+
+function slotRunMinutes(track: OptionalTrack | null, raw: unknown): number | null {
+  return track === 'run' ? parseRunMinutes(raw) : null;
 }
 
 function progressKey(sessionId: number, slot: OptionalSlot) {
@@ -103,6 +113,7 @@ export default function OptionalCard({
   const [state, setState] = useState<SlotState>({
     track: null,
     level: null,
+    runMinutes: null,
     startedAt: null,
     completedAt: null,
     lbs: 0,
@@ -194,6 +205,7 @@ export default function OptionalCard({
           setState({
             track,
             level: slotLevel(track, session.warmup_level),
+            runMinutes: slotRunMinutes(track, session.warmup_level),
             startedAt: session.warmup_started_at || null,
             completedAt: session.warmup_completed_at || null,
             lbs: Number(session.warmup_lbs || 0),
@@ -203,6 +215,7 @@ export default function OptionalCard({
           setState({
             track,
             level: slotLevel(track, session.cooldown_level),
+            runMinutes: slotRunMinutes(track, session.cooldown_level),
             startedAt: session.cooldown_started_at || null,
             completedAt: session.cooldown_completed_at || null,
             lbs: Number(session.cooldown_lbs || 0),
@@ -264,9 +277,10 @@ export default function OptionalCard({
     setHoldStartedAt(Date.now());
   }, [guided, open, circuitDone, stepIndex]);
 
+  const targetSeconds = optionalTargetSeconds(state.track, state.runMinutes);
   const elapsed = optionalElapsedSeconds(state.startedAt, now);
-  const remaining = optionalRemainingSeconds(state.startedAt, now);
-  const cardioReady = !guided && optionalTimerReady(state.startedAt, now);
+  const remaining = optionalRemainingSeconds(state.startedAt, now, targetSeconds);
+  const cardioReady = !guided && optionalTimerReady(state.startedAt, now, targetSeconds);
   const timedStep =
     state.track && running && !guided ? optionalCircuitStep(slot, state.track, elapsed) : null;
   const guidedStep = guided && !circuitDone ? steps[Math.min(stepIndex, Math.max(0, steps.length - 1))] : null;
@@ -326,12 +340,12 @@ export default function OptionalCard({
     setRestStartedAt(Date.now());
   };
 
-  const startTrack = async (track: OptionalTrack, level?: OptionalLevel) => {
+  const startTrack = async (track: OptionalTrack, level?: OptionalLevel, minutes?: number) => {
     setError('');
     const response = await fetch('/api/optionals', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ sessionId, slot, action: 'start', track, level }),
+      body: JSON.stringify({ sessionId, slot, action: 'start', track, level, minutes }),
     });
     const data = await response.json();
     if (!response.ok) {
@@ -342,6 +356,7 @@ export default function OptionalCard({
     setState({
       track: nextTrack,
       level: slotLevel(nextTrack, data.level ?? level),
+      runMinutes: slotRunMinutes(nextTrack, data.runMinutes ?? minutes),
       startedAt: data.startedAt || new Date().toISOString(),
       completedAt: data.completedAt || null,
       lbs: Number(data.lbs || 0),
@@ -357,7 +372,7 @@ export default function OptionalCard({
   };
 
   const pickTrack = (track: OptionalTrack) => {
-    if (needsLevelPicker(track)) {
+    if (needsLevelPicker(track) || needsMinutesPicker(track)) {
       // The track button is about to be replaced by Easy / Medium / Hard. A phone
       // can deliver a second click on whatever sits under that finger. Ignore
       // level taps until that leftover click has passed.
@@ -391,8 +406,16 @@ export default function OptionalCard({
     if (!levelFor || Date.now() < levelReadyAt.current) return;
     void startTrack(levelFor, level);
   };
+
+  const startMinutes = (minutes: number) => {
+    if (!levelFor || Date.now() < levelReadyAt.current) return;
+    void startTrack(levelFor, undefined, minutes);
+  };
+  const pickingMinutes = needsMinutesPicker(levelFor);
   const label = optionalSlotLabel(slot);
-  const trackTitle = state.track ? optionalTrackLevelLabel(state.track, state.level) : label;
+  const trackTitle = state.track
+    ? optionalTrackLevelLabel(state.track, state.level, state.runMinutes)
+    : label;
   // Stretch/Core are always exactly 6 holds; Yoga is always 5 poses; Abs is always 10 intervals.
   const circuitDoneCopy = isInterval ? 'That is the circuit.' : steps.length === 5 ? 'That is the five.' : 'That is the six.';
   const runningCopy = guided
@@ -464,7 +487,8 @@ export default function OptionalCard({
           )}
           {picking && levelFor ? (
             <p className="mt-3 text-sm font-semibold text-[#f6f1e3]/75">
-              {optionalTrackLabel(levelFor)} — pick Easy, Medium, or Hard.
+              {optionalTrackLabel(levelFor)} —{' '}
+              {pickingMinutes ? 'pick 10, 20, or 30 minutes.' : 'pick Easy, Medium, or Hard.'}
             </p>
           ) : null}
           {error ? <p className="mt-2 text-sm text-[#e8c547]">{error}</p> : null}
@@ -496,7 +520,7 @@ export default function OptionalCard({
                 Optional · {label}
               </p>
               <p className="mt-3 text-lg font-black text-white">
-                {optionalTrackLevelLabel(state.track, state.level)}
+                {trackTitle}
               </p>
               {guided ? (
                 <p className="mt-2 text-sm font-black text-[#f6f1e3]/70">
@@ -637,7 +661,7 @@ export default function OptionalCard({
               )}
               {!guided ? (
                 <p className="mt-3 text-xs text-[#f6f1e3]/40">
-                  Repeat until {Math.round(OPTIONAL_SECONDS / 60)} minutes are gone.
+                  Repeat until {Math.round(targetSeconds / 60)} minutes are gone.
                 </p>
               ) : null}
               {error ? <p className="mt-4 text-sm font-semibold text-[#e8c547]">{error}</p> : null}
@@ -720,7 +744,18 @@ export default function OptionalCard({
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
-                  {OPTIONAL_LEVELS.map((level) => (
+                  {pickingMinutes
+                    ? RUN_MINUTES.map((minutes) => (
+                        <button
+                          key={minutes}
+                          type="button"
+                          onClick={() => startMinutes(minutes)}
+                          className="min-h-12 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-3 text-sm font-black text-[#e8c547]"
+                        >
+                          {minutes} min · +{formatCompact(optionalSlotLbs('run', minutes))} lb
+                        </button>
+                      ))
+                    : OPTIONAL_LEVELS.map((level) => (
                     <button
                       key={level}
                       type="button"

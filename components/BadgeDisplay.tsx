@@ -65,6 +65,8 @@ function requirementLabel(badge: Badge) {
       return `${badge.requirement_value} Your pick yoga`;
     case 'pick_lower':
       return `${badge.requirement_value} Your pick lower`;
+    case 'pick_run':
+      return badge.requirement_value === 1 ? 'Finish a Your pick run' : `${badge.requirement_value} Your pick runs`;
     case 'pick_locked_week':
       return 'Lock a week with a Your pick';
     case 'optional_weeks':

@@ -11,6 +11,7 @@ import { youtubeThumbUrl } from '@/lib/exerciseMedia';
 import {
   pickPhaseNote,
   pickSessionHardness,
+  runPickMinutes,
   yourPickLabel,
   yourPickSteps,
   YOUR_PICK_DONE_MIN_SECONDS,
@@ -67,6 +68,7 @@ export default function YourPickFlow({
   weekNumber,
   type,
   mode,
+  dayNumber,
   startedAt,
   onReadyChange,
 }: {
@@ -74,6 +76,8 @@ export default function YourPickFlow({
   weekNumber: number;
   type: YourPickType;
   mode: 'timed' | 'done';
+  /** Session day number — Run's length (25/26/27 = 10/20/30 min). */
+  dayNumber?: number;
   /** Session start (ms) — mark done's 30-minute clock. */
   startedAt: number | null;
   onReadyChange: (sessionHardness: number | null) => void;
@@ -119,10 +123,17 @@ export default function YourPickFlow({
   const holdLeft = Math.max(0, holdTarget - Math.floor((now - holdStartedAt) / 1000));
   const elapsed = startedAt ? Math.floor((now - startedAt) / 1000) : 0;
   const doneUnlocked = mode === 'done' && elapsed >= YOUR_PICK_DONE_MIN_SECONDS;
+  // Run: count down the picked length, then count up until they stop.
+  const isRun = type === 'run';
+  const runSeconds = (runPickMinutes(Number(dayNumber)) ?? 10) * 60;
+  const runReady = isRun && elapsed >= runSeconds;
 
-  const needsEndRating = mode === 'done' ? doneUnlocked : flowDone && progress.timerHolds > 0;
-  const hardness =
-    mode === 'done'
+  const needsEndRating = isRun ? runReady : mode === 'done' ? doneUnlocked : flowDone && progress.timerHolds > 0;
+  const hardness = isRun
+    ? runReady
+      ? progress.endRating
+      : null
+    : mode === 'done'
       ? doneUnlocked
         ? progress.endRating
         : null
@@ -148,11 +159,28 @@ export default function YourPickFlow({
   return (
     <section className="glass-card p-5 text-center">
       <p className="flex items-center justify-center gap-2 text-[11px] font-black uppercase tracking-[0.2em] text-[#e8c547]">
-        <YourPickIcon /> Your pick · {yourPickLabel(type)} · {mode === 'timed' ? 'Timed' : 'Mark done'}
+        <YourPickIcon /> Your pick · {yourPickLabel(type)} ·{' '}
+        {isRun ? `${runSeconds / 60} min` : mode === 'timed' ? 'Timed' : 'Mark done'}
       </p>
       <p className="mt-2 text-sm text-[#f6f1e3]/60">{pickPhaseNote(weekNumber)}</p>
 
-      {mode === 'timed' && step ? (
+      {isRun ? (
+        <>
+          <p className="mt-6 text-7xl font-black tabular-nums text-[#e8c547]">
+            {formatClock(runReady ? elapsed : runSeconds - elapsed)}
+          </p>
+          <p className="mt-2 text-sm font-black uppercase tracking-[0.2em] text-[#f6f1e3]/55">
+            {runReady ? 'Counting up · done when you are' : 'Easy run'}
+          </p>
+          <p className="mx-auto mt-4 max-w-md text-base text-[#f6f1e3]/85">
+            {runReady
+              ? 'Keep going as long as you like. Rate it, then Finish it.'
+              : 'Soft pace. You could talk the whole time. Phone can lock.'}
+          </p>
+        </>
+      ) : null}
+
+      {!isRun && mode === 'timed' && step ? (
         <>
           <p className="mt-4 text-sm font-black text-[#f6f1e3]/70">
             {progress.index + 1} of {steps.length}
@@ -200,14 +228,14 @@ export default function YourPickFlow({
         </>
       ) : null}
 
-      {mode === 'timed' && flowDone ? (
+      {!isRun && mode === 'timed' && flowDone ? (
         <p className="mt-5 inline-flex items-center gap-2 text-xl font-black text-white">
           <Check className="h-6 w-6 text-[#6d8b6e]" strokeWidth={3} />
           All {steps.length} done
         </p>
       ) : null}
 
-      {mode === 'done' ? (
+      {!isRun && mode === 'done' ? (
         <>
           <p className="mt-4 inline-flex items-center gap-1 text-4xl font-black tabular-nums text-[#e8c547]">
             <Clock className="h-6 w-6" />
@@ -230,7 +258,7 @@ export default function YourPickFlow({
 
       {needsEndRating ? (
         <div className="mx-auto mt-5 max-w-md text-left">
-          <p className="text-sm font-black text-white">How hard was the whole session?</p>
+          <p className="text-sm font-black text-white">How hard was the {isRun ? 'run' : 'whole session'}?</p>
           <SetHardness
             value={(progress.endRating as HardnessScore | null) ?? null}
             forceEditable

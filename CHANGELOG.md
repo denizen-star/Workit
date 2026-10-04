@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+## 12.2.0 - 2026-10-04
+
+### Added
+- **Run as its own workout.** Your pick has a new **Run** choice: 10, 20 or 30 minutes. The clock counts down, then keeps going until you stop. Rate it, Finish it. Earns 500 / 1,000 / 1,500 lb and counts toward your week, belts and medals.
+- **First Run badge** 🏃 for your first Your pick run.
+
+### Changed
+- **Warmup/cooldown run picks a length.** Easy run now asks 10, 20 or 30 minutes and earns 500 / 1,000 / 1,500 lb. Bike, stretch, core, yoga and abs stay 10 minutes / +500.
+- **Run time counts.** Your pick runs add to the run + bike totals on Your performance and The house.
+
 ## 12.1.0 - 2026-10-04
 
 ### Changed

@@ -15,11 +15,11 @@ import { blockFor, EXTRA_UPPER_PACKS } from '@/lib/yearProgram';
  * session row with `resolveYourPickDay`.
  */
 
-export type YourPickType = 'upper' | 'lower' | 'yoga' | 'core' | 'full';
-/** sets = normal live session. timed = Yoga/Core tap-through. done = Yoga/Core mark done. */
+export type YourPickType = 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'run';
+/** sets = normal live session. timed = Yoga/Core tap-through, or Run's countdown. done = Yoga/Core mark done. */
 export type YourPickMode = 'sets' | 'timed' | 'done';
 
-export const YOUR_PICK_TYPES: YourPickType[] = ['upper', 'lower', 'yoga', 'core', 'full'];
+export const YOUR_PICK_TYPES: YourPickType[] = ['upper', 'lower', 'yoga', 'core', 'full', 'run'];
 
 const LABELS: Record<YourPickType, string> = {
   upper: 'Upper',
@@ -27,6 +27,7 @@ const LABELS: Record<YourPickType, string> = {
   yoga: 'Yoga',
   core: 'Core',
   full: 'Full body',
+  run: 'Run',
 };
 
 const FOCUS: Record<YourPickType, string> = {
@@ -35,9 +36,10 @@ const FOCUS: Record<YourPickType, string> = {
   yoga: '30-minute flow',
   core: 'Core holds',
   full: 'Full body',
+  run: 'Easy run',
 };
 
-/** First Your pick `day_number`. One per type (20-24), clear of the program's 1-5,
+/** First Your pick `day_number`. One per type (20-25; Run also owns 26-27, see RUN_PICK_DAYS), clear of the program's 1-5,
  * full-body 6-8 and Hyrox's 101+ weeks, so `workout_sessions.day_number` never collides. */
 export const YOUR_PICK_DAY_BASE = 20;
 
@@ -57,6 +59,14 @@ export function isYourPickType(value: unknown): value is YourPickType {
   return YOUR_PICK_TYPES.includes(value as YourPickType);
 }
 
+/** Run's day numbers → minutes. 25 is `yourPickDayNumber('run')`; 26/27 sit right after it. */
+const RUN_PICK_DAYS: Record<number, number> = { 25: 10, 26: 20, 27: 30 };
+
+/** Minutes for a Run Your pick day number, else null. */
+export function runPickMinutes(dayNumber: number): number | null {
+  return RUN_PICK_DAYS[Number(dayNumber)] ?? null;
+}
+
 export function isYourPickMode(value: unknown): value is YourPickMode {
   return value === 'sets' || value === 'timed' || value === 'done';
 }
@@ -66,8 +76,14 @@ export function isTimedPickType(type: unknown): boolean {
   return type === 'yoga' || type === 'core';
 }
 
-/** Modes a type allows: lifting types only run as sets. */
+/** Picks that run as a YourPickFlow (no exercise cards): Yoga, Core and Run. */
+export function isFlowPickType(type: unknown): boolean {
+  return isTimedPickType(type) || type === 'run';
+}
+
+/** Modes a type allows: lifting types only run as sets, Run only as its countdown. */
 export function pickModesFor(type: YourPickType): YourPickMode[] {
+  if (type === 'run') return ['timed'];
   return isTimedPickType(type) ? ['timed', 'done'] : ['sets'];
 }
 
@@ -87,6 +103,7 @@ export function yourPickDayNumber(type: YourPickType): number {
 }
 
 export function pickTypeFromDayNumber(dayNumber: number): YourPickType | null {
+  if (runPickMinutes(dayNumber) != null) return 'run';
   const variant = variantFromDayNumber(dayNumber);
   if (variant) return variant.type;
   return YOUR_PICK_TYPES[dayNumber - YOUR_PICK_DAY_BASE] ?? null;
@@ -221,7 +238,13 @@ export function yourPickSteps(weekNumber: number, type: YourPickType): OptionalC
   return [];
 }
 
+/** Run's single row, so Select Workout and the completed log can show its length. */
+function runExercises(minutes: number): Exercise[] {
+  return [{ name: 'Easy run', sets: 1, reps: `${minutes} minutes`, estimatedMinutes: minutes }];
+}
+
 function exercisesFor(weekNumber: number, type: YourPickType): Exercise[] {
+  if (type === 'run') return runExercises(10);
   if (isTimedPickType(type)) {
     // One row per hold so Select Workout can list the flow and estimate its length.
     return yourPickSteps(weekNumber, type).map((step) => ({
@@ -328,6 +351,30 @@ const TIMED_DESCRIPTIONS: Record<'core' | 'yoga', string> = {
   yoga: '15 poses, 2 minutes each. A 30-minute flow.',
 };
 
+/** Run's dropdown rows. Credit is flat by length (lib/yourPickCredit.ts). */
+function runVariants(): YourPickVariant[] {
+  return Object.entries(RUN_PICK_DAYS).map(([day, minutes]) => ({
+    type: 'run' as const,
+    label: `Run · ${minutes} min`,
+    description: `Easy run. The clock counts down ${minutes} minutes, then keeps going until you stop. +${(minutes / 10) * 500} lb.`,
+    dayNumber: Number(day),
+  }));
+}
+
+/** A Run Your pick day: one Easy run row at the picked length. */
+function runPickDay(dayNumber: number): WorkoutDay | undefined {
+  const minutes = runPickMinutes(dayNumber);
+  if (minutes == null) return undefined;
+  return {
+    dayNumber,
+    name: `${YOUR_PICK_NAME} · Run · ${minutes} min`,
+    focus: FOCUS.run,
+    suggestedDay: '',
+    pick: 'run',
+    exercises: runExercises(minutes),
+  };
+}
+
 export type YourPickVariant = {
   type: YourPickType;
   /** What the dropdown shows. */
@@ -368,6 +415,7 @@ export function yourPickVariantGroups(): YourPickVariantGroup[] {
         dayNumber: yourPickDayNumber(type),
       })),
     },
+    { label: 'Run', variants: runVariants() },
   ];
 }
 
@@ -448,7 +496,7 @@ export function resolveYourPickDay(weekNumber: number, dayNumber: number): Worko
   const day = Number(dayNumber);
   const key = `${week}:${day}`;
   if (resolvedPickDays.has(key)) return resolvedPickDays.get(key);
-  const variant = variantDay(week, day);
+  const variant = variantDay(week, day) ?? runPickDay(day);
   const type = YOUR_PICK_TYPES[day - YOUR_PICK_DAY_BASE];
   const resolved = variant ?? (type ? yourPickDay(week, type) : undefined);
   resolvedPickDays.set(key, resolved);
@@ -460,7 +508,7 @@ export function yourPickSlotDay(dayNumber: number): WorkoutDay {
   return {
     dayNumber,
     name: YOUR_PICK_NAME,
-    focus: 'Upper, Lower, Yoga, Core or Full body',
+    focus: 'Upper, Lower, Yoga, Core, Full body or Run',
     suggestedDay: 'Saturday',
     pick: 'slot',
     exercises: [],

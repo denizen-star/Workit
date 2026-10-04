@@ -49,13 +49,40 @@ export const ABS_WORK_SECONDS = 45;
 export const ABS_REST_SECONDS = 15;
 export const ABS_ROUNDS = 2;
 
+/** Easy run asks how long first. Saved as '10' / '20' / '30' in the slot's level column. */
+export const RUN_MINUTES = [10, 20, 30] as const;
+export type RunMinutes = (typeof RUN_MINUTES)[number];
+
+export function isRunMinutes(value: unknown): value is RunMinutes {
+  return RUN_MINUTES.includes(Number(value) as RunMinutes);
+}
+
+/** Old run rows have no saved length: they were always 10 minutes. */
+export function parseRunMinutes(value: unknown): RunMinutes {
+  return isRunMinutes(value) ? (Number(value) as RunMinutes) : 10;
+}
+
+export function needsMinutesPicker(track: unknown) {
+  return track === 'run';
+}
+
+/** Seconds a slot needs before it credits. Run follows its picked length; the rest are 10 minutes. */
+export function optionalTargetSeconds(track: unknown, level?: unknown) {
+  return track === 'run' ? parseRunMinutes(level) * 60 : OPTIONAL_SECONDS;
+}
+
+/** Lbs a finished slot credits. Run scales with its length (10 → 500, 20 → 1,000, 30 → 1,500). */
+export function optionalSlotLbs(track: unknown, level?: unknown) {
+  return track === 'run' ? (parseRunMinutes(level) / 10) * OPTIONAL_SLOT_LBS : OPTIONAL_SLOT_LBS;
+}
+
 const LEVEL_LABELS: Record<OptionalLevel, string> = {
   easy: 'Easy',
   medium: 'Medium',
   hard: 'Hard',
 };
 
-/** Run/bike cues rotate until 10 minutes. Stretch/core live in optionalCircuits.ts. */
+/** Run/bike cues rotate until the clock is done (bike 10, run 10/20/30). Stretch/core live in optionalCircuits.ts. */
 const CARDIO: Record<OptionalSlot, Record<'run' | 'bike', OptionalCircuitStep[]>> = {
   warmup: {
     run: [
@@ -112,7 +139,8 @@ export function optionalLevelLabel(level: OptionalLevel) {
   return LEVEL_LABELS[level];
 }
 
-export function optionalTrackLevelLabel(track: OptionalTrack, level?: OptionalLevel | null) {
+export function optionalTrackLevelLabel(track: OptionalTrack, level?: OptionalLevel | null, runMinutes?: number | null) {
+  if (track === 'run' && runMinutes) return `${optionalTrackLabel(track)} · ${runMinutes} min`;
   if (!isGuidedOptionalTrack(track) || !level) return optionalTrackLabel(track);
   return `${optionalTrackLabel(track)} · ${optionalLevelLabel(level)}`;
 }
@@ -235,12 +263,20 @@ export function optionalElapsedSeconds(startedAt: string | Date | null | undefin
   return Math.max(0, Math.floor((now - started) / 1000));
 }
 
-export function optionalRemainingSeconds(startedAt: string | Date | null | undefined, now = Date.now()) {
-  return Math.max(0, OPTIONAL_SECONDS - optionalElapsedSeconds(startedAt, now));
+export function optionalRemainingSeconds(
+  startedAt: string | Date | null | undefined,
+  now = Date.now(),
+  targetSeconds = OPTIONAL_SECONDS
+) {
+  return Math.max(0, targetSeconds - optionalElapsedSeconds(startedAt, now));
 }
 
-export function optionalTimerReady(startedAt: string | Date | null | undefined, now = Date.now()) {
-  return optionalElapsedSeconds(startedAt, now) >= OPTIONAL_SECONDS;
+export function optionalTimerReady(
+  startedAt: string | Date | null | undefined,
+  now = Date.now(),
+  targetSeconds = OPTIONAL_SECONDS
+) {
+  return optionalElapsedSeconds(startedAt, now) >= targetSeconds;
 }
 
 type SessionOptionalRow = {
@@ -347,30 +383,39 @@ function cardioSecondsCaseSql(trackColumn: string, startColumn: string, complete
     THEN TIMESTAMPDIFF(SECOND, ${startColumn}, ${completedColumn}) ELSE 0 END`;
 }
 
-/** Total run + bike time (seconds) for one athlete's Optionals, within a performance window. */
+/** A finished Run Your pick's wall-clock seconds (start → Finish), else 0. */
+function runPickSecondsCaseSql(alias: string, window: string) {
+  return `CASE WHEN ${alias}.pick_type = 'run' AND ${alias}.is_completed = 1 AND ${alias}.completed_at IS NOT NULL ${window}
+    THEN TIMESTAMPDIFF(SECOND, ${alias}.started_at, ${alias}.completed_at) ELSE 0 END`;
+}
+
+/** Total run + bike time (seconds) for one athlete's Optionals plus Run Your picks, within a performance window. */
 export async function athleteCardioSeconds(userId: number, period: PerformancePeriod): Promise<number> {
   const window = performancePeriodWindow(period);
   const warmupWindow = sqlPeriodWindow('warmup_completed_at', window);
   const cooldownWindow = sqlPeriodWindow('cooldown_completed_at', window);
+  const runWindow = sqlPeriodWindow('ws.completed_at', window);
   const result = await query(
     `SELECT
        COALESCE(SUM(${cardioSecondsCaseSql('warmup_track', 'warmup_started_at', 'warmup_completed_at', warmupWindow.sql)}), 0)
        + COALESCE(SUM(${cardioSecondsCaseSql('cooldown_track', 'cooldown_started_at', 'cooldown_completed_at', cooldownWindow.sql)}), 0)
+       + COALESCE(SUM(${runPickSecondsCaseSql('ws', runWindow.sql)}), 0)
        AS cardio_seconds
-     FROM workout_sessions
+     FROM workout_sessions ws
      WHERE user_id = ?`,
-    [...warmupWindow.params, ...cooldownWindow.params, userId]
+    [...warmupWindow.params, ...cooldownWindow.params, ...runWindow.params, userId]
   );
   return Number((result.rows[0] as { cardio_seconds?: number } | undefined)?.cardio_seconds || 0);
 }
 
-/** Household leaderboard of run + bike time (seconds) from Optionals, for the Scoreboard. */
+/** Household leaderboard of run + bike time (seconds) from Optionals plus Run Your picks, for the Scoreboard. */
 export async function householdCardioHonor(
   period: ScoreboardPeriod,
   householdId?: number | null
 ): Promise<CardioHonorRow[]> {
   const warmupWindow = periodStartSql(period, 'ws.warmup_completed_at');
   const cooldownWindow = periodStartSql(period, 'ws.cooldown_completed_at');
+  const runWindow = periodStartSql(period, 'ws.completed_at');
   const house = sqlInHousehold('u.id', householdId);
   const result = await query(
     `SELECT
@@ -379,6 +424,7 @@ export async function householdCardioHonor(
        u.display_name,
        COALESCE(SUM(${cardioSecondsCaseSql('ws.warmup_track', 'ws.warmup_started_at', 'ws.warmup_completed_at', warmupWindow)}), 0)
        + COALESCE(SUM(${cardioSecondsCaseSql('ws.cooldown_track', 'ws.cooldown_started_at', 'ws.cooldown_completed_at', cooldownWindow)}), 0)
+       + COALESCE(SUM(${runPickSecondsCaseSql('ws', runWindow)}), 0)
        AS cardio_seconds
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id

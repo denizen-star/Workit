@@ -7,7 +7,7 @@ import { MOVEMENT_LIBRARY } from '../lib/movementLibrary';
 import { hasExplicitPattern, movementPattern } from '../lib/movementPattern';
 import { toTravelExercise } from '../lib/travelExercises';
 import { programWithRetiredDays, type Exercise } from '../lib/workoutData';
-import { isTimedPickType, yourPickDay, YOUR_PICK_TYPES } from '../lib/yourPick';
+import { isFlowPickType, yourPickDay, YOUR_PICK_TYPES } from '../lib/yourPick';
 
 /** Deliberately no pill: cardio, conditioning and mobility. */
 const NO_PATTERN = new Set([
@@ -30,7 +30,7 @@ const add = (exercise: Exercise) => {
 };
 for (const week of [...programWithRetiredDays, ...hyroxProgram]) week.days.forEach((day) => day.exercises.forEach(add));
 for (let week = 1; week <= 48; week += 1) {
-  for (const type of YOUR_PICK_TYPES) if (!isTimedPickType(type)) yourPickDay(week, type).exercises.forEach(add);
+  for (const type of YOUR_PICK_TYPES) if (!isFlowPickType(type)) yourPickDay(week, type).exercises.forEach(add);
 }
 for (const [name, alts] of Object.entries(ALT_EXERCISES)) [name, ...alts].forEach((item) => names.add(item));
 

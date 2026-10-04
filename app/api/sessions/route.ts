@@ -19,7 +19,7 @@ import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } f
 import { programTrackForWeek } from '@/lib/programTrack';
 import { validateOverloadStart } from '@/lib/overloadState';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
-import { markDoneTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
+import { markDoneTooSoon, runTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
 import { applyYourPickCredit } from '@/lib/yourPickCredit';
 import { isTestDriveWeek } from '@/lib/testDrive';
 import {
@@ -412,6 +412,10 @@ export async function PUT(request: NextRequest) {
     // Your pick mark done needs 30 minutes of wall clock (docs/plans/PLAN_YOUR_PICK.md).
     if (isCompleted && !alreadyComplete && markDoneTooSoon(session)) {
       return NextResponse.json({ error: 'Mark done needs 30 minutes' }, { status: 400 });
+    }
+    const runMinutes = isCompleted && !alreadyComplete ? runTooSoon(session) : null;
+    if (runMinutes != null) {
+      return NextResponse.json({ error: `Run needs ${runMinutes} minutes` }, { status: 400 });
     }
     const optionalLbs = sessionOptionalLbs(session);
 

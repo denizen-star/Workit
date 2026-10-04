@@ -3,15 +3,17 @@ import { getCurrentUser } from '@/lib/auth';
 import { query } from '@/lib/db';
 import { updateDailyStats } from '@/lib/dailyStats';
 import {
-  OPTIONAL_SECONDS,
-  OPTIONAL_SLOT_LBS,
   awardOptionalKicker,
   isGuidedOptionalTrack,
   isOptionalLevel,
   isOptionalSlot,
   isOptionalTrack,
+  isRunMinutes,
   optionalElapsedSeconds,
+  optionalSlotLbs,
+  optionalTargetSeconds,
   parseOptionalLevel,
+  parseRunMinutes,
   sessionOptionalLbs,
   type OptionalLevel,
   type OptionalSlot,
@@ -58,11 +60,17 @@ function readLevel(track: string | null, raw: string | null) {
   return parseOptionalLevel(raw);
 }
 
+function readMinutes(track: string | null, raw: string | null) {
+  return track === 'run' ? parseRunMinutes(raw) : null;
+}
+
 function readSlot(session: SessionOptional, slot: OptionalSlot) {
   if (slot === 'warmup') {
     return {
       track: session.warmup_track,
       level: readLevel(session.warmup_track, session.warmup_level),
+      runMinutes: readMinutes(session.warmup_track, session.warmup_level),
+      targetSeconds: optionalTargetSeconds(session.warmup_track, session.warmup_level),
       startedAt: session.warmup_started_at,
       completedAt: session.warmup_completed_at,
       lbs: Number(session.warmup_lbs || 0),
@@ -71,6 +79,8 @@ function readSlot(session: SessionOptional, slot: OptionalSlot) {
   return {
     track: session.cooldown_track,
     level: readLevel(session.cooldown_track, session.cooldown_level),
+    runMinutes: readMinutes(session.cooldown_track, session.cooldown_level),
+    targetSeconds: optionalTargetSeconds(session.cooldown_track, session.cooldown_level),
     startedAt: session.cooldown_started_at,
     completedAt: session.cooldown_completed_at,
     lbs: Number(session.cooldown_lbs || 0),
@@ -118,6 +128,7 @@ export async function POST(request: NextRequest) {
           slot,
           track: current.track,
           level: current.level,
+          runMinutes: current.runMinutes,
           startedAt: current.startedAt,
           completedAt: current.completedAt,
           lbs: current.lbs,
@@ -138,6 +149,11 @@ export async function POST(request: NextRequest) {
       if (isGuidedOptionalTrack(track) && !level) {
         return NextResponse.json({ error: 'Pick Easy, Medium, or Hard' }, { status: 400 });
       }
+      if (track === 'run' && !isRunMinutes(body.minutes)) {
+        return NextResponse.json({ error: 'Pick 10, 20, or 30 minutes' }, { status: 400 });
+      }
+      const runMinutes = track === 'run' ? parseRunMinutes(body.minutes) : null;
+      const targetSeconds = optionalTargetSeconds(track, runMinutes);
 
       if (current.startedAt) {
         return NextResponse.json({
@@ -145,8 +161,9 @@ export async function POST(request: NextRequest) {
           slot,
           track: current.track || track,
           level: current.level,
+          runMinutes: current.runMinutes,
           startedAt: current.startedAt,
-          remainingSeconds: Math.max(0, OPTIONAL_SECONDS - optionalElapsedSeconds(current.startedAt)),
+          remainingSeconds: Math.max(0, current.targetSeconds - optionalElapsedSeconds(current.startedAt)),
           lbs: 0,
           kickerLbs: Number(session.optional_kicker_lbs || 0),
         });
@@ -156,7 +173,7 @@ export async function POST(request: NextRequest) {
         `UPDATE workout_sessions
          SET ${columns.track} = ?, ${columns.level} = ?, ${columns.started} = NOW()
          WHERE id = ? AND user_id = ?`,
-        [track, level, sessionId, user.id]
+        [track, runMinutes != null ? String(runMinutes) : level, sessionId, user.id]
       );
       const startedAt = new Date().toISOString();
       return NextResponse.json({
@@ -164,8 +181,9 @@ export async function POST(request: NextRequest) {
         slot,
         track,
         level,
+        runMinutes,
         startedAt,
-        remainingSeconds: OPTIONAL_SECONDS,
+        remainingSeconds: targetSeconds,
         lbs: 0,
         kickerLbs: Number(session.optional_kicker_lbs || 0),
       });
@@ -179,6 +197,7 @@ export async function POST(request: NextRequest) {
           slot,
           track: current.track,
           level: current.level,
+          runMinutes: current.runMinutes,
           startedAt: current.startedAt,
           completedAt: current.completedAt,
           lbs: current.lbs,
@@ -193,23 +212,24 @@ export async function POST(request: NextRequest) {
 
       const circuitComplete =
         isGuidedOptionalTrack(current.track) && body.circuitComplete === true;
-      // Stretch/core credit when all holds are done. Run/bike still need 10 minutes.
+      // Stretch/core credit when all holds are done. Bike needs 10 minutes, run its picked 10/20/30.
       // Small slack so a slow POST after the clock hits zero still counts.
-      if (!circuitComplete && optionalElapsedSeconds(current.startedAt) < OPTIONAL_SECONDS - 5) {
+      if (!circuitComplete && optionalElapsedSeconds(current.startedAt) < current.targetSeconds - 5) {
         return NextResponse.json(
           {
-            error: 'Ten minutes first',
-            remainingSeconds: Math.max(0, OPTIONAL_SECONDS - optionalElapsedSeconds(current.startedAt)),
+            error: `${Math.round(current.targetSeconds / 60)} minutes first`,
+            remainingSeconds: Math.max(0, current.targetSeconds - optionalElapsedSeconds(current.startedAt)),
           },
           { status: 400 }
         );
       }
 
+      const slotLbs = optionalSlotLbs(current.track, current.runMinutes);
       await query(
         `UPDATE workout_sessions
          SET ${columns.completed} = NOW(), ${columns.lbs} = ?
          WHERE id = ? AND user_id = ?`,
-        [OPTIONAL_SLOT_LBS, sessionId, user.id]
+        [slotLbs, sessionId, user.id]
       );
 
       const kickerLbs = await awardOptionalKicker(user.id, sessionId);
@@ -233,8 +253,9 @@ export async function POST(request: NextRequest) {
         slot,
         track: current.track,
         level: current.level,
+        runMinutes: current.runMinutes,
         completedAt: row.completed_at,
-        lbs: OPTIONAL_SLOT_LBS,
+        lbs: slotLbs,
         kickerLbs,
         optionalLbs: sessionOptionalLbs(row),
         awardedBadges,

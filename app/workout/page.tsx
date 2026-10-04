@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
 import { coveredDayNumbers, sessionIsRetiredDay, weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import {
-  isTimedPickType,
+  isFlowPickType,
   isYourPickSlot,
   sessionIsYourPick,
   yourPickCurrentWeek,
@@ -935,8 +935,8 @@ function WorkoutPageInner() {
     // Yoga/Core Your pick runs as a tap-through / mark-done flow, not exercise cards.
     const liveRow = sessions.find((session) => Number(session.id) === currentSession);
     const timedPick =
-      liveRow && isTimedPickType(liveRow.pick_type) && (liveRow.pick_mode === 'timed' || liveRow.pick_mode === 'done')
-        ? { type: liveRow.pick_type as 'yoga' | 'core', mode: liveRow.pick_mode as 'timed' | 'done' }
+      liveRow && isFlowPickType(liveRow.pick_type) && (liveRow.pick_mode === 'timed' || liveRow.pick_mode === 'done')
+        ? { type: liveRow.pick_type as 'yoga' | 'core' | 'run', mode: liveRow.pick_mode as 'timed' | 'done' }
         : null;
     return (
       <div
@@ -1070,6 +1070,7 @@ function WorkoutPageInner() {
                 weekNumber={selectedWeek}
                 type={timedPick.type}
                 mode={timedPick.mode}
+                dayNumber={Number(liveRow?.day_number)}
                 startedAt={startedAt}
                 onReadyChange={handlePickReady}
               />

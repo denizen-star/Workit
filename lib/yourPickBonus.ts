@@ -58,6 +58,7 @@ export async function yourPickBadgeStats(userId: number) {
        COUNT(DISTINCT ws.pick_type) AS pick_types,
        SUM(CASE WHEN ws.pick_type = 'yoga' THEN 1 ELSE 0 END) AS yoga,
        SUM(CASE WHEN ws.pick_type = 'lower' THEN 1 ELSE 0 END) AS lower_picks,
+       SUM(CASE WHEN ws.pick_type = 'run' THEN 1 ELSE 0 END) AS run_picks,
        SUM(CASE WHEN ${sqlIsYourPick('ws')} AND EXISTS (
          SELECT 1 FROM locked_weeks lw WHERE lw.user_id = ws.user_id AND lw.week_number = ws.week_number
        ) THEN 1 ELSE 0 END) AS picks_in_locked_weeks
@@ -71,6 +72,7 @@ export async function yourPickBadgeStats(userId: number) {
     pickTypes: Number(row.pick_types || 0),
     yoga: Number(row.yoga || 0),
     lower: Number(row.lower_picks || 0),
+    run: Number(row.run_picks || 0),
     lockedWithPick: Number(row.picks_in_locked_weeks || 0) > 0,
   };
 }

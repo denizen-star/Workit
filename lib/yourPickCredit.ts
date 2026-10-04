@@ -1,7 +1,8 @@
 import { query } from '@/lib/db';
 import { sqlSetVolume } from '@/lib/exerciseKind';
 import { effortFactorFromScore, DEFAULT_HARDNESS } from '@/lib/hardness';
-import { isTimedPickType } from '@/lib/yourPick';
+import { OPTIONAL_SLOT_LBS } from '@/lib/optionals';
+import { isTimedPickType, runPickMinutes } from '@/lib/yourPick';
 import { sqlSetCounts } from '@/lib/skippedSets';
 
 /** Used when an athlete has no lifting history at all to average. */
@@ -52,19 +53,23 @@ export async function computeYourPickCredit(
 }
 
 /**
- * On Finish, stores `credit_lbs` (and `session_hardness`) on a Yoga/Core Your pick.
+ * On Finish, stores `credit_lbs` (and `session_hardness`) on a Yoga/Core/Run Your pick.
  * Runs before badges / daily stats so both already see the credit. No-op for any
  * other session. Returns the credit written (0 when none).
  */
 export async function applyYourPickCredit(
   userId: number,
-  session: { id: number; pick_type?: string | null },
+  session: { id: number; pick_type?: string | null; day_number?: number | null },
   sessionHardness: unknown
 ): Promise<number> {
-  if (!isTimedPickType(session.pick_type)) return 0;
+  const isRun = session.pick_type === 'run';
+  if (!isRun && !isTimedPickType(session.pick_type)) return 0;
   const raw = Number(sessionHardness);
   const hardness = Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null;
-  const credit = await computeYourPickCredit(userId, Number(session.id), hardness);
+  // Run is flat by length, like the optional run: 10 → 500, 20 → 1,000, 30 → 1,500.
+  const credit = isRun
+    ? ((runPickMinutes(Number(session.day_number)) ?? 10) / 10) * OPTIONAL_SLOT_LBS
+    : await computeYourPickCredit(userId, Number(session.id), hardness);
   await query('UPDATE workout_sessions SET credit_lbs = ?, session_hardness = ? WHERE id = ? AND user_id = ?', [
     credit,
     hardness,

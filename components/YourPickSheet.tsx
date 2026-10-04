@@ -5,7 +5,7 @@ import YourPickIcon from '@/components/YourPickIcon';
 import type { WorkoutDay } from '@/lib/workoutData';
 import {
   defaultYourPickVariant,
-  isTimedPickType,
+  isFlowPickType,
   pickModesFor,
   resolveYourPickDay,
   yourPickVariantGroups,
@@ -109,7 +109,7 @@ export default function YourPickSheet({
         {variant ? (
           <div className="mt-3 rounded-2xl border border-[#e8c547] bg-black p-4">
             <p className="text-sm font-black text-white">{variant.description}</p>
-            {preview && !isTimedPickType(pickType) ? (
+            {preview && !isFlowPickType(pickType) ? (
               <ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-[#f6f1e3] marker:text-[#e8c547]">
                 {preview.exercises.map((exercise) => (
                   <li key={exercise.name}>
@@ -121,7 +121,7 @@ export default function YourPickSheet({
           </div>
         ) : null}
 
-        {isTimedPickType(pickType) ? (
+        {pickModesFor(pickType).length > 1 ? (
           <>
             <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">How</p>
             <div className="mt-2 grid grid-cols-2 gap-2">

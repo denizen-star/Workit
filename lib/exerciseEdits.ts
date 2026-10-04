@@ -85,7 +85,7 @@ function buildDefinitions(): Map<string, Exercise> {
   AB_CORE_POOL.forEach(add);
   for (const group of yourPickVariantGroups()) {
     for (const variant of group.variants) {
-      if (variant.type === 'core' || variant.type === 'yoga') continue;
+      if (variant.type === 'core' || variant.type === 'yoga' || variant.type === 'run') continue;
       (resolveYourPickDay(7, variant.dayNumber)?.exercises || []).forEach(add);
     }
   }
