@@ -33,33 +33,27 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '12.0.0',
-  title: 'More lifts to pick from, and a Skip that waits for you.',
-  subject: 'More lifts in Add exercise — Work-It',
+  version: '12.1.0',
+  title: 'Your weekend work counts where it should.',
+  subject: 'Weekend workouts count on your week — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "You told me the Add exercise list felt thin. You were right, and I love that you're hungry for more.",
+    "Locked your week and still showed up on the weekend? That's the kind of hunger I love to see, and it deserves credit in the right place.",
   mid:
-    "So Add exercise now pulls from the whole Library: gym lifts, travel moves and the Alt picks, close to 80 to choose from. Chest alone went from 3 to 10, with flyes, dips, cable fly and push-ups next to the presses. Remove exercise is red now, so you can't miss it. And the Skip button waits out your rest before it goes away, even when you move to the next exercise.",
+    "Now when you lock your week and add a Your pick on Saturday or Sunday, it counts on that week, not next week. Select Workout opens right on it. And every Your pick you finish now shows up in your Completed log, so you can look back at all of it.",
   close:
-    "More tools, same mission: show up, do the work, and leave quit at the door. I believe in you.",
+    "Extra work is still work. Keep stacking it, and leave quit at the door. I'm proud of you.",
   lead: '',
   groups: [
     {
-      heading: 'New',
-      wins: [
-        'Add exercise — pick from the whole Library, about 80 lifts. Chest has 10 now.',
-        'The Library — Chest Dips, Dumbbell Flyes and High-to-Low Cable Fly have their own cards.',
-      ],
+      heading: 'Changed',
+      wins: ['Weekend Your pick — after your week locks, a Saturday or Sunday workout counts on that week.'],
     },
     {
-      heading: 'Changed',
-      wins: [
-        'Remove exercise — red, so it stands out.',
-        'Skip button — stays up through your rest timer, then a little longer.',
-      ],
+      heading: 'Fixed',
+      wins: ['Completed log — your Your pick workouts show up there now.'],
     },
   ],
   wins: [],
