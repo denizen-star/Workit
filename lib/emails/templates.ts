@@ -761,10 +761,10 @@ export function buildWorkoutCompleteEmail(input: WorkoutCompleteEmailInput): Bui
           : 'paid';
   const title = input.programComplete
     ? luna
-      ? 'Six weeks. The growth held.'
+      ? '48 weeks. The growth held.'
       : eli
-        ? 'Six weeks down! The power held, and so did you.'
-        : 'Six weeks. The power held.'
+        ? '48 weeks down! The power held, and so did you.'
+        : '48 weeks. The power held.'
     : input.weekComplete
       ? luna
         ? 'Week ' + input.weekNumber + ' is locked. The stamina is paid.'

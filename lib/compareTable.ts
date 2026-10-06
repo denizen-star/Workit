@@ -1,4 +1,5 @@
 import { formatCompact, formatPct, pctChange } from '@/lib/athletePerformanceTypes';
+import { setVolume } from '@/lib/exerciseKind';
 import { kpiTone } from '@/lib/kpi';
 
 export type CompareCell = {
@@ -44,6 +45,35 @@ export function recapExerciseRows(
     },
     last: { value: lift.priorVolume != null ? formatCompact(lift.priorVolume) : '—' },
   }));
+}
+
+/**
+ * Fallback recap rows built from this session's own sets, for when the performance
+ * board can't be loaded right after Finish. This side only; Last reads —.
+ */
+export function recapRowsFromSets(
+  sets: Array<{
+    exercise_name: string;
+    target_reps?: string | null;
+    weight_lbs?: number | string | null;
+    actual_reps?: number | null;
+    bodyweight_lb?: number | string | null;
+  }>
+): CompareRow[] {
+  const volumes = new Map<string, number>();
+  for (const set of sets) {
+    const volume = setVolume(
+      set.exercise_name,
+      set.target_reps,
+      set.weight_lbs == null ? null : Number(set.weight_lbs),
+      set.actual_reps,
+      set.bodyweight_lb
+    );
+    volumes.set(set.exercise_name, (volumes.get(set.exercise_name) ?? 0) + volume);
+  }
+  return recapExerciseRows(
+    [...volumes].map(([name, currentVolume]) => ({ name, currentVolume, priorVolume: null }))
+  );
 }
 
 /** Finish recap row for skipped sets (lib/skippedSets.ts) — just the count, no reason. */

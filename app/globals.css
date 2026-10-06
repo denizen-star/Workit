@@ -584,3 +584,29 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .test-drive-confetti { animation: none; opacity: 0; }
 }
+
+/* Finish recap (components/RecapConfetti.tsx): a wave flies out from the coach photo,
+   then a second wave flies in from the edges and lands on the title. */
+@keyframes recap-confetti-out {
+  0% { transform: translate(0, 0) rotate(0deg) scale(0.6); opacity: 1; }
+  80% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)) scale(1); opacity: 0; }
+}
+
+@keyframes recap-confetti-in {
+  0% { transform: translate(var(--dx), var(--dy)) rotate(var(--spin)) scale(1); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(0, 0) rotate(0deg) scale(0.5); opacity: 0; }
+}
+
+.recap-confetti-out {
+  animation: recap-confetti-out 1500ms cubic-bezier(0.15, 0.75, 0.3, 1) both;
+}
+
+.recap-confetti-in {
+  animation: recap-confetti-in 1300ms cubic-bezier(0.55, 0, 0.75, 0.4) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .recap-confetti-out, .recap-confetti-in { animation: none; opacity: 0; }
+}

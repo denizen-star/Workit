@@ -282,7 +282,8 @@ export async function sendWorkoutCompleteBundle(opts: {
     [opts.userId, opts.weekNumber]
   );
   const weekComplete = weekLockedRow.rows.length > 0;
-  const programComplete = lockedWeeks >= 6;
+  // The full 48-week year (the old 6-week program used to end at 6).
+  const programComplete = lockedWeeks >= 48;
   const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[], undefined, 1, daysForWeekFn(scheduleDays));
   const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
 

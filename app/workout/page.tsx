@@ -72,7 +72,7 @@ import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt } from '@/lib/belts';
 import { optionalRegionFromDay, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
-import { recapExerciseRows, recapSkippedRow, type CompareRow } from '@/lib/compareTable';
+import { recapExerciseRows, recapRowsFromSets, recapSkippedRow, type CompareRow } from '@/lib/compareTable';
 import { setIsSkipped } from '@/lib/skippedSets';
 import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
 import EditProfileModal from '@/components/EditProfileModal';
@@ -584,27 +584,49 @@ function WorkoutPageInner() {
   const loadWorkoutRecap = async (workoutType: string | null) => {
     const short = (workoutType || 'Workout').replace(' Body ', ' ');
     setRecapTitle(short);
-    try {
-      const [data, sessionSets] = await Promise.all([
-        fetch('/api/athlete-performance?period=t-15').then((res) => (res.ok ? res.json() : null)),
-        // Skipped sets are left out of the numbers above; the recap just counts them.
-        currentSession
-          ? fetch(`/api/exercises?sessionId=${currentSession}`).then((res) => (res.ok ? res.json() : null))
-          : null,
-      ]);
-      const skippedCount = (Array.isArray(sessionSets?.sets) ? sessionSets.sets : []).filter(
-        (set: { is_completed?: unknown; is_skipped?: unknown }) => Number(set.is_completed) && setIsSkipped(set)
-      ).length;
-      const skippedRow = recapSkippedRow(skippedCount);
+    // The board is a whole-history read and can be slow or time out right after Finish
+    // (cold function + the Finish PUT's own work), so a miss retries once.
+    const fetchBoard = () =>
+      fetch('/api/athlete-performance?period=t-15')
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null);
+    const findMatch = (data: { workouts?: unknown } | null) => {
       const rows = (Array.isArray(data?.workouts) ? data.workouts : []) as WorkoutTrend[];
-      const match = workoutType
+      return workoutType
         ? rows.find(
             (row) =>
               row.workoutType === workoutType ||
               row.workoutType.replace(' Body ', ' ') === workoutType.replace(' Body ', ' ')
           )
         : rows[0];
-      setRecapRows([...(match ? recapExerciseRows(match.exercises || []) : []), ...(skippedRow ? [skippedRow] : [])]);
+    };
+    try {
+      const [data, sessionSets] = await Promise.all([
+        fetchBoard(),
+        // Skipped sets are left out of the numbers above; the recap just counts them.
+        currentSession
+          ? fetch(`/api/exercises?sessionId=${currentSession}`)
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          : null,
+      ]);
+      const sets = (Array.isArray(sessionSets?.sets) ? sessionSets.sets : []) as Array<{
+        exercise_name: string;
+        target_reps?: string | null;
+        weight_lbs?: number | string | null;
+        actual_reps?: number | null;
+        bodyweight_lb?: number | string | null;
+        is_completed?: unknown;
+        is_skipped?: unknown;
+      }>;
+      const skippedCount = sets.filter((set) => Number(set.is_completed) && setIsSkipped(set)).length;
+      const skippedRow = recapSkippedRow(skippedCount);
+      const match = findMatch(data) ?? findMatch(await fetchBoard());
+      // Still nothing: show this session's own lifts rather than an empty recap.
+      const liftRows = match
+        ? recapExerciseRows(match.exercises || [])
+        : recapRowsFromSets(sets.filter((set) => Number(set.is_completed) && !setIsSkipped(set)));
+      setRecapRows([...liftRows, ...(skippedRow ? [skippedRow] : [])]);
     } catch {
       setRecapRows([]);
     }

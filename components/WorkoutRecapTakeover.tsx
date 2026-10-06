@@ -3,6 +3,7 @@
 import { useRef } from 'react';
 import CompareTable from '@/components/CompareTable';
 import FinishStepper from '@/components/FinishStepper';
+import RecapConfetti from '@/components/RecapConfetti';
 import { HelpTip } from '@/components/HelpSheet';
 import type { CompareRow } from '@/lib/compareTable';
 import { recapOptionalRows } from '@/lib/compareTable';
@@ -63,6 +64,7 @@ export default function WorkoutRecapTakeover({
       </div>
       <div className="relative w-full max-w-md" onClick={(event) => event.stopPropagation()}>
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
+        <RecapConfetti className="left-1/2 top-24" />
         <img
           src={avatarSrc}
           alt=""

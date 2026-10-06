@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 12.4.0 - 2026-10-05
+
+### Added
+- **Confetti on your recap.** Finish a workout and the recap opens with confetti flying out, then a second wave flying in.
+
+### Fixed
+- **Recap always shows your stats.** Right after Finish the recap could say "No completed sets to score" when the numbers were slow to load. It now tries again, and if that still fails it shows what you lifted this session.
+- **No more "Program complete" email after every workout.** Once you had 6 locked weeks, every workout email said the program was complete. That now only happens at the end of the 48 weeks; until then you get the normal workout or week-locked email.
+
 ## 12.3.0 - 2026-10-04
 
 ### Changed
