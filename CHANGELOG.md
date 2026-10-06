@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 12.4.1 - 2026-10-05
+
+### Changed
+- **Easier-to-tell belt colors.** The 12-week belt (Apollo / Connor) is now blue instead of dark green, and the 30-week belt (Stallone / Toomey) is now purple instead of copper. They no longer look like their neighbors (Hemsworth / Croft and Schwarzenegger / Furiosa) in your workout wash and on your diplomas.
+
 ## 12.4.0 - 2026-10-05
 
 ### Added
