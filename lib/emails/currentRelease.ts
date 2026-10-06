@@ -33,29 +33,25 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '12.4.0',
-  title: 'Your recap now throws a party.',
-  subject: 'Confetti on your recap — Work-It',
+  version: '12.4.1',
+  title: 'Your belts got brighter.',
+  subject: 'New belt colors — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "You finish a workout, you've earned a moment. So now you get one. Tap Finish and your recap opens with confetti flying out, then a second wave flying right back in. That's for you.",
+    "Quick one, and it's a good one. Some of your belts looked too much like the one before them, and you deserve to see every step up. So two of them got brand-new colors.",
   mid:
-    "Two fixes too. Your recap always shows your numbers now. If they're slow to load, it tries again, and if it still can't get them, it shows what you lifted that session. And if your workout emails kept telling you the program was complete, they won't anymore. That one's saved for week 48.",
+    "Your 12-week belt is now blue, and your 30-week belt is now purple. You'll see the new color wash over your whole workout once you earn them, and on your diploma too. Each belt you lock in now looks like its own win.",
   close:
-    "Every session is a step toward that finish line, and I'll be cheering for every one. Leave quit at the door. Let's go!",
+    "Every week you lock gets you closer to that next color, and I can't wait to see you wearing it. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'New',
-      wins: ['Recap confetti — a burst flies out, then a second wave flies in, every time you finish.'],
-    },
-    {
-      heading: 'Fixed',
+      heading: 'New look',
       wins: [
-        'Recap stats — always shown, even when they are slow to load.',
-        'Workout emails — no more "Program complete" until you actually finish all 48 weeks.',
+        '12-week belt — now blue (it was dark green).',
+        '30-week belt — now purple (it was copper).',
       ],
     },
   ],
