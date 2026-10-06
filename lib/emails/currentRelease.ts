@@ -33,25 +33,29 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '12.3.0',
-  title: 'Every minute you run counts.',
-  subject: 'Run longer, earn more — Work-It',
+  version: '12.4.0',
+  title: 'Your recap now throws a party.',
+  subject: 'Confetti on your recap — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "You picked 20 minutes, felt good, and kept going to 35? That's what I'm talking about. And now every one of those minutes counts.",
+    "You finish a workout, you've earned a moment. So now you get one. Tap Finish and your recap opens with confetti flying out, then a second wave flying right back in. That's for you.",
   mid:
-    "Runs and rides now earn for the time you actually put in: 50 lb a minute, never less than the length you picked. Your warmup and cooldown run and bike work this way, and so does a Run in Your pick. Once the countdown hits zero, the clock shows what you've earned so far, so you can watch it climb.",
+    "Two fixes too. Your recap always shows your numbers now. If they're slow to load, it tries again, and if it still can't get them, it shows what you lifted that session. And if your workout emails kept telling you the program was complete, they won't anymore. That one's saved for week 48.",
   close:
-    "Your stamina is building every time you go. Go a little further, and leave quit at the door. I believe in you.",
+    "Every session is a step toward that finish line, and I'll be cheering for every one. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'Changed',
+      heading: 'New',
+      wins: ['Recap confetti — a burst flies out, then a second wave flies in, every time you finish.'],
+    },
+    {
+      heading: 'Fixed',
       wins: [
-        'Run and bike — earn 50 lb for every minute you actually go, never less than what you picked.',
-        'Live clock — shows the pounds you have earned so far once you pass your pick.',
+        'Recap stats — always shown, even when they are slow to load.',
+        'Workout emails — no more "Program complete" until you actually finish all 48 weeks.',
       ],
     },
   ],
