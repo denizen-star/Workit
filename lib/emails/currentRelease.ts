@@ -33,26 +33,35 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '12.4.1',
-  title: 'Your belts got brighter.',
-  subject: 'New belt colors — Work-It',
+  version: '13.0.0',
+  title: 'Your phone can call you to train now.',
+  subject: 'Workout reminders are here — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Quick one, and it's a good one. Some of your belts looked too much like the one before them, and you deserve to see every step up. So two of them got brand-new colors.",
+    "Big one today! You told yourself you'd train, and now I get to remind you. Pick a time, pick your days, and your phone taps you on the shoulder when it's go time.",
   mid:
-    "Your 12-week belt is now blue, and your 30-week belt is now purple. You'll see the new color wash over your whole workout once you earn them, and on your diploma too. Each belt you lock in now looks like its own win.",
+    "Open the menu and Reminders is right at the top. Set your time, check the days you train, and tap Allow notifications. Then tap Send a test and watch it land. One thing: Work-It has to be saved to your Home Screen for this to work. Tap the ? in Reminders and it shows you how.",
   close:
-    "Every week you lock gets you closer to that next color, and I can't wait to see you wearing it. Leave quit at the door. Let's go!",
+    "I won't bug you on a day you already trained, and once your week is locked I leave you alone. You can turn it off whenever you want. But I think you'll like hearing from me. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'New look',
+      heading: 'New: workout reminders',
       wins: [
-        '12-week belt — now blue (it was dark green).',
-        '30-week belt — now purple (it was copper).',
+        'Where — top of the menu, under Reminders.',
+        'You choose — the time and the days of the week.',
+        'Turn it on — tap Allow notifications once on each phone.',
+        'Try it — Send a test shows you what it looks like.',
+        "Smart — no reminder on a day you already trained or once your week is locked.",
+        'Left a workout open? — the reminder takes you straight back to it.',
+        'Needs the Home Screen — the ? in Reminders shows you how to save Work-It there.',
       ],
+    },
+    {
+      heading: 'Small fix',
+      wins: ['Help boxes — tapping inside a ? box in the menu no longer closes the menu.'],
     },
   ],
   wins: [],
