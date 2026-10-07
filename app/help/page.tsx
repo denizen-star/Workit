@@ -10,6 +10,7 @@ import {
   Dumbbell,
   UserRound,
   UserPlus,
+  Bell,
   type LucideIcon,
 } from 'lucide-react';
 import YouPageShell from '@/components/YouPageShell';
@@ -177,6 +178,20 @@ const APP_PAGES: AppPageGuide[] = [
     ],
     image: '/help/page-library.png',
     Icon: Dumbbell,
+  },
+  {
+    title: 'Reminders',
+    tag: 'Top of the menu',
+    description:
+      'Pick a time and the days you want a nudge to train. Work-It has to be saved to your Home Screen for reminders to work — a Safari tab cannot get them.',
+    bullets: [
+      'Turn reminders on or off whenever you like',
+      'Tap Allow notifications once on each phone you use',
+      'No reminder on a day you already trained or once your week is locked',
+      'Send a test to see it land',
+    ],
+    image: '/help/page-reminders.png',
+    Icon: Bell,
   },
   {
     title: 'Edit profile',

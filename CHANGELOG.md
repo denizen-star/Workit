@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 13.0.0 - 2026-10-07
+
+### Added
+- **Workout reminders.** Pick a time and the days you want a nudge to train, right at the top of the menu. Tap **Allow notifications** once on each phone, and **Send a test** to see it land. It's your coach talking, and if you left a workout open it takes you straight back to it. No reminder on a day you already trained or once your week is locked. Work-It has to be saved to your Home Screen for reminders to work (the `?` shows how). Turn them on or off whenever you like. Email reminders don't change.
+
+### Fixed
+- **Help boxes stay put in the menu.** Tapping inside a `?` box in the menu no longer closes the menu.
+
 ## 12.4.1 - 2026-10-05
 
 ### Changed

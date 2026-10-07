@@ -7,6 +7,7 @@ import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, Lo
 import EditProfileModal from '@/components/EditProfileModal';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
+import RemindersMenuSection from '@/components/RemindersMenuSection';
 import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { type NoiseLevel } from '@/lib/noisePref';
 import { isTestUserName } from '@/lib/householdUsers';
@@ -201,6 +202,8 @@ export default function AppMenu({
     const onPointer = (event: MouseEvent | TouchEvent) => {
       const target = event.target as Node;
       if (buttonRef.current?.contains(target) || panelRef.current?.contains(target)) return;
+      // A `?` box (HelpTip, e.g. the Reminders section's) portals outside the panel; tapping it keeps the menu open.
+      if ((target as Element).closest?.('[role="tooltip"]')) return;
       setOpen(false);
     };
 
@@ -286,6 +289,7 @@ export default function AppMenu({
               ) : null}
             </div>
             <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain">
+              <RemindersMenuSection />
               {isAdmin && (
                 <div className="border-b border-white/10 py-1">
                   <p className="px-4 pt-2 pb-1 text-[10px] font-semibold uppercase tracking-[0.28em] text-[#e8c547]">

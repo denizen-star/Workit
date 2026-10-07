@@ -24,6 +24,10 @@ type LinePack = {
   sessionStart?: readonly string[];
   /** Test Drive athlete's one-time Monday "Week 1 starts now" takeover. Code bank only, same as sessionStart. */
   week1Start?: readonly string[];
+  /** Workout reminder push notification (docs/plans/PLAN_PUSH_REMINDERS.md), "TITLE\nBody".
+   * `reminderResume` is for an athlete with a session still open. Code bank only, same as sessionStart. */
+  reminder?: readonly string[];
+  reminderResume?: readonly string[];
   missedWeek: readonly string[];
   /** Hyrox Training milestone moments. Code bank only, same as sessionStart — not DB-editable. */
   /** Overload Progressions intro takeover + diploma takeover. DB buckets
@@ -195,6 +199,15 @@ const MASTER: LinePack = {
     'TIME TO PAY\n{name}, the tax is due. Pay it in sweat, not excuses.',
   ],
   week1Start: ["WEEK 1\n{name}. The test drive is over. Now the program owns you. Pay the first week in full."],
+  reminder: [
+    'TIME, {name}\nThe bar is loaded. Growth does not wait for a better mood.',
+    'THE HOUR\n{name}. You set this time. Keep the promise or lose the lean.',
+    'GET IN\nPower is earned today, not tomorrow. Come and take it.',
+  ],
+  reminderResume: [
+    'STILL OPEN\n{name}. You left the growth on the floor. Pick it back up.',
+    'UNFINISHED\nThe session is waiting where you left it. So am I.',
+  ],
   missedWeek: [
     'Oh, sorry... were you busy?\nThe power took the week off with {name}. So did the lean.',
   ],
@@ -372,6 +385,15 @@ const JAMES: LinePack = {
     "I'M HERE\nSo are you, {name}. Let's make the hour count.",
   ],
   week1Start: ["WEEK 1\nRight, {name}. That was the taster. This is the real thing. Let's have it."],
+  reminder: [
+    "RIGHT THEN\nIt's time, {name}. Kit on. Let's get it done.",
+    'YOUR SLOT\nYou picked this time for a reason. Go and use it.',
+    "QUICK ONE\nThe session's ready when you are. Make it now.",
+  ],
+  reminderResume: [
+    "HALF DONE\n{name}, you've a session open. Let's finish it properly.",
+    'STILL GOING\nYou started well. Come back and see it through.',
+  ],
   missedWeek: ['{name}. The week closed. You did not. So the power did not. I noticed the gap.'],
   hyroxMilestonePass: [
     '{name}, that is a pass. I want the base held, not just hit. Phase 2 now.',
@@ -547,6 +569,15 @@ const SERGEANT: LinePack = {
     "WELCOME BACK TO YOURSELF\nTake a breath, {name}. Then let's begin, quietly and fully.",
   ],
   week1Start: ["WEEK 1\nWelcome in properly, {name}. The practice is behind you. Begin the real work, gently and fully."],
+  reminder: [
+    'IT IS TIME\n{name}, this is the hour you chose. Begin gently, work fully.',
+    'A SMALL START\nShow up first. The work will follow you in.',
+    "YOUR HOUR\nBreathe, then begin. Today's session is waiting for you.",
+  ],
+  reminderResume: [
+    'STILL HERE\n{name}, your session is open. Return and finish it calmly.',
+    'PICK IT UP\nYou began. Come back and complete what you started.',
+  ],
   missedWeek: [
     '{name}. Last week closed without you. Softly said: the stamina did not get built. Come back present.',
   ],
@@ -726,6 +757,15 @@ const ELI: LinePack = {
     "TIME TO PROVE IT\nThis one's not for me, {name}. It's for you. I'm just here to watch it happen.",
   ],
   week1Start: ["WEEK 1, LET'S GO!\n{name}, you test drove it. Now it's yours. I've been waiting for this Monday."],
+  reminder: [
+    "IT'S GO TIME!\n{name}, this is your hour. I believe in you. Let's move!",
+    "YOU'VE GOT THIS\nYou set this reminder because you mean it. Let's go!",
+    "LET'S TRAIN!\nOne session today, {name}. Start it and I'm right there with you.",
+  ],
+  reminderResume: [
+    "LET'S FINISH IT!\n{name}, your session is still open. I've been waiting right here.",
+    'SO CLOSE!\nYou started strong. Come back and finish it with me!',
+  ],
   missedWeek: [
     '{name}, last week closed without you. No judgment, just come back. The growth is still here waiting.',
   ],
@@ -930,6 +970,20 @@ export function pickWeek1StartCopy(
 ): { title: string; body: string } {
   const id = normalizeCoachTone(tone);
   const raw = fillCoachName(pickFrom(PACKS[id].week1Start ?? [], `week1-start:${id}`), name);
+  const [title, ...rest] = raw.split('\n');
+  return { title, body: rest.join('\n').trim() };
+}
+
+/** Workout reminder push (lib/pushReminders.ts), as TITLE + body. `resume` = a session is
+ * still open. Code bank only. */
+export function pickReminderCopy(
+  kind: 'start' | 'resume',
+  tone?: CoachTone | null,
+  name?: string | null
+): { title: string; body: string } {
+  const id = normalizeCoachTone(tone);
+  const pool = kind === 'resume' ? PACKS[id].reminderResume : PACKS[id].reminder;
+  const raw = fillCoachName(pickFrom(pool ?? [], `reminder-${kind}:${id}`), name);
   const [title, ...rest] = raw.split('\n');
   return { title, body: rest.join('\n').trim() };
 }

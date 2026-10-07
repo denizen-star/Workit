@@ -63,15 +63,24 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               __html: `
             (function () {
               var KEY = 'workit_css_reload';
+              // Unregister every service worker except the push-only /sw.js
+              // (docs/plans/PLAN_PUSH_REMINDERS.md). Unregistering it would drop the
+              // device's push subscription, so reminders would look on but never arrive.
+              // It has no fetch handler, so it can't serve a stale page like the old
+              // caching worker did (2d04be4).
+              function unregisterStale(regs) {
+                return Promise.all(regs.filter(function (reg) {
+                  var worker = reg.active || reg.waiting || reg.installing;
+                  return !(worker && new URL(worker.scriptURL).pathname === '/sw.js');
+                }).map(function (reg) { return reg.unregister(); }));
+              }
               function clearAndReload() {
                 if (sessionStorage.getItem(KEY)) return;
                 sessionStorage.setItem(KEY, '1');
                 var done = function () { location.reload(); };
                 var chain = Promise.resolve();
                 if ('serviceWorker' in navigator) {
-                  chain = navigator.serviceWorker.getRegistrations().then(function (regs) {
-                    return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
-                  });
+                  chain = navigator.serviceWorker.getRegistrations().then(unregisterStale);
                 }
                 chain.then(function () {
                   if (!window.caches) return;
@@ -85,9 +94,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
                 return bg === 'rgba(0, 0, 0, 0)' || bg === 'rgb(255, 255, 255)';
               }
               if ('serviceWorker' in navigator) {
-                navigator.serviceWorker.getRegistrations().then(function (regs) {
-                  return Promise.all(regs.map(function (reg) { return reg.unregister(); }));
-                }).then(function () {
+                navigator.serviceWorker.getRegistrations().then(unregisterStale).then(function () {
                   if (!window.caches) return;
                   return caches.keys().then(function (keys) {
                     return Promise.all(keys.map(function (key) { return caches.delete(key); }));

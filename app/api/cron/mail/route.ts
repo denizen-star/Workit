@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { sendDailyNudges } from '@/lib/emails/nudge';
 import { sendScoreboardEmail } from '@/lib/emails/scoreboard';
 import { sendOnboardingReport } from '@/lib/emails/onboarding';
+import { sendDueReminders } from '@/lib/pushReminders';
 
 export const dynamic = 'force-dynamic';
 export const maxDuration = 60;
@@ -55,6 +56,12 @@ async function handle(request: NextRequest) {
     } else {
       result.onboarding = await sendOnboardingReport();
     }
+    return NextResponse.json(result);
+  }
+
+  // Workout reminder pushes: their own 15-minute cron (workit-push-cron). Never part of 'all'.
+  if (task === 'push') {
+    result.push = await sendDueReminders();
     return NextResponse.json(result);
   }
 
