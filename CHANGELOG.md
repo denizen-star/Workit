@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 13.0.1 - 2026-10-08
+
+### Changed
+- **Reminders tucks itself away.** It opens on its own the first two times you open the menu, then sits as one line at the top. Tap it to open.
+
 ## 13.0.0 - 2026-10-07
 
 ### Added

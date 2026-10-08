@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Bell, BellOff, ChevronDown, X } from 'lucide-react';
 import { HelpTip } from '@/components/HelpSheet';
 import {
@@ -26,6 +26,21 @@ import {
   type ReminderSettings,
 } from '@/lib/reminderPrefs';
 
+/** The section opens on its own for this many menu opens on a device, then starts folded. */
+const OPEN_MENU_VIEWS = 2;
+const MENU_VIEWS_KEY = 'workit-reminders-menu-views';
+
+/** Counts this menu open on this device; true once it's past the first OPEN_MENU_VIEWS. */
+function countMenuViewPastLimit(): boolean {
+  try {
+    const views = Number(window.localStorage.getItem(MENU_VIEWS_KEY) || 0) + 1;
+    window.localStorage.setItem(MENU_VIEWS_KEY, String(views));
+    return views > OPEN_MENU_VIEWS;
+  } catch {
+    return false;
+  }
+}
+
 function browserTimeZone(): string {
   return Intl.DateTimeFormat().resolvedOptions().timeZone || 'America/New_York';
 }
@@ -42,7 +57,8 @@ function postPush(body: Record<string, unknown>) {
  * Workout reminders, on their own at the top of the hamburger menu
  * (docs/plans/PLAN_PUSH_REMINDERS.md): on/off, time, days, Allow notifications, Send a test.
  * Until this device is subscribed with reminders on it leads with a gold setup line.
- * ✕ folds it to one line (account-wide); tapping that line opens it again.
+ * It renders open for the first two menu opens on a device, then folded to one line every
+ * time after (localStorage count). ✕ folds it early (account-wide); tapping the line opens it.
  */
 export default function RemindersMenuSection() {
   const [publicKey, setPublicKey] = useState<string | null>(null);
@@ -52,8 +68,16 @@ export default function RemindersMenuSection() {
   const [denied, setDenied] = useState(false);
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState('');
+  // Past the first two menu opens on this device: start folded (a tap still opens it).
+  const [autoFolded, setAutoFolded] = useState(false);
+  const counted = useRef(false);
 
   useEffect(() => {
+    // The menu mounts this section on every open; the ref keeps dev Strict Mode from counting twice.
+    if (!counted.current) {
+      counted.current = true;
+      setAutoFolded(countMenuViewPastLimit());
+    }
     setSupport(pushSupport());
     setDenied(notificationsDenied());
     deviceSubscription()
@@ -120,12 +144,15 @@ export default function RemindersMenuSection() {
     setStatus(res.ok && data.sent > 0 ? 'Test sent. Check your notifications.' : data.error || 'No device got it. Tap Allow notifications again.');
   };
 
-  if (settings.folded) {
+  if (settings.folded || autoFolded) {
     return (
       <div className="border-b border-white/10 py-1">
         <button
           type="button"
-          onClick={() => setFolded(false)}
+          onClick={() => {
+            setAutoFolded(false);
+            if (settings.folded) setFolded(false);
+          }}
           className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
         >
           <Bell className="h-4 w-4 shrink-0 text-[#e8c547]" />

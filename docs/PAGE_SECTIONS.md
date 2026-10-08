@@ -33,7 +33,7 @@ Public waiver text.
 
 ## `/home` — Home Quiet
 
-- Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house dropdown if in more than one; one house is a text label. Top of the menu: **Reminders** (on/off, time, Mon–Sun days, Allow notifications, Send a test, `?` = Home Screen needed; ✕ folds to one line)
+- Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house dropdown if in more than one; one house is a text label. Top of the menu: **Reminders** (on/off, time, Mon–Sun days, Allow notifications, Send a test, `?` = Home Screen needed; open for the first 2 menu opens on a device, then folded to one line — tap to open; ✕ folds early)
 - First visit without waiver: Update your profile (prefilled) + required waiver
 - How to use banner until 5 finished workouts (links to `/quickstart`)
 - Overload Progressions / Hyrox unlocked banners: 3 days after 6 locked weeks, until tapped (opens intro) or ✕'d
