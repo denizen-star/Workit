@@ -23,22 +23,6 @@ export type MuscleGroup =
   | 'Cardio'
   | 'Mobility';
 
-/** Every muscle group that Alt Exercise actually offers swaps within. Cardio and Mobility
- * exercises (runs, bikes, foam rolling) have nothing sensible to "swap" — same reasoning the
- * exercise never gets an Alt list in lib/altExercises.ts. */
-export const ALT_ELIGIBLE_GROUPS: MuscleGroup[] = [
-  'Chest',
-  'Back',
-  'Shoulders',
-  'Arms',
-  'Core',
-  'Glutes',
-  'Quads',
-  'Hamstrings',
-  'Calves',
-  'Full Body',
-];
-
 const MUSCLE_GROUP_BY_EXERCISE: Record<string, MuscleGroup> = {
   '12-Min AMRAP': 'Full Body',
   '15-Min AMRAP': 'Full Body',

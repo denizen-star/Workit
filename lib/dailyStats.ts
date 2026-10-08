@@ -14,23 +14,24 @@ export async function updateDailyStats(workoutSessionId: number, userId: number)
 
     const { user_id, workout_date } = sessionResult.rows[0];
 
-    const statsResult = await query(
-      `SELECT 
-        COUNT(DISTINCT exercise_name) as total_exercises,
-        COUNT(*) as total_sets,
-        SUM(${sqlSetVolume()}) as total_weight
-       FROM exercise_sets es
-       JOIN workout_sessions ws ON es.workout_session_id = ws.id
-       WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ? AND ${sqlSetCounts('es')}`,
-      [user_id, workout_date]
-    );
-
-    const optionalResult = await query(
-      `SELECT COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as optional_lbs
-       FROM workout_sessions ws
-       WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ?`,
-      [user_id, workout_date]
-    );
+    const [statsResult, optionalResult] = await Promise.all([
+      query(
+        `SELECT 
+          COUNT(DISTINCT exercise_name) as total_exercises,
+          COUNT(*) as total_sets,
+          SUM(${sqlSetVolume()}) as total_weight
+         FROM exercise_sets es
+         JOIN workout_sessions ws ON es.workout_session_id = ws.id
+         WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ? AND ${sqlSetCounts('es')}`,
+        [user_id, workout_date]
+      ),
+      query(
+        `SELECT COALESCE(SUM(${sqlSessionOptionalVolume('ws')}), 0) as optional_lbs
+         FROM workout_sessions ws
+         WHERE ws.user_id = ? AND DATE(COALESCE(ws.completed_at, NOW())) = ?`,
+        [user_id, workout_date]
+      ),
+    ]);
 
     const stats = statsResult.rows[0] as {
       total_exercises: number;

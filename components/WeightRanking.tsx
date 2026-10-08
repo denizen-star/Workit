@@ -1,4 +1,5 @@
-import { formatK, ordinalRank, overallRankSentence, type WeightRank } from '@/lib/exerciseCompare';
+import { formatCompact } from '@/lib/athletePerformanceTypes';
+import { ordinalRank, overallRankSentence, type WeightRank } from '@/lib/exerciseCompare';
 import { athleteCallName } from '@/lib/profile';
 import { firstName } from '@/lib/scoreboardTypes';
 
@@ -6,7 +7,7 @@ function Stat({ label, value }: { label: string; value: number }) {
   return (
     <div className="text-right">
       <p className="text-sm uppercase tracking-[0.14em] text-[#f6f1e3]/50">{label}</p>
-      <p className="mt-0.5 text-lg font-black text-[#e8c547]">{formatK(value)}</p>
+      <p className="mt-0.5 text-lg font-black text-[#e8c547]">{formatCompact(value)}</p>
     </div>
   );
 }

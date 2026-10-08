@@ -19,7 +19,7 @@ import {
 import { formatHardnessAvg } from '@/lib/hardness';
 import { isTestUserName } from '@/lib/householdUsers';
 import BeltChip from '@/components/BeltChip';
-import { firstName } from '@/lib/scoreboardTypes';
+import { firstName, ordinalRank } from '@/lib/scoreboardTypes';
 import { HouseholdHardnessCharts } from '@/components/HardnessCharts';
 import BodyWeightHistory from '@/components/BodyWeightHistory';
 
@@ -45,10 +45,7 @@ type Lead = {
 };
 
 function placeLabel(index: number) {
-  if (index === 0) return '1st';
-  if (index === 1) return '2nd';
-  if (index === 2) return '3rd';
-  return `${index + 1}th`;
+  return ordinalRank(index + 1);
 }
 
 function leadBy(athletes: LiftAthlete[], pick: (line: ExerciseTrend) => number): Lead | null {

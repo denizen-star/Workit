@@ -1,3 +1,4 @@
+import { easternHour } from '@/lib/analyticsTime';
 import { NextRequest, NextResponse } from 'next/server';
 import { sendDailyNudges } from '@/lib/emails/nudge';
 import { sendScoreboardEmail } from '@/lib/emails/scoreboard';
@@ -12,14 +13,6 @@ function isCronAuthorized(request: NextRequest) {
   if (!secret) return false;
   const auth = request.headers.get('authorization');
   return auth === 'Bearer ' + secret;
-}
-
-function hourInNewYork() {
-  return Number(
-    new Intl.DateTimeFormat('en-US', { hour: 'numeric', hourCycle: 'h23', timeZone: 'America/New_York' }).format(
-      new Date()
-    )
-  );
 }
 
 function todayWeekdayInNewYork() {
@@ -50,7 +43,7 @@ async function handle(request: NextRequest) {
   // Onboarding report: its own evening cron fires at 00:00 and 01:00 UTC so one of the two
   // lands on 8pm Eastern in both EDT and EST; the other is a no-op. Never part of 'all'.
   if (task === 'onboarding') {
-    const hour = hourInNewYork();
+    const hour = easternHour(new Date());
     if (hour !== 20 && request.nextUrl.searchParams.get('force') !== '1') {
       result.onboarding = { sent: false, skipped: 'not-8pm-eastern', hour };
     } else {

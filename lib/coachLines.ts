@@ -817,15 +817,6 @@ export const REPLENISH_LINES = [
 
 export const FALLBACK_LINE_PACKS = PACKS;
 
-export const COACH_LINES = {
-  initial: MASTER.initial,
-  mid: MASTER.mid,
-  final: MASTER.final,
-} as const;
-
-export const EXIT_LINES = MASTER.exit;
-export const COMPLETE_LINES = MASTER.complete;
-
 /** Spoken on the New PR bubble. The lift and the numbers stay on screen; this line is the voice. */
 export const TOM_PR_CLIP = 'NEW PR\nThat record is power. It stays yours.';
 export const ELI_PR_CLIP = 'NEW PR\nThere it is. That record is yours. I knew you had it.';
@@ -920,10 +911,6 @@ export function pickExitClip(
 ): { text: string; clipTemplate: string } {
   const id = normalizeCoachTone(tone);
   return takeLine(packFor(tone).exit, `exit:${id}`, name);
-}
-
-export function pickExitLine(tone?: CoachTone | null, name?: string | null): string {
-  return pickExitClip(tone, name).text;
 }
 
 function takeLine(
@@ -1041,10 +1028,6 @@ export function pickBonusCompleteClip(
   return takeLine(pool, `bonus:${id}`, name);
 }
 
-export function pickBonusCompleteLine(tone?: CoachTone | null, name?: string | null): string {
-  return pickBonusCompleteClip(tone, name).text;
-}
-
 export function pickOptionalCompleteClip(
   tone?: CoachTone | null,
   name?: string | null
@@ -1056,10 +1039,6 @@ export function pickOptionalCompleteClip(
       ? live.optionalComplete
       : PACKS[id].optionalComplete;
   return takeLine(pool, `optional:${id}`, name);
-}
-
-export function pickOptionalCompleteLine(tone?: CoachTone | null, name?: string | null): string {
-  return pickOptionalCompleteClip(tone, name).text;
 }
 
 export function pickMissedWeekLine(name: string, tone?: CoachTone | null): string {

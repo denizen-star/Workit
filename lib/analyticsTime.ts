@@ -49,7 +49,7 @@ export function easternHourLabel(d: Date): string {
   return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:00:00`;
 }
 
-function easternHour(d: Date): number {
+export function easternHour(d: Date): number {
   return Number(
     new Intl.DateTimeFormat('en-US', {
       timeZone: ANALYTICS_TIME_ZONE,
@@ -68,6 +68,13 @@ export function easternMidnightUtc(ymd: string): Date {
 }
 
 /** 0 = Sunday … 6 = Saturday in America/New_York. */
+/** Whole calendar days from one YYYY-MM-DD to another. */
+export function calendarDaysBetween(fromYmd: string, toYmd: string): number {
+  const from = new Date(`${fromYmd}T12:00:00Z`).getTime();
+  const to = new Date(`${toYmd}T12:00:00Z`).getTime();
+  return Math.round((to - from) / 86_400_000);
+}
+
 export function easternWeekday(d: Date = new Date()): number {
   const label = new Intl.DateTimeFormat('en-US', {
     timeZone: ANALYTICS_TIME_ZONE,

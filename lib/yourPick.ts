@@ -1,5 +1,5 @@
 import { isEasternWeekend } from '@/lib/analyticsTime';
-import type { OptionalCircuitStep } from '@/lib/optionals';
+import { CARDIO_LBS_PER_MINUTE, type OptionalCircuitStep } from '@/lib/optionals';
 import { yourPickCoreFlow, yourPickYogaFlow } from '@/lib/optionalCircuits';
 import { programWithRetiredDays, type Exercise, type WorkoutDay } from '@/lib/workoutData';
 import { blockFor, EXTRA_UPPER_PACKS } from '@/lib/yearProgram';
@@ -351,12 +351,12 @@ const TIMED_DESCRIPTIONS: Record<'core' | 'yoga', string> = {
   yoga: '15 poses, 2 minutes each. A 30-minute flow.',
 };
 
-/** Run's dropdown rows. Credit is flat by length (lib/yourPickCredit.ts). */
+/** Run's dropdown rows. Credit is the time run at CARDIO_LBS_PER_MINUTE (lib/optionals.ts). */
 function runVariants(): YourPickVariant[] {
   return Object.entries(RUN_PICK_DAYS).map(([day, minutes]) => ({
     type: 'run' as const,
     label: `Run · ${minutes} min`,
-    description: `Easy run. The clock counts down ${minutes} minutes, then keeps going until you stop. +${(minutes / 10) * 500} lb, plus 50 lb for every extra minute.`,
+    description: `Easy run. The clock counts down ${minutes} minutes, then keeps going until you stop. +${(minutes * CARDIO_LBS_PER_MINUTE).toLocaleString('en-US')} lb, plus ${CARDIO_LBS_PER_MINUTE} lb for every extra minute.`,
     dayNumber: Number(day),
   }));
 }
@@ -435,11 +435,6 @@ function variantFromDayNumber(dayNumber: number): { type: LiftPickType; index: n
     }
   }
   return null;
-}
-
-/** True for a specific-workout day number this build knows (40-99 range). */
-export function isYourPickVariantDayNumber(dayNumber: number): boolean {
-  return variantFromDayNumber(dayNumber) != null;
 }
 
 /** The week's version of a program day (e.g. Lower Body B). Weeks 7+ carry one lower

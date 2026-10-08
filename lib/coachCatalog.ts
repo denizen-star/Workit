@@ -128,10 +128,6 @@ export function getLinePack(tone?: CoachTone | null): LinePack | null {
   return packs[normalizeCoachTone(tone)] || null;
 }
 
-export function setLinePacks(next: Record<CoachTone, LinePack>) {
-  packs = next;
-}
-
 export function hydrateCoachCatalog(input: {
   voices?: CoachVoiceRecord[];
   packs?: Partial<Record<CoachTone, LinePack>>;

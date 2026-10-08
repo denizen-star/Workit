@@ -11,6 +11,7 @@ import { workoutProgram } from '@/lib/workoutData';
 import { resolveTestDriveDay, TEST_DRIVE_NAME, TEST_DRIVE_WEEK } from '@/lib/testDrive';
 import { athleteRequiredDays, clampScheduleDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { setVolume } from '@/lib/exerciseKind';
+import { setIsSkipped } from '@/lib/skippedSets';
 import CompletedSessionCard, {
   weekHistoryTotals,
   type HistorySession,
@@ -90,9 +91,12 @@ export default function CompletedLog({
     let bestId: number | null = null;
     let bestVolume = 0;
     for (const session of sessions) {
+      // Lifts only (Best day never sees optional or credit lbs); skipped sets count for nothing.
       const volume = (session.sets || []).reduce(
         (sum, set) =>
-          sum + setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb),
+          setIsSkipped(set)
+            ? sum
+            : sum + setVolume(set.exercise_name, set.target_reps, set.weight_lbs, set.actual_reps, set.bodyweight_lb),
         0
       );
       if (volume > bestVolume) {

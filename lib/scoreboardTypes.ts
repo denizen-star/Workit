@@ -124,12 +124,20 @@ export function scoreboardBestDay(row: HouseholdScoreboardRow) {
   return row.bestSessionEffort != null ? row.bestSessionEffort : row.bestSessionVolume;
 }
 
+/** 1st, 2nd, 3rd, 4th … 11th, 12th, 13th … 21st, 22nd. */
+export function ordinalRank(rank: number) {
+  const teens = rank % 100;
+  if (teens >= 11 && teens <= 13) return `${rank}th`;
+  const ones = rank % 10;
+  if (ones === 1) return `${rank}st`;
+  if (ones === 2) return `${rank}nd`;
+  if (ones === 3) return `${rank}rd`;
+  return `${rank}th`;
+}
+
 export function placeLabel(place: number | null | undefined) {
   if (place == null || place < 1) return '—';
-  if (place === 1) return '1st';
-  if (place === 2) return '2nd';
-  if (place === 3) return '3rd';
-  return `${place}th`;
+  return ordinalRank(place);
 }
 
 export type PerformanceSnapshot = {

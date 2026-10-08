@@ -59,10 +59,12 @@ import {
 } from '@/lib/exerciseKind';
 import {
   bestLoggedSet,
+  betterSet,
   foldSetIntoHistory,
   setDirection,
   setNumberStatsFor,
   tileDelta,
+  type LoggedLoad,
   type SetNumberHistory,
 } from '@/lib/setHistory';
 import { bodyweightCreditLb } from '@/lib/bodyweightShare';
@@ -114,11 +116,17 @@ interface HistoryPayload {
     string,
     Array<{ set_number: number; weight_lbs: number | null; actual_reps: number | null; hardness?: number | null }>
   >;
-  personalRecords: Record<string, { weight: number; reps: number }>;
+  personalRecords: Record<string, { weight: number; reps: number; bodyweight?: number }>;
   /** Heaviest single set ever logged for this exercise (weight+reps as one pair), any set position. */
   bestSets: Record<
     string,
-    { weight_lbs: number | null; actual_reps: number | null; set_number: number; done_at: string | null }
+    {
+      weight_lbs: number | null;
+      actual_reps: number | null;
+      bodyweight_lb?: number | string | null;
+      set_number: number;
+      done_at: string | null;
+    }
   >;
   /** How each set position of this exercise has gone across every past completed session. */
   setNumberHistory: SetNumberHistory;
@@ -858,11 +866,20 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
       history.personalRecords[exerciseHistoryKey(exercise.name)] ||
       history.personalRecords[exercise.name] ||
       { weight: 0, reps: 0 };
-    // Weight PR is now by volume (weight × reps — docs/plans/PLAN_PR_VOLUME.md), not weight
-    // alone: a lighter, higher-rep set can beat a heavier, lower-rep one. Timed/distance PRs
-    // are untouched — there's no weight to multiply, so they still compare on duration/distance.
+    // Body-weight credit the server stamps on this set (lib/bodyweightShare.ts), known here
+    // before the save lands so the PR test matches the server's Best.
+    const bodyweight = Number(set.bodyweight_lb ?? 0) || bodyweightCreditLb(set.exercise_name, bodyWeightLb);
+    const todayLoad = { weight_lbs: weight, actual_reps: reps, bodyweight_lb: bodyweight };
+    const recordLoad = { weight_lbs: record.weight, actual_reps: record.reps, bodyweight_lb: record.bodyweight ?? 0 };
+    // Weight PR is by volume (betterSet — docs/plans/PLAN_PR_VOLUME.md), not weight alone:
+    // a lighter, higher-rep set can beat a heavier, lower-rep one. Timed/distance PRs are
+    // untouched — there's no weight to multiply, so they still compare on duration/distance.
     const isWeightPr =
-      !willSkip && kind !== 'timed' && kind !== 'distance' && weight > 0 && weight * reps > record.weight * record.reps;
+      !willSkip &&
+      kind !== 'timed' &&
+      kind !== 'distance' &&
+      weight > 0 &&
+      betterSet(recordLoad, todayLoad) === todayLoad;
     const isTimedPr = !willSkip && (kind === 'timed' || kind === 'distance') && reps > record.reps && record.reps > 0;
 
     const prior = priorSetFor(gym.name, exercise.name, set.set_number, exerciseSets, history);
@@ -959,7 +976,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         ...current,
         personalRecords: {
           ...current.personalRecords,
-          [exerciseHistoryKey(exercise.name)]: { weight, reps },
+          [exerciseHistoryKey(exercise.name)]: { weight, reps, bodyweight },
         },
       }));
     }
@@ -1774,11 +1791,9 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
                 // session it came from (formatWhen returns null for a still-open session, i.e.
                 // `done_at: null`, so that reads as "this session" instead of a bad date).
                 const allTimeBest = history.bestSets[key] || history.bestSets[exercise.name] || null;
+                // Same rule as the server's Best: by volume, body weight included (betterSet).
                 const bestBeaten =
-                  !allTimeBest ||
-                  Number(lastDone.weight_lbs ?? 0) > Number(allTimeBest.weight_lbs ?? 0) ||
-                  (Number(lastDone.weight_lbs ?? 0) === Number(allTimeBest.weight_lbs ?? 0) &&
-                    Number(lastDone.actual_reps ?? 0) > Number(allTimeBest.actual_reps ?? 0));
+                  !allTimeBest || betterSet<LoggedLoad>(allTimeBest, lastDone) === lastDone;
                 const bestLabel = allTimeBest
                   ? setSummaryLabel(kind, bestBeaten ? lastDone : allTimeBest)
                   : bestBeaten

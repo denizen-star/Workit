@@ -46,7 +46,8 @@ function loadHomeBoard(track?: OptInTrack) {
   return promise;
 }
 
-function useHomeBoard(track?: OptInTrack) {
+/** Shared Home board (one fetch per track, cached for the page). */
+export function useHomeBoard(track?: OptInTrack) {
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(
     homeBoardCache.get(track ?? 'all') ?? null
   );

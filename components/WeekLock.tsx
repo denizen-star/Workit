@@ -1,17 +1,17 @@
 'use client';
 
 import { Check } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { HelpTip } from '@/components/HelpSheet';
 import { HOME_WEEK_LOCK_HELP } from '@/lib/helpCopy';
 import { coveredDayNumbers, weekProgress, yourPickCountInWeek } from '@/lib/bonusDay';
-import type { AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 import { optionalCountInWeek, sessionOptionalLbs } from '@/lib/optionals';
 import { athleteRequiredDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { dayPctLabel, dayVolumeStats, weekDoneVolume } from '@/lib/weekLockStats';
 import type { WeekPlan, WorkoutDay } from '@/lib/workoutData';
+import { useHomeBoard } from '@/components/HomeKpiLead';
 
 function shortDayName(name: string) {
   return name.replace(' Body ', ' ');
@@ -53,24 +53,8 @@ export default function WeekLock({
   lockedRecord?: { requiredCount: number; completedCount: number };
 }) {
   const [help, setHelp] = useState<string | null>(null);
-  const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
+  const board = useHomeBoard();
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/athlete-performance?period=15')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data && !data.hidden) {
-          setBoard(data as AthletePerformanceBoard);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setBoard(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   if (!week) return null;
 

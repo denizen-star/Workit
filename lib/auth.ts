@@ -10,7 +10,7 @@ import { clearSessionCookieOptions, verifySessionToken, SESSION_COOKIE } from '@
 import { accountBlockId } from '@/lib/deviceBlock';
 import { createDeviceBlockToken, deviceBlockCookieOptions } from '@/lib/deviceBlockToken';
 import { athleteCallName } from '@/lib/profile';
-import { getHouseholdById, householdIdForUser } from '@/lib/household';
+import { householdForUser } from '@/lib/household';
 
 export type SessionUser = {
   id: number;
@@ -333,8 +333,7 @@ export async function getCurrentUserOrBlocked(): Promise<SessionUser | 'blocked'
     name: null,
   };
   try {
-    const householdId = await householdIdForUser(userId, row.last_household_id ?? null);
-    const resolved = householdId ? await getHouseholdById(householdId) : null;
+    const resolved = await householdForUser(userId, row.last_household_id ?? null);
     if (resolved) house = { id: resolved.id, slug: resolved.slug, name: resolved.name };
   } catch {
     house = { id: null, slug: null, name: null };

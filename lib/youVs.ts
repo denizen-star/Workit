@@ -11,15 +11,13 @@ import {
   type CardioHonorRow,
   type HouseholdScoreboardRow,
   type OptionalHonorRow,
+  ordinalRank,
 } from '@/lib/scoreboardTypes';
 
 export type YouVsMode = 'up' | 'down' | 'house';
 
 export function placeWord(place: number) {
-  if (place === 1) return '1st';
-  if (place === 2) return '2nd';
-  if (place === 3) return '3rd';
-  return `${place}th`;
+  return ordinalRank(place);
 }
 
 export function youVsIndex(rows: HouseholdScoreboardRow[], userId: number) {

@@ -38,6 +38,11 @@ export type SqlWindow = {
   params: unknown[];
 };
 
+/** When a session happened: finished, else started, else created. Every board window keys on this. */
+export function sqlSessionStamp(alias = 'ws'): string {
+  return `COALESCE(${alias}.completed_at, ${alias}.started_at, ${alias}.created_at)`;
+}
+
 /** Bind an Eastern performance window onto a datetime column. */
 export function sqlPeriodWindow(column: string, window: PeriodWindow): SqlWindow {
   if (window.startMs == null && window.endMs == null) return { sql: '', params: [] };

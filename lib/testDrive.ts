@@ -1,4 +1,4 @@
-import { addEasternCalendarDays, easternMidnightUtc, easternWeekday, easternYmd } from '@/lib/analyticsTime';
+import { addEasternCalendarDays, calendarDaysBetween, easternMidnightUtc, easternWeekday, easternYmd } from '@/lib/analyticsTime';
 import { parseDbTime } from '@/lib/optionals';
 import { getWorkoutDay, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { FULL_BODY_PACKS } from '@/lib/yourPick';
@@ -78,12 +78,6 @@ function allottedDayNumbers(weekday: number): number[] {
 function nextMondayYmd(ymd: string): string {
   const weekday = easternWeekday(new Date(`${ymd}T12:00:00-05:00`));
   return addEasternCalendarDays(ymd, ((8 - weekday) % 7) || 7);
-}
-
-function calendarDaysBetween(fromYmd: string, toYmd: string): number {
-  const from = new Date(`${fromYmd}T12:00:00Z`).getTime();
-  const to = new Date(`${toYmd}T12:00:00Z`).getTime();
-  return Math.round((to - from) / 86_400_000);
 }
 
 type SessionLike = {

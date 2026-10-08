@@ -3,7 +3,7 @@ import { sqlSetVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { absCircuit, guidedOptionalCircuit, guidedYogaCircuit } from '@/lib/optionalCircuits';
-import { performancePeriodWindow, sqlPeriodWindow } from '@/lib/performancePeriod';
+import { performancePeriodWindow, sqlPeriodWindow, sqlSessionStamp } from '@/lib/performancePeriod';
 import { type PerformancePeriod } from '@/lib/athletePerformanceTypes';
 import { type CardioHonorRow, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
 import { sqlSetCounts } from '@/lib/skippedSets';
@@ -324,24 +324,6 @@ export function optionalCountInWeek(sessions: SessionOptionalRow[], weekNumber: 
   );
 }
 
-/** Unique program weeks with at least 4 warmups and 4 cooldowns. */
-export function optionalWeekCount(sessions: SessionOptionalRow[]) {
-  const byWeek = new Map<number, { warmups: number; cooldowns: number }>();
-  for (const session of sessions) {
-    const week = Number(session.week_number);
-    if (!week) continue;
-    const current = byWeek.get(week) || { warmups: 0, cooldowns: 0 };
-    if (sessionWarmupDone(session)) current.warmups += 1;
-    if (sessionCooldownDone(session)) current.cooldowns += 1;
-    byWeek.set(week, current);
-  }
-  let count = 0;
-  for (const row of byWeek.values()) {
-    if (row.warmups >= OPTIONAL_WEEK_SLOTS && row.cooldowns >= OPTIONAL_WEEK_SLOTS) count += 1;
-  }
-  return count;
-}
-
 export function kickerLbs(myTotal: number, leaderTotal: number) {
   const gap = Math.max(0, leaderTotal - myTotal);
   return Math.round(gap * OPTIONAL_KICKER_RATE);
@@ -468,7 +450,7 @@ async function sevenDayIronByUser() {
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE ws.is_completed = 1
        AND ${SQL_EXCLUDE_TEST_USER}
-       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}
+       AND ${sqlSessionStamp('ws')} >= ${SEVEN_DAY_SQL}
      GROUP BY ws.user_id`
   );
   const map = new Map<number, number>();
@@ -487,7 +469,7 @@ async function sevenDayOptionalByUser() {
        AND (
          ws.warmup_completed_at >= ${SEVEN_DAY_SQL}
          OR ws.cooldown_completed_at >= ${SEVEN_DAY_SQL}
-         OR COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}
+         OR ${sqlSessionStamp('ws')} >= ${SEVEN_DAY_SQL}
        )
      GROUP BY ws.user_id`
   );
@@ -505,7 +487,7 @@ async function userSevenDayVolume(userId: number) {
      LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
      WHERE ws.user_id = ?
        AND ws.is_completed = 1
-       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}`,
+       AND ${sqlSessionStamp('ws')} >= ${SEVEN_DAY_SQL}`,
     [userId]
   );
   const optional = await query(
@@ -515,7 +497,7 @@ async function userSevenDayVolume(userId: number) {
        AND (
          ws.warmup_completed_at >= ${SEVEN_DAY_SQL}
          OR ws.cooldown_completed_at >= ${SEVEN_DAY_SQL}
-         OR COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= ${SEVEN_DAY_SQL}
+         OR ${sqlSessionStamp('ws')} >= ${SEVEN_DAY_SQL}
        )`,
     [userId]
   );

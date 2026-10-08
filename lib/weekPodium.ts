@@ -13,6 +13,7 @@ import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
 import { workoutDateKey } from '@/lib/statsHousehold';
 import { sqlSetCounts } from '@/lib/skippedSets';
+import { sqlSessionStamp } from '@/lib/performancePeriod';
 
 export const WEEK_PODIUM_BACKFILL = 2;
 
@@ -82,12 +83,8 @@ export function formatWeekMonday(monday: string) {
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-function sessionStampSql(alias = 'ws') {
-  return `COALESCE(${alias}.completed_at, ${alias}.started_at, ${alias}.created_at)`;
-}
-
 function windowSql(alias: string) {
-  return ` AND ${sessionStampSql(alias)} >= ? AND ${sessionStampSql(alias)} < ?`;
+  return ` AND ${sqlSessionStamp(alias)} >= ? AND ${sqlSessionStamp(alias)} < ?`;
 }
 
 export async function rankClosedWeek(monday: string): Promise<WeekPodiumRow[]> {
@@ -155,70 +152,46 @@ function isMissingPodiumTable(error: unknown) {
   return /week_podium/i.test(message) && /exist|unknown table/i.test(message);
 }
 
-async function weekHasRows(monday: string) {
-  const existing = await query('SELECT id FROM week_podium WHERE week_monday = ? LIMIT 1', [monday]);
-  return existing.rows.length > 0;
+/** Closed weeks already on file. Once a closed week has rows it never changes, so
+ * this process can stop asking. */
+const filledMondays = new Set<string>();
+
+async function mondaysWithRows(mondays: string[]): Promise<Set<string>> {
+  if (mondays.length === 0) return new Set();
+  const existing = await query(
+    `SELECT DISTINCT week_monday FROM week_podium WHERE week_monday IN (${mondays.map(() => '?').join(', ')})`,
+    mondays
+  );
+  return new Set((existing.rows as { week_monday: unknown }[]).map((row) => workoutDateKey(row.week_monday)));
 }
 
 async function insertPodium(rows: WeekPodiumRow[]) {
-  for (const row of rows) {
-    await query(
-      `INSERT IGNORE INTO week_podium (week_monday, place, user_id, workouts, volume)
-       VALUES (?, ?, ?, ?, ?)`,
-      [row.weekMonday, row.place, row.userId, row.workouts, row.volume]
-    );
-  }
+  if (rows.length === 0) return;
+  await query(
+    `INSERT IGNORE INTO week_podium (week_monday, place, user_id, workouts, volume)
+     VALUES ${rows.map(() => '(?, ?, ?, ?, ?)').join(', ')}`,
+    rows.flatMap((row) => [row.weekMonday, row.place, row.userId, row.workouts, row.volume])
+  );
 }
 
 /** Persist 1/2/3 for any closed week that has no rows yet. First call fills the last two closed Sundays. */
 export async function ensureClosedWeekPodiums(now = new Date()): Promise<void> {
   try {
-    for (const monday of closedMondayKeys(WEEK_PODIUM_BACKFILL, now)) {
-      if (await weekHasRows(monday)) continue;
-      const ranked = await rankClosedWeek(monday);
-      if (ranked.length === 0) continue;
-      await insertPodium(ranked);
+    const mondays = closedMondayKeys(WEEK_PODIUM_BACKFILL, now).filter((monday) => !filledMondays.has(monday));
+    if (mondays.length === 0) return;
+    const filled = await mondaysWithRows(mondays);
+    for (const monday of filled) filledMondays.add(monday);
+    const missing = mondays.filter((monday) => !filled.has(monday));
+    const ranked = await Promise.all(missing.map((monday) => rankClosedWeek(monday)));
+    await insertPodium(ranked.flat());
+    for (const [index, monday] of missing.entries()) {
+      if (ranked[index].length > 0) filledMondays.add(monday);
     }
   } catch (error) {
     if (isMissingPodiumTable(error)) {
       console.warn('[week-podium] table missing; apply database/migrate-week-podium.sql');
       return;
     }
-    throw error;
-  }
-}
-
-function asPodiumRow(row: {
-  week_monday: unknown;
-  place: number;
-  user_id: number;
-  name?: string;
-  workouts: number;
-  volume: number;
-}): WeekPodiumRow {
-  return {
-    weekMonday: workoutDateKey(row.week_monday),
-    place: (Number(row.place) as WeekPlace) || 1,
-    userId: Number(row.user_id),
-    name: row.name || '',
-    workouts: Number(row.workouts || 0),
-    volume: Number(row.volume || 0),
-  };
-}
-
-export async function loadWeekPodium(monday: string): Promise<WeekPodiumRow[]> {
-  try {
-    const result = await query(
-      `SELECT wp.week_monday, wp.place, wp.user_id, u.name, wp.workouts, wp.volume
-       FROM week_podium wp
-       INNER JOIN users u ON u.id = wp.user_id
-       WHERE wp.week_monday = ?
-       ORDER BY wp.place ASC`,
-      [monday]
-    );
-    return (result.rows as Parameters<typeof asPodiumRow>[0][]).map(asPodiumRow);
-  } catch (error) {
-    if (isMissingPodiumTable(error)) return [];
     throw error;
   }
 }

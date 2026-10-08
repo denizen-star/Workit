@@ -7,8 +7,11 @@ import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalOnlyVolume } from '@/lib/optionals';
 import { effortFromVolume } from '@/lib/hardness';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
-import { firstName, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+import { firstName, ordinalRank, type ScoreboardPeriod } from '@/lib/scoreboardTypes';
+
+export { ordinalRank };
 import { sqlSetCounts } from '@/lib/skippedSets';
+import { sqlSessionStamp } from '@/lib/performancePeriod';
 
 export type CompareMetric = 'weight' | 'reps';
 
@@ -81,7 +84,7 @@ type SessionDay = {
 };
 
 function windowFilter(window: ExerciseCompareWindow): { sql: string; params: unknown[] } {
-  const col = 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)';
+  const col = sqlSessionStamp('ws');
   if (window.kind === 'scoreboard') {
     if (window.period === 'all') return { sql: '', params: [] };
     const days = window.period === '30' ? 30 : 7;
@@ -162,7 +165,7 @@ async function loadSessionDays(window: ExerciseCompareWindow): Promise<{
          u.id as user_id,
          u.name as user_name,
          ws.id as session_id,
-         COALESCE(ws.completed_at, ws.started_at, ws.created_at) as session_at,
+         ${sqlSessionStamp('ws')} as session_at,
          es.exercise_name,
          es.target_reps,
          es.weight_lbs,
@@ -535,28 +538,11 @@ function trioLines(label: string, athleteName: string, trio: ExerciseCompareTrio
   return lines;
 }
 
-export function ordinalRank(rank: number) {
-  const teens = rank % 100;
-  if (teens >= 11 && teens <= 13) return `${rank}th`;
-  const ones = rank % 10;
-  if (ones === 1) return `${rank}st`;
-  if (ones === 2) return `${rank}nd`;
-  if (ones === 3) return `${rank}rd`;
-  return `${rank}th`;
-}
-
-export function formatK(value: number) {
-  const amount = Math.round(value);
-  if (Math.abs(amount) < 1000) return String(amount);
-  const k = amount / 1000;
-  const rounded = Math.round(k * 10) / 10;
-  return `${Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1)}k`;
-}
 
 function pairLine(entry: WeightRank, effort = false) {
   const best = effort ? entry.effortBestDay : entry.bestDay;
   const total = effort ? entry.effortTotalWeight : entry.totalWeight;
-  return `Best day ${formatK(best)} · Total weight ${formatK(total)}`;
+  return `Best day ${formatCompact(best)} · Total weight ${formatCompact(total)}`;
 }
 
 export function rankingSummary(ranking: WeightRank[]): string[] {

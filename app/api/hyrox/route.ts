@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { hyroxEligible } from '@/lib/hyroxEligibility';
+import { programUnlocked } from '@/lib/programUnlock';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
 import { hyroxWeeksElapsed, resumeNormalWeek, type HyroxStateRow } from '@/lib/hyroxState';
 import { findNextProgramDay, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
@@ -44,21 +44,20 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const allSessions = await loadSessions(user.id);
-  const mainSessions = allSessions.filter((row) => (row.program_track || 'main') === 'main');
-
-  const stateResult = await query('SELECT * FROM hyrox_state WHERE user_id = ?', [user.id]);
+  // Independent reads, one batch.
+  const [allSessions, stateResult, milestonesResult, diplomasResult, lockedWeeks, bannerSeenDue] = await Promise.all([
+    loadSessions(user.id),
+    query('SELECT * FROM hyrox_state WHERE user_id = ?', [user.id]),
+    query(
+      'SELECT milestone_number, result, decided_at FROM hyrox_milestones WHERE user_id = ? ORDER BY decided_at DESC',
+      [user.id]
+    ),
+    query('SELECT tier, earned_at FROM hyrox_diplomas WHERE user_id = ? ORDER BY tier ASC', [user.id]),
+    lockedMainWeekCount(user.id),
+    programBannerDue(user.id, 'banner_hyrox'),
+  ]);
   const state = (stateResult.rows[0] as HyroxStateRow | undefined) || null;
   const hyroxSessions = hyroxSessionsThisRun(allSessions, state?.started_at);
-
-  const milestonesResult = await query(
-    'SELECT milestone_number, result, decided_at FROM hyrox_milestones WHERE user_id = ? ORDER BY decided_at DESC',
-    [user.id]
-  );
-  const diplomasResult = await query(
-    'SELECT tier, earned_at FROM hyrox_diplomas WHERE user_id = ? ORDER BY tier ASC',
-    [user.id]
-  );
 
   const active = Boolean(state?.active);
   const next = active ? findNextProgramDay(hyroxSessions as WorkoutSessionRow[], hyroxProgram) : null;
@@ -67,15 +66,14 @@ export async function GET() {
   // normal 48-week program should resume at (see POST action=drop).
   const resumeFloor = state && !active ? Number(state.normal_week_at_start) : 1;
 
-  const lockedWeeks = await lockedMainWeekCount(user.id);
-  const eligible = hyroxEligible(lockedWeeks);
+  const eligible = programUnlocked(lockedWeeks);
 
   return NextResponse.json({
     eligible,
     active,
     // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
     lockedWeeks,
-    bannerDue: eligible && !active ? await programBannerDue(user.id, 'banner_hyrox') : false,
+    bannerDue: eligible && !active && bannerSeenDue,
     resumeFloor,
     state: state
       ? {
@@ -124,7 +122,7 @@ export async function POST(request: NextRequest) {
 
     const allSessions = await loadSessions(user.id);
     const mainSessions = allSessions.filter((row) => (row.program_track || 'main') === 'main');
-    if (!hyroxEligible(await lockedMainWeekCount(user.id))) {
+    if (!programUnlocked(await lockedMainWeekCount(user.id))) {
       return NextResponse.json({ error: 'Not eligible yet' }, { status: 403 });
     }
 

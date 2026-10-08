@@ -2,6 +2,7 @@ import { bonusTypeSql, isBonusWeek } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { YOUR_PICK_DAY_BASE, YOUR_PICK_TYPES } from '@/lib/yourPick';
+import { sqlSessionCountsForWeek } from '@/lib/skippedSets';
 
 /** SQL: this session is a Your pick (typed, or on a Your pick day number). */
 export function sqlIsYourPick(alias = 'ws'): string {
@@ -23,7 +24,7 @@ export async function bonusWeeksByUser(where = '', params: unknown[] = []): Prom
             SUM(CASE WHEN ${bonusTypeSql('ws')} THEN 1 ELSE 0 END) AS legacy_bonus
      FROM workout_sessions ws
      INNER JOIN users u ON u.id = ws.user_id
-     WHERE ws.is_completed = 1 AND ws.program_track = 'main' ${where}
+     WHERE ws.is_completed = 1 AND ${sqlSessionCountsForWeek('ws')} AND ws.program_track = 'main' ${where}
      GROUP BY ws.user_id, u.schedule_days_per_week, ws.week_number`,
     params
   );

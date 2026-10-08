@@ -1,5 +1,7 @@
 import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
-import { coveredDayNumbers, requiredDays, weekLocked } from "@/lib/bonusDay";
+import { coveredDayNumbers, isSessionComplete, requiredDays, weekLocked } from "@/lib/bonusDay";
+
+export { isSessionComplete };
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 import { resolveSessionDay } from "@/lib/resolveDay";
 
@@ -29,10 +31,6 @@ export interface WorkoutSessionRow {
   swap_for_day?: number | null;
   credit_lbs?: number | null;
   session_hardness?: number | null;
-}
-
-export function isSessionComplete(session: { is_completed: unknown }): boolean {
-  return Boolean(Number(session.is_completed));
 }
 
 export function findIncompleteSession(

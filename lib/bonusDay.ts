@@ -17,14 +17,14 @@ type SessionLike = {
   created_at?: string | null;
 };
 
-function isComplete(session: { is_completed?: unknown }): boolean {
+export function isSessionComplete(session: { is_completed?: unknown }): boolean {
   return Boolean(Number(session.is_completed));
 }
 
 /** Finished and counts toward its week: a skipped-heavy session (half or more of its
  * sets skipped, docs/plans/PLAN_SKIPPED_SETS.md) stays in the log but never does. */
 export function countsForWeek(session: { is_completed?: unknown; skipped_heavy?: unknown }): boolean {
-  return isComplete(session) && !Number(session.skipped_heavy ?? 0);
+  return isSessionComplete(session) && !Number(session.skipped_heavy ?? 0);
 }
 
 /** Four finished sessions lock a week. Any session counts: program days, Your picks,
@@ -38,10 +38,6 @@ export function isBonusDay(day: Pick<WorkoutDay, 'bonus' | 'name'>): boolean {
 
 export function isBonusWorkoutType(workoutType: string | null | undefined): boolean {
   return /\bbonus\b/i.test(String(workoutType || ''));
-}
-
-export function weekHasBonus(week: WeekPlan | null | undefined): boolean {
-  return Boolean(week?.days.some((day) => isBonusDay(day)));
 }
 
 export function requiredDays(week: WeekPlan): WorkoutDay[] {
@@ -250,38 +246,6 @@ export function weekProgress(
     requiredTotal: required.length,
     bonusDone: weekBonusDone(sessions, week.weekNumber, required.length, program),
   };
-}
-
-export function lastCompletedSession(sessions: SessionLike[]): SessionLike | null {
-  return (
-    [...sessions]
-      .filter(isComplete)
-      .sort((a, b) => {
-        const aTime = new Date(a.completed_at || a.ended_at || a.started_at || a.created_at || 0).getTime();
-        const bTime = new Date(b.completed_at || b.ended_at || b.started_at || b.created_at || 0).getTime();
-        return bTime - aTime;
-      })[0] ?? null
-  );
-}
-
-export function isUpperSession(
-  session: Pick<SessionLike, 'week_number' | 'day_number' | 'workout_type'>,
-  program: WeekPlan[] = workoutProgram
-): boolean {
-  if (sessionIsBonus(session, program)) return true;
-  if (/\bupper\b/i.test(String(session.workout_type || ''))) return true;
-  const day = getWorkoutDay(Number(session.week_number), Number(session.day_number));
-  return Boolean(day && /\bupper\b/i.test(day.name));
-}
-
-/** Last finished session was an upper (A, B, or Bonus). Lower the next day is fine. */
-export function shouldRestBetweenUppers(sessions: SessionLike[]): boolean {
-  const last = lastCompletedSession(sessions);
-  return Boolean(last && isUpperSession(last));
-}
-
-export function restBetweenUppersCopy(): string {
-  return 'Leave a day between upper sessions. Lower the next day is fine.';
 }
 
 export function weekProgressLabel(progress: {

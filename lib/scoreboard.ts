@@ -9,6 +9,7 @@ import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalOnlyVolume, sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
 import {
   performancePeriodWindow,
+  sqlSessionStamp,
   priorPeriodWindow,
   sqlPeriodWindow,
   type SqlWindow,
@@ -161,39 +162,84 @@ async function householdScoreboardFiltered(
   optionalWindow = withoutTestDrive(optionalWindow, 'optws');
   priorSessionWindow = priorSessionWindow && withoutTestDrive(priorSessionWindow, 'ws');
   const house = sqlInHousehold('u.id', householdId);
-  const result = await query(
-    `SELECT
-       u.id,
-       u.name,
-       u.display_name,
-       u.schedule_days_per_week,
-       COUNT(DISTINCT ws.id) as workouts,
-       COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
-         'u.id',
-         `AND optws.is_completed = 1${optionalWindow.sql}`
-       )} as volume,
-       COALESCE(SUM(${sqlSetVolume('es')}), 0) as raw_volume,
-       COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as effort_sets,
-       COUNT(CASE WHEN ${sqlSetCounts('es')} THEN es.id END) as sets,
-       COALESCE(MAX(es.weight_lbs), 0) as heaviest,
-       COALESCE(SUM(es.weight_lbs), 0) as weight_sum,
-       COALESCE(SUM(es.actual_reps), 0) as reps_sum,
-       AVG(CASE WHEN es.hardness IS NOT NULL THEN es.hardness END) as perception,
-       COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume(
-         'u.id',
-         `AND optws.is_completed = 1${optionalWindow.sql}`
-       )} as effort_volume,
-       AVG(CASE WHEN ws.started_at IS NOT NULL AND ws.ended_at IS NOT NULL
-         THEN TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) END) as avg_seconds
-     FROM users u
-     INNER JOIN workout_sessions ws
-       ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
-     LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
-     WHERE 1=1 ${house.sql}
-     GROUP BY u.id, u.name, u.display_name, u.schedule_days_per_week
-     HAVING COUNT(DISTINCT ws.id) > 0`,
-    [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params, ...house.params]
-  );
+  const houseByWs = sqlInHousehold('ws.user_id', householdId);
+  // Every read below is independent of the others, so they go out in one batch.
+  const [result, prior, lockedByUser, lastByUser, best, badges] = await Promise.all([
+    query(
+      `SELECT
+         u.id,
+         u.name,
+         u.display_name,
+         u.schedule_days_per_week,
+         COUNT(DISTINCT ws.id) as workouts,
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlUserOptionalVolume(
+           'u.id',
+           `AND optws.is_completed = 1${optionalWindow.sql}`
+         )} as volume,
+         COALESCE(SUM(${sqlSetVolume('es')}), 0) as raw_volume,
+         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as effort_sets,
+         COUNT(CASE WHEN ${sqlSetCounts('es')} THEN es.id END) as sets,
+         COALESCE(MAX(es.weight_lbs), 0) as heaviest,
+         COALESCE(SUM(es.weight_lbs), 0) as weight_sum,
+         COALESCE(SUM(es.actual_reps), 0) as reps_sum,
+         AVG(CASE WHEN es.hardness IS NOT NULL THEN es.hardness END) as perception,
+         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlUserOptionalVolume(
+           'u.id',
+           `AND optws.is_completed = 1${optionalWindow.sql}`
+         )} as effort_volume,
+         AVG(CASE WHEN ws.started_at IS NOT NULL AND ws.ended_at IS NOT NULL
+           THEN TIMESTAMPDIFF(SECOND, ws.started_at, ws.ended_at) END) as avg_seconds
+       FROM users u
+       INNER JOIN workout_sessions ws
+         ON ws.user_id = u.id AND ws.is_completed = 1 ${sessionWindow.sql}
+       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
+       WHERE 1=1 ${house.sql}
+       GROUP BY u.id, u.name, u.display_name, u.schedule_days_per_week
+       HAVING COUNT(DISTINCT ws.id) > 0`,
+      [...optionalWindow.params, ...optionalWindow.params, ...sessionWindow.params, ...house.params]
+    ),
+    priorSessionWindow
+      ? query(
+          `SELECT
+             u.id,
+             COALESCE(SUM(es.weight_lbs), 0) as prior_weight_sum,
+             COALESCE(SUM(es.actual_reps), 0) as prior_reps_sum,
+             COALESCE(SUM(${sqlSetVolume('es')}), 0) as prior_raw_volume,
+             COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as prior_effort_sets
+           FROM users u
+           INNER JOIN workout_sessions ws
+             ON ws.user_id = u.id AND ws.is_completed = 1 ${priorSessionWindow.sql}
+           LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
+           WHERE 1=1 ${house.sql}
+           GROUP BY u.id`,
+          [...priorSessionWindow.params, ...house.params]
+        )
+      : Promise.resolve(null),
+    lockedWeeksByUserFromTable(),
+    lastWorkoutByUser(),
+    query(
+      `SELECT user_id, MAX(session_volume) as best_session, MAX(session_effort) as best_effort
+       FROM (
+         SELECT
+           ws.user_id,
+           COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume,
+           COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_effort
+         FROM workout_sessions ws
+         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
+         WHERE ws.is_completed = 1 ${sessionWindow.sql}${houseByWs.sql}
+         GROUP BY ws.user_id, ws.id
+       ) session_totals
+       GROUP BY user_id`,
+      [...sessionWindow.params, ...houseByWs.params]
+    ),
+    query(
+      `SELECT user_id, COUNT(*) as badges
+       FROM user_badges ub
+       WHERE 1=1 ${badgeWindow.sql}
+       GROUP BY user_id`,
+      [...badgeWindow.params]
+    ),
+  ]);
 
   const rows = result.rows as {
     id: number;
@@ -219,77 +265,20 @@ async function householdScoreboardFiltered(
     number,
     { prior_weight_sum: number; prior_reps_sum: number; prior_raw_volume: number; prior_effort_sets: number }
   >();
-  if (priorSessionWindow) {
-    const prior = await query(
-      `SELECT
-         u.id,
-         COALESCE(SUM(es.weight_lbs), 0) as prior_weight_sum,
-         COALESCE(SUM(es.actual_reps), 0) as prior_reps_sum,
-         COALESCE(SUM(${sqlSetVolume('es')}), 0) as prior_raw_volume,
-         COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) as prior_effort_sets
-       FROM users u
-       INNER JOIN workout_sessions ws
-         ON ws.user_id = u.id AND ws.is_completed = 1 ${priorSessionWindow.sql}
-       LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
-       WHERE 1=1 ${house.sql}
-       GROUP BY u.id`,
-      [...priorSessionWindow.params, ...house.params]
-    );
-    for (const row of prior.rows as {
-      id: number;
-      prior_weight_sum: number;
-      prior_reps_sum: number;
-      prior_raw_volume: number;
-      prior_effort_sets: number;
-    }[]) {
-      priorByUser.set(Number(row.id), {
-        prior_weight_sum: Number(row.prior_weight_sum || 0),
-        prior_reps_sum: Number(row.prior_reps_sum || 0),
-        prior_raw_volume: Number(row.prior_raw_volume || 0),
-        prior_effort_sets: Number(row.prior_effort_sets || 0),
-      });
-    }
+  for (const row of (prior?.rows ?? []) as {
+    id: number;
+    prior_weight_sum: number;
+    prior_reps_sum: number;
+    prior_raw_volume: number;
+    prior_effort_sets: number;
+  }[]) {
+    priorByUser.set(Number(row.id), {
+      prior_weight_sum: Number(row.prior_weight_sum || 0),
+      prior_reps_sum: Number(row.prior_reps_sum || 0),
+      prior_raw_volume: Number(row.prior_raw_volume || 0),
+      prior_effort_sets: Number(row.prior_effort_sets || 0),
+    });
   }
-
-  const [lockedByUser, lastByUser, best, effortBest, badges] = await Promise.all([
-    lockedWeeksByUserFromTable(),
-    lastWorkoutByUser(),
-    query(
-      `SELECT user_id, MAX(session_volume) as best_session
-       FROM (
-         SELECT
-           ws.user_id,
-           COALESCE(SUM(${sqlSetVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
-         FROM workout_sessions ws
-         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
-         WHERE ws.is_completed = 1 ${sessionWindow.sql}
-         GROUP BY ws.user_id, ws.id
-       ) session_totals
-       GROUP BY user_id`,
-      [...sessionWindow.params]
-    ),
-    query(
-      `SELECT user_id, MAX(session_volume) as best_session
-       FROM (
-         SELECT
-           ws.user_id,
-           COALESCE(SUM(${sqlSetEffortVolume('es')}), 0) + ${sqlSessionOptionalOnlyVolume('ws')} as session_volume
-         FROM workout_sessions ws
-         LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
-         WHERE ws.is_completed = 1 ${sessionWindow.sql}
-         GROUP BY ws.user_id, ws.id
-       ) session_totals
-       GROUP BY user_id`,
-      [...sessionWindow.params]
-    ),
-    query(
-      `SELECT user_id, COUNT(*) as badges
-       FROM user_badges ub
-       WHERE 1=1 ${badgeWindow.sql}
-       GROUP BY user_id`,
-      [...badgeWindow.params]
-    ),
-  ]);
 
   const bestByUser = new Map<number, number>();
   for (const row of best.rows as { user_id: number; best_session: number }[]) {
@@ -297,8 +286,8 @@ async function householdScoreboardFiltered(
   }
 
   const effortBestByUser = new Map<number, number>();
-  for (const row of effortBest.rows as { user_id: number; best_session: number }[]) {
-    effortBestByUser.set(Number(row.user_id), Number(row.best_session || 0));
+  for (const row of best.rows as { user_id: number; best_effort: number }[]) {
+    effortBestByUser.set(Number(row.user_id), Number(row.best_effort || 0));
   }
 
   const badgesByUser = new Map<number, number>();
@@ -341,10 +330,10 @@ export async function householdScoreboard(
   householdId?: number | null
 ): Promise<HouseholdScoreboardRow[]> {
   return householdScoreboardFiltered(
-    periodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
-    periodFilter(period, 'COALESCE(optws.completed_at, optws.started_at, optws.created_at)'),
+    periodFilter(period, sqlSessionStamp('ws')),
+    periodFilter(period, sqlSessionStamp('optws')),
     periodFilter(period, 'ub.earned_at'),
-    priorPeriodFilter(period, 'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'),
+    priorPeriodFilter(period, sqlSessionStamp('ws')),
     householdId,
     scoreboardWindowDays(period)
   );
@@ -357,10 +346,10 @@ export async function householdScoreboardForPerformance(
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
   const prior = priorPeriodWindow(window);
   return householdScoreboardFiltered(
-    sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', window),
-    sqlPeriodWindow('COALESCE(optws.completed_at, optws.started_at, optws.created_at)', window),
+    sqlPeriodWindow(sqlSessionStamp('ws'), window),
+    sqlPeriodWindow(sqlSessionStamp('optws'), window),
     sqlPeriodWindow('ub.earned_at', window),
-    prior ? sqlPeriodWindow('COALESCE(ws.completed_at, ws.started_at, ws.created_at)', prior) : null,
+    prior ? sqlPeriodWindow(sqlSessionStamp('ws'), prior) : null,
     householdId,
     performanceWindowDays(normalizePerformancePeriod(period))
   );
@@ -444,7 +433,7 @@ export async function householdBonusHonor(
 ): Promise<BonusHonorRow[]> {
   const sessionWindow = periodFilter(
     period,
-    'COALESCE(ws.completed_at, ws.started_at, ws.created_at)'
+    sqlSessionStamp('ws')
   );
   const house = sqlInHousehold('u.id', householdId);
   // Past bonus weeks + weeks a Your pick went past the athlete's required count.

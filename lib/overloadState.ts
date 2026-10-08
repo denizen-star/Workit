@@ -9,7 +9,7 @@
 import { query } from '@/lib/db';
 import { lockedMainWeekCount } from '@/lib/lockedWeeks';
 import { programUnlocked } from '@/lib/programUnlock';
-import { addEasternCalendarDays, easternMondayKey, easternWeekday, easternYmd } from '@/lib/analyticsTime';
+import { addEasternCalendarDays, calendarDaysBetween, easternMondayKey, easternWeekday, easternYmd } from '@/lib/analyticsTime';
 import {
   OVERLOAD_WEEKS,
   isOverloadWeek,
@@ -76,9 +76,7 @@ export function overloadCalendarWeek(state: Pick<OverloadStateRow, 'starts_on'>,
 export function daysUntilStart(state: Pick<OverloadStateRow, 'starts_on'>, now = new Date()): number {
   const today = todayEasternYmd(now);
   if (today >= state.starts_on) return 0;
-  const from = new Date(`${today}T12:00:00Z`).getTime();
-  const to = new Date(`${state.starts_on}T12:00:00Z`).getTime();
-  return Math.round((to - from) / 86_400_000);
+  return calendarDaysBetween(today, state.starts_on);
 }
 
 /** Server check for POST /api/sessions on an Overload week: the athlete must be in a

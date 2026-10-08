@@ -28,12 +28,14 @@ async function assertSessionOwnership(sessionId: number, userId: number) {
  * re-save or a later weigh-in never re-prices history. Unlisted movements stay NULL.
  * Returns the credit now on the row (null = none).
  */
-async function stampBodyweightCredit(setId: number, bodyWeightLb: number | null): Promise<number | null> {
-  const result = await query('SELECT exercise_name, bodyweight_lb FROM exercise_sets WHERE id = ? LIMIT 1', [setId]);
-  const row = result.rows[0] as { exercise_name?: string; bodyweight_lb?: unknown } | undefined;
-  if (!row) return null;
-  if (row.bodyweight_lb != null) return Number(row.bodyweight_lb);
-  const credit = bodyweightCreditLb(row.exercise_name, bodyWeightLb);
+async function stampBodyweightCredit(
+  setId: number,
+  exerciseName: string | undefined,
+  existingCredit: unknown,
+  bodyWeightLb: number | null
+): Promise<number | null> {
+  if (existingCredit != null) return Number(existingCredit);
+  const credit = bodyweightCreditLb(exerciseName, bodyWeightLb);
   if (credit <= 0) return null;
   await query('UPDATE exercise_sets SET bodyweight_lb = ? WHERE id = ?', [credit, setId]);
   return credit;
@@ -103,22 +105,21 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, setId: hardnessRow.id, hardness });
     }
 
-    const owned = await assertSessionOwnership(Number(workoutSessionId), user.id);
-    if (!owned) {
-      return NextResponse.json({ error: 'Session not found' }, { status: 404 });
-    }
-
     let setId = id ?? null;
     // The row as it stood before this save — tells a first completion (judged for a
     // skip) apart from an Editing re-save of an already-completed set (lib/skippedSets.ts).
-    let before: { is_completed?: unknown; is_skipped?: unknown } | undefined;
+    let before:
+      | { is_completed?: unknown; is_skipped?: unknown; exercise_name?: string; bodyweight_lb?: unknown }
+      | undefined;
 
     if (setId) {
+      // Owned by this athlete and inside the session the body names, so the set check
+      // doubles as the session ownership check.
       const setCheck = await query(
-        `SELECT es.id, es.is_completed, es.is_skipped FROM exercise_sets es
+        `SELECT es.id, es.is_completed, es.is_skipped, es.exercise_name, es.bodyweight_lb FROM exercise_sets es
          JOIN workout_sessions ws ON ws.id = es.workout_session_id
-         WHERE es.id = ? AND ws.user_id = ?`,
-        [setId, user.id]
+         WHERE es.id = ? AND ws.user_id = ? AND ws.id = ?`,
+        [setId, user.id, workoutSessionId]
       );
       if (setCheck.rows.length === 0) {
         return NextResponse.json({ error: 'Set not found' }, { status: 404 });
@@ -133,8 +134,12 @@ export async function POST(request: NextRequest) {
         [actualReps, weightLbs, isCompleted, notes, targetReps, exerciseName || null, hardness, setId]
       );
     } else {
+      const owned = await assertSessionOwnership(Number(workoutSessionId), user.id);
+      if (!owned) {
+        return NextResponse.json({ error: 'Session not found' }, { status: 404 });
+      }
       const existing = await query(
-        `SELECT id, is_completed, is_skipped FROM exercise_sets
+        `SELECT id, is_completed, is_skipped, exercise_name, bodyweight_lb FROM exercise_sets
          WHERE workout_session_id = ? AND exercise_name = ? AND set_number = ?
          LIMIT 1`,
         [workoutSessionId, exerciseName, setNumber]
@@ -173,7 +178,14 @@ export async function POST(request: NextRequest) {
     }
 
     const bodyweightLb =
-      isCompleted && setId ? await stampBodyweightCredit(Number(setId), user.bodyWeightLb) : null;
+      isCompleted && setId
+        ? await stampBodyweightCredit(
+            Number(setId),
+            exerciseName || before?.exercise_name,
+            before?.bodyweight_lb,
+            user.bodyWeightLb
+          )
+        : null;
 
     await updateDailyStats(workoutSessionId, user.id);
 
@@ -267,7 +279,7 @@ export async function GET(request: NextRequest) {
       // ever logged, not two independently-tracked maxes. Drives the live "NEW PR" flash
       // threshold in components/ExerciseTracker.tsx. Same underlying rule as `bestSets` below;
       // kept as its own field since the two serve different UI moments (flash vs. KPI tile).
-      const personalRecords: Record<string, { weight: number; reps: number }> = {};
+      const personalRecords: Record<string, { weight: number; reps: number; bodyweight?: number }> = {};
       // Best single set ever logged for this exercise (weight × reps, betterSet's tie-break).
       // This is the true all-time record the "Best" KPI tile shows, at any set position (not just
       // the same slot from the last session) — set_number/done_at let the client caption which
@@ -366,7 +378,11 @@ export async function GET(request: NextRequest) {
       // threshold vs. the "Best" KPI tile). Deriving it here instead of tracking it in
       // parallel above keeps the two from ever drifting out of sync.
       for (const [name, best] of Object.entries(bestSets)) {
-        personalRecords[name] = { weight: best.weight_lbs ?? 0, reps: best.actual_reps ?? 0 };
+        personalRecords[name] = {
+          weight: best.weight_lbs ?? 0,
+          reps: best.actual_reps ?? 0,
+          bodyweight: Number(best.bodyweight_lb ?? 0) || 0,
+        };
       }
 
       for (const row of result.rows as any[]) {

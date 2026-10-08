@@ -1,12 +1,12 @@
 import { query } from '@/lib/db';
-import { easternMondayKey } from '@/lib/analyticsTime';
 import { lockedWeekStreak } from '@/lib/bonusDay';
 import { sqlSetEffortVolume } from '@/lib/exerciseKind';
 import { sqlInHousehold } from '@/lib/household';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlSessionOptionalVolume, sqlUserOptionalVolume } from '@/lib/optionals';
-import { sqlSetCounts } from '@/lib/skippedSets';
+import { sqlSessionCountsForWeek, sqlSetCounts } from '@/lib/skippedSets';
+import { sqlSessionStamp } from '@/lib/performancePeriod';
 
 export type HouseholdHomeStats = {
   workoutsCompleted: number;
@@ -39,18 +39,6 @@ export function workoutDateKey(value: unknown): string {
   return String(value || '').slice(0, 10);
 }
 
-export function thisWeekWeight(
-  daily: { workout_date: string; total_weight_lifted: number | string }[] | undefined,
-  now: Date = new Date()
-) {
-  const monday = easternMondayKey(now);
-  return (daily || []).reduce((sum, row) => {
-    const key = workoutDateKey(row.workout_date);
-    if (!key || key < monday) return sum;
-    return sum + (parseFloat(String(row.total_weight_lifted)) || 0);
-  }, 0);
-}
-
 function placeholders(ids: number[]) {
   return {
     sql: ids.map(() => '?').join(', '),
@@ -71,7 +59,7 @@ export async function householdHomeStats(
      INNER JOIN users u ON u.id = ws.user_id
      WHERE ws.is_completed = 1
        AND ${SQL_EXCLUDE_TEST_USER}
-       AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)
+       AND ${sqlSessionStamp('ws')} >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)
        ${notTestDrive} ${house.sql}`,
     house.params
   );
@@ -135,7 +123,7 @@ export async function householdHomeStats(
       params
     ),
     query(
-      `SELECT user_id, week_number, COUNT(CASE WHEN is_completed THEN 1 END) as completed_days
+      `SELECT user_id, week_number, COUNT(CASE WHEN is_completed AND ${sqlSessionCountsForWeek()} THEN 1 END) as completed_days
        FROM workout_sessions
        WHERE user_id IN (${sql})
        GROUP BY user_id, week_number`,

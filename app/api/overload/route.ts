@@ -58,11 +58,16 @@ export async function GET() {
   const active = Boolean(state?.active);
   const running = overloadRunning(state);
   const run = Number(state?.run_number || 0);
-  const sessions = running ? await runSessions(user.id, run) : [];
+  // Diplomas are awarded above, so these reads come after it — but not after each other.
+  const [sessions, diplomas, lockedWeeks, bannerSeenDue, resumeFloor] = await Promise.all([
+    running ? runSessions(user.id, run) : [],
+    loadOverloadDiplomas(user.id),
+    // Same count `overloadEligible` reads — fetched once here so the menu can show "N of 6".
+    lockedMainWeekCount(user.id),
+    active ? false : programBannerDue(user.id, 'banner_overload'),
+    mainResumeFloor(user.id),
+  ]);
   const next = running ? findNextProgramDay(sessions, overloadProgram(run, user.scheduleDaysPerWeek)) : null;
-  const diplomas = await loadOverloadDiplomas(user.id);
-  // Same count `overloadEligible` reads — fetched once here so the menu can show "N of 6".
-  const lockedWeeks = await lockedMainWeekCount(user.id);
   const eligible = programUnlocked(lockedWeeks);
 
   return NextResponse.json({
@@ -70,13 +75,13 @@ export async function GET() {
     active,
     // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
     lockedWeeks,
-    bannerDue: eligible && !active ? await programBannerDue(user.id, 'banner_overload') : false,
+    bannerDue: eligible && bannerSeenDue,
     running,
     run,
     startsOn: state?.starts_on ?? null,
     daysUntilStart: state && active ? daysUntilStart(state) : 0,
     calendarWeek: state && running ? overloadCalendarWeek(state) : 0,
-    resumeFloor: await mainResumeFloor(user.id),
+    resumeFloor,
     today: next
       ? {
           weekNumber: next.week.weekNumber,

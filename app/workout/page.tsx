@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
@@ -90,15 +90,20 @@ function WorkoutPageInner() {
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [currentSession, setCurrentSession] = useState<number | null>(null);
   const [expandedWeek, setExpandedWeek] = useState<number | null>(null);
-  const [completedWorkouts, setCompletedWorkouts] = useState<Set<string>>(new Set());
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
+  const completedWorkouts = useMemo(
+    () =>
+      new Set(
+        sessions.filter(isSessionComplete).map((session) => `${session.week_number}-${session.day_number}`)
+      ),
+    [sessions]
+  );
   // Test Drive (lib/testDrive.ts): before Week 1's Monday, from GET /api/sessions.
   const [testDrive, setTestDrive] = useState<TestDriveState | null>(null);
   const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
     Map<number, { requiredCount: number; completedCount: number }>
   >(new Map());
   const [startedAt, setStartedAt] = useState<number | null>(null);
-  const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [confirmExit, setConfirmExit] = useState(false);
   const [exitLine, setExitLine] = useState('');
   const [exitClip, setExitClip] = useState<string | undefined>();
@@ -332,7 +337,7 @@ function WorkoutPageInner() {
       return;
     }
     let cancelled = false;
-    fetch(`/api/stats?home=1&excludeSession=${currentSession}`)
+    fetch(`/api/stats?overall=1&excludeSession=${currentSession}`)
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (!cancelled) {
@@ -414,14 +419,6 @@ function WorkoutPageInner() {
     });
   }, [hyroxLoaded]);
 
-  useEffect(() => {
-    if (!startedAt) return;
-    const interval = window.setInterval(() => {
-      setElapsedSeconds(Math.floor((Date.now() - startedAt) / 1000));
-    }, 1000);
-    return () => window.clearInterval(interval);
-  }, [startedAt]);
-
   const loadSessions = async () => {
     try {
       const [response, historyRes] = await Promise.all([
@@ -442,13 +439,6 @@ function WorkoutPageInner() {
                 { requiredCount: row.requiredCount, completedCount: row.completedCount },
               ]
             )
-          )
-        );
-        setCompletedWorkouts(
-          new Set(
-            rows
-              .filter(isSessionComplete)
-              .map((session) => `${session.week_number}-${session.day_number}`)
           )
         );
         if (!selectWeekInit.current) {
@@ -492,7 +482,6 @@ function WorkoutPageInner() {
     setWorkoutMode(normalizeWorkoutMode(session.workout_mode));
     const start = new Date(session.started_at || session.created_at || Date.now()).getTime();
     setStartedAt(start);
-    setElapsedSeconds(Math.floor((Date.now() - start) / 1000));
     setPendingResume(true);
   };
 
@@ -559,7 +548,6 @@ function WorkoutPageInner() {
         setSelectedDay(dayNumber);
         setWorkoutMode(mode);
         setStartedAt(Date.now());
-        setElapsedSeconds(0);
         setPendingSessionStart(true);
         await loadSessions();
       } else {
@@ -733,7 +721,6 @@ function WorkoutPageInner() {
       setCurrentSession(null);
       setSelectedDay(null);
       setStartedAt(null);
-      setElapsedSeconds(0);
       setConfirmRestart(false);
       setRestartTarget(null);
       setExpandedWeek(weekNumber);
@@ -1000,7 +987,7 @@ function WorkoutPageInner() {
                 <div className="flex flex-1 items-center justify-center sm:hidden">
                   <p className="inline-flex items-center gap-1 text-sm font-black tabular-nums text-[#e8c547]">
                     <Clock className="h-3.5 w-3.5" />
-                    {formatClock(elapsedSeconds)}
+                    <SessionClock startedAt={startedAt} />
                   </p>
                 </div>
                 <div className="flex flex-1 items-center justify-center sm:hidden">
@@ -1043,7 +1030,7 @@ function WorkoutPageInner() {
               <div className="hidden items-center gap-3 sm:flex">
                 <p className="inline-flex items-center gap-1 text-sm font-black tabular-nums text-[#e8c547]">
                   <Clock className="h-3.5 w-3.5" />
-                  {formatClock(elapsedSeconds)}
+                  <SessionClock startedAt={startedAt} />
                 </p>
                 <button
                   type="button"
@@ -1655,4 +1642,17 @@ export default function WorkoutPage() {
       <WorkoutPageInner />
     </Suspense>
   );
+}
+
+/** The live session clock. Ticks in its own state so the page (and every exercise
+ * card under it) doesn't re-render once a second. */
+function SessionClock({ startedAt }: { startedAt: number | null }) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!startedAt) return;
+    setNow(Date.now());
+    const interval = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(interval);
+  }, [startedAt]);
+  return <>{formatClock(startedAt ? Math.max(0, Math.floor((now - startedAt) / 1000)) : 0)}</>;
 }

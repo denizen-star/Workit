@@ -155,19 +155,6 @@ export default function HelpSheet({
   );
 }
 
-export function HelpTrigger({ label, onClick }: { label: string; onClick: () => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      aria-label={label}
-      className="inline-flex h-11 min-w-11 items-center justify-center text-[#e8c547]"
-    >
-      <CircleHelp className="h-5 w-5" strokeWidth={2.25} />
-    </button>
-  );
-}
-
 /** Live card How. Same ? as /who. */
 export function HowTrigger({ notes }: { notes: string }) {
   return <HelpTip label="How" title="How" lead={notes} />;

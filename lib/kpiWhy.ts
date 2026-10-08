@@ -119,13 +119,3 @@ export function progressVerdict(line: PerformanceLine) {
     effortPct == null ? 'held' : effortPct > 0 && (volumePct || 0) <= 0 ? 'up' : effortPct < 0 ? 'mixed' : 'moving';
   return `Volume Load is ${volumeWord}. Effective Load is ${effortWord}.`;
 }
-
-export function strongerLine(volumePct: number | null, effortPct: number | null) {
-  if (volumePct == null) return 'Same four numbers on this week’s lifts vs the last time those lifts ran.';
-  if (volumePct > 0 && (effortPct == null || effortPct <= 0)) {
-    return 'Stronger = Volume Load up while Effective Load holds or drops.';
-  }
-  if (volumePct > 0) return 'Volume Load is up vs last time those lifts ran.';
-  if (volumePct < 0) return 'Volume Load is down vs last time those lifts ran.';
-  return 'Volume Load held vs last time those lifts ran.';
-}

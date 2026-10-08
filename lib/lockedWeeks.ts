@@ -55,16 +55,6 @@ export async function nthMainWeekLockedAt(userId: number, n: number): Promise<st
   return row?.locked_at ? String(row.locked_at) : null;
 }
 
-/** True once this exact main-program week is locked (e.g. week 6 for Overload
- * Progressions, which opens only after the athlete completes week 6). */
-export async function mainWeekLocked(userId: number, weekNumber: number): Promise<boolean> {
-  const result = await query('SELECT 1 FROM locked_weeks WHERE user_id = ? AND week_number = ? LIMIT 1', [
-    userId,
-    weekNumber,
-  ]);
-  return result.rows.length > 0;
-}
-
 /** Every locked week_number for this athlete, ascending — used for streak math. */
 export async function lockedWeekNumbers(userId: number): Promise<number[]> {
   const result = await query(

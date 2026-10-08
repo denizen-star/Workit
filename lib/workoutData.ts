@@ -525,12 +525,3 @@ export function applyWorkoutMode(day: WorkoutDay, mode: WorkoutMode | unknown): 
     exercises: day.exercises.map((exercise) => applyExerciseMode(exercise, 'travel')),
   };
 }
-
-export function getWorkoutDayForMode(
-  weekNumber: number,
-  dayNumber: number,
-  mode: WorkoutMode | unknown
-): WorkoutDay | undefined {
-  const day = getWorkoutDay(weekNumber, dayNumber);
-  return day ? applyWorkoutMode(day, mode) : undefined;
-}

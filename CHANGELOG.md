@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 13.0.2 - 2026-10-08
+
+### Changed
+- **Faster app.** Finishing a workout, logging a set, opening Home, The house, and your stats all make fewer trips to the server, so screens load quicker. The workout clock no longer makes the whole live workout redraw every second.
+- **Same short numbers everywhere.** Vs the house now shows totals like `12k`, matching Home and The house (it used to say `12.3k`).
+
+### Fixed
+- **New PR and Best agree.** During a workout, the New PR flash and the Best tile now judge a record the same way the app does everywhere else: by weight × reps, counting body weight on body-weight moves. Before, the Best tile could miss a lighter set with more reps.
+- **Rushed workouts don't count toward the week anywhere.** A workout where you skipped half or more of the sets already didn't count toward locking your week. It now also stays out of the Bonus Day badge, the Perfect Week badge and the weekly counts in your stats.
+- **Completed log's best session** no longer counts skipped sets.
+- **Places past 20th read right** (21st, 22nd, 23rd instead of 21th, 22th).
+
 ## 13.0.1 - 2026-10-08
 
 ### Changed

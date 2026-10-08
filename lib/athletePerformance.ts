@@ -105,7 +105,7 @@ function liftEffort(name: string, sets: LoggedSet[]) {
   }, 0);
 }
 
-function effortResult(current: number, prior: number | null): PerformanceResult {
+function compareResult(current: number, prior: number | null): PerformanceResult {
   if (prior == null) return 'first';
   if (current > prior) return 'gain';
   if (current < prior) return 'loss';
@@ -308,13 +308,6 @@ function sessionBestWeight(session: { lifts: Map<string, { name: string; sets: L
   return best;
 }
 
-function volumeResult(current: number, prior: number | null): WorkoutTrend['result'] {
-  if (prior == null) return 'first';
-  if (current > prior) return 'gain';
-  if (current < prior) return 'loss';
-  return 'held';
-}
-
 function avg(sum: number, count: number): number | null {
   if (count <= 0) return null;
   return Math.round((sum / count) * 10) / 10;
@@ -501,8 +494,8 @@ export async function athletePerformance(
       ),
       weightDelta: classified.weightDelta,
       repsDelta: classified.repsDelta,
-      result: effortResult(current.effort, prior ? prior.effort : null),
-      rawResult: effortResult(current.volume, prior ? prior.volume : null),
+      result: compareResult(current.effort, prior ? prior.effort : null),
+      rawResult: compareResult(current.volume, prior ? prior.volume : null),
       weightStreak: tailHoldStreak(weights),
       repsStreak: tailHoldStreak(reps),
       perception: avg(windowPerceptionSum, windowPerceptionCount),
@@ -611,8 +604,8 @@ export async function athletePerformance(
           liftHistory.map((item) => ({ volume: item.reps })),
           liftIndex
         ),
-        result: effortResult(liftCurrent.effort, liftPrior ? liftPrior.effort : null),
-        rawResult: effortResult(liftCurrent.volume, liftPrior ? liftPrior.volume : null),
+        result: compareResult(liftCurrent.effort, liftPrior ? liftPrior.effort : null),
+        rawResult: compareResult(liftCurrent.volume, liftPrior ? liftPrior.volume : null),
         perception: avg(
           hardnessValues.reduce((sum, value) => sum + value, 0),
           hardnessValues.length
@@ -669,8 +662,8 @@ export async function athletePerformance(
         })),
         currentIndex
       ),
-      result: volumeResult(currentEffort, priorEffort),
-      rawResult: volumeResult(currentVol, priorVol),
+      result: compareResult(currentEffort, priorEffort),
+      rawResult: compareResult(currentVol, priorVol),
       perception: avg(
         workoutExercises.reduce((sum, item) => sum + (item.perception || 0), 0),
         workoutExercises.filter((item) => item.perception != null).length
@@ -738,8 +731,8 @@ export async function athletePerformance(
         sparkRaw: priorVolume != null ? [priorVolume, volume] : [volume],
         sparkWeight: priorWeight != null ? [priorWeight, weight] : [weight],
         sparkReps: priorReps != null ? [priorReps, reps] : [reps],
-        result: volumeResult(effort, priorEffort),
-        rawResult: volumeResult(volume, priorVolume),
+        result: compareResult(effort, priorEffort),
+        rawResult: compareResult(volume, priorVolume),
         perception: set.hardness,
       });
     });
@@ -847,21 +840,23 @@ export async function athletePerformanceWithSnapshot(
   rawPeriod: PerformancePeriod | string,
   programTrack?: string
 ) {
-  const board = await athletePerformance(userId, rawPeriod, programTrack);
   // The house snapshot (vs pack average) only makes sense against the whole
   // household's normal-program numbers — skip it entirely for a track-scoped board.
-  if (programTrack) return board;
-  try {
-    const snapshot = await performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod));
-    return {
-      ...board,
-      snapshot: {
-        ...snapshot,
-        row: { ...snapshot.row, perception: board.summary.perception },
-      },
-    };
-  } catch (error) {
-    console.error('Error getting performance snapshot:', error);
-    return board;
-  }
+  if (programTrack) return athletePerformance(userId, rawPeriod, programTrack);
+  // Independent reads: run the board and the snapshot together.
+  const [board, snapshot] = await Promise.all([
+    athletePerformance(userId, rawPeriod, programTrack),
+    performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod)).catch((error) => {
+      console.error('Error getting performance snapshot:', error);
+      return null;
+    }),
+  ]);
+  if (!snapshot) return board;
+  return {
+    ...board,
+    snapshot: {
+      ...snapshot,
+      row: { ...snapshot.row, perception: board.summary.perception },
+    },
+  };
 }

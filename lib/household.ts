@@ -1,4 +1,5 @@
 import { query } from '@/lib/db';
+import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 
 export const HOUSE_OG = 'og';
 export const HOUSE_GOWANUS = 'gowanus';
@@ -84,7 +85,7 @@ export async function listHouseholdAthletes(householdId: number | null | undefin
     `SELECT u.id, u.name, u.display_name
      FROM users u
      INNER JOIN household_members m ON m.user_id = u.id AND m.household_id = ?
-     WHERE LOWER(TRIM(u.name)) != 'test'
+     WHERE ${SQL_EXCLUDE_TEST_USER}
      ORDER BY u.name ASC`,
     [id]
   );
@@ -114,9 +115,8 @@ export async function setLastHousehold(userId: number, householdId: number) {
   await query('UPDATE users SET last_household_id = ? WHERE id = ?', [householdId, userId]);
 }
 
-export async function householdIdForUser(userId: number, preferred?: number | null): Promise<number | null> {
+/** The athlete's current house: `preferred` if they're still in it, else their first. */
+export async function householdForUser(userId: number, preferred?: number | null): Promise<Household | null> {
   const houses = await listHouseholdsForUser(userId);
-  if (houses.length === 0) return null;
-  if (preferred && houses.some((house) => house.id === preferred)) return preferred;
-  return houses[0].id;
+  return houses.find((house) => preferred && house.id === preferred) ?? houses[0] ?? null;
 }

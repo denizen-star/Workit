@@ -15,22 +15,12 @@ export function parseHardness(value: unknown): HardnessScore | null {
   return score as HardnessScore;
 }
 
-export function hardnessLabel(value: unknown): string | null {
-  const score = parseHardness(value);
-  return score == null ? null : HARDNESS_LABELS[score];
-}
-
 /** Skipped How hard counts as Fair. Factor: Easy 0.80 · Fair 1.00 · Max 1.20. */
 export const DEFAULT_HARDNESS: HardnessScore = 3;
 
 export function formatHardnessAvg(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
   return value.toFixed(1);
-}
-
-/** 1.0 = 20% … 5.0 = 100%. 4.3 = 86%. */
-export function hardnessPercent(value: number): number {
-  return Math.round(Number(value) * 20);
 }
 
 /** Fair = 1.00. 1→0.80 … 5→1.20. Averages interpolate (4.3 → 1.13). */

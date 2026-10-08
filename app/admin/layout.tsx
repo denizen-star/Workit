@@ -42,7 +42,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
         setUserRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
         setReady(true);
       })
-      .catch(() => router.replace('/who'));
+      .catch(() => router.replace('/login'));
   }, [router]);
 
   if (!ready) {

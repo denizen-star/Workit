@@ -25,6 +25,7 @@ import {
   type OnboardingVisitorRow,
 } from '@/lib/emails/templates';
 import { sqlSetCounts } from '@/lib/skippedSets';
+import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 
 export const ONBOARDING_WINDOW_DAYS = 14;
 const FUNNEL_DAYS = 7;
@@ -237,7 +238,7 @@ async function loadRecentUsers(): Promise<UserRow[]> {
       (SELECT MIN(m.household_id) FROM household_members m WHERE m.user_id = u.id)
     )
     LEFT JOIN users inv ON inv.id = u.invited_by
-    WHERE LOWER(TRIM(u.name)) != 'test'
+    WHERE ${SQL_EXCLUDE_TEST_USER}
       AND (
         (u.pin_hash IS NOT NULL AND COALESCE(u.adult_risk_confirmed_at, u.created_at)
           >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${ONBOARDING_WINDOW_DAYS} DAY))

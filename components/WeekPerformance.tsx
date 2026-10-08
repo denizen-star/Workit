@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { Check } from 'lucide-react';
 import { HelpTip } from '@/components/HelpSheet';
 import { HOME_WEEK_PERF_HELP } from '@/lib/helpCopy';
-import type { AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { weekPerformanceCounts, weekPerformanceKpis, type WeekKpi } from '@/lib/weekPerformance';
 import type { WeekPlan } from '@/lib/workoutData';
+import { useHomeBoard } from '@/components/HomeKpiLead';
 
 const EMPTY = weekPerformanceKpis({
   compared: 0,
@@ -86,25 +86,9 @@ function KpiTile({ kpi, onHelp }: { kpi: WeekKpi; onHelp: () => void }) {
 
 /** Four cues for this program week vs last time. Same chrome as the week lock. */
 export default function WeekPerformance({ week }: { week: WeekPlan | null }) {
-  const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
+  const board = useHomeBoard();
   const [help, setHelp] = useState<string | null>(null);
 
-  useEffect(() => {
-    let cancelled = false;
-    fetch('/api/athlete-performance?period=15')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!cancelled && data && !data.hidden) {
-          setBoard(data as AthletePerformanceBoard);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setBoard(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
 
   const counts = useMemo(() => {
     if (!week || !board) return null;

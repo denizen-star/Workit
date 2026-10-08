@@ -17,9 +17,13 @@ const SEEN_KEY = PROGRAM_BANNER_SINCE.slice(0, 10);
 /** Unlocked, inside the 3-day window, and not yet tapped or dismissed. Callers
  * also check the program is not already active. */
 export async function programBannerDue(userId: number, kind: ProgramBannerKind): Promise<boolean> {
-  const unlockedAt = parseDbTime(await nthMainWeekLockedAt(userId, PROGRAM_UNLOCK_LOCKED_WEEKS));
+  const [lockedAt, seen] = await Promise.all([
+    nthMainWeekLockedAt(userId, PROGRAM_UNLOCK_LOCKED_WEEKS),
+    hasSeenWeekTakeover(userId, SEEN_KEY, kind),
+  ]);
+  const unlockedAt = parseDbTime(lockedAt);
   if (unlockedAt == null || !programBannerWindowOpen(unlockedAt)) return false;
-  return !(await hasSeenWeekTakeover(userId, SEEN_KEY, kind));
+  return !seen;
 }
 
 export function markProgramBannerSeen(userId: number, kind: ProgramBannerKind): Promise<void> {

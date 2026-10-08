@@ -153,39 +153,6 @@ export default function ScanCard({
   );
 }
 
-export function ScanFold({
-  title,
-  trailing,
-  open,
-  onToggle,
-  children,
-}: {
-  title: string;
-  trailing?: string;
-  open: boolean;
-  onToggle: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <div className="glass-card mb-6 overflow-hidden">
-      <button
-        type="button"
-        onClick={onToggle}
-        className="flex w-full items-center gap-2 px-4 py-3 text-left"
-        aria-expanded={open}
-      >
-        <h2 className="text-[11px] font-black uppercase tracking-[0.18em] text-[#e8c547]">{title}</h2>
-        {trailing ? (
-          <span className="ml-auto truncate text-xs text-[#f6f1e3]/50">{trailing}</span>
-        ) : (
-          <span className="ml-auto" />
-        )}
-      </button>
-      {open ? <div className="border-t border-white/10 px-4 pb-4 pt-3">{children}</div> : null}
-    </div>
-  );
-}
-
 /** Home Quiet fold. Starts closed. */
 export function HomeFold({
   title,

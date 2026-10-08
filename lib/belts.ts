@@ -286,18 +286,6 @@ export function getBelts(gender?: string | null): Belt[] {
   return MALE_BELTS; // male or non-binary
 }
 
-export const BELT_ACTIVITY_OPTIONS = [
-  'run',
-  'yoga',
-  'walk',
-  'class',
-  'pilates',
-  'ride',
-  'HIIT',
-  'Hyrox',
-  'other',
-] as const;
-
 export function sampleDuringWeeks(belt: Belt) {
   if (belt.weeks <= 2) return 1;
   return Math.max(1, Math.round(belt.weeks * 0.6));
