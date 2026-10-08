@@ -1,13 +1,9 @@
 import { query } from '@/lib/db';
-import { completedInWeek } from '@/lib/bonusDay';
 import { liveExerciseName, parseExerciseAlts } from '@/lib/exerciseAlts';
 import { parseExerciseModes } from '@/lib/exerciseModes';
-import { recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
-import { programTrackForWeek } from '@/lib/programTrack';
-import { resolveAnySessionDay } from '@/lib/resolveDay';
-import { requiredCountForWeek } from '@/lib/scheduleDays';
+import { refreshWeekLock } from '@/lib/lockedWeeks';
+import { resolveSessionDay } from '@/lib/resolveDay';
 import { isSkipExempt, isSkippedHeavy, SKIP_WINDOW_MS } from '@/lib/skippedSets';
-import { isTestDriveWeek } from '@/lib/testDrive';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 
 /**
@@ -26,7 +22,7 @@ type SessionRow = {
 
 /** Hyrox circuit movement under any name it can be logged as this session. */
 function isCircuitMove(session: SessionRow, exerciseName: string): boolean {
-  const day = resolveAnySessionDay(Number(session.week_number), Number(session.day_number));
+  const day = resolveSessionDay(Number(session.week_number), Number(session.day_number));
   const alts = parseExerciseAlts(session.exercise_alts);
   const modes = parseExerciseModes(session.exercise_modes);
   const fallback = normalizeWorkoutMode(session.workout_mode);
@@ -118,13 +114,6 @@ export async function unskipSet(
   if (!session || !Number(session.is_completed)) return;
   await refreshSkippedHeavy(sessionId);
 
-  const week = Number(session.week_number);
-  // Same exclusions as the Finish PUT: Test Drive and Hyrox weeks never lock.
-  if (isTestDriveWeek(week) || programTrackForWeek(week) === 'hyrox') return;
-  const weekRows = await query(
-    'SELECT week_number, day_number, is_completed, skipped_heavy FROM workout_sessions WHERE user_id = ? AND week_number = ?',
-    [userId, week]
-  );
-  const counted = completedInWeek(weekRows.rows as Array<{ week_number: number; day_number: number }>, week).length;
-  await recordWeekLockIfNeeded(userId, week, counted, requiredCountForWeek(scheduleDaysPerWeek)(week));
+  // Same routine as the Finish PUT (Test Drive and Hyrox weeks never lock).
+  await refreshWeekLock({ userId, weekNumber: Number(session.week_number), scheduleDays: scheduleDaysPerWeek });
 }

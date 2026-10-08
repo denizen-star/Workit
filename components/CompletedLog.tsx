@@ -185,7 +185,6 @@ export default function CompletedLog({
           const progress = weekProgress(
             weekSessions.map((session) => ({ ...session, is_completed: 1 })),
             week,
-            undefined,
             required,
             lockedWeeksDetail.get(week.weekNumber)
           );

@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { BELTS, getBelts, serializeBelt } from '@/lib/belts';
-import { bonusCount, completedInWeek, sessionIsBonus, weekBonusDone } from '@/lib/bonusDay';
+import type { CoachTone } from '@/lib/coachTone';
+import { getBelts, serializeBelt } from '@/lib/belts';
+import { bonusCount, sessionIsBonus, weekBonusDone } from '@/lib/bonusDay';
 import { sessionIsYourPick } from '@/lib/yourPick';
 import { sessionOptionalLbs } from '@/lib/optionals';
 import { checkAndAwardBadges } from '@/lib/badges';
@@ -13,11 +14,11 @@ import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes'
 import { liveExerciseName, parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
 import { canEditExercises, parseExerciseEdits, serializeExerciseEdits } from '@/lib/exerciseEdits';
-import { resolveAnySessionDay } from '@/lib/resolveDay';
+import { resolveSessionDay } from '@/lib/resolveDay';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
-import { lockedWeekCountFromTable, lockedWeekRecords, recordWeekLockIfNeeded } from '@/lib/lockedWeeks';
+import { loadWeekSessions, lockedWeekRecords, refreshWeekLock } from '@/lib/lockedWeeks';
 import { programTrackForWeek } from '@/lib/programTrack';
-import { validateOverloadStart } from '@/lib/overloadState';
+import { mainResumeFloor, validateOverloadStart } from '@/lib/overloadState';
 import { normalizeWorkoutMode } from '@/lib/workoutMode';
 import { markDoneTooSoon, runTooSoon, validateYourPickStart, type YourPickStart } from '@/lib/yourPickStart';
 import { applyYourPickCredit } from '@/lib/yourPickCredit';
@@ -76,6 +77,15 @@ async function collapseEmptyTwins(userId: number, weekNumber: number, dayNumber:
     await query('DELETE FROM workout_sessions WHERE id = ? AND user_id = ?', [id, userId]);
   }
   return keep;
+}
+
+/** The belt a just-recorded lock reached (`refreshWeekLock`'s total), if that total is a belt. */
+function beltForLock(
+  user: { gender?: string | null; coachTone: CoachTone; name: string },
+  lockedWeeks: number | null
+) {
+  if (lockedWeeks == null) return null;
+  return serializeBelt(getBelts(user.gender).find((item) => item.weeks === lockedWeeks) || null, user.coachTone, user.name);
 }
 
 export async function POST(request: NextRequest) {
@@ -160,28 +170,12 @@ export async function POST(request: NextRequest) {
       const sessionId = Number(result.insertId);
       await updateDailyStats(sessionId, user.id);
       const awardedBadges = await checkAndAwardBadges(user.id);
-      const all = await query(
-        'SELECT week_number, day_number, is_completed, skipped_heavy FROM workout_sessions WHERE user_id = ?',
-        [user.id]
-      );
-      const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
-      // Skipped-heavy sessions don't count toward the week (lib/bonusDay.ts countsForWeek).
-      const completedThisWeek = completedInWeek(
-        all.rows as Array<{ week_number: number; day_number: number }>,
-        Number(weekNumber)
-      ).length;
-      // Hyrox weeks (101+) have their own required-5 eligibility mechanism
-      // (lib/hyroxState.ts) — never persist them into the locked-weeks table, or
-      // they'd inflate the belt count. Overload Progressions weeks DO lock and
-      // count toward belts (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md).
-      if (track !== 'hyrox') {
-        await recordWeekLockIfNeeded(user.id, Number(weekNumber), completedThisWeek, requiredForWeek(Number(weekNumber)));
-      }
-      const locked = await lockedWeekCountFromTable(user.id);
-      const thisWeekLocked = completedThisWeek >= requiredForWeek(Number(weekNumber));
-      const earnedBelt = thisWeekLocked
-        ? serializeBelt(getBelts(user.gender).find((item) => item.weeks === locked) || null, user.coachTone, user.name)
-        : null;
+      const lock = await refreshWeekLock({
+        userId: user.id,
+        weekNumber: Number(weekNumber),
+        scheduleDays: user.scheduleDaysPerWeek,
+      });
+      const earnedBelt = beltForLock(user, lock.lockedWeeks);
       queueWorkoutCompleteEmails({
         userId: user.id,
         name: user.name,
@@ -262,21 +256,25 @@ export async function GET(request: NextRequest) {
       // The completed log's week-fold check (components/CompletedLog.tsx) needs the
       // same athlete-aware required-days + persisted-lock data WeekLock already gets
       // from the non-history branch below, or it always assumes the flat historical 4.
-      const lockedWeeksDetail = await lockedWeekRecords(user.id);
-
-      if (sessions.length === 0) {
-        return NextResponse.json({ sessions: [], scheduleDays: user.scheduleDaysPerWeek, lockedWeeksDetail });
-      }
-
       const ids = sessions.map((row) => row.id);
       const placeholders = ids.map(() => '?').join(', ');
-      const setResult = await query(
-        `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb, is_skipped
-         FROM exercise_sets
-         WHERE workout_session_id IN (${placeholders}) AND is_completed = 1
-         ORDER BY workout_session_id, id, set_number`,
-        ids
-      );
+      // Independent reads: the lock records and this athlete's completed sets.
+      const [lockedWeeksDetail, setResult] = await Promise.all([
+        lockedWeekRecords(user.id),
+        ids.length
+          ? query(
+              `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb, is_skipped
+               FROM exercise_sets
+               WHERE workout_session_id IN (${placeholders}) AND is_completed = 1
+               ORDER BY workout_session_id, id, set_number`,
+              ids
+            )
+          : null,
+      ]);
+
+      if (!setResult) {
+        return NextResponse.json({ sessions: [], scheduleDays: user.scheduleDaysPerWeek, lockedWeeksDetail });
+      }
 
       const setsBySession = new Map<number, typeof setResult.rows>();
       for (const row of setResult.rows as {
@@ -355,13 +353,16 @@ export async function GET(request: NextRequest) {
       week1Start = !(await hasSeenWeekTakeover(user.id, testDrive.firstMonday, 'week1_start'));
       if (week1Start) await markWeekTakeoverSeen(user.id, testDrive.firstMonday, 'week1_start');
     }
-    const [lockedWeeks, lockedWeeksDetail] = await Promise.all([
-      lockedWeekCountFromTable(user.id),
+    const [lockedWeeksDetail, resumeFloor] = await Promise.all([
       lockedWeekRecords(user.id),
+      mainResumeFloor(user.id),
     ]);
     return NextResponse.json({
       sessions: rows,
-      lockedWeeks,
+      lockedWeeks: lockedWeeksDetail.length,
+      // Where the main program resumes after an ended Hyrox / Overload run
+      // (lib/nextWorkout.ts `mainProgramTarget`).
+      resumeFloor,
       lockedWeeksDetail,
       testDrive: testDrive ? { ...testDrive, summary } : null,
       week1Start,
@@ -470,48 +471,33 @@ export async function PUT(request: NextRequest) {
 
     let uniqueBonusWeeks = 0;
     let earnedBelt = null;
+    let bodyWeightNote: Awaited<ReturnType<typeof sessionBodyWeightNote>> = null;
     if (isCompleted) {
-      // Half or more sets skipped → finished, but not toward the week (lib/skippedSets.ts).
-      await refreshSkippedHeavy(Number(sessionId));
-      await updateDailyStats(Number(sessionId), user.id);
-      const all = await query(
-        `SELECT week_number, day_number, workout_type, is_completed, skipped_heavy, pick_type, swap_for_day
-         FROM workout_sessions WHERE user_id = ? AND program_track = ?`,
-        [user.id, programTrackForWeek(Number(session.week_number))]
-      );
-      const rows = all.rows as Array<{
-        week_number: number;
-        day_number: number;
-        workout_type: string;
-        is_completed: number | boolean;
-        skipped_heavy: number | null;
-        pick_type: string | null;
-        swap_for_day: number | null;
-      }>;
+      // Daily stats and the body-weight note don't depend on the week read, so they run
+      // alongside it. The week read waits for skipped-heavy: half or more sets skipped →
+      // finished, but not toward the week (lib/skippedSets.ts).
+      const [rows, , note] = await Promise.all([
+        refreshSkippedHeavy(Number(sessionId)).then(() =>
+          loadWeekSessions(user.id, programTrackForWeek(Number(session.week_number)))
+        ),
+        updateDailyStats(Number(sessionId), user.id),
+        sessionBodyWeightNote(Number(sessionId), user.id),
+      ]);
+      bodyWeightNote = note;
       const requiredForWeek = requiredCountForWeek(user.scheduleDaysPerWeek);
       // Bonus = a retired bonus day, or a Your pick that took the week past its bar.
-      uniqueBonusWeeks = bonusCount(rows, undefined, requiredForWeek);
+      uniqueBonusWeeks = bonusCount(rows, requiredForWeek);
       if (sessionIsYourPick(session)) {
         bonus = weekBonusDone(rows, Number(session.week_number), requiredForWeek(Number(session.week_number)));
       }
-      const completedThisWeek = completedInWeek(rows, Number(session.week_number)).length;
-      // A Test Drive (week 0) never locks a week or earns a belt (lib/testDrive.ts).
-      const testDrive = isTestDriveWeek(session.week_number);
-      const thisWeekLocked = !testDrive && completedThisWeek >= requiredForWeek(Number(session.week_number));
-      // Same Hyrox exclusion as the POST path above (Overload weeks lock like main).
-      if (!testDrive && programTrackForWeek(Number(session.week_number)) !== 'hyrox') {
-        await recordWeekLockIfNeeded(
-          user.id,
-          Number(session.week_number),
-          completedThisWeek,
-          requiredForWeek(Number(session.week_number))
-        );
-      }
-      if (!alreadyComplete && thisWeekLocked) {
-        const locked = await lockedWeekCountFromTable(user.id);
-        const belt = getBelts(user.gender).find((item) => item.weeks === locked);
-        earnedBelt = serializeBelt(belt || null, user.coachTone, user.name);
-      }
+      const lock = await refreshWeekLock({
+        userId: user.id,
+        weekNumber: Number(session.week_number),
+        scheduleDays: user.scheduleDaysPerWeek,
+        sessions: rows,
+      });
+      // A belt is announced once, on the finish that reached it.
+      if (!alreadyComplete) earnedBelt = beltForLock(user, lock.lockedWeeks);
     }
 
     return NextResponse.json({
@@ -523,7 +509,7 @@ export async function PUT(request: NextRequest) {
       kickerLbs: Number(session.optional_kicker_lbs || 0),
       earnedBelt,
       // Neutral recap line for bodyweight moves (docs/plans/PLAN_BODY_WEIGHT.md); null = none.
-      bodyWeightNote: isCompleted ? await sessionBodyWeightNote(Number(sessionId), user.id) : null,
+      bodyWeightNote,
     });
   } catch (error) {
     console.error('Error updating workout session:', error);
@@ -586,8 +572,7 @@ export async function PATCH(request: NextRequest) {
       user.id,
     ]);
 
-    // Hyrox weeks (101+) need their own day lookup; resolveAnySessionDay handles it.
-    const day = resolveAnySessionDay(Number(session.week_number), Number(session.day_number));
+    const day = resolveSessionDay(Number(session.week_number), Number(session.day_number));
     const fallback = normalizeWorkoutMode(session.workout_mode);
 
     for (const exercise of day?.exercises || []) {
@@ -642,7 +627,7 @@ async function patchExerciseEdits(sessionId: number, userId: number, raw: unknow
     return NextResponse.json({ error: 'Exercises can be added or removed from week 7 on' }, { status: 400 });
   }
 
-  const day = resolveAnySessionDay(weekNumber, Number(session.day_number));
+  const day = resolveSessionDay(weekNumber, Number(session.day_number));
   const programNames = new Set((day?.exercises || []).map((exercise) => exercise.name));
   const previous = parseExerciseEdits(session.exercise_edits);
   const incoming = parseExerciseEdits(raw);

@@ -5,10 +5,11 @@ import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { loginUrl, whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
-import { getTodayTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { mainProgramTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { mainResumeFloor, mainResumeFloors } from '@/lib/overloadState';
 import { claimAndSend } from '@/lib/emails/send';
 import { buildNudgeEmail, buildScheduleDaysAskEmail } from '@/lib/emails/templates';
-import { clampScheduleDays, daysForWeekFn, isScheduleDaysAskWeek } from '@/lib/scheduleDays';
+import { clampScheduleDays, isScheduleDaysAskWeek } from '@/lib/scheduleDays';
 import { currentBodyWeight } from '@/lib/bodyWeight';
 
 const TRAINING_DAYS = new Set(['Monday', 'Tuesday', 'Thursday', 'Friday']);
@@ -60,18 +61,43 @@ export type OwedWorkoutUser = {
  * already trained (unless a session is still open — that's a resume). `timeZone` decides
  * what "today" is: Eastern for mail, the athlete's own zone for push.
  */
-export async function owedWorkoutToday(user: OwedWorkoutUser, timeZone = 'America/New_York') {
+const NUDGE_SESSION_COLUMNS =
+  'id, user_id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day';
+
+/** Every athlete's sessions in one read (the daily nudge run), keyed by user id. */
+async function loadSessionsByUser(userIds: number[]): Promise<Map<number, WorkoutSessionRow[]>> {
+  const byUser = new Map<number, WorkoutSessionRow[]>(userIds.map((id) => [id, []]));
+  if (userIds.length === 0) return byUser;
   const result = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ? ORDER BY week_number, day_number',
-    [user.id]
+    `SELECT ${NUDGE_SESSION_COLUMNS} FROM workout_sessions
+     WHERE user_id IN (${userIds.map(() => '?').join(', ')}) ORDER BY week_number, day_number`,
+    userIds
   );
-  const sessions = result.rows as WorkoutSessionRow[];
+  for (const row of result.rows as (WorkoutSessionRow & { user_id: number })[]) {
+    byUser.get(Number(row.user_id))?.push(row);
+  }
+  return byUser;
+}
+
+export async function owedWorkoutToday(
+  user: OwedWorkoutUser,
+  timeZone = 'America/New_York',
+  /** Already-loaded sessions + resume floor (the batched nudge run); read here when omitted. */
+  preloaded?: { sessions: WorkoutSessionRow[]; resumeFloor: number }
+) {
+  const [sessions, resumeFloor] = preloaded
+    ? [preloaded.sessions, preloaded.resumeFloor]
+    : await Promise.all([
+        loadSessionsByUser([user.id]).then((byUser) => byUser.get(user.id) ?? []),
+        mainResumeFloor(user.id),
+      ]);
   if (testDriveState(user.created_at, sessions)?.active) {
     return { skipped: 'test-drive-until-monday' } as const;
   }
   const { weekday, date } = todayIn(timeZone);
   const scheduleDays = clampScheduleDays(user.schedule_days_per_week);
-  const target = getTodayTarget(sessions, 1, daysForWeekFn(scheduleDays));
+  // Same position Home shows: main track, past any Hyrox / Overload resume floor.
+  const target = mainProgramTarget(sessions, resumeFloor, scheduleDays);
 
   if (target.type === 'done') return { skipped: 'program-complete' } as const;
   if (target.type === 'hold') return { skipped: 'week-holds-until-monday' } as const;
@@ -89,11 +115,12 @@ export async function sendNudgesForUser(
     schedule_days_per_week?: number | null;
     schedule_days_asked_week?: number | null;
     created_at?: string | Date | null;
-  }
+  },
+  preloaded?: { sessions: WorkoutSessionRow[]; resumeFloor: number }
 ) {
   if (!user.email) return { sent: false, skipped: 'no-address' };
 
-  const owed = await owedWorkoutToday(user);
+  const owed = await owedWorkoutToday(user, undefined, preloaded);
   if ('skipped' in owed) return { sent: false, skipped: owed.skipped };
   const { target, weekday, date, scheduleDays } = owed;
 
@@ -172,19 +199,26 @@ export async function sendDailyNudges() {
     `SELECT u.id, u.name, u.email, u.schedule_days_per_week, u.schedule_days_asked_week, u.created_at FROM users u
      WHERE u.email IS NOT NULL AND u.pin_hash IS NOT NULL AND ${SQL_NOT_BLOCKED_USER}`
   );
-  const results = [];
-  for (const user of users.rows as {
+  const roster = users.rows as {
     id: number;
     name: string;
     email: string | null;
     schedule_days_per_week?: number | null;
     schedule_days_asked_week?: number | null;
     created_at?: string | Date | null;
-  }[]) {
+  }[];
+  const ids = roster.map((user) => Number(user.id));
+  const [sessionsByUser, floors] = await Promise.all([loadSessionsByUser(ids), mainResumeFloors(ids)]);
+  // Sends stay one at a time (SMTP); only the reads are batched.
+  const results = [];
+  for (const user of roster) {
     results.push({
       userId: user.id,
       name: user.name,
-      ...(await sendNudgesForUser(user)),
+      ...(await sendNudgesForUser(user, {
+        sessions: sessionsByUser.get(Number(user.id)) ?? [],
+        resumeFloor: floors.get(Number(user.id)) ?? 1,
+      })),
     });
   }
   return results;

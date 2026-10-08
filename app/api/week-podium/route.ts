@@ -25,11 +25,15 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    await loadCoachCatalogFromDb();
-    await ensureClosedWeekPodiums();
+    // Rows are filled first; the catalog loads alongside, and the medal reads follow.
+    const filled = ensureClosedWeekPodiums();
+    const [, history, counts] = await Promise.all([
+      loadCoachCatalogFromDb(),
+      filled.then(() => loadUserWeekMedals(user.id, user.name)),
+      isAdminUser(user) ? filled.then(() => loadWeekMedalCounts()) : null,
+    ]);
 
     const weekMonday = lastClosedMonday();
-    const history = await loadUserWeekMedals(user.id, user.name);
     const placed =
       weekMonday && !isTestUserName(user.name)
         ? history.find((row) => row.weekMonday === weekMonday)
@@ -57,19 +61,21 @@ export async function GET() {
       !isTestUserName(user.name) &&
       accountExistedBeforeWeek(user.createdAt, weekMonday)
     ) {
-      const workouts = await countUserClosedWeekWorkouts(user.id, weekMonday);
+      const [workouts, missSeen] = await Promise.all([
+        countUserClosedWeekWorkouts(user.id, weekMonday),
+        hasSeenWeekTakeover(user.id, weekMonday, 'miss'),
+      ]);
       // The exact program week that calendar week is not tracked historically, so this
       // uses the athlete's current chosen count directly rather than looking up a
       // specific week's bonus-day availability (only weeks 1-2 would differ, and by
       // the time a week has closed an athlete is almost never still there).
       if (missedTheWeek(workouts, clampScheduleDays(user.scheduleDaysPerWeek))) {
-        const alreadySeen = await hasSeenWeekTakeover(user.id, weekMonday, 'miss');
-        if (!alreadySeen) await markWeekTakeoverSeen(user.id, weekMonday, 'miss');
+        if (!missSeen) await markWeekTakeoverSeen(user.id, weekMonday, 'miss');
         miss = {
           weekMonday,
           workouts,
           line: pickMissedWeekLine(user.name, user.coachTone),
-          seen: alreadySeen,
+          seen: missSeen,
         };
       }
     }
@@ -79,7 +85,7 @@ export async function GET() {
       you,
       miss,
       history,
-      ...(isAdminUser(user) ? { counts: await loadWeekMedalCounts() } : {}),
+      ...(counts ? { counts } : {}),
     });
   } catch (error) {
     console.error('Error getting week podium:', error);

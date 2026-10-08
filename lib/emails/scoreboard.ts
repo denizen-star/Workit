@@ -18,20 +18,26 @@ function extraScoreboardTo() {
   return (process.env.WORKIT_SCOREBOARD_TO || '').trim() || null;
 }
 
-async function loadScoreboardBoard() {
-  const users = await query('SELECT id, name, email, gender FROM users ORDER BY id ASC');
-  const roster = users.rows as (RosterUser & { gender?: string | null })[];
-  const compare = await householdExerciseCompare({ kind: 'scoreboard', period: '7' });
-  const standingByName = new Map(
-    compare.rows.map((row) => [row.name.trim().toLowerCase(), standingSummary(row, compare.ranking)])
-  );
-  const compareById = new Map(compare.rows.map((row) => [row.userId, row]));
-  const rows: ScoreboardRow[] = [];
-  const lockedByUser = await lockedWeeksByUserFromTable();
+type SessionPointer = { user_id: number; workout_type: string; week_number: number; day_number: number };
 
-  for (const user of roster) {
-    const weekStats = await query(
+/** First row per athlete from rows already in the wanted order. */
+function firstByUser<T extends { user_id: number }>(rows: T[]): Map<number, T> {
+  const map = new Map<number, T>();
+  for (const row of rows) {
+    if (!map.has(Number(row.user_id))) map.set(Number(row.user_id), row);
+  }
+  return map;
+}
+
+async function loadScoreboardBoard() {
+  // Grouped reads for the whole roster, all at once, instead of three queries per athlete.
+  const [users, compare, lockedByUser, weekStats, lastDone, openNow, bonusHonor, optionalHonor] = await Promise.all([
+    query('SELECT id, name, email, gender FROM users ORDER BY id ASC'),
+    householdExerciseCompare({ kind: 'scoreboard', period: '7' }),
+    lockedWeeksByUserFromTable(),
+    query(
       `SELECT
+         ws.user_id,
          COUNT(DISTINCT CASE WHEN ws.is_completed THEN ws.id END) as workouts,
          COALESCE(SUM(${sqlSetVolume('es')}), 0)
            + ${sqlUserOptionalVolume(
@@ -40,53 +46,51 @@ async function loadScoreboardBoard() {
            )} as volume
        FROM workout_sessions ws
        LEFT JOIN exercise_sets es ON es.workout_session_id = ws.id AND ${sqlSetCounts('es')}
-       WHERE ws.user_id = ?
-         AND ${sqlSessionStamp('ws')} >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)`,
-      [user.id]
-    );
-    const last = await query(
-      `SELECT workout_type, week_number, day_number, completed_at
+       WHERE ${sqlSessionStamp('ws')} >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL 7 DAY)
+       GROUP BY ws.user_id`
+    ),
+    query(
+      `SELECT user_id, workout_type, week_number, day_number
        FROM workout_sessions
-       WHERE user_id = ? AND is_completed = 1
-       ORDER BY completed_at DESC
-       LIMIT 1`,
-      [user.id]
-    );
-    const open = await query(
-      `SELECT workout_type, week_number, day_number
+       WHERE is_completed = 1
+       ORDER BY completed_at DESC`
+    ),
+    query(
+      `SELECT user_id, workout_type, week_number, day_number
        FROM workout_sessions
-       WHERE user_id = ? AND (is_completed = 0 OR is_completed IS NULL)
-       ORDER BY started_at DESC
-       LIMIT 1`,
-      [user.id]
-    );
+       WHERE is_completed = 0 OR is_completed IS NULL
+       ORDER BY started_at DESC`
+    ),
+    householdBonusHonor('7'),
+    householdOptionalHonor('7'),
+  ]);
+  const roster = users.rows as (RosterUser & { gender?: string | null })[];
+  const standingByName = new Map(
+    compare.rows.map((row) => [row.name.trim().toLowerCase(), standingSummary(row, compare.ranking)])
+  );
+  const compareById = new Map(compare.rows.map((row) => [row.userId, row]));
+  const statsByUser = firstByUser(weekStats.rows as { user_id: number; workouts: number; volume: number }[]);
+  const lastByUser = firstByUser(lastDone.rows as SessionPointer[]);
+  const openByUser = firstByUser(openNow.rows as SessionPointer[]);
 
-    const stats = weekStats.rows[0] as { workouts: number; volume: number };
-    const lastRow = last.rows[0] as
-      | { workout_type: string; week_number: number; day_number: number; completed_at: string }
-      | undefined;
-    const openRow = open.rows[0] as
-      | { workout_type: string; week_number: number; day_number: number }
-      | undefined;
-
-    rows.push({
+  const rows: ScoreboardRow[] = roster.map((user) => {
+    const stats = statsByUser.get(Number(user.id));
+    const lastRow = lastByUser.get(Number(user.id));
+    const openRow = openByUser.get(Number(user.id));
+    return {
       name: user.name,
       email: user.email,
       workoutsThisWeek: Number(stats?.workouts || 0),
       volumeThisWeek: Number(stats?.volume || 0),
-      lastWorkout: lastRow
-        ? 'Week ' + lastRow.week_number + ' · ' + lastRow.workout_type
-        : null,
+      lastWorkout: lastRow ? 'Week ' + lastRow.week_number + ' · ' + lastRow.workout_type : null,
       openSession: openRow ? openRow.workout_type : null,
       standing: isTestUserName(user.name)
         ? undefined
         : standingByName.get(user.name.trim().toLowerCase()),
       beltName: displayBelt(lockedByUser.get(Number(user.id)) || 0, user.gender).name,
-    });
-  }
+    };
+  });
 
-  const bonusHonor = await householdBonusHonor('7');
-  const optionalHonor = await householdOptionalHonor('7');
   return { roster, rows, compareById, ranking: compare.ranking, bonusHonor, optionalHonor };
 }
 

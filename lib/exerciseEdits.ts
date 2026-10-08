@@ -4,6 +4,7 @@ import { overloadProgram } from '@/lib/overloadProgram';
 import { toTravelExercise } from '@/lib/travelExercises';
 import { resolveYourPickDay, yourPickVariantGroups } from '@/lib/yourPick';
 import { programWithRetiredDays, type Exercise } from '@/lib/workoutData';
+import { trackForWeek } from '@/lib/programTrack';
 
 /**
  * Add / remove exercises (main program weeks 7–48 only, at the athlete's own risk). A
@@ -17,13 +18,13 @@ export type ExerciseEdits = { removed: string[]; added: AddedExercise[] };
 
 export const EMPTY_EXERCISE_EDITS: ExerciseEdits = { removed: [], added: [] };
 export const FIRST_EDITABLE_WEEK = 7;
-export const LAST_EDITABLE_WEEK = 48;
 /** Cap on added cards per session, so a session can't grow without limit. */
 export const MAX_ADDED_EXERCISES = 4;
 
-/** Main program weeks 7–48. Not weeks 1–6 (the saddle), Test Drive, Hyrox or Overload. */
+/** Main program weeks 7–48. Not weeks 1–6 (the saddle), Test Drive, Hyrox or Overload
+ * (lib/programTrack.ts `editExercises`). */
 export function canEditExercises(weekNumber: number): boolean {
-  return weekNumber >= FIRST_EDITABLE_WEEK && weekNumber <= LAST_EDITABLE_WEEK;
+  return trackForWeek(weekNumber).editExercises && weekNumber >= FIRST_EDITABLE_WEEK;
 }
 
 export function parseExerciseEdits(raw: unknown): ExerciseEdits {

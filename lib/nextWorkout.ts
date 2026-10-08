@@ -1,9 +1,11 @@
 import { addEasternCalendarDays, easternYmd, isEasternWeekend } from "@/lib/analyticsTime";
-import { coveredDayNumbers, isSessionComplete, requiredDays, weekLocked } from "@/lib/bonusDay";
+import { coveredDayNumbers, isSessionComplete, weekLocked } from "@/lib/bonusDay";
 
 export { isSessionComplete };
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 import { resolveSessionDay } from "@/lib/resolveDay";
+import { programTrackForWeek } from "@/lib/programTrack";
+import { daysForWeekFn } from "@/lib/scheduleDays";
 
 export interface WorkoutSessionRow {
   id: number;
@@ -152,16 +154,14 @@ export function homePerformanceFocus(
 
 export function findNextProgramDay(
   sessions: WorkoutSessionRow[],
-  program: WeekPlan[] = workoutProgram,
+  program: WeekPlan[],
   /** Weeks below this are skipped outright, even if never completed. Used to resume
    * the 48-week program past weeks "spent" on a completed/abandoned Hyrox track. */
-  minWeek = 1,
+  minWeek: number,
   /** Which days count toward this week for this athlete, and how many are required
-   * to lock it. Defaults to the program's own non-bonus days (today's fixed-4
-   * behavior, and what Hyrox's 5-required weeks already rely on). The normal
-   * program passes `athleteRequiredDays` here to honor the athlete's chosen
-   * `schedule_days_per_week` (see `lib/scheduleDays.ts`) instead. */
-  daysForWeek: (week: WeekPlan) => WorkoutDay[] = requiredDays
+   * to lock it: `daysForWeekFn(scheduleDays)` (`lib/scheduleDays.ts`), which asks the
+   * week's own track (Hyrox's fixed 5, Overload's built split, main's reshaped week). */
+  daysForWeek: (week: WeekPlan) => WorkoutDay[]
 ): { week: WeekPlan; day: WorkoutDay } | null {
   for (const week of program) {
     if (week.weekNumber < minWeek) continue;
@@ -184,9 +184,9 @@ export function findNextProgramDay(
 /** Select Workout: resume week if one is open, else the next unlocked week. Locked weeks stay folded. */
 export function defaultSelectWeek(
   sessions: WorkoutSessionRow[],
-  program: WeekPlan[] = workoutProgram,
-  minWeek = 1,
-  daysForWeek?: (week: WeekPlan) => WorkoutDay[]
+  program: WeekPlan[],
+  minWeek: number,
+  daysForWeek: (week: WeekPlan) => WorkoutDay[]
 ): number | null {
   const resume = findIncompleteSession(sessions);
   if (resume) return Number(resume.week_number);
@@ -194,23 +194,18 @@ export function defaultSelectWeek(
 }
 
 /** minWeek resumes the 48-week program past weeks "spent" on a Hyrox track (see findNextProgramDay).
- * daysForWeek threads the athlete's `schedule_days_per_week` into the week-lock/next-day decision;
- * defaults to the program's fixed non-bonus days when omitted. */
+ * daysForWeek threads the athlete's `schedule_days_per_week` into the week-lock/next-day decision. */
 export function getTodayTarget(
   sessions: WorkoutSessionRow[],
-  minWeek = 1,
-  daysForWeek: (week: WeekPlan) => WorkoutDay[] = requiredDays
+  minWeek: number,
+  daysForWeek: (week: WeekPlan) => WorkoutDay[]
 ) {
   const resume = findIncompleteSession(sessions);
   if (resume) {
     const week = workoutProgram.find((item) => item.weekNumber === Number(resume.week_number));
-    // Full-body (6-8), Your pick (20-24) and retired bonus days aren't in the static
-    // program array — resolve them the same way app/workout/page.tsx does, or an
-    // open session on one silently falls through to a fresh "start" target instead
-    // of "resume" here (this is specifically about what Home shows).
-    const day =
-      week?.days.find((item) => item.dayNumber === Number(resume.day_number)) ??
-      (week ? resolveSessionDay(Number(resume.week_number), Number(resume.day_number)) : undefined);
+    // Shared resolver (lib/resolveDay.ts), so an open full-body / Your pick / retired
+    // day resumes instead of falling through to a fresh "start" target.
+    const day = week ? resolveSessionDay(Number(resume.week_number), Number(resume.day_number)) : undefined;
     if (week && day) {
       return { type: "resume" as const, session: resume, week, day };
     }
@@ -231,4 +226,23 @@ export function getTodayTarget(
   }
 
   return { type: "done" as const, session: null, week: null, day: null };
+}
+
+/**
+ * Where the athlete is in the main 48-week program — the one rule Home's "today",
+ * the nudge mail, reminder pushes, the recap email's "next" line and the Hyrox /
+ * Overload start snapshots all share. Main-track rows only, past the resume floor an
+ * ended Hyrox / Overload run left (lib/overloadState.ts `mainResumeFloor`), with the
+ * athlete's own day count and `getTodayTarget`'s weekend hold. Test Drive sits on top
+ * of this where it applies (Home `testDriveTarget`, nudge `testDriveState`).
+ */
+export function mainProgramTarget(sessions: WorkoutSessionRow[], resumeFloor: number, scheduleDays: number) {
+  const main = sessions.filter((session) => programTrackForWeek(Number(session.week_number)) === "main");
+  return getTodayTarget(main, resumeFloor, daysForWeekFn(scheduleDays));
+}
+
+/** The next unfinished main-program day under the same rule (no resume, no weekend hold). */
+export function mainProgramNextDay(sessions: WorkoutSessionRow[], resumeFloor: number, scheduleDays: number) {
+  const main = sessions.filter((session) => programTrackForWeek(Number(session.week_number)) === "main");
+  return findNextProgramDay(main, workoutProgram, resumeFloor, daysForWeekFn(scheduleDays));
 }

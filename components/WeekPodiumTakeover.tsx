@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useRef } from 'react';
 import WeekMedal from '@/components/WeekMedal';
 import { placeWord, type WeekPlace } from '@/lib/weekPodium';
 import type { CoachTone } from '@/lib/coachTone';
 import { coachPersonaSrc } from '@/lib/coachPersonas';
+import TapTakeover from '@/components/TapTakeover';
 
 export default function WeekPodiumTakeover({
   open,
@@ -19,45 +20,13 @@ export default function WeekPodiumTakeover({
   tone: CoachTone;
   onClose: () => void;
 }) {
-  const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
   // Fixed per mount so the photo doesn't re-roll a variant on unrelated re-renders.
   const avatarSrc = useRef(coachPersonaSrc(tone, 'celebratory')).current;
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
-        onCloseRef.current();
-      }
-    };
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open]);
 
   if (!open) return null;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') {
-          onClose();
-        }
-      }}
-      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-[#07070a]/95 px-6"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl"
-          style={{
-            background: place === 1 ? '#e8c547' : place === 2 ? '#c5c5c5' : '#c08457',
-            opacity: 0.28,
-          }}
-        />
-      </div>
+    <TapTakeover onClose={onClose} glow={place === 1 ? '#e8c547' : place === 2 ? '#c5c5c5' : '#c08457'} closeOnWindowKeys>
       <div className="relative max-w-xl text-center">
         <img
           src={avatarSrc}
@@ -77,6 +46,6 @@ export default function WeekPodiumTakeover({
           Tap anywhere to continue
         </p>
       </div>
-    </div>
+    </TapTakeover>
   );
 }

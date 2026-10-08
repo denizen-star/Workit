@@ -313,25 +313,29 @@ function avg(sum: number, count: number): number | null {
   return Math.round((sum / count) * 10) / 10;
 }
 
-export async function athletePerformance(
-  userId: number,
-  rawPeriod: PerformancePeriod | string,
-  /** Scopes to one program track (e.g. 'hyrox') instead of the athlete's whole
-   * history. Undefined keeps every existing caller's behavior unchanged. */
-  programTrack?: string
-): Promise<AthletePerformanceBoard> {
-  const sessionCols = `ws.id as session_id, ws.week_number, ws.day_number, ws.workout_type,
+/**
+ * Completed, counted sets for every athlete in `userIds`, oldest first, in one query
+ * (grouped by athlete). `programTrack` scopes to one track (e.g. 'hyrox'); undefined
+ * reads the athlete's whole history.
+ */
+async function loadPerformanceRows(userIds: number[], programTrack?: string): Promise<Map<number, SetRow[]>> {
+  const byUser = new Map<number, SetRow[]>(userIds.map((id) => [id, []]));
+  if (userIds.length === 0) return byUser;
+  const sessionCols = `ws.user_id, ws.id as session_id, ws.week_number, ws.day_number, ws.workout_type,
             COALESCE(ws.completed_at, ws.created_at) as done_at,
             TIMESTAMPDIFF(SECOND, ws.started_at, COALESCE(ws.ended_at, ws.completed_at)) as duration_seconds,
-            (SELECT MAX(sr.stars) FROM session_ratings sr WHERE sr.session_id = ws.id) as session_stars`;
+            sr.stars as session_stars`;
   const trackFilter = programTrack ? 'AND ws.program_track = ?' : '';
-  const params = programTrack ? [userId, programTrack] : [userId];
+  const params = programTrack ? [...userIds, programTrack] : userIds;
+  // Ratings are aggregated once per session and joined, instead of a subquery per set row.
   const fromWhere = `FROM exercise_sets es
      JOIN workout_sessions ws ON ws.id = es.workout_session_id
-     WHERE ws.user_id = ? AND ${sqlSetCounts('es')} AND ws.is_completed = 1 ${trackFilter}
+     LEFT JOIN (SELECT session_id, MAX(stars) AS stars FROM session_ratings GROUP BY session_id) sr
+       ON sr.session_id = ws.id
+     WHERE ws.user_id IN (${userIds.map(() => '?').join(', ')}) AND ${sqlSetCounts('es')} AND ws.is_completed = 1 ${trackFilter}
      ORDER BY done_at ASC, ws.id ASC, es.set_number ASC`;
 
-  let rows: SetRow[] = [];
+  let rows: (SetRow & { user_id: number })[] = [];
   try {
     const result = await query(
       `SELECT es.exercise_name, es.set_number, es.target_reps, es.weight_lbs, es.actual_reps, es.hardness,
@@ -340,7 +344,7 @@ export async function athletePerformance(
        ${fromWhere}`,
       params
     );
-    rows = result.rows as SetRow[];
+    rows = result.rows as typeof rows;
   } catch {
     const result = await query(
       `SELECT es.exercise_name, es.set_number, es.target_reps, es.weight_lbs, es.actual_reps,
@@ -348,8 +352,34 @@ export async function athletePerformance(
        ${fromWhere}`,
       params
     );
-    rows = (result.rows as SetRow[]).map((row) => ({ ...row, hardness: null }));
+    rows = (result.rows as typeof rows).map((row) => ({ ...row, hardness: null }));
   }
+  for (const row of rows) byUser.get(Number(row.user_id))?.push(row);
+  return byUser;
+}
+
+export async function athletePerformance(
+  userId: number,
+  rawPeriod: PerformancePeriod | string,
+  /** Scopes to one program track (e.g. 'hyrox') instead of the athlete's whole
+   * history. Undefined keeps every existing caller's behavior unchanged. */
+  programTrack?: string
+): Promise<AthletePerformanceBoard> {
+  const rows = await loadPerformanceRows([userId], programTrack);
+  return buildPerformanceBoard(rows.get(userId) ?? [], rawPeriod);
+}
+
+/** Boards for several athletes from one set query (house tracking, Admin Athletes). */
+export async function athletePerformanceForUsers(
+  userIds: number[],
+  rawPeriod: PerformancePeriod | string
+): Promise<Map<number, AthletePerformanceBoard>> {
+  const rows = await loadPerformanceRows(userIds);
+  return new Map(userIds.map((id) => [id, buildPerformanceBoard(rows.get(id) ?? [], rawPeriod)]));
+}
+
+/** The board itself, from one athlete's set rows (oldest first). No I/O. */
+function buildPerformanceBoard(rows: SetRow[], rawPeriod: PerformancePeriod | string): AthletePerformanceBoard {
   const period = normalizePerformancePeriod(rawPeriod);
 
   type SessionBucket = {
@@ -799,13 +829,15 @@ export async function householdAthletePerformance(
     console.error('Error getting performance snapshots:', error);
   }
 
+  const boards = await athletePerformanceForUsers(
+    boardRows.map((row) => Number(row.id)),
+    resolved
+  );
   return Promise.all(
     boardRows.map(async (row) => {
       const userId = Number(row.id);
-      const [board, sessions] = await Promise.all([
-        athletePerformance(userId, resolved),
-        loadFlagSessions(userId),
-      ]);
+      const board = boards.get(userId)!;
+      const sessions = await loadFlagSessions(userId);
       let snapshot: PerformanceSnapshot | undefined;
       try {
         snapshot =

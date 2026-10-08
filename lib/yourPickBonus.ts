@@ -1,6 +1,6 @@
 import { bonusTypeSql, isBonusWeek } from '@/lib/bonusDay';
 import { query } from '@/lib/db';
-import { requiredCountForWeek } from '@/lib/scheduleDays';
+import { requiredCountForWeek, clampScheduleDays } from '@/lib/scheduleDays';
 import { YOUR_PICK_DAY_BASE, YOUR_PICK_TYPES } from '@/lib/yourPick';
 import { sqlSessionCountsForWeek } from '@/lib/skippedSets';
 
@@ -37,7 +37,7 @@ export async function bonusWeeksByUser(where = '', params: unknown[] = []): Prom
     picks: number;
     legacy_bonus: number;
   }[]) {
-    const required = requiredCountForWeek(Number(row.schedule_days_per_week ?? 4))(Number(row.week_number));
+    const required = requiredCountForWeek(clampScheduleDays(row.schedule_days_per_week))(Number(row.week_number));
     const bonus = isBonusWeek(
       { completed: Number(row.completed), picks: Number(row.picks), legacyBonus: Number(row.legacy_bonus) },
       required

@@ -12,9 +12,19 @@ import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
 import { type NoiseLevel } from '@/lib/noisePref';
 import { isTestUserName } from '@/lib/householdUsers';
 import { trackAction } from '@/lib/analytics';
-import { PROGRAM_LOCKED_HINT, programUnlockProgress } from '@/lib/programUnlock';
+import {
+  MORE_PROGRAMS,
+  PROGRAM_LOCKED_HINT,
+  programIntroHref,
+  programLabel,
+  programUnlockProgress,
+} from '@/lib/programUnlock';
+import type { OptInTrack } from '@/lib/programTrack';
+import { fetchMe, forgetMe } from '@/lib/meClient';
 
 export type MoreProgramState = 'open' | 'locked' | null;
+
+const PROGRAM_ICONS: Record<OptInTrack, typeof Flame> = { hyrox: Flame, overload: ChevronsUp };
 
 interface AppMenuProps {
   userName: string;
@@ -34,21 +44,15 @@ interface AppMenuProps {
    * Omitted = no section. */
   morePrograms?: {
     lockedWeeks: number;
-    hyrox: MoreProgramState;
-    overload: MoreProgramState;
+    states: Record<OptInTrack, MoreProgramState>;
   };
-  /** Called instead of navigating when the Hyrox nav item is tapped and the current
-   * page can handle it directly (Home opens the intro takeover in place) — pages
-   * that don't pass this fall back to `/home?hyrox=1`, which Home reads on mount. */
-  onHyroxClick?: () => void;
-  /** A Hyrox run is active right now — shows "Leave Hyrox Training" in the footer. */
-  hyroxActive?: boolean;
-  onLeaveHyrox?: () => void;
-  /** Same three for Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md):
-   * item tap (`/home?overload=1` fallback), leave item while a run is active. */
-  onOverloadClick?: () => void;
-  overloadActive?: boolean;
-  onLeaveOverload?: () => void;
+  /** Called instead of navigating when a More program item is tapped and the current
+   * page can handle it directly (Home opens the intro takeover in place) — pages that
+   * don't pass this fall back to `/home?program=<track>`, which Home reads on mount. */
+  onProgramClick?: (track: OptInTrack) => void;
+  /** The More program the athlete is in right now — shows "Leave <program>" in the footer. */
+  activeProgram?: OptInTrack | null;
+  onLeaveProgram?: () => void;
   onProfileSaved?: (profile: {
     name: string;
     email: string | null;
@@ -81,12 +85,9 @@ export default function AppMenu({
   userGender = 'male',
   isAdmin = false,
   morePrograms,
-  hyroxActive = false,
-  onLeaveHyrox,
-  onHyroxClick,
-  overloadActive = false,
-  onLeaveOverload,
-  onOverloadClick,
+  onProgramClick,
+  activeProgram = null,
+  onLeaveProgram,
   onProfileSaved,
   editWeightSignal = 0,
 }: AppMenuProps) {
@@ -127,16 +128,16 @@ export default function AppMenu({
 
   useEffect(() => {
     setMounted(true);
-    fetch('/api/me')
-      .then(async (res) => {
+    fetchMe()
+      .then((res) => {
         // Admin blocked this account: the API already evicted the session.
         if (!res.ok) {
-          if (res.status === 403 && (await res.json().catch(() => null))?.blocked) {
+          if (res.status === 403 && res.data?.blocked) {
             window.location.replace('/blocked');
           }
           return null;
         }
-        return res.json();
+        return res.data;
       })
       .then((data) => {
         setHouses(data?.houses || []);
@@ -223,13 +224,15 @@ export default function AppMenu({
     router.refresh();
   };
 
-  // More programs, Hyrox first. A `null` state drops the item; no items = no section.
-  const moreProgramItems = (
-    [
-      { key: 'hyrox', label: 'Hyrox Training', Icon: Flame, state: morePrograms?.hyrox ?? null, onTrack: onHyroxClick, href: '/home?hyrox=1' },
-      { key: 'overload', label: 'Overload Progressions', Icon: ChevronsUp, state: morePrograms?.overload ?? null, onTrack: onOverloadClick, href: '/home?overload=1' },
-    ] as const
-  ).filter((item) => item.state !== null);
+  // More programs, in MORE_PROGRAMS order. A `null` state drops the item; no items = no section.
+  const moreProgramItems = MORE_PROGRAMS.map(({ track, label }) => ({
+    key: track,
+    label,
+    Icon: PROGRAM_ICONS[track],
+    state: morePrograms?.states[track] ?? null,
+    onTrack: onProgramClick ? () => onProgramClick(track) : undefined,
+    href: programIntroHref(track),
+  })).filter((item) => item.state !== null);
 
   const menu = open && mounted
     ? createPortal(
@@ -429,30 +432,17 @@ export default function AppMenu({
                   Invite a friend
                 </button>
               )}
-              {hyroxActive && onLeaveHyrox && (
+              {activeProgram && onLeaveProgram && (
                 <button
                   type="button"
                   onClick={() => {
                     setOpen(false);
-                    onLeaveHyrox();
+                    onLeaveProgram();
                   }}
                   className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#ff5c6c] hover:bg-[#e4032e]/10"
                 >
                   <DoorOpen className="h-4 w-4 shrink-0 text-[#e4032e]" />
-                  Leave Hyrox Training
-                </button>
-              )}
-              {overloadActive && onLeaveOverload && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOpen(false);
-                    onLeaveOverload();
-                  }}
-                  className="flex w-full items-center gap-3 px-4 py-3 text-left text-sm font-semibold text-[#ff5c6c] hover:bg-[#e4032e]/10"
-                >
-                  <DoorOpen className="h-4 w-4 shrink-0 text-[#e4032e]" />
-                  Leave Overload Progressions
+                  Leave {programLabel(activeProgram)}
                 </button>
               )}
               <button
@@ -516,6 +506,7 @@ export default function AppMenu({
           setFocusWeight(false);
         }}
         onSaved={(profile) => {
+          forgetMe();
           if (profile.hasPhoto) {
             setHasPhoto(true);
             setPhotoBust(Date.now());

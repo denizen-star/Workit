@@ -6,6 +6,7 @@ import FinishStepper from "@/components/FinishStepper";
 import { playCoachClip, stopCoachClip } from "@/lib/playChime";
 import type { CoachTone } from "@/lib/coachTone";
 import { coachPersonaSrc } from "@/lib/coachPersonas";
+import TapTakeover from "@/components/TapTakeover";
 
 export type TakeoverBadge = {
   id: number;
@@ -95,21 +96,7 @@ export default function CompleteTakeover({
   if (!open) return null;
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
-          onClose();
-        }
-      }}
-      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-[#07070a]/95 px-6"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#e8c547] opacity-28 blur-3xl" />
-        <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
-      </div>
+    <TapTakeover onClose={onClose} glow="#e8c547" secondGlow>
       <div className="relative max-w-xl text-center">
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         <img
@@ -148,6 +135,6 @@ export default function CompleteTakeover({
           Tap anywhere to continue
         </p>
       </div>
-    </div>
+    </TapTakeover>
   );
 }

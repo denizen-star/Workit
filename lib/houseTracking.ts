@@ -1,4 +1,4 @@
-import { athletePerformance } from '@/lib/athletePerformance';
+import { athletePerformanceForUsers } from '@/lib/athletePerformance';
 import type { HouseholdScoreboardRow, ScoreboardPeriod } from '@/lib/scoreboardTypes';
 
 function performancePeriodForHouse(period: ScoreboardPeriod) {
@@ -13,10 +13,14 @@ export async function attachHouseTracking(
   period: ScoreboardPeriod
 ): Promise<HouseholdScoreboardRow[]> {
   const perfPeriod = performancePeriodForHouse(period);
-  const boards = await Promise.all(rows.map((row) => athletePerformance(row.id, perfPeriod)));
-  return rows.map((row, index) => ({
+  // One set query for the whole pack, not one lifetime scan per athlete.
+  const boards = await athletePerformanceForUsers(
+    rows.map((row) => row.id),
+    perfPeriod
+  );
+  return rows.map((row) => ({
     ...row,
-    trackingUp: boards[index].summary.gains,
-    trackingDown: boards[index].summary.losses,
+    trackingUp: boards.get(row.id)?.summary.gains ?? 0,
+    trackingDown: boards.get(row.id)?.summary.losses ?? 0,
   }));
 }

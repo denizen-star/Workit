@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo, Suspense } from 'react';
+import { useState, useEffect, useMemo, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Dumbbell, UserPlus } from 'lucide-react';
 import HomeKpiLead, { HomeTodayKpis } from '@/components/HomeKpiLead';
@@ -12,18 +12,14 @@ import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
-import { getTodayTarget, homePerformanceFocus, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { homePerformanceFocus, mainProgramTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import {
-  clampScheduleDays,
-  daysForWeekFn,
   DEFAULT_SCHEDULE_DAYS,
   isScheduleDaysAskWeek,
 } from '@/lib/scheduleDays';
 import ScheduleDaysAskTakeover from '@/components/ScheduleDaysAskTakeover';
-import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import type { CoachTone } from '@/lib/coachTone';
 import { setCoachVoiceEnabled, setSoundEnabled } from '@/lib/playChime';
-import { normalizeSoundOn } from '@/lib/soundPref';
-import { normalizeRestExtraMinutes } from '@/lib/restPref';
 import { trackAction } from '@/lib/analytics';
 import { isTestUserName } from '@/lib/householdUsers';
 import { earliestKey } from '@/lib/chartTrend';
@@ -45,20 +41,45 @@ import WeekPodiumTakeover from '@/components/WeekPodiumTakeover';
 import WeekMissTakeover from '@/components/WeekMissTakeover';
 import UpdateProfileGate from '@/components/UpdateProfileGate';
 import QuickstartTakeover from '@/components/QuickstartTakeover';
-import HyroxHome from '@/components/HyroxHome';
-import HyroxIntroTakeover from '@/components/HyroxIntroTakeover';
 import HyroxRewardBanner from '@/components/HyroxRewardBanner';
 import DismissibleBanner from '@/components/DismissibleBanner';
 import BodyWeightBanner from '@/components/BodyWeightBanner';
 import { bodyWeightBannerDue } from '@/lib/bodyWeightShared';
-import OverloadHome from '@/components/OverloadHome';
-import OverloadIntroTakeover from '@/components/OverloadIntroTakeover';
+import ProgramTrackHome from '@/components/ProgramTrackHome';
+import ProgramIntroTakeover from '@/components/ProgramIntroTakeover';
 import OverloadDiplomaTakeover from '@/components/OverloadDiplomaTakeover';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
 import { pickResumeLine, pickWeek1StartCopy } from '@/lib/coachLines';
 import { testDriveCountdown, testDriveTarget, type TestDriveState } from '@/lib/testDrive';
 import TestDriveDoneHero, { type TestDriveDoneSummary } from '@/components/TestDriveDoneHero';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
+import { fetchMe } from '@/lib/meClient';
+import { MORE_PROGRAMS, programFromSearch, programLabel } from '@/lib/programUnlock';
+import type { OptInTrack } from '@/lib/programTrack';
+import type { MoreProgramState } from '@/components/AppMenu';
+import { profileFromMe } from '@/lib/meProfile';
+
+/** One More program's state on Home, from `GET /api/<track>`. Hyrox runs the moment
+ * it's active; Overload waits for its Monday (`running`). */
+type ProgramStatus = {
+  eligible: boolean;
+  active: boolean;
+  running: boolean;
+  bannerDue: boolean;
+  daysUntilStart: number;
+  unseenDiploma: { run: number; tier: number } | null;
+};
+
+function programStatusFrom(data: Record<string, unknown>): ProgramStatus {
+  return {
+    eligible: Boolean(data.eligible),
+    active: Boolean(data.active),
+    running: Boolean(data.running ?? data.active),
+    bannerDue: Boolean(data.bannerDue),
+    daysUntilStart: Number(data.daysUntilStart) || 0,
+    unseenDiploma: (data.unseenDiploma as ProgramStatus['unseenDiploma']) ?? null,
+  };
+}
 
 function shortDayName(name: string) {
   return name
@@ -81,7 +102,7 @@ function homeTarget(
   resumeFloor: number,
   scheduleDays: number
 ) {
-  return testDriveTarget(testDrive, sessions) ?? getTodayTarget(sessions, resumeFloor, daysForWeekFn(scheduleDays));
+  return testDriveTarget(testDrive, sessions) ?? mainProgramTarget(sessions, resumeFloor, scheduleDays);
 }
 
 function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
@@ -128,26 +149,14 @@ export default function Home() {
   const [needsWaiver, setNeedsWaiver] = useState(false);
   const [showQuickstartTakeover, setShowQuickstartTakeover] = useState(false);
   const [showHowBanner, setShowHowBanner] = useState(false);
-  const [hyroxActive, setHyroxActive] = useState(false);
-  const [hyroxEligibleFlag, setHyroxEligibleFlag] = useState(false);
-  const [showHyroxIntro, setShowHyroxIntro] = useState(false);
-  const [hyroxStartError, setHyroxStartError] = useState('');
-  const [showHyroxBanner, setShowHyroxBanner] = useState(false);
-  const [showOverloadBanner, setShowOverloadBanner] = useState(false);
+  // More programs (docs/plans/PLAN_MORE_PROGRAMS.md): GET /api/hyrox and /api/overload.
+  const [programs, setPrograms] = useState<Partial<Record<OptInTrack, ProgramStatus>>>({});
+  const [activeIntro, setActiveIntro] = useState<OptInTrack | null>(null);
+  const [programStartError, setProgramStartError] = useState('');
   // Locked main weeks — the More programs menu's "N of 6 weeks locked" line (lib/programUnlock.ts).
   const [mainLockedWeeks, setMainLockedWeeks] = useState(0);
   // Where the 48-week program resumes after a Hyrox or Overload run (the later of the two).
   const [resumeFloor, setResumeFloor] = useState(1);
-  // Overload Progressions (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md): GET /api/overload.
-  const [overload, setOverload] = useState<{
-    eligible: boolean;
-    active: boolean;
-    running: boolean;
-    daysUntilStart: number;
-    unseenDiploma: { run: number; tier: number } | null;
-  } | null>(null);
-  const [showOverloadIntro, setShowOverloadIntro] = useState(false);
-  const [overloadStartError, setOverloadStartError] = useState('');
   // Test Drive (lib/testDrive.ts): before Week 1's Monday, plus the one-time Monday takeover.
   const [testDrive, setTestDrive] = useState<(TestDriveState & { summary: TestDriveDoneSummary | null }) | null>(null);
   const [week1Start, setWeek1Start] = useState(false);
@@ -158,7 +167,7 @@ export default function Home() {
     const loadShell = async () => {
       try {
         const [meRes, sessionsRes, catalogRes, hyroxRes, overloadRes] = await Promise.all([
-          fetch('/api/me'),
+          fetchMe(),
           fetch('/api/sessions?home=1'),
           fetch('/api/coach-catalog'),
           fetch('/api/hyrox'),
@@ -167,26 +176,24 @@ export default function Home() {
 
         if (cancelled) return;
 
-        let resolvedUserId: number | null = null;
         if (meRes.ok) {
-          const meData = await meRes.json();
-          resolvedUserId = meData.user?.id != null ? Number(meData.user.id) : null;
-          setUserId(resolvedUserId);
-          setUserName(meData.user?.callName || meData.user?.name || '');
-          setUserEmail(meData.user?.email || '');
-          setUserTone(normalizeCoachTone(meData.user?.coachTone));
-          const soundOn = normalizeSoundOn(meData.user?.soundOn);
-          setUserSoundOn(soundOn);
-          setSoundEnabled(soundOn);
-          setCoachVoiceEnabled(normalizeSoundOn(meData.user?.coachVoiceOn));
-          setUserRestExtraMinutes(normalizeRestExtraMinutes(meData.user?.restExtraMinutes));
-          setUserScheduleDays(clampScheduleDays(meData.user?.scheduleDaysPerWeek));
-          setUserWeightLb(meData.user?.bodyWeightLb == null ? null : Number(meData.user.bodyWeightLb));
-          setUserGender(meData.user?.gender || 'male');
+          const meData = meRes.data;
+          const profile = profileFromMe(meData.user);
+          setUserId(profile.id);
+          setUserName(profile.callName);
+          setUserEmail(profile.email);
+          setUserTone(profile.coachTone);
+          setUserSoundOn(profile.soundOn);
+          setSoundEnabled(profile.soundOn);
+          setCoachVoiceEnabled(profile.coachVoiceOn);
+          setUserRestExtraMinutes(profile.restExtraMinutes);
+          setUserScheduleDays(profile.scheduleDaysPerWeek);
+          setUserWeightLb(profile.bodyWeightLb);
+          setUserGender(profile.gender);
           setScheduleDaysAskedWeek(
             meData.user?.scheduleDaysAskedWeek == null ? null : Number(meData.user.scheduleDaysAskedWeek)
           );
-          setIsAdmin(!!meData.user?.isAdmin);
+          setIsAdmin(profile.isAdmin);
           setNeedsWaiver(meData.user?.waiverAccepted === false);
           setShowQuickstartTakeover(meData.user?.quickstartSeen === false);
           setShowHowBanner(Number(meData.completedWorkouts || 0) < 5);
@@ -195,6 +202,7 @@ export default function Home() {
         if (sessionsRes.ok) {
           const sessionData = await sessionsRes.json();
           setSessions(sessionData.sessions || []);
+          setResumeFloor(Number(sessionData.resumeFloor) || 1);
           setTestDrive(sessionData.testDrive || null);
           setWeek1Start(Boolean(sessionData.week1Start));
           // Quickstart shows on every Home open until Week 1's Monday during a Test Drive.
@@ -216,47 +224,23 @@ export default function Home() {
           hydrateCoachCatalog(await catalogRes.json());
         }
 
-        if (hyroxRes.ok) {
-          const hyroxData = await hyroxRes.json();
-          setHyroxActive(Boolean(hyroxData.active));
-          setHyroxEligibleFlag(Boolean(hyroxData.eligible));
-          setResumeFloor((floor) => Math.max(floor, Number(hyroxData.resumeFloor) || 1));
-          setMainLockedWeeks(Number(hyroxData.lockedWeeks) || 0);
-          // Server decides: unlocked, inside the 3-day window, not yet tapped/✕'d.
-          setShowHyroxBanner(Boolean(hyroxData.bannerDue));
-          if (hyroxData.eligible && !hyroxData.active) {
-            // The "Hyrox Training" menu item on every other page can't open the
-            // takeover directly (only Home has it mounted) — it instead navigates
-            // here with ?hyrox=1, which this picks up on the resulting fresh mount.
-            if (typeof window !== 'undefined' && window.location.search.includes('hyrox=1')) {
-              setShowHyroxIntro(true);
-              window.history.replaceState(null, '', '/home');
-            }
-          }
+        const loadedPrograms: Partial<Record<OptInTrack, ProgramStatus>> = {};
+        for (const [track, res] of [
+          ['hyrox', hyroxRes],
+          ['overload', overloadRes],
+        ] as const) {
+          if (!res.ok) continue;
+          const data = await res.json();
+          loadedPrograms[track] = programStatusFrom(data);
+          setMainLockedWeeks(Number(data.lockedWeeks) || 0);
         }
-
-        if (overloadRes.ok) {
-          const overloadData = await overloadRes.json();
-          setOverload({
-            eligible: Boolean(overloadData.eligible),
-            active: Boolean(overloadData.active),
-            running: Boolean(overloadData.running),
-            daysUntilStart: Number(overloadData.daysUntilStart) || 0,
-            unseenDiploma: overloadData.unseenDiploma ?? null,
-          });
-          setShowOverloadBanner(Boolean(overloadData.bannerDue));
-          // Its floor already folds in Hyrox's (lib/overloadState.ts `mainResumeFloor`).
-          setResumeFloor((floor) => Math.max(floor, Number(overloadData.resumeFloor) || 1));
-          // Same menu hand-off as ?hyrox=1 above, for the Overload Progressions item.
-          if (
-            overloadData.eligible &&
-            !overloadData.active &&
-            typeof window !== 'undefined' &&
-            window.location.search.includes('overload=1')
-          ) {
-            setShowOverloadIntro(true);
-            window.history.replaceState(null, '', '/home');
-          }
+        setPrograms(loadedPrograms);
+        // The More programs item on any other page can't open the intro directly (only
+        // Home has it), so it navigates here with ?program=<track> (lib/programUnlock.ts).
+        const handoff = typeof window !== 'undefined' ? programFromSearch(window.location.search) : null;
+        if (handoff && loadedPrograms[handoff]?.eligible && !loadedPrograms[handoff]?.active) {
+          setActiveIntro(handoff);
+          window.history.replaceState(null, '', '/home');
         }
       } catch (error) {
         console.error('Error loading home shell:', error);
@@ -343,13 +327,15 @@ export default function Home() {
   const testDriveDone = testDriveOn && Boolean(testDrive?.allDone) && today.type !== 'resume';
   const todayWeekNumber = today.week?.weekNumber ?? null;
 
+  const hyroxActive = Boolean(programs.hyrox?.active);
+
   useEffect(() => {
     if (userId == null || todayWeekNumber == null || hyroxActive) return;
-    if (weekTakeover || weekMissTakeover) return;
     if (!isScheduleDaysAskWeek(todayWeekNumber)) return;
     if (scheduleDaysAskedWeek === todayWeekNumber) return;
+    // Waits its turn behind any other takeover (Home's takeover queue below).
     setShowScheduleDaysAsk(true);
-  }, [userId, todayWeekNumber, hyroxActive, weekTakeover, weekMissTakeover, scheduleDaysAskedWeek]);
+  }, [userId, todayWeekNumber, hyroxActive, scheduleDaysAskedWeek]);
 
   const homeFocus = homePerformanceFocus(today, sessions);
   // Your pick (docs/plans/PLAN_YOUR_PICK.md): filed under the current week when that
@@ -394,76 +380,181 @@ export default function Home() {
     );
   }
 
+  // A running More program replaces Home. One at a time, so the first one found is it.
+  const runningTrack = MORE_PROGRAMS.find(({ track }) => programs[track]?.running)?.track ?? null;
   // An earned Overload diploma tier shows once, on whichever Home is up (tier 3
   // lands as the run closes, so normal Home has to show it too).
-  if (overload?.unseenDiploma) {
-    const { run, tier } = overload.unseenDiploma;
+  const unseenDiploma = programs.overload?.unseenDiploma ?? null;
+  const onNormalHome = !runningTrack;
+
+  /** Home's takeovers, highest priority first. Only the first one that's due shows;
+   * closing it lets the next one through. Each keeps its own "seen" rule (server-marked
+   * on delivery, or saved when the athlete answers). */
+  const takeovers: { key: string; due: boolean; render: () => ReactNode }[] = [
+    {
+      key: 'overload-diploma',
+      due: Boolean(unseenDiploma),
+      render: () => (
+        <OverloadDiplomaTakeover
+          tier={unseenDiploma!.tier}
+          tone={userTone}
+          name={userName}
+          onDone={() => {
+            const { run, tier } = unseenDiploma!;
+            setPrograms((current) =>
+              current.overload ? { ...current, overload: { ...current.overload, unseenDiploma: null } } : current
+            );
+            fetch('/api/overload', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ action: 'seen', run, tier }),
+            }).catch(() => {});
+          }}
+        />
+      ),
+    },
+    {
+      key: 'waiver',
+      due: onNormalHome && needsWaiver,
+      render: () => <UpdateProfileGate onDone={() => setNeedsWaiver(false)} />,
+    },
+    {
+      key: 'quickstart',
+      due: onNormalHome && showQuickstartTakeover,
+      render: () => (
+        <QuickstartTakeover
+          countdown={testDrive?.active ? testDriveCountdown(testDrive) : undefined}
+          onDone={() => {
+            setShowQuickstartTakeover(false);
+            fetch('/api/me', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ quickstartSeen: true }),
+            }).catch(() => {});
+          }}
+        />
+      ),
+    },
+    {
+      key: 'week-podium',
+      due: onNormalHome && weekTakeover && Boolean(weekYou),
+      render: () => (
+        <WeekPodiumTakeover
+          open
+          place={weekYou!.place}
+          line={weekYou!.line}
+          tone={userTone}
+          onClose={() => setWeekTakeover(false)}
+        />
+      ),
+    },
+    {
+      key: 'week1-start',
+      due: onNormalHome && week1Start && Boolean(week1Line),
+      render: () => (
+        <WeekMissTakeover
+          open
+          line={week1Line}
+          tone={userTone}
+          eyebrow="Test Drive · over"
+          expression="celebratory"
+          accent="#e8c547"
+          onClose={() => setWeek1Start(false)}
+        />
+      ),
+    },
+    {
+      key: 'week-miss',
+      due: onNormalHome && weekMissTakeover && Boolean(weekMiss) && !weekYou,
+      render: () => (
+        <WeekMissTakeover open line={weekMiss!.line} tone={userTone} onClose={() => setWeekMissTakeover(false)} />
+      ),
+    },
+    {
+      key: 'schedule-days-ask',
+      due: onNormalHome && showScheduleDaysAsk,
+      render: () => (
+        <ScheduleDaysAskTakeover
+          open
+          currentDays={userScheduleDays}
+          currentWeightLb={userWeightLb}
+          onDone={(days, weightLb) => {
+            setShowScheduleDaysAsk(false);
+            setUserScheduleDays(days);
+            if (weightLb != null) setUserWeightLb(weightLb);
+            if (todayWeekNumber != null) setScheduleDaysAskedWeek(todayWeekNumber);
+            fetch('/api/me', {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                scheduleDaysAskedWeek: todayWeekNumber,
+                scheduleDaysPerWeek: days,
+                ...(weightLb != null ? { bodyWeightLb: weightLb } : {}),
+              }),
+            }).catch(() => {});
+          }}
+        />
+      ),
+    },
+  ];
+  const takeover = takeovers.find((item) => item.due) ?? null;
+
+  if (runningTrack) {
     return (
-      <OverloadDiplomaTakeover
-        tier={tier}
-        tone={userTone}
-        name={userName}
-        onDone={() => {
-          setOverload((current) => (current ? { ...current, unseenDiploma: null } : current));
-          fetch('/api/overload', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'seen', run, tier }),
-          }).catch(() => {});
-        }}
-      />
+      <>
+        <ProgramTrackHome
+          track={runningTrack}
+          userName={userName}
+          userEmail={userEmail}
+          userTone={userTone}
+          isAdmin={isAdmin}
+          scheduleDays={userScheduleDays}
+        />
+        {takeover?.render()}
+      </>
     );
   }
 
-  if (hyroxActive) {
-    return <HyroxHome userName={userName} userEmail={userEmail} userTone={userTone} isAdmin={isAdmin} />;
-  }
-
-  if (overload?.running) {
-    return (
-      <OverloadHome
-        userName={userName}
-        userEmail={userEmail}
-        userTone={userTone}
-        isAdmin={isAdmin}
-        scheduleDays={userScheduleDays}
-      />
-    );
-  }
-
-  // Opted in, waiting for Monday: normal Home stays up, with a countdown and a way out.
-  const overloadWaiting = Boolean(overload?.active && !overload.running);
-  const overloadAvailable = Boolean(overload?.eligible && !overload.active);
-  // Menu's More programs section: one program at a time, so a running Overload
-  // (waiting for its Monday) hides both items; Leave stays in the menu footer.
+  // Opted in, waiting for its Monday (Overload): normal Home stays up, with a countdown
+  // and a way out. While any program is active, the menu's More programs items hide.
+  const waitingTrack = MORE_PROGRAMS.find(({ track }) => programs[track]?.active)?.track ?? null;
+  const waiting = waitingTrack ? programs[waitingTrack] : undefined;
   const morePrograms = {
     lockedWeeks: mainLockedWeeks,
-    hyrox: overload?.active ? null : hyroxEligibleFlag ? ('open' as const) : ('locked' as const),
-    overload: !overload || overload.active ? null : overload.eligible ? ('open' as const) : ('locked' as const),
+    states: Object.fromEntries(
+      MORE_PROGRAMS.map(({ track }) => {
+        const status = programs[track];
+        const state: MoreProgramState = waitingTrack || !status ? null : status.eligible ? 'open' : 'locked';
+        return [track, state];
+      })
+    ) as Record<OptInTrack, MoreProgramState>,
   };
+  /** Banner up for this program: open, not joined, inside its 3-day window (lib/programBanner.ts). */
+  const bannerShown = (track: OptInTrack) => !waitingTrack && Boolean(programs[track]?.bannerDue);
 
-  const startOverload = async () => {
-    setOverloadStartError('');
+  const startProgram = async (track: OptInTrack) => {
+    setProgramStartError('');
+    const failed = `Couldn't start ${programLabel(track)}. Try again in a moment.`;
     try {
-      const res = await fetch('/api/overload', {
+      const res = await fetch(`/api/${track}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ action: 'start' }),
       });
       if (!res.ok) {
         const reason = await res.json().then((data) => data?.error).catch(() => null);
-        setOverloadStartError(reason || "Couldn't start Overload Progressions. Try again in a moment.");
+        setProgramStartError(reason || failed);
         return;
       }
-      setShowOverloadIntro(false);
+      setActiveIntro(null);
       window.location.assign('/home');
     } catch {
-      setOverloadStartError("Couldn't start Overload Progressions. Try again in a moment.");
+      setProgramStartError(failed);
     }
   };
 
-  const leaveOverload = async () => {
-    await fetch('/api/overload', {
+  const leaveProgram = async (track: OptInTrack) => {
+    await fetch(`/api/${track}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'drop' }),
@@ -471,63 +562,33 @@ export default function Home() {
     window.location.assign('/home');
   };
 
-  const startHyrox = async () => {
-    setHyroxStartError('');
-    try {
-      const res = await fetch('/api/hyrox', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'start' }),
-      });
-      if (!res.ok) {
-        setHyroxStartError("Couldn't start Hyrox Training — try again in a moment.");
-        return;
-      }
-      setShowHyroxIntro(false);
-      window.location.assign('/home');
-    } catch {
-      setHyroxStartError("Couldn't start Hyrox Training — try again in a moment.");
-    }
-  };
-
   /** A More programs banner was tapped or ✕'d: hide it now, and record it on the
    * account so it never shows again (lib/programBanner.ts). */
-  const markBannerSeen = (endpoint: '/api/hyrox' | '/api/overload') => {
-    fetch(endpoint, {
+  const dismissBanner = (track: OptInTrack) => {
+    setPrograms((current) => {
+      const status = current[track];
+      return status ? { ...current, [track]: { ...status, bannerDue: false } } : current;
+    });
+    fetch(`/api/${track}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ action: 'bannerSeen' }),
     }).catch(() => {});
   };
-  const dismissHyroxBanner = () => {
-    setShowHyroxBanner(false);
-    markBannerSeen('/api/hyrox');
-  };
-  const dismissOverloadBanner = () => {
-    setShowOverloadBanner(false);
-    markBannerSeen('/api/overload');
+  const openFromBanner = (track: OptInTrack) => {
+    dismissBanner(track);
+    setActiveIntro(track);
   };
 
-  if (showOverloadIntro) {
+  if (activeIntro) {
     return (
-      <OverloadIntroTakeover
+      <ProgramIntroTakeover
+        track={activeIntro}
         tone={userTone}
         name={userName}
-        onStart={startOverload}
-        onCancel={() => setShowOverloadIntro(false)}
-        error={overloadStartError}
-      />
-    );
-  }
-
-  if (showHyroxIntro) {
-    return (
-      <HyroxIntroTakeover
-        tone={userTone}
-        name={userName}
-        onStart={startHyrox}
-        onCancel={() => setShowHyroxIntro(false)}
-        error={hyroxStartError}
+        onStart={() => startProgram(activeIntro)}
+        onCancel={() => setActiveIntro(null)}
+        error={programStartError}
       />
     );
   }
@@ -551,10 +612,9 @@ export default function Home() {
               userGender={userGender}
               isAdmin={isAdmin}
               morePrograms={morePrograms}
-              onHyroxClick={() => setShowHyroxIntro(true)}
-              onOverloadClick={() => setShowOverloadIntro(true)}
-              overloadActive={overloadWaiting}
-              onLeaveOverload={leaveOverload}
+              onProgramClick={setActiveIntro}
+              activeProgram={waitingTrack}
+              onLeaveProgram={waitingTrack ? () => leaveProgram(waitingTrack) : undefined}
               editWeightSignal={weightEditSignal}
               onProfileSaved={(profile) => {
                 if (profile.bodyWeightLb !== undefined) setUserWeightLb(profile.bodyWeightLb);
@@ -573,21 +633,6 @@ export default function Home() {
         </div>
       </header>
 
-      {needsWaiver ? (
-        <UpdateProfileGate onDone={() => setNeedsWaiver(false)} />
-      ) : showQuickstartTakeover ? (
-        <QuickstartTakeover
-          countdown={testDrive?.active ? testDriveCountdown(testDrive) : undefined}
-          onDone={() => {
-            setShowQuickstartTakeover(false);
-            fetch('/api/me', {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ quickstartSeen: true }),
-            }).catch(() => {});
-          }}
-        />
-      ) : null}
       <div className="container mx-auto px-4 py-8">
         {showHowBanner ? (
           <Link
@@ -597,27 +642,24 @@ export default function Home() {
             How to use Work-It
           </Link>
         ) : null}
-        {overloadWaiting ? (
+        {waitingTrack && waiting ? (
           <div className="mb-6 rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3">
             <p className="text-sm font-black text-[#e8c547]">
-              Overload Progressions starts Monday
-              {overload && overload.daysUntilStart > 0
-                ? ` · ${overload.daysUntilStart} day${overload.daysUntilStart === 1 ? '' : 's'}`
+              {programLabel(waitingTrack)} starts Monday
+              {waiting.daysUntilStart > 0
+                ? ` · ${waiting.daysUntilStart} day${waiting.daysUntilStart === 1 ? '' : 's'}`
                 : ''}
             </p>
             <p className="mt-1 text-xs text-[#f6f1e3]/75">Keep training your program until then.</p>
           </div>
         ) : null}
-        {overloadAvailable && showOverloadBanner ? (
+        {bannerShown('overload') ? (
           // 3 days after 6 locked main weeks, until tapped or ✕'d (lib/programBanner.ts);
           // after that the menu's More programs section is the way in.
-          <DismissibleBanner onDismiss={dismissOverloadBanner}>
+          <DismissibleBanner onDismiss={() => dismissBanner('overload')}>
             <button
               type="button"
-              onClick={() => {
-                dismissOverloadBanner();
-                setShowOverloadIntro(true);
-              }}
+              onClick={() => openFromBanner('overload')}
               className="block w-full rounded-2xl border border-[#e8c547]/40 bg-[#e8c547]/10 px-4 py-3 pr-10 text-left"
             >
               <p className="text-sm font-black text-[#e8c547]">Overload Progressions is open</p>
@@ -627,14 +669,8 @@ export default function Home() {
             </button>
           </DismissibleBanner>
         ) : null}
-        {!overload?.active && showHyroxBanner ? (
-          <HyroxRewardBanner
-            onClick={() => {
-              dismissHyroxBanner();
-              setShowHyroxIntro(true);
-            }}
-            onDismiss={dismissHyroxBanner}
-          />
+        {bannerShown('hyrox') ? (
+          <HyroxRewardBanner onClick={() => openFromBanner('hyrox')} onDismiss={() => dismissBanner('hyrox')} />
         ) : null}
         {bodyWeightBannerDue(userWeightLb, sessions) ? (
           <BodyWeightBanner onAdd={() => setWeightEditSignal((n) => n + 1)} />
@@ -860,54 +896,7 @@ export default function Home() {
         </div>
       </div>
       <InviteFriendModal open={inviteOpen} onClose={() => setInviteOpen(false)} />
-      {weekYou ? (
-        <WeekPodiumTakeover
-          open={weekTakeover}
-          place={weekYou.place}
-          line={weekYou.line}
-          tone={userTone}
-          onClose={() => setWeekTakeover(false)}
-        />
-      ) : null}
-      {week1Line ? (
-        <WeekMissTakeover
-          open={week1Start}
-          line={week1Line}
-          tone={userTone}
-          eyebrow="Test Drive · over"
-          expression="celebratory"
-          accent="#e8c547"
-          onClose={() => setWeek1Start(false)}
-        />
-      ) : null}
-      {weekMiss && !weekYou ? (
-        <WeekMissTakeover
-          open={weekMissTakeover}
-          line={weekMiss.line}
-          tone={userTone}
-          onClose={() => setWeekMissTakeover(false)}
-        />
-      ) : null}
-      <ScheduleDaysAskTakeover
-        open={showScheduleDaysAsk}
-        currentDays={userScheduleDays}
-        currentWeightLb={userWeightLb}
-        onDone={(days, weightLb) => {
-          setShowScheduleDaysAsk(false);
-          setUserScheduleDays(days);
-          if (weightLb != null) setUserWeightLb(weightLb);
-          if (todayWeekNumber != null) setScheduleDaysAskedWeek(todayWeekNumber);
-          fetch('/api/me', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              scheduleDaysAskedWeek: todayWeekNumber,
-              scheduleDaysPerWeek: days,
-              ...(weightLb != null ? { bodyWeightLb: weightLb } : {}),
-            }),
-          }).catch(() => {});
-        }}
-      />
+      {takeover?.render()}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import FinishStepper from '@/components/FinishStepper';
 import { getBelts, type Belt } from '@/lib/belts';
 import type { CoachTone } from '@/lib/coachTone';
 import { coachPersonaSrc } from '@/lib/coachPersonas';
+import TapTakeover from '@/components/TapTakeover';
 
 function diplomaBelt(earned: TakeoverBelt, gender?: string): Belt {
   const base = getBelts(gender).find((row) => row.slug === earned.slug || row.name === earned.name) || getBelts(gender)[0];
@@ -69,22 +70,7 @@ export default function AwardsTakeover({
   const titleColor = beltTitleColor(titleBelt);
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') onClose();
-      }}
-      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-y-auto bg-[#07070a]/95 px-6 py-10"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div
-          className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full blur-3xl"
-          style={{ background: titleColor, opacity: 0.28 }}
-        />
-        <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
-      </div>
+    <TapTakeover onClose={onClose} glow={titleColor} secondGlow scroll>
       <div className="relative w-full max-w-md">
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         
@@ -149,6 +135,6 @@ export default function AwardsTakeover({
           Tap anywhere for Home
         </p>
       </div>
-    </div>
+    </TapTakeover>
   );
 }

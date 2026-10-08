@@ -255,6 +255,56 @@ export async function updateNoisePrefs(
   }
 }
 
+export type ProfilePrefs = {
+  coachTone: CoachTone;
+  soundOn: boolean;
+  coachVoiceOn: boolean;
+  restExtraMinutes: number;
+  scheduleDaysPerWeek: number;
+  noiseTakeover: NoiseLevel;
+  noiseEffort: NoiseLevel;
+  showPrs: boolean;
+};
+
+/**
+ * Every Edit-profile preference in one UPDATE. If that fails (a column missing before
+ * its migration), falls back to the one-column helpers above, which each fail alone.
+ */
+export async function updateProfilePrefs(userId: number, prefs: ProfilePrefs): Promise<void> {
+  try {
+    await query(
+      `UPDATE users SET coach_tone = ?, sound_on = ?, coach_voice_on = ?, rest_extra_minutes = ?,
+         schedule_days_per_week = ?, noise_takeover = ?, noise_effort = ?, show_prs = ?
+       WHERE id = ?`,
+      [
+        prefs.coachTone,
+        prefs.soundOn ? 1 : 0,
+        prefs.coachVoiceOn ? 1 : 0,
+        normalizeRestExtraMinutes(prefs.restExtraMinutes),
+        clampScheduleDays(prefs.scheduleDaysPerWeek),
+        prefs.noiseTakeover,
+        prefs.noiseEffort,
+        prefs.showPrs ? 1 : 0,
+        userId,
+      ]
+    );
+    // Every column exists, so the full select works — but never step down from
+    // 'guard', which is the only select that reads `blocked_at`.
+    if (userSelectMode !== 'guard') userSelectMode = 'house';
+  } catch {
+    await updateCoachTone(userId, prefs.coachTone);
+    await updateSoundOn(userId, prefs.soundOn);
+    await updateCoachVoiceOn(userId, prefs.coachVoiceOn);
+    await updateRestExtraMinutes(userId, prefs.restExtraMinutes);
+    await updateScheduleDaysPerWeek(userId, prefs.scheduleDaysPerWeek);
+    await updateNoisePrefs(userId, {
+      noiseTakeover: prefs.noiseTakeover,
+      noiseEffort: prefs.noiseEffort,
+      showPrs: prefs.showPrs,
+    });
+  }
+}
+
 export async function getUserTone(userId: number): Promise<CoachTone> {
   const row = await selectUserRow(userId);
   return normalizeCoachTone(row?.coach_tone);

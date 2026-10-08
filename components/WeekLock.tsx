@@ -59,7 +59,7 @@ export default function WeekLock({
   if (!week) return null;
 
   const required = athleteRequiredDays(week, scheduleDays);
-  const progress = weekProgress(sessions, week, undefined, required, lockedRecord);
+  const progress = weekProgress(sessions, week, required, lockedRecord);
   const nextUnpaid = required.find((day) => !isDayDone(day, week, sessions, required));
   const workouts = board?.workouts || [];
   const weekVolume = weekDoneVolume(

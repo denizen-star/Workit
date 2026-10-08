@@ -7,8 +7,9 @@
 // - Diploma tiers are calendar-based (weeks 2 / 4 / 6 ended while still in the run),
 //   awarded compute-on-read like the week podium.
 import { query } from '@/lib/db';
-import { lockedMainWeekCount } from '@/lib/lockedWeeks';
-import { programUnlocked } from '@/lib/programUnlock';
+import { loadWeekSessions } from '@/lib/lockedWeeks';
+import { mainProgramNextDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { closeProgramRun } from '@/lib/morePrograms';
 import { addEasternCalendarDays, calendarDaysBetween, easternMondayKey, easternWeekday, easternYmd } from '@/lib/analyticsTime';
 import {
   OVERLOAD_WEEKS,
@@ -97,11 +98,6 @@ export async function validateOverloadStart(
   return { ok: true };
 }
 
-/** Overload Progressions opens on the same rule as Hyrox: 6 locked main-program
- * weeks (lib/programUnlock.ts). Overload weeks themselves never count toward it. */
-export async function overloadEligible(userId: number): Promise<boolean> {
-  return programUnlocked(await lockedMainWeekCount(userId));
-}
 
 /** Weeks locked in this run (persisted `locked_weeks`, lib/lockedWeeks.ts) — how far
  * the main program jumps ahead on leave, same idea as Hyrox's `hyroxWeeksElapsed`. */
@@ -140,24 +136,41 @@ export async function loadOverloadDiplomas(userId: number): Promise<OverloadDipl
 export async function endOverloadRun(userId: number, state: OverloadStateRow): Promise<number> {
   await awardDueDiplomas(userId, state);
   const resumeWeek = Number(state.normal_week_at_start) + (await overloadWeeksLocked(userId, state.run_number));
-  await query(
-    `UPDATE overload_state
-     SET active = 0, ended_at = NOW(), normal_week_at_start = ?, normal_day_at_start = 1
-     WHERE user_id = ?`,
-    [resumeWeek, userId]
-  );
+  await closeProgramRun(userId, 'overload', resumeWeek);
   return resumeWeek;
 }
 
 /** Floor the 48-week program resumes at once a Hyrox or Overload run has ended —
  * the later of the two, since either may have moved it (1 = no floor). */
 export async function mainResumeFloor(userId: number): Promise<number> {
+  return (await mainResumeFloors([userId])).get(userId) ?? 1;
+}
+
+/** `mainResumeFloor` for several athletes in one read (the daily nudge run). */
+export async function mainResumeFloors(userIds: number[]): Promise<Map<number, number>> {
+  const floors = new Map<number, number>(userIds.map((id) => [id, 1]));
+  if (userIds.length === 0) return floors;
+  const list = userIds.map(() => '?').join(', ');
   const result = await query(
-    `SELECT
-       (SELECT normal_week_at_start FROM hyrox_state WHERE user_id = ? AND active = 0) AS hyrox_floor,
-       (SELECT normal_week_at_start FROM overload_state WHERE user_id = ? AND active = 0) AS overload_floor`,
-    [userId, userId]
+    `SELECT user_id, normal_week_at_start AS floor FROM hyrox_state WHERE active = 0 AND user_id IN (${list})
+     UNION ALL
+     SELECT user_id, normal_week_at_start AS floor FROM overload_state WHERE active = 0 AND user_id IN (${list})`,
+    [...userIds, ...userIds]
   );
-  const row = result.rows[0] as { hyrox_floor?: number | null; overload_floor?: number | null } | undefined;
-  return Math.max(1, Number(row?.hyrox_floor || 1), Number(row?.overload_floor || 1));
+  for (const row of result.rows as { user_id: number; floor: number | null }[]) {
+    const id = Number(row.user_id);
+    floors.set(id, Math.max(floors.get(id) ?? 1, Number(row.floor || 1)));
+  }
+  return floors;
+}
+
+/** Where the main program stands right now, past any earlier floor — what a Hyrox or
+ * Overload start snapshots so the athlete resumes there after leaving. */
+export async function mainProgramSnapshot(
+  userId: number,
+  scheduleDays: number
+): Promise<{ week: number; day: number }> {
+  const [sessions, floor] = await Promise.all([loadWeekSessions(userId, 'main'), mainResumeFloor(userId)]);
+  const position = mainProgramNextDay(sessions as unknown as WorkoutSessionRow[], floor, scheduleDays);
+  return { week: position?.week.weekNumber ?? floor, day: position?.day.dayNumber ?? 1 };
 }

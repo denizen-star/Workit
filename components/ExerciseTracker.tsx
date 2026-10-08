@@ -72,7 +72,7 @@ import { formatWhen } from '@/lib/kpiView';
 import { REST_SECONDS } from '@/lib/estimateDuration';
 import { restSecondsWithExtra } from '@/lib/restPref';
 import { aimEffortText, nextLoadFor, nextLoadLabel, pastTarget } from '@/lib/nextLoad';
-import { isOverloadWeek } from '@/lib/overloadProgram';
+import { trackForWeek } from '@/lib/programTrack';
 import {
   kgFromLbs,
   lbsFromKg,
@@ -1266,7 +1266,7 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
         // double-progression box from the last time this lift ran, in this card's unit
         // (lib/nextLoad.ts). Every other program shows just the Last time chip. Suggest
         // only — prefill is unchanged.
-        const nextLoad = isOverloadWeek(weekNumber)
+        const nextLoad = trackForWeek(weekNumber).aimBox
           ? nextLoadFor({
               name: exercise.name,
               reps: exercise.reps,

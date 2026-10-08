@@ -1,5 +1,5 @@
 import { bonusCount } from '@/lib/bonusDay';
-import { requiredCountForWeek } from '@/lib/scheduleDays';
+import { requiredCountForWeek, clampScheduleDays } from '@/lib/scheduleDays';
 import { OPTIONAL_WEEK_SLOTS, sessionCooldownDone, sessionWarmupDone } from '@/lib/optionals';
 import {
   emptyPerformanceFlags,
@@ -77,8 +77,7 @@ export function performanceFlagsForSessions(
           ? session.completed_at.toISOString()
           : session.completed_at ?? null,
     })),
-    undefined,
-    requiredCountForWeek(Number(sessions[0]?.schedule_days_per_week ?? 4))
+    requiredCountForWeek(clampScheduleDays(sessions[0]?.schedule_days_per_week))
   );
 
   for (const session of sessions) {

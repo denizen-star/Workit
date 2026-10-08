@@ -18,8 +18,7 @@ import YourPickIcon from '@/components/YourPickIcon';
 import YourPickFlow from '@/components/YourPickFlow';
 import YourPickExplainer from '@/components/YourPickExplainer';
 import { applyWorkoutMode, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
-import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
-import { overloadDisplayWeek, overloadProgram } from '@/lib/overloadProgram';
+import { TRACKS, type ProgramTrack } from '@/lib/programTrack';
 import HyroxMilestoneTakeover from '@/components/HyroxMilestoneTakeover';
 import { formatClock } from '@/lib/formatDuration';
 import { estimateWorkoutSeconds, formatEstimateMinutes, REST_SECONDS } from '@/lib/estimateDuration';
@@ -63,11 +62,10 @@ import Modal from '@/components/Modal';
 import StarRating from '@/components/StarRating';
 import { pickBonusCompleteClip, pickCompleteClip, pickExitClip, pickOptionalCompleteClip, pickReplenishLine, pickResumeClip, pickSessionStartCopy } from '@/lib/coachLines';
 import { hydrateCoachCatalog } from '@/lib/coachCatalog';
-import { normalizeCoachTone, type CoachTone } from '@/lib/coachTone';
+import type { CoachTone } from '@/lib/coachTone';
 import { playCompleteChime, playHorn, setCoachVoiceEnabled, setSoundEnabled, unlockAudio } from '@/lib/playChime';
-import { normalizeSoundOn } from '@/lib/soundPref';
-import { normalizeRestExtraMinutes, restSecondsWithExtra } from '@/lib/restPref';
-import { normalizeNoiseLevel, normalizeShowPrs, type NoiseLevel } from '@/lib/noisePref';
+import { restSecondsWithExtra } from '@/lib/restPref';
+import type { NoiseLevel } from '@/lib/noisePref';
 import ModeToggle from '@/components/ModeToggle';
 import { trackAction } from '@/lib/analytics';
 import { beltWashStyle, displayBelt } from '@/lib/belts';
@@ -78,6 +76,28 @@ import type { WorkoutTrend } from '@/lib/athletePerformanceTypes';
 import EditProfileModal from '@/components/EditProfileModal';
 import BodyWeightBanner from '@/components/BodyWeightBanner';
 import { bodyWeightBannerDue } from '@/lib/bodyWeightShared';
+import { profileFromMe } from '@/lib/meProfile';
+
+/** Where the Finish flow is: the star rating, then the recap / coach line / awards screens. */
+type FinishStep = 'rate' | 'recap' | 'complete' | 'awards';
+
+/** Everything the post-Finish screens show, set once when the Finish PUT lands. */
+type FinishResult = {
+  title: string;
+  rows: CompareRow[];
+  line: string;
+  clip?: string;
+  replenish: string;
+  bonus: boolean;
+  bonusCount: number;
+  optionalLbs: number;
+  kickerLbs: number;
+  warmup: boolean;
+  cooldown: boolean;
+  bodyWeightNote: string | null;
+  badges: TakeoverBadge[];
+  belt: TakeoverBelt | null;
+};
 
 function dayModeKey(weekNumber: number, dayNumber: number) {
   return `${weekNumber}-${dayNumber}`;
@@ -119,28 +139,13 @@ function WorkoutPageInner() {
   const [restBannerLift, setRestBannerLift] = useState(0);
   const [confirmRestart, setConfirmRestart] = useState(false);
   const [restartTarget, setRestartTarget] = useState<{ weekNumber: number; dayNumber: number; sessionId?: number } | null>(null);
-  const [confirmComplete, setConfirmComplete] = useState(false);
+  // Finish flow: rate (stars) → recap → complete (coach line) → awards (only if earned).
+  // One step at a time, and one result object, so a new field can't be missed on reset.
+  const [finishStep, setFinishStep] = useState<FinishStep | null>(null);
+  const [finish, setFinish] = useState<FinishResult | null>(null);
   // Complete it: timed "Saving… / Calculating… / Checking…" until the recap is ready.
   const finishSave = useSavingCaption();
   const [completeStars, setCompleteStars] = useState<number | null>(null);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showRecap, setShowRecap] = useState(false);
-  const [showAwards, setShowAwards] = useState(false);
-  const [recapTitle, setRecapTitle] = useState('Workout');
-  const [recapRows, setRecapRows] = useState<CompareRow[]>([]);
-  const [completeLine, setCompleteLine] = useState('');
-  const [completeClip, setCompleteClip] = useState<string | undefined>();
-  const [replenishLine, setReplenishLine] = useState('');
-  const [bonusFinish, setBonusFinish] = useState(false);
-  const [bonusFinishCount, setBonusFinishCount] = useState(0);
-  const [optionalFinishLbs, setOptionalFinishLbs] = useState(0);
-  const [recapWarmup, setRecapWarmup] = useState(false);
-  const [recapCooldown, setRecapCooldown] = useState(false);
-  // Neutral body-weight line from the Finish PUT (null = session had no bodyweight moves).
-  const [recapBodyWeightNote, setRecapBodyWeightNote] = useState<string | null>(null);
-  const [optionalKickerLbs, setOptionalKickerLbs] = useState(0);
-  const [awardedBadges, setAwardedBadges] = useState<TakeoverBadge[]>([]);
-  const [earnedBelt, setEarnedBelt] = useState<TakeoverBelt | null>(null);
   const [showError, setShowError] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const cooldownRef = useRef<HTMLDivElement>(null);
@@ -208,15 +213,14 @@ function WorkoutPageInner() {
   // feed Select Workout + the live session, with the same red wash as Hyrox.
   const [overloadRun, setOverloadRun] = useState(0);
   const overloadMode = overloadRun > 0;
-  /** Either opt-in track: no Your pick, no Test Drive block, red wash. */
-  const trackMode = hyroxMode || overloadMode;
-  const program = hyroxMode
-    ? hyroxProgram
-    : overloadMode
-      ? overloadProgram(overloadRun, scheduleDays)
-      : workoutProgram;
-  const displayWeek = (weekNumber: number) =>
-    hyroxMode ? hyroxDisplayWeek(weekNumber) : overloadMode ? overloadDisplayWeek(weekNumber) : weekNumber;
+  // The track this page is running (lib/programTrack.ts): its weeks, display numbers
+  // and what it offers (Your pick, Test Drive). Either opt-in track gets the red wash.
+  const activeTrack: ProgramTrack = hyroxMode ? 'hyrox' : overloadMode ? 'overload' : 'main';
+  const track = TRACKS[activeTrack];
+  /** Either opt-in track wears the red wash instead of the belt wash. */
+  const redWash = activeTrack !== 'main';
+  const program = track.program(overloadRun, scheduleDays);
+  const displayWeek = track.displayWeek;
 
   useWakeLock(!!currentSession);
   usePortraitLock(!!currentSession);
@@ -248,19 +252,19 @@ function WorkoutPageInner() {
         setOverloadRun(overloadData?.running ? Number(overloadData.run) || 0 : 0);
         setHyroxLoaded(true);
         if (data?.user) {
-          setAthleteName(data.user.name || '');
-          setBodyWeightLb(data.user.bodyWeightLb == null ? null : Number(data.user.bodyWeightLb));
-          setCoachTone(normalizeCoachTone(data.user.coachTone));
-          const enabled = normalizeSoundOn(data.user.soundOn);
-          setSoundOn(enabled);
-          setSoundEnabled(enabled);
-          setCoachVoiceEnabled(normalizeSoundOn(data.user.coachVoiceOn));
-          setRestExtraMinutes(normalizeRestExtraMinutes(data.user.restExtraMinutes));
-          setNoiseTakeover(normalizeNoiseLevel(data.user.noiseTakeover));
-          setNoiseEffort(normalizeNoiseLevel(data.user.noiseEffort));
-          setShowPrs(normalizeShowPrs(data.user.showPrs));
-          setScheduleDays(clampScheduleDays(data.user.scheduleDaysPerWeek));
-          setUserGender(data.user.gender);
+          const profile = profileFromMe(data.user);
+          setAthleteName(profile.name);
+          setBodyWeightLb(profile.bodyWeightLb);
+          setCoachTone(profile.coachTone);
+          setSoundOn(profile.soundOn);
+          setSoundEnabled(profile.soundOn);
+          setCoachVoiceEnabled(profile.coachVoiceOn);
+          setRestExtraMinutes(profile.restExtraMinutes);
+          setNoiseTakeover(profile.noiseTakeover);
+          setNoiseEffort(profile.noiseEffort);
+          setShowPrs(profile.showPrs);
+          setScheduleDays(profile.scheduleDaysPerWeek);
+          setUserGender(profile.gender);
         }
         if (catalog) hydrateCoachCatalog(catalog);
       })
@@ -419,11 +423,13 @@ function WorkoutPageInner() {
     });
   }, [hyroxLoaded]);
 
-  const loadSessions = async () => {
+  /** `history: false` skips the completed log — only a Finish changes it, so Start,
+   * resume and Restart don't need to re-read every completed set. */
+  const loadSessions = async ({ history = true }: { history?: boolean } = {}) => {
     try {
       const [response, historyRes] = await Promise.all([
         fetch('/api/sessions'),
-        fetch('/api/sessions?history=1'),
+        history ? fetch('/api/sessions?history=1') : null,
       ]);
       if (response.ok) {
         const data = await response.json();
@@ -443,12 +449,11 @@ function WorkoutPageInner() {
         );
         if (!selectWeekInit.current) {
           selectWeekInit.current = true;
-          let opened = overloadMode
-            ? defaultSelectWeek(rows, program)
-            : defaultSelectWeek(rows, workoutProgram, 1, daysForWeekFn(scheduleDays));
+          // The day count asks each week's own track, so this fits every track.
+          let opened = defaultSelectWeek(rows, program, 1, daysForWeekFn(scheduleDays));
           // Weekend hold: Home stays on the locked week through Sunday. Open that
           // week here too, so Add a workout files on it instead of the next one.
-          if (!overloadMode && opened != null) {
+          if (track.yourPick && opened != null) {
             const filing = yourPickCurrentWeek(
               rows,
               (data.lockedWeeksDetail || []).map(
@@ -459,7 +464,7 @@ function WorkoutPageInner() {
           }
           setExpandedWeek(opened);
         }
-        if (historyRes.ok) {
+        if (historyRes?.ok) {
           const historyData = await historyRes.json();
           setHistorySessions(
             Array.isArray(historyData?.sessions) ? historyData.sessions : []
@@ -492,12 +497,9 @@ function WorkoutPageInner() {
     options?: { forceNew?: boolean; mode?: WorkoutMode; pick?: YourPickChoice }
   ) => {
     try {
-      const week = program.find((item) => item.weekNumber === weekNumber);
-      // Full-body days (6-8), Your pick days (20-24) and retired bonus days aren't
-      // in the static program array — they're synthesized/legacy (lib/resolveDay.ts)
-      // — so a plain array lookup always misses them. Without this fallback, this
-      // silently no-ops: the athlete clicks Start and nothing happens.
-      const day = week?.days.find((item) => item.dayNumber === dayNumber) ?? resolveSessionDay(weekNumber, dayNumber);
+      // One resolver for every track and day family (lib/resolveDay.ts) — a plain
+      // program-array lookup misses full-body / Your pick / retired days and Start no-ops.
+      const day = resolveSessionDay(weekNumber, dayNumber);
       if (!day) return;
 
       if (!options?.forceNew) {
@@ -537,7 +539,7 @@ function WorkoutPageInner() {
       if (response.ok) {
         const data = await response.json();
         if (data.alreadyOpen) {
-          const rows = await loadSessions();
+          const rows = await loadSessions({ history: false });
           openExistingSession(rows || [], Number(data.sessionId));
           return;
         }
@@ -549,7 +551,7 @@ function WorkoutPageInner() {
         setWorkoutMode(mode);
         setStartedAt(Date.now());
         setPendingSessionStart(true);
-        await loadSessions();
+        await loadSessions({ history: false });
       } else {
         // Your pick rejections (future week, day already started, one mark-done a
         // day) carry a plain reason — show it instead of the generic retry line.
@@ -569,9 +571,9 @@ function WorkoutPageInner() {
     }
   };
 
-  const loadWorkoutRecap = async (workoutType: string | null) => {
-    const short = (workoutType || 'Workout').replace(' Body ', ' ');
-    setRecapTitle(short);
+  /** The recap screen's title and rows (This | Last per lift, plus a Skipped row). */
+  const loadWorkoutRecap = async (workoutType: string | null): Promise<{ title: string; rows: CompareRow[] }> => {
+    const title = (workoutType || 'Workout').replace(' Body ', ' ');
     // The board is a whole-history read and can be slow or time out right after Finish
     // (cold function + the Finish PUT's own work), so a miss retries once.
     const fetchBoard = () =>
@@ -614,9 +616,9 @@ function WorkoutPageInner() {
       const liftRows = match
         ? recapExerciseRows(match.exercises || [])
         : recapRowsFromSets(sets.filter((set) => Number(set.is_completed) && !setIsSkipped(set)));
-      setRecapRows([...liftRows, ...(skippedRow ? [skippedRow] : [])]);
+      return { title, rows: [...liftRows, ...(skippedRow ? [skippedRow] : [])] };
     } catch {
-      setRecapRows([]);
+      return { title, rows: [] };
     }
   };
 
@@ -626,19 +628,8 @@ function WorkoutPageInner() {
     const finishedMilestone = finishedMilestoneNumber
       ? { number: finishedMilestoneNumber, weekNumber: selectedWeek, dayNumber: selectedDay as number }
       : null;
-    setShowRecap(false);
-    setShowSuccess(false);
-    setShowAwards(false);
-    setRecapRows([]);
-    setBonusFinish(false);
-    setBonusFinishCount(0);
-    setOptionalFinishLbs(0);
-    setRecapWarmup(false);
-    setRecapCooldown(false);
-    setRecapBodyWeightNote(null);
-    setOptionalKickerLbs(0);
-    setAwardedBadges([]);
-    setEarnedBelt(null);
+    setFinishStep(null);
+    setFinish(null);
     setCurrentSession(null);
     setSelectedDay(null);
     setStartedAt(null);
@@ -678,15 +669,11 @@ function WorkoutPageInner() {
     router.push('/home');
   };
 
-  const openCoachLine = () => {
-    setShowRecap(false);
-    setShowSuccess(true);
-  };
+  const finishEarned = Boolean(finish && (finish.belt || finish.badges.length > 0));
 
   const openAwardsOrHome = () => {
-    setShowSuccess(false);
-    if (earnedBelt || awardedBadges.length > 0) {
-      setShowAwards(true);
+    if (finishEarned) {
+      setFinishStep('awards');
       return;
     }
     leaveWorkout();
@@ -717,7 +704,7 @@ function WorkoutPageInner() {
       }
 
       trackAction('workout_restart', { category: 'workout' });
-      await loadSessions();
+      await loadSessions({ history: false });
       setCurrentSession(null);
       setSelectedDay(null);
       setStartedAt(null);
@@ -783,33 +770,35 @@ function WorkoutPageInner() {
 
       const data = await response.json().catch(() => ({ awardedBadges: [] }));
       await loadSessions();
-      setAwardedBadges(Array.isArray(data.awardedBadges) ? data.awardedBadges : []);
-      setEarnedBelt(data.earnedBelt || null);
       const finishedBonus = Boolean(data.bonus);
-      setBonusFinish(finishedBonus);
-      setBonusFinishCount(Number(data.bonusCount || 0));
       const optionalLbs = Number(data.optionalLbs || 0);
-      const kickerLbs = Number(data.kickerLbs || 0);
       const finished = sessions.find((session) => Number(session.id) === currentSession);
-      setOptionalFinishLbs(optionalLbs);
-      setRecapWarmup(finished ? sessionWarmupDone(finished) : false);
-      setRecapCooldown(finished ? sessionCooldownDone(finished) : false);
-      setOptionalKickerLbs(kickerLbs);
-      setRecapBodyWeightNote(typeof data.bodyWeightNote === 'string' ? data.bodyWeightNote : null);
       const spoken =
         optionalLbs > 0
           ? pickOptionalCompleteClip(coachTone, athleteName)
           : finishedBonus
             ? pickBonusCompleteClip(coachTone, athleteName)
             : pickCompleteClip(coachTone, athleteName);
-      setCompleteLine(spoken.text);
-      setCompleteClip(spoken.clipTemplate);
-      setReplenishLine(pickReplenishLine());
-      await loadWorkoutRecap(getCurrentWorkout()?.name || null);
-      // The modal stays up (saving) until the recap is ready, so there's no blank gap.
-      setConfirmComplete(false);
+      const recap = await loadWorkoutRecap(getCurrentWorkout()?.name || null);
+      setFinish({
+        ...recap,
+        line: spoken.text,
+        clip: spoken.clipTemplate,
+        replenish: pickReplenishLine(),
+        bonus: finishedBonus,
+        bonusCount: Number(data.bonusCount || 0),
+        optionalLbs,
+        kickerLbs: Number(data.kickerLbs || 0),
+        warmup: finished ? sessionWarmupDone(finished) : false,
+        cooldown: finished ? sessionCooldownDone(finished) : false,
+        // Neutral body-weight line from the Finish PUT (null = no bodyweight moves).
+        bodyWeightNote: typeof data.bodyWeightNote === 'string' ? data.bodyWeightNote : null,
+        badges: Array.isArray(data.awardedBadges) ? data.awardedBadges : [],
+        belt: data.earnedBelt || null,
+      });
+      // The rating modal stays up (saving) until the recap is ready, so there's no blank gap.
       setCompleteStars(null);
-      setShowRecap(true);
+      setFinishStep('recap');
     } catch (error) {
       console.error('Error completing workout:', error);
       setErrorMessage('Could not save the completed workout. Try again.');
@@ -917,14 +906,9 @@ function WorkoutPageInner() {
     );
   };
 
-  const getCurrentWorkout = () => {
-    const week = program.find((item) => item.weekNumber === selectedWeek);
-    const found = week?.days.find((item) => item.dayNumber === selectedDay);
-    // Same fallback as startWorkout() above — without it, the live session for a
-    // full-body / Your pick / legacy bonus day renders blank (`if (!workout) return
-    // null` below reads as a dead page, not an error).
-    return found ?? (selectedDay != null ? resolveSessionDay(selectedWeek, selectedDay) : undefined);
-  };
+  // Same resolver as startWorkout() — the live session renders whatever day the row is.
+  const getCurrentWorkout = () =>
+    selectedDay != null ? resolveSessionDay(selectedWeek, selectedDay) : undefined;
 
   const pickedMode = (weekNumber: number, dayNumber: number, incomplete?: WorkoutSessionRow | null) => {
     if (incomplete) return normalizeWorkoutMode(incomplete.workout_mode);
@@ -934,7 +918,52 @@ function WorkoutPageInner() {
   // Post-finish sequence: star rating -> Recap -> Complete -> Awards. Awards
   // only shows when something was earned, so the stepper's total reflects
   // that instead of always counting a screen that may not appear.
-  const finishTotalSteps = 3 + (earnedBelt || awardedBadges.length > 0 ? 1 : 0);
+  const finishTotalSteps = 3 + (finishEarned ? 1 : 0);
+
+  /** Recap → Complete → Awards, shared by the live session and the Your pick flow. */
+  const renderFinishTakeovers = () =>
+    finish ? (
+      <>
+        <WorkoutRecapTakeover
+          open={finishStep === 'recap'}
+          title={finish.title}
+          rows={finish.rows}
+          tone={coachTone}
+          optionalLbs={finish.optionalLbs}
+          warmup={finish.warmup}
+          cooldown={finish.cooldown}
+          bodyWeightNote={finish.bodyWeightNote}
+          step={2}
+          totalSteps={finishTotalSteps}
+          onClose={() => setFinishStep('complete')}
+        />
+        <CompleteTakeover
+          open={finishStep === 'complete'}
+          line={finish.line}
+          clipTemplate={finish.clip}
+          tone={coachTone}
+          replenish={finish.replenish}
+          bonus={finish.bonus}
+          bonusCount={finish.bonusCount}
+          optionalLbs={finish.optionalLbs}
+          kickerLbs={finish.kickerLbs}
+          step={3}
+          totalSteps={finishTotalSteps}
+          onClose={openAwardsOrHome}
+        />
+        <AwardsTakeover
+          open={finishStep === 'awards'}
+          belt={finish.belt}
+          badges={finish.badges}
+          accent={displayBelt(lockedWeeks, userGender)}
+          tone={coachTone}
+          step={4}
+          totalSteps={finishTotalSteps}
+          gender={userGender}
+          onClose={leaveWorkout}
+        />
+      </>
+    ) : null;
 
   if (currentSession && selectedDay) {
     const workout = getCurrentWorkout();
@@ -949,8 +978,8 @@ function WorkoutPageInner() {
         : null;
     return (
       <div
-        className={trackMode ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
-        style={trackMode ? undefined : { background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
+        className={redWash ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
+        style={redWash ? undefined : { background: wash.background, ['--belt-rgb' as string]: wash.rgb }}
       >
         <header className="glass-header sticky top-0 z-10" style={{ borderBottomColor: wash.borderColor }}>
           <div className="container mx-auto px-4 py-2.5 sm:py-4">
@@ -1086,7 +1115,7 @@ function WorkoutPageInner() {
               <button
                 type="button"
                 disabled={pickHardness == null}
-                onClick={() => setConfirmComplete(true)}
+                onClick={() => setFinishStep('rate')}
                 className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404] disabled:opacity-40"
               >
                 Finish it
@@ -1138,7 +1167,7 @@ function WorkoutPageInner() {
             type="button"
             onClick={() => {
               exerciseTrackerRef.current?.cancelMotivator();
-              setConfirmComplete(true);
+              setFinishStep('rate');
             }}
             className="flex min-h-14 w-full items-center justify-center rounded-2xl bg-[#e8c547] text-base font-black text-[#1a1404]"
           >
@@ -1181,44 +1210,7 @@ function WorkoutPageInner() {
             if (profile.bodyWeightLb !== undefined) setBodyWeightLb(profile.bodyWeightLb);
           }}
         />
-        <WorkoutRecapTakeover
-          open={showRecap}
-          title={recapTitle}
-          rows={recapRows}
-          tone={coachTone}
-          optionalLbs={optionalFinishLbs}
-          warmup={recapWarmup}
-          cooldown={recapCooldown}
-          bodyWeightNote={recapBodyWeightNote}
-          step={2}
-          totalSteps={finishTotalSteps}
-          onClose={openCoachLine}
-        />
-        <CompleteTakeover
-          open={showSuccess}
-          line={completeLine}
-          clipTemplate={completeClip}
-          tone={coachTone}
-          replenish={replenishLine}
-          bonus={bonusFinish}
-          bonusCount={bonusFinishCount}
-          optionalLbs={optionalFinishLbs}
-          kickerLbs={optionalKickerLbs}
-          step={3}
-          totalSteps={finishTotalSteps}
-          onClose={openAwardsOrHome}
-        />
-        <AwardsTakeover
-          open={showAwards}
-          belt={earnedBelt}
-          badges={awardedBadges}
-          accent={displayBelt(lockedWeeks, userGender)}
-          tone={coachTone}
-          step={4}
-          totalSteps={finishTotalSteps}
-          gender={userGender}
-          onClose={leaveWorkout}
-        />
+        {renderFinishTakeovers()}
 
         <Modal
           open={confirmRestart}
@@ -1236,7 +1228,7 @@ function WorkoutPageInner() {
         </Modal>
 
         <Modal
-          open={confirmComplete}
+          open={finishStep === 'rate'}
           title="Mark this workout complete?"
           cancelLabel="Not yet"
           confirmLabel="Complete it"
@@ -1245,7 +1237,7 @@ function WorkoutPageInner() {
           busy={finishSave.saving}
           busyLabel={finishSave.caption}
           onCancel={() => {
-            setConfirmComplete(false);
+            setFinishStep(null);
             setCompleteStars(null);
           }}
           onConfirm={completeWorkout}
@@ -1313,7 +1305,7 @@ function WorkoutPageInner() {
       coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
         day.dayNumber
       );
-    if (!trackMode && (isYourPickSlot(day) || coveredByPick)) {
+    if (track.yourPick && (isYourPickSlot(day) || coveredByPick)) {
       return renderPickTile(week.weekNumber, day, coveredByPick || isCompleted);
     }
     const dayHistory = historySessions.filter(
@@ -1431,7 +1423,7 @@ function WorkoutPageInner() {
                 Restart
               </button>
             )}
-            {!trackMode &&
+            {track.yourPick &&
             !testDriveDay &&
             !incomplete &&
             pickAllowed(week.weekNumber) &&
@@ -1481,8 +1473,8 @@ function WorkoutPageInner() {
 
       <div className="container mx-auto px-4 py-8">
         <div className="mx-auto max-w-4xl space-y-4">
-          {trackMode ? null : renderTestDrive()}
-          {trackMode || testDrive?.active ? null : (
+          {track.testDrive ? renderTestDrive() : null}
+          {!track.yourPick || testDrive?.active ? null : (
             <YourPickExplainer requiredCount={clampScheduleDays(scheduleDays)} />
           )}
           {/* Program weeks wait for Monday during a Test Drive (the server refuses those starts). */}
@@ -1503,7 +1495,6 @@ function WorkoutPageInner() {
                       weekProgress(
                         sessions,
                         week,
-                        undefined,
                         daysForWeekFn(scheduleDays)(week),
                         lockedWeeksDetail.get(week.weekNumber)
                       )
@@ -1524,7 +1515,7 @@ function WorkoutPageInner() {
                   <div className="grid gap-3">
                     {athleteWeekDays(week, scheduleDays).map((day) => renderDayCard(week, day))}
                   </div>
-                  {trackMode ? null : renderYourPickSection(week.weekNumber)}
+                  {track.yourPick ? renderYourPickSection(week.weekNumber) : null}
                 </div>
               )}
             </div>
@@ -1570,43 +1561,7 @@ function WorkoutPageInner() {
       />
       ) : null}
 
-      <WorkoutRecapTakeover
-        open={showRecap}
-        title={recapTitle}
-        rows={recapRows}
-        tone={coachTone}
-        optionalLbs={optionalFinishLbs}
-        warmup={recapWarmup}
-        cooldown={recapCooldown}
-        bodyWeightNote={recapBodyWeightNote}
-        step={2}
-        totalSteps={finishTotalSteps}
-        onClose={openCoachLine}
-      />
-      <CompleteTakeover
-        open={showSuccess}
-        line={completeLine}
-        clipTemplate={completeClip}
-        tone={coachTone}
-        replenish={replenishLine}
-        bonus={bonusFinish}
-        bonusCount={bonusFinishCount}
-        optionalLbs={optionalFinishLbs}
-        kickerLbs={optionalKickerLbs}
-        step={3}
-        totalSteps={finishTotalSteps}
-        onClose={openAwardsOrHome}
-      />
-      <AwardsTakeover
-        open={showAwards}
-        belt={earnedBelt}
-        badges={awardedBadges}
-        accent={displayBelt(lockedWeeks)}
-        tone={coachTone}
-        step={4}
-        totalSteps={finishTotalSteps}
-        onClose={leaveWorkout}
-      />
+      {renderFinishTakeovers()}
 
       <Modal
         open={showError}

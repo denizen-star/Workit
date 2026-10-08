@@ -5,6 +5,34 @@
  * server-side banner check lives in lib/programBanner.ts.
  */
 
+import type { OptInTrack } from '@/lib/programTrack';
+
+/** Every More program, in menu order, with the name athletes see. */
+export const MORE_PROGRAMS: { track: OptInTrack; label: string }[] = [
+  { track: 'hyrox', label: 'Hyrox Training' },
+  { track: 'overload', label: 'Overload Progressions' },
+];
+
+export function programLabel(track: OptInTrack): string {
+  return MORE_PROGRAMS.find((program) => program.track === track)?.label ?? track;
+}
+
+/** Home's hand-off link for a More program (the menu on any other page). Home also
+ * still reads the older `?hyrox=1` / `?overload=1` links. */
+export function programIntroHref(track: OptInTrack): string {
+  return `/home?program=${track}`;
+}
+
+/** The More program a Home URL hands off to: `?program=<track>`, or the older
+ * `?hyrox=1` / `?overload=1` links already out there. */
+export function programFromSearch(search: string): OptInTrack | null {
+  const params = new URLSearchParams(search);
+  const named = params.get('program');
+  const tracks = MORE_PROGRAMS.map((program) => program.track);
+  if (named && (tracks as string[]).includes(named)) return named as OptInTrack;
+  return tracks.find((track) => params.get(track) === '1') ?? null;
+}
+
 /** Locked main-program weeks (1–48, `locked_weeks`) that open every More program. */
 export const PROGRAM_UNLOCK_LOCKED_WEEKS = 6;
 

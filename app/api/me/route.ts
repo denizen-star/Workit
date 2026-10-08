@@ -8,11 +8,8 @@ import {
   isValidPin,
   soundCookieOptions,
   toneCookieOptions,
-  updateCoachTone,
-  updateCoachVoiceOn,
+  updateProfilePrefs,
   updateSoundOn,
-  updateRestExtraMinutes,
-  updateNoisePrefs,
   updateScheduleDaysPerWeek,
   markScheduleDaysAsked,
   updateGender,
@@ -222,12 +219,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     const weightLogged = await logBodyWeightChange(user.id, user.bodyWeightLb, weight, 'profile');
-    await updateCoachTone(user.id, coachTone);
-    await updateSoundOn(user.id, soundOn);
-    await updateCoachVoiceOn(user.id, coachVoiceOn);
-    await updateRestExtraMinutes(user.id, restExtraMinutes);
-    await updateScheduleDaysPerWeek(user.id, scheduleDaysPerWeek);
-    await updateNoisePrefs(user.id, { noiseTakeover, noiseEffort, showPrs });
+    await updateProfilePrefs(user.id, {
+      coachTone,
+      soundOn,
+      coachVoiceOn,
+      restExtraMinutes,
+      scheduleDaysPerWeek,
+      noiseTakeover,
+      noiseEffort,
+      showPrs,
+    });
     const cookieStore = await cookies();
     const toneCookie = toneCookieOptions(coachTone);
     cookieStore.set(toneCookie.name, toneCookie.value, toneCookie);

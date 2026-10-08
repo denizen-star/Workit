@@ -1,5 +1,6 @@
-import { getRetiredDay, getWorkoutDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
+import { getRetiredDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { isYourPickSlot, sessionIsYourPick } from '@/lib/yourPick';
+import { resolveSessionDay } from '@/lib/resolveDay';
 
 type SessionLike = {
   week_number: number;
@@ -47,18 +48,10 @@ export function requiredDays(week: WeekPlan): WorkoutDay[] {
 /** Session is a retired bonus day (Bonus Upper / Bonus Core / a marked class) if the
  * type says so, or its program day was flagged. Bonus days are no longer offered
  * (Your pick replaced them), so this only ever matches sessions logged before that —
- * `getWorkoutDay` still resolves those legacy days for the default program. */
-export function sessionIsBonus(
-  session: Pick<SessionLike, 'week_number' | 'day_number' | 'workout_type'>,
-  program: WeekPlan[] = workoutProgram
-): boolean {
+ * `resolveSessionDay` still resolves those legacy days. */
+export function sessionIsBonus(session: Pick<SessionLike, 'week_number' | 'day_number' | 'workout_type'>): boolean {
   if (isBonusWorkoutType(session.workout_type)) return true;
-  const day =
-    program === workoutProgram
-      ? getWorkoutDay(Number(session.week_number), Number(session.day_number))
-      : program
-          .find((item) => item.weekNumber === Number(session.week_number))
-          ?.days.find((item) => item.dayNumber === Number(session.day_number));
+  const day = resolveSessionDay(Number(session.week_number), Number(session.day_number));
   return Boolean(day && isBonusDay(day));
 }
 
@@ -130,27 +123,22 @@ export function yourPickCountInWeek(sessions: SessionLike[], weekNumber: number)
 export function weekBonusDone(
   sessions: SessionLike[],
   weekNumber: number,
-  requiredCount: number,
-  program: WeekPlan[] = workoutProgram
+  requiredCount: number
 ): boolean {
   return isBonusWeek(
     {
       completed: completedInWeek(sessions, weekNumber).length,
       picks: yourPickCountInWeek(sessions, weekNumber),
-      legacyBonus: bonusCompletedInWeek(sessions, weekNumber, program) ? 1 : 0,
+      legacyBonus: bonusCompletedInWeek(sessions, weekNumber) ? 1 : 0,
     },
     requiredCount
   );
 }
 
-/** requiredCount defaults to the normal program's fixed 4; pass a week-specific
- * count (e.g. `requiredDays(week).length`) for a program whose weeks don't all
- * have the same required-day count, like Hyrox's 5-day weeks. */
-export function weekLocked(
-  sessions: SessionLike[],
-  weekNumber: number,
-  requiredCount = REQUIRED_DAYS_TO_LOCK
-): boolean {
+/** `requiredCount` is that week's bar for this athlete (`requiredCountForWeek`, or the
+ * length of `athleteRequiredDays`) — never assumed, so a forgotten argument can't
+ * silently apply the old flat 4. */
+export function weekLocked(sessions: SessionLike[], weekNumber: number, requiredCount: number): boolean {
   return completedInWeek(sessions, weekNumber).length >= requiredCount;
 }
 
@@ -170,12 +158,8 @@ export function lockedWeekStreak(lockedWeekNumbers: Iterable<number>): number {
   return streak;
 }
 
-export function bonusCompletedInWeek(
-  sessions: SessionLike[],
-  weekNumber: number,
-  program: WeekPlan[] = workoutProgram
-): boolean {
-  return completedInWeek(sessions, weekNumber).some((session) => sessionIsBonus(session, program));
+export function bonusCompletedInWeek(sessions: SessionLike[], weekNumber: number): boolean {
+  return completedInWeek(sessions, weekNumber).some((session) => sessionIsBonus(session));
 }
 
 /**
@@ -194,7 +178,6 @@ export function isBonusWeek(
  * `requiredForWeek`, only retired bonus sessions count (the pre-Your pick rule). */
 export function bonusCount(
   sessions: SessionLike[],
-  program: WeekPlan[] = workoutProgram,
   requiredForWeek?: (weekNumber: number) => number
 ): number {
   const weeks = new Map<number, { completed: number; picks: number; legacyBonus: number }>();
@@ -204,7 +187,7 @@ export function bonusCount(
     const tally = weeks.get(week) || { completed: 0, picks: 0, legacyBonus: 0 };
     tally.completed += 1;
     if (sessionIsYourPick(session)) tally.picks += 1;
-    if (sessionIsBonus(session, program)) tally.legacyBonus += 1;
+    if (sessionIsBonus(session)) tally.legacyBonus += 1;
     weeks.set(week, tally);
   }
   let count = 0;
@@ -218,11 +201,9 @@ export function bonusCount(
 export function weekProgress(
   sessions: SessionLike[],
   week: WeekPlan,
-  program: WeekPlan[] = workoutProgram,
-  /** Which days count as required for this athlete's week. Defaults to the
-   * program's own non-bonus days; pass `athleteRequiredDays(week, scheduleDays)`
-   * (`lib/scheduleDays.ts`) to honor a chosen day count instead. */
-  required: WorkoutDay[] = requiredDays(week),
+  /** Which days count as required for this athlete's week:
+   * `athleteRequiredDays(week, scheduleDays)` (`lib/scheduleDays.ts`). */
+  required: WorkoutDay[],
   /** Persisted `locked_weeks` row for this week, if any (`lib/lockedWeeks.ts`).
    * A week that already locked did so under whatever day count was required at
    * the time — if `schedule_days_per_week` changes later, `required` above no
@@ -235,7 +216,7 @@ export function weekProgress(
     return {
       requiredDone: Math.min(lockedRecord.completedCount, lockedRecord.requiredCount),
       requiredTotal: lockedRecord.requiredCount,
-      bonusDone: weekBonusDone(sessions, week.weekNumber, lockedRecord.requiredCount, program),
+      bonusDone: weekBonusDone(sessions, week.weekNumber, lockedRecord.requiredCount),
     };
   }
   const { covered, spareAdds } = weekCoverage(sessions, week.weekNumber, required);
@@ -244,7 +225,7 @@ export function weekProgress(
   return {
     requiredDone: Math.min(required.length, coveredRequired + spareAdds),
     requiredTotal: required.length,
-    bonusDone: weekBonusDone(sessions, week.weekNumber, required.length, program),
+    bonusDone: weekBonusDone(sessions, week.weekNumber, required.length),
   };
 }
 

@@ -26,6 +26,7 @@ import {
 } from '@/lib/emails/templates';
 import { sqlSetCounts } from '@/lib/skippedSets';
 import { SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
+import { clampScheduleDays } from '@/lib/scheduleDays';
 
 export const ONBOARDING_WINDOW_DAYS = 14;
 const FUNNEL_DAYS = 7;
@@ -319,7 +320,7 @@ async function athleteRow(
   const signedIn = Boolean(user.quickstart_seen_at) || lastSeenMs != null || sessions.length > 0;
   const blocked = Boolean(user.blocked_at);
   const days = daysAgo(joinedMs, now) ?? 0;
-  const perWeek = Number(user.schedule_days_per_week || 4);
+  const perWeek = clampScheduleDays(user.schedule_days_per_week);
 
   const steps = [
     { label: 'Joined', done: true },

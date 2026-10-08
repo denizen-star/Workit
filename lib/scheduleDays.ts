@@ -1,5 +1,5 @@
 import { requiredDays } from '@/lib/bonusDay';
-import { isOverloadWeek } from '@/lib/overloadProgram';
+import { trackForWeek } from '@/lib/programTrack';
 import { getLegacyBonusDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { FULL_BODY_PACKS, YOUR_PICK_SLOT_DAYS, yourPickSlotDay } from '@/lib/yourPick';
 
@@ -62,10 +62,9 @@ function weekCap(week: WeekPlan): number {
  * (lib/yourPick.ts) is open to every athlete on top of these.
  */
 export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
-  // Overload Progressions weeks are already built from the athlete's count
-  // (lib/overloadProgram.ts `overloadWeekPlan`) — never swap in main-program
-  // full-body days or Your pick slots.
-  if (isOverloadWeek(week.weekNumber)) return requiredDays(week);
+  // Only the main program is reshaped by the day count. Overload weeks are already
+  // built from it and Hyrox weeks are fixed (lib/programTrack.ts `reshapesWeek`).
+  if (!trackForWeek(week.weekNumber).reshapesWeek) return requiredDays(week);
   const count = clampScheduleDays(scheduleDays);
   if (count >= DEFAULT_SCHEDULE_DAYS) {
     const split = requiredDays(week);
@@ -133,17 +132,14 @@ export function isScheduleDaysAskWeek(weekNumber: number): boolean {
 }
 
 /** How many completed sessions week `weekNumber` needs to lock, for this athlete's
- * chosen count. Looks the week up in `workoutProgram` (falls back to `scheduleDays`
- * itself — capped at 4 — for anything outside the normal 1-48 range, e.g. Hyrox's
- * own 101+ weeks, which should never reach this path but stay safe if they do).
+ * chosen count: that week's required days on its own track (lib/programTrack.ts) —
+ * Overload weeks need the athlete's count, Hyrox weeks all 5. Falls back to the count
+ * itself (capped at 4) for a week no track has, e.g. Test Drive's week 0.
  * For passing into `recordWeekLockIfNeeded` (`lib/lockedWeeks.ts`) and similar
  * per-week-count SQL. */
 export function requiredCountForWeek(scheduleDays: number): (weekNumber: number) => number {
   return (weekNumber) => {
-    // Overload Progressions weeks (201+) need exactly the athlete's count (1-5) —
-    // their split is built from it (lib/overloadProgram.ts `overloadWeekPlan`).
-    if (isOverloadWeek(weekNumber)) return clampScheduleDays(scheduleDays);
-    const week = workoutProgram.find((item) => item.weekNumber === weekNumber);
+    const week = trackForWeek(weekNumber).weekPlan(weekNumber, scheduleDays);
     return week ? athleteRequiredDays(week, scheduleDays).length : Math.min(scheduleDays, DEFAULT_SCHEDULE_DAYS);
   };
 }

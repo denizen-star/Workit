@@ -17,14 +17,16 @@ import {
 } from '@/lib/emails/templates';
 import { createEmailVerifyToken } from '@/lib/emailVerify';
 import { BELTS, getBelts } from '@/lib/belts';
-import { findNextProgramDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { mainProgramNextDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
+import { mainResumeFloor } from '@/lib/overloadState';
 import { claimUrl, resetUrl } from '@/lib/emailLayout';
 import { feedbackMailTo } from '@/lib/emails/feedback';
-import { clampScheduleDays, daysForWeekFn } from '@/lib/scheduleDays';
-import { lockedWeekCountFromTable } from '@/lib/lockedWeeks';
+import { clampScheduleDays } from '@/lib/scheduleDays';
+import { lockedWeekRecords } from '@/lib/lockedWeeks';
 import { sessionBodyWeightNote } from '@/lib/bodyWeight';
 import { SQL_NOT_JOIN_DRAFT } from '@/lib/householdUsers';
 import { sqlSetCounts } from '@/lib/skippedSets';
+import { MAIN_PROGRAM_WEEKS, programTrackForWeek } from '@/lib/programTrack';
 
 const BADGE_EMAIL_TYPES = new Set([
   'streak',
@@ -237,27 +239,38 @@ export async function sendWorkoutCompleteBundle(opts: {
 }) {
   if (!opts.email) return;
 
-  const totals = await query(
-    `SELECT
-       COALESCE(SUM(CASE WHEN ${sqlSetCounts()} THEN ${sqlSetVolume()} ELSE 0 END), 0)
-         + (SELECT ${sqlSessionOptionalVolume('ws')} FROM workout_sessions ws WHERE ws.id = ?) as volume,
-       COUNT(CASE WHEN ${sqlSetCounts()} THEN id END) as set_count,
-       COUNT(DISTINCT CASE WHEN ${sqlSetCounts()} THEN exercise_name END) as exercise_count,
-       COUNT(CASE WHEN is_skipped = 1 THEN id END) as skipped_count
-     FROM exercise_sets
-     WHERE workout_session_id = ? AND is_completed = 1`,
-    [opts.sessionId, opts.sessionId]
-  );
-  const timing = await query(
-    `SELECT TIMESTAMPDIFF(SECOND, started_at, ended_at) as duration_seconds
-     FROM workout_sessions WHERE id = ? AND user_id = ?`,
-    [opts.sessionId, opts.userId]
-  );
-  const sessions = await query(
-    'SELECT id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ?',
-    [opts.userId]
-  );
-  const userRow = await query('SELECT schedule_days_per_week, gender FROM users WHERE id = ?', [opts.userId]);
+  // Every read here is independent, so they go out in one batch.
+  const [totals, timing, sessions, userRow, lockRecords, , tone, resumeFloor] = await Promise.all([
+    query(
+      `SELECT
+         COALESCE(SUM(CASE WHEN ${sqlSetCounts()} THEN ${sqlSetVolume()} ELSE 0 END), 0)
+           + (SELECT ${sqlSessionOptionalVolume('ws')} FROM workout_sessions ws WHERE ws.id = ?) as volume,
+         COUNT(CASE WHEN ${sqlSetCounts()} THEN id END) as set_count,
+         COUNT(DISTINCT CASE WHEN ${sqlSetCounts()} THEN exercise_name END) as exercise_count,
+         COUNT(CASE WHEN is_skipped = 1 THEN id END) as skipped_count
+       FROM exercise_sets
+       WHERE workout_session_id = ? AND is_completed = 1`,
+      [opts.sessionId, opts.sessionId]
+    ),
+    query(
+      `SELECT TIMESTAMPDIFF(SECOND, started_at, ended_at) as duration_seconds
+       FROM workout_sessions WHERE id = ? AND user_id = ?`,
+      [opts.sessionId, opts.userId]
+    ),
+    query(
+      'SELECT id, week_number, day_number, workout_type, is_completed, skipped_heavy, started_at, created_at, pick_type, swap_for_day FROM workout_sessions WHERE user_id = ?',
+      [opts.userId]
+    ),
+    query('SELECT schedule_days_per_week, gender FROM users WHERE id = ?', [opts.userId]),
+    // Persisted `locked_weeks` — by the time this async email builder runs,
+    // app/api/sessions/route.ts has already recorded this completion's lock (if it
+    // crossed the bar), so this reflects the true, permanent state rather than a
+    // live recompute against the athlete's current setting.
+    lockedWeekRecords(opts.userId),
+    loadCoachCatalogFromDb(),
+    getUserTone(opts.userId),
+    mainResumeFloor(opts.userId),
+  ]);
 
   const totalRow = totals.rows[0] as {
     volume: number;
@@ -272,23 +285,14 @@ export async function sendWorkoutCompleteBundle(opts: {
     (userRow.rows[0] as { schedule_days_per_week?: number | null } | undefined)?.schedule_days_per_week
   );
   const userGender = (userRow.rows[0] as { gender?: string | null } | undefined)?.gender;
-  // Persisted count from `locked_weeks` — by the time this async email builder
-  // runs, app/api/sessions/route.ts has already recorded this completion's lock
-  // (if it crossed the bar), so this reflects the true, permanent state rather
-  // than a live recompute against the athlete's current setting.
-  const lockedWeeks = await lockedWeekCountFromTable(opts.userId);
-  const weekLockedRow = await query(
-    'SELECT 1 FROM locked_weeks WHERE user_id = ? AND week_number = ? LIMIT 1',
-    [opts.userId, opts.weekNumber]
-  );
-  const weekComplete = weekLockedRow.rows.length > 0;
-  // The full 48-week year (the old 6-week program used to end at 6).
-  const programComplete = lockedWeeks >= 48;
-  const next = findNextProgramDay(sessions.rows as WorkoutSessionRow[], undefined, 1, daysForWeekFn(scheduleDays));
+  const lockedWeeks = lockRecords.length;
+  const weekComplete = lockRecords.some((record) => record.weekNumber === Number(opts.weekNumber));
+  // The full 48-week year: main-program weeks only — Overload weeks also sit in
+  // `locked_weeks` (they count toward belts) but never finish the program.
+  const mainLocked = lockRecords.filter((record) => programTrackForWeek(record.weekNumber) === 'main').length;
+  const programComplete = mainLocked >= MAIN_PROGRAM_WEEKS.last;
+  const next = mainProgramNextDay(sessions.rows as WorkoutSessionRow[], resumeFloor, scheduleDays);
   const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
-
-  await loadCoachCatalogFromDb();
-  const tone = await getUserTone(opts.userId);
 
   // Belt and badge, if either was earned by this same session, roll into the one
   // recap email below instead of firing their own separate sends.

@@ -2,6 +2,18 @@
 
 ## Unreleased
 
+## 13.0.3 - 2026-10-08
+
+### Changed
+- **One screen at a time on Home.** Last week's medal, the missed-week note, Week 1 starting, your quickstart and the six-week check-in no longer pile on top of each other. Each one waits its turn.
+- **Even quicker.** Finishing a workout, The house, your stats and the weekly emails make fewer trips to the server.
+
+### Fixed
+- **Picking up where you left off.** After you leave Hyrox Training or Overload Progressions, reminder emails, phone reminders and your workout email now point to the same next workout Home shows, not back at week 1.
+- **Hyrox weeks.** Select Workout opens your current Hyrox week, and finishing a Hyrox week no longer shows a belt you didn't earn.
+- **"Program complete" means the 48 weeks.** Overload Progressions weeks still count toward belts, but they no longer count toward finishing the year.
+- **Right belt color on Awards** after a Yoga, Core or Run pick.
+
 ## 13.0.2 - 2026-10-08
 
 ### Changed

@@ -7,7 +7,6 @@ import {
 import { query } from '@/lib/db';
 import { sqlSetEffortVolume } from '@/lib/exerciseKind';
 import { compareRank } from '@/lib/rankRule';
-import { REQUIRED_DAYS_TO_LOCK } from '@/lib/bonusDay';
 import { isTestUserName, SQL_EXCLUDE_TEST_USER } from '@/lib/householdUsers';
 import { sqlNotTestDrive } from '@/lib/testDrive';
 import { sqlUserOptionalVolume } from '@/lib/optionals';
@@ -248,7 +247,7 @@ export async function countUserClosedWeekWorkouts(userId: number, monday: string
   return Number((result.rows[0] as { n: number } | undefined)?.n || 0);
 }
 
-export function missedTheWeek(workouts: number, requiredCount = REQUIRED_DAYS_TO_LOCK) {
+export function missedTheWeek(workouts: number, requiredCount: number) {
   return workouts < requiredCount;
 }
 

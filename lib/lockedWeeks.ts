@@ -1,5 +1,9 @@
 import { query } from '@/lib/db';
 import { sqlInHousehold } from '@/lib/household';
+import { completedInWeek } from '@/lib/bonusDay';
+import { MAIN_PROGRAM_WEEKS, programTrackForWeek, trackForWeek } from '@/lib/programTrack';
+import { requiredCountForWeek } from '@/lib/scheduleDays';
+import { isTestDriveWeek } from '@/lib/testDrive';
 
 /** Records that `weekNumber` met its bar for this athlete — a one-time, permanent
  * fact (`locked_weeks`, PK on user+week). Idempotent: safe to call on every
@@ -27,6 +31,57 @@ export async function recordWeekLockIfNeeded(
   }
 }
 
+/** The session columns week counting reads (`completedInWeek`, `coveredDayNumbers`,
+ * Your pick / bonus rules) — one list, so a new rule never sees a partial row. */
+export const SESSION_WEEK_COLUMNS =
+  'id, week_number, day_number, workout_type, is_completed, skipped_heavy, pick_type, swap_for_day';
+
+export type WeekSessionRow = {
+  id: number;
+  week_number: number;
+  day_number: number;
+  workout_type: string;
+  is_completed: number | boolean;
+  skipped_heavy: number | null;
+  pick_type: string | null;
+  swap_for_day: number | null;
+};
+
+/** One athlete's sessions on one track (or every track when omitted), week-counting columns. */
+export async function loadWeekSessions(userId: number, track?: string): Promise<WeekSessionRow[]> {
+  const result = await query(
+    `SELECT ${SESSION_WEEK_COLUMNS} FROM workout_sessions WHERE user_id = ?${track ? ' AND program_track = ?' : ''}`,
+    track ? [userId, track] : [userId]
+  );
+  return result.rows as WeekSessionRow[];
+}
+
+/**
+ * The one week-lock routine (session mark-complete, Finish, an Editing un-skip): counts
+ * the week's sessions that count (not skipped-heavy), and on a track that records locks
+ * (lib/programTrack.ts `locksWeeks` — not Hyrox) persists the lock once it meets the
+ * athlete's bar. Test Drive's week 0 never locks. `lockedWeeks` is the athlete's total
+ * after recording — what a belt is matched against — and is null when nothing was
+ * recorded, so a week that doesn't lock can never earn a belt.
+ */
+export async function refreshWeekLock(opts: {
+  userId: number;
+  weekNumber: number;
+  scheduleDays: number;
+  /** Already-loaded sessions for this athlete (any superset of the week). */
+  sessions?: WeekSessionRow[];
+}): Promise<{ locked: boolean; lockedWeeks: number | null }> {
+  const { userId, weekNumber, scheduleDays } = opts;
+  if (isTestDriveWeek(weekNumber)) return { locked: false, lockedWeeks: null };
+  const sessions = opts.sessions ?? (await loadWeekSessions(userId, programTrackForWeek(weekNumber)));
+  const completed = completedInWeek(sessions, weekNumber).length;
+  const required = requiredCountForWeek(scheduleDays)(weekNumber);
+  const locked = completed >= required;
+  if (!locked || !trackForWeek(weekNumber).locksWeeks) return { locked, lockedWeeks: null };
+  await recordWeekLockIfNeeded(userId, weekNumber, completed, required);
+  return { locked, lockedWeeks: await lockedWeekCountFromTable(userId) };
+}
+
 export async function lockedWeekCountFromTable(userId: number): Promise<number> {
   const result = await query('SELECT COUNT(*) as n FROM locked_weeks WHERE user_id = ?', [userId]);
   return Number((result.rows[0] as { n?: number } | undefined)?.n || 0);
@@ -37,7 +92,7 @@ export async function lockedWeekCountFromTable(userId: number): Promise<number> 
  * gates for Hyrox or Overload Progressions themselves. */
 export async function lockedMainWeekCount(userId: number): Promise<number> {
   const result = await query(
-    'SELECT COUNT(*) as n FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN 1 AND 48',
+    `SELECT COUNT(*) as n FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN ${MAIN_PROGRAM_WEEKS.first} AND ${MAIN_PROGRAM_WEEKS.last}`,
     [userId]
   );
   return Number((result.rows[0] as { n?: number } | undefined)?.n || 0);
@@ -47,7 +102,7 @@ export async function lockedMainWeekCount(userId: number): Promise<number> {
  * program opened (lib/programUnlock.ts). Null until they have `n` locked weeks. */
 export async function nthMainWeekLockedAt(userId: number, n: number): Promise<string | null> {
   const result = await query(
-    `SELECT locked_at FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN 1 AND 48
+    `SELECT locked_at FROM locked_weeks WHERE user_id = ? AND week_number BETWEEN ${MAIN_PROGRAM_WEEKS.first} AND ${MAIN_PROGRAM_WEEKS.last}
      ORDER BY locked_at ASC, week_number ASC LIMIT 1 OFFSET ?`,
     [userId, Math.max(0, n - 1)]
   );

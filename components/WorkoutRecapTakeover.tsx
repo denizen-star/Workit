@@ -10,6 +10,7 @@ import { recapOptionalRows } from '@/lib/compareTable';
 import { KPI_CALC_BULLETS } from '@/lib/helpCopy';
 import type { CoachTone } from '@/lib/coachTone';
 import { coachPersonaSrc } from '@/lib/coachPersonas';
+import TapTakeover from '@/components/TapTakeover';
 
 /** Finish recap. This | Last per exercise vs last time that lift ran. */
 export default function WorkoutRecapTakeover({
@@ -49,19 +50,7 @@ export default function WorkoutRecapTakeover({
   const tableRows = [...rows, ...extra];
 
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onClose}
-      onKeyDown={(event) => {
-        if (event.key === 'Escape' || event.key === 'Enter' || event.key === ' ') onClose();
-      }}
-      className="fixed inset-0 z-[80] flex cursor-pointer items-center justify-center overflow-hidden bg-[#07070a]/95 px-6"
-    >
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute left-1/2 top-1/4 h-80 w-80 -translate-x-1/2 rounded-full bg-[#e8c547] opacity-20 blur-3xl" />
-        <div className="absolute bottom-10 right-8 h-64 w-64 rounded-full bg-white/15 blur-3xl" />
-      </div>
+    <TapTakeover onClose={onClose} glow="#e8c547" glowOpacity={0.2} secondGlow>
       <div className="relative w-full max-w-md" onClick={(event) => event.stopPropagation()}>
         {step && totalSteps ? <FinishStepper current={step} total={totalSteps} /> : null}
         <RecapConfetti className="left-1/2 top-24" />
@@ -98,6 +87,6 @@ export default function WorkoutRecapTakeover({
           Continue
         </button>
       </div>
-    </div>
+    </TapTakeover>
   );
 }

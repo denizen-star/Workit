@@ -5,11 +5,11 @@ import { programUnlocked } from '@/lib/programUnlock';
 import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
 import { hyroxWeeksElapsed, resumeNormalWeek, type HyroxStateRow } from '@/lib/hyroxState';
 import { findNextProgramDay, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
-import { workoutProgram } from '@/lib/workoutData';
 import { daysForWeekFn } from '@/lib/scheduleDays';
 import { lockedMainWeekCount } from '@/lib/lockedWeeks';
-import { loadOverloadState } from '@/lib/overloadState';
-import { markProgramBannerSeen, programBannerDue } from '@/lib/programBanner';
+import { mainProgramSnapshot } from '@/lib/overloadState';
+import { programBannerDue } from '@/lib/programBanner';
+import { closeProgramRun, markProgramBannerTapped, programActive, programStartRefusal } from '@/lib/morePrograms';
 
 type SessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
   program_track?: string | null;
@@ -60,11 +60,9 @@ export async function GET() {
   const hyroxSessions = hyroxSessionsThisRun(allSessions, state?.started_at);
 
   const active = Boolean(state?.active);
-  const next = active ? findNextProgramDay(hyroxSessions as WorkoutSessionRow[], hyroxProgram) : null;
-
-  // Once a Hyrox run has ended, normal_week_at_start doubles as the floor the
-  // normal 48-week program should resume at (see POST action=drop).
-  const resumeFloor = state && !active ? Number(state.normal_week_at_start) : 1;
+  const next = active
+    ? findNextProgramDay(hyroxSessions as WorkoutSessionRow[], hyroxProgram, 1, daysForWeekFn(user.scheduleDaysPerWeek))
+    : null;
 
   const eligible = programUnlocked(lockedWeeks);
 
@@ -74,7 +72,6 @@ export async function GET() {
     // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
     lockedWeeks,
     bannerDue: eligible && !active && bannerSeenDue,
-    resumeFloor,
     state: state
       ? {
           hyroxWeek: next ? hyroxDisplayWeek(next.week.weekNumber) : null,
@@ -84,6 +81,8 @@ export async function GET() {
       : null,
     today: next
       ? {
+          // Stored week_number and display week, same shape as GET /api/overload.
+          weekNumber: next.week.weekNumber,
           week: hyroxDisplayWeek(next.week.weekNumber),
           day: next.day.dayNumber,
           name: next.day.name,
@@ -109,31 +108,16 @@ export async function POST(request: NextRequest) {
     // Idempotent: a double-tap or a second tab re-sending 'start' while already
     // active must not reset started_at — hyroxSessionsThisRun filters on it, so
     // resetting it would silently hide every session logged in the run so far.
-    const existingState = await query('SELECT active FROM hyrox_state WHERE user_id = ?', [user.id]);
-    if (Boolean((existingState.rows[0] as { active?: number } | undefined)?.active)) {
+    if (await programActive(user.id, 'hyrox')) {
       return NextResponse.json({ success: true, alreadyActive: true });
     }
 
-    // One opt-in track at a time (docs/plans/PLAN_OVERLOAD_PROGRESSIONS.md). Tolerates
-    // overload_state not existing yet, so Hyrox start never depends on that migration.
-    if ((await loadOverloadState(user.id).catch(() => null))?.active) {
-      return NextResponse.json({ error: 'Leave Overload Progressions first' }, { status: 409 });
-    }
+    // One More program at a time, same unlock gate (lib/morePrograms.ts).
+    const refusal = await programStartRefusal(user.id, 'hyrox');
+    if (refusal) return NextResponse.json({ error: refusal.error }, { status: refusal.status });
 
-    const allSessions = await loadSessions(user.id);
-    const mainSessions = allSessions.filter((row) => (row.program_track || 'main') === 'main');
-    if (!programUnlocked(await lockedMainWeekCount(user.id))) {
-      return NextResponse.json({ error: 'Not eligible yet' }, { status: 403 });
-    }
-
-    const position = findNextProgramDay(
-      mainSessions as WorkoutSessionRow[],
-      workoutProgram,
-      1,
-      daysForWeekFn(user.scheduleDaysPerWeek)
-    );
-    const normalWeek = position?.week.weekNumber ?? 1;
-    const normalDay = position?.day.dayNumber ?? 1;
+    // Same snapshot as Overload's start: past any earlier Hyrox/Overload floor.
+    const { week: normalWeek, day: normalDay } = await mainProgramSnapshot(user.id, user.scheduleDaysPerWeek);
 
     await query(
       `INSERT INTO hyrox_state (user_id, active, hyrox_week, normal_week_at_start, normal_day_at_start, started_at, ended_at)
@@ -211,19 +195,14 @@ export async function POST(request: NextRequest) {
     const weeksElapsed = hyroxWeeksElapsed(hyroxSessions);
     const resumeWeek = resumeNormalWeek(state, weeksElapsed);
 
-    await query(
-      `UPDATE hyrox_state
-       SET active = 0, ended_at = NOW(), normal_week_at_start = ?, normal_day_at_start = 1
-       WHERE user_id = ?`,
-      [resumeWeek, user.id]
-    );
+    await closeProgramRun(user.id, 'hyrox', resumeWeek);
 
     return NextResponse.json({ success: true, resumeWeek });
   }
 
   // Home banner tapped or ✕'d — never shows again for this account.
   if (action === 'bannerSeen') {
-    await markProgramBannerSeen(user.id, 'banner_hyrox');
+    await markProgramBannerTapped(user.id, 'hyrox');
     return NextResponse.json({ success: true });
   }
 
