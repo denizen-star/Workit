@@ -33,26 +33,37 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '13.0.1',
-  title: 'Reminders, tucked in neat.',
-  subject: 'Reminders got tidier — Work-It',
+  version: '13.0.2',
+  title: 'Quicker, and your records are fair.',
+  subject: 'Work-It got quicker — and your PRs got fairer',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Quick one! Reminders got a little tidier so your menu stays clean and you get straight to your workout.",
+    "Big news, and it's all for you! Work-It got quicker. Finishing a workout, logging a set and opening Home all land faster now.",
   mid:
-    "The first two times you open the menu, Reminders opens up so you can set your time and days. After that it sits as one line at the top. Tap it any time to change your reminder.",
+    "Your records got fairer too. New PR and Best now count the same way the rest of the app does: weight times reps, with your body weight in there on body-weight moves. More reps at a lighter weight can be a record. You earned it, so it counts.",
   close:
-    "Set it once, and let me be the one who shows up on your phone. Leave quit at the door. Let's go!",
+    "Faster screens mean more time under the bar. I believe in every rep you've got. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'Tidier menu',
+      heading: 'Quicker',
       wins: [
-        'First two times — Reminders opens on its own so you can set it up.',
-        'After that — it sits as one line at the top of the menu.',
-        'Need it? — tap Reminders to open it again.',
+        'Finish a workout — the recap and awards show up sooner.',
+        'Log a set — it saves faster.',
+        'Home, The house, your stats — all open quicker.',
+        'Live workout — smoother while the clock runs.',
+      ],
+    },
+    {
+      heading: 'Fairer',
+      wins: [
+        'New PR and Best — weight times reps, body weight included.',
+        "Rushed workouts — half or more sets skipped don't count toward Bonus Day, Perfect Week or your weekly counts.",
+        'Completed log — your best session leaves out skipped sets.',
+        'Places — 21st, 22nd, 23rd now read right.',
+        'Vs the house — totals read 12k, same as everywhere else.',
       ],
     },
   ],
