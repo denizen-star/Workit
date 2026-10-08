@@ -33,35 +33,27 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '13.0.0',
-  title: 'Your phone can call you to train now.',
-  subject: 'Workout reminders are here — Work-It',
+  version: '13.0.1',
+  title: 'Reminders, tucked in neat.',
+  subject: 'Reminders got tidier — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Big one today! You told yourself you'd train, and now I get to remind you. Pick a time, pick your days, and your phone taps you on the shoulder when it's go time.",
+    "Quick one! Reminders got a little tidier so your menu stays clean and you get straight to your workout.",
   mid:
-    "Open the menu and Reminders is right at the top. Set your time, check the days you train, and tap Allow notifications. Then tap Send a test and watch it land. One thing: Work-It has to be saved to your Home Screen for this to work. Tap the ? in Reminders and it shows you how.",
+    "The first two times you open the menu, Reminders opens up so you can set your time and days. After that it sits as one line at the top. Tap it any time to change your reminder.",
   close:
-    "I won't bug you on a day you already trained, and once your week is locked I leave you alone. You can turn it off whenever you want. But I think you'll like hearing from me. Leave quit at the door. Let's go!",
+    "Set it once, and let me be the one who shows up on your phone. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'New: workout reminders',
+      heading: 'Tidier menu',
       wins: [
-        'Where — top of the menu, under Reminders.',
-        'You choose — the time and the days of the week.',
-        'Turn it on — tap Allow notifications once on each phone.',
-        'Try it — Send a test shows you what it looks like.',
-        "Smart — no reminder on a day you already trained or once your week is locked.",
-        'Left a workout open? — the reminder takes you straight back to it.',
-        'Needs the Home Screen — the ? in Reminders shows you how to save Work-It there.',
+        'First two times — Reminders opens on its own so you can set it up.',
+        'After that — it sits as one line at the top of the menu.',
+        'Need it? — tap Reminders to open it again.',
       ],
-    },
-    {
-      heading: 'Small fix',
-      wins: ['Help boxes — tapping inside a ? box in the menu no longer closes the menu.'],
     },
   ],
   wins: [],
