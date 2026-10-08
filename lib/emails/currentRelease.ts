@@ -33,37 +33,35 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '13.0.2',
-  title: 'Quicker, and your records are fair.',
-  subject: 'Work-It got quicker — and your PRs got fairer',
+  version: '13.0.3',
+  title: 'Calmer Home, smarter next step.',
+  subject: 'Home got calmer — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Big news, and it's all for you! Work-It got quicker. Finishing a workout, logging a set and opening Home all land faster now.",
+    "Quick one, and it's all about keeping you moving! Home is calmer now, and your next workout is the same wherever you look.",
   mid:
-    "Your records got fairer too. New PR and Best now count the same way the rest of the app does: weight times reps, with your body weight in there on body-weight moves. More reps at a lighter weight can be a record. You earned it, so it counts.",
+    "When there's news for you on Home, like a medal, a check-in or a note from me, it now comes one screen at a time instead of piling up. And if you've tried Hyrox Training or Overload Progressions and come back, your reminders and workout emails now point to exactly where you left off.",
   close:
-    "Faster screens mean more time under the bar. I believe in every rep you've got. Leave quit at the door. Let's go!",
+    "One screen, one next step, one more rep. I believe in you. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'Quicker',
+      heading: 'Calmer Home',
       wins: [
-        'Finish a workout — the recap and awards show up sooner.',
-        'Log a set — it saves faster.',
-        'Home, The house, your stats — all open quicker.',
-        'Live workout — smoother while the clock runs.',
+        'Medals, check-ins, notes — one at a time, each waits its turn.',
+        'Everything — a little quicker to open.',
       ],
     },
     {
-      heading: 'Fairer',
+      heading: 'Right next step',
       wins: [
-        'New PR and Best — weight times reps, body weight included.',
-        "Rushed workouts — half or more sets skipped don't count toward Bonus Day, Perfect Week or your weekly counts.",
-        'Completed log — your best session leaves out skipped sets.',
-        'Places — 21st, 22nd, 23rd now read right.',
-        'Vs the house — totals read 12k, same as everywhere else.',
+        'Back from Hyrox or Overload — reminders and emails point to your real next workout.',
+        'Hyrox — Select Workout opens your current week.',
+        'Hyrox weeks — no belt shows up that you did not earn.',
+        'Program complete — only after the full 48 weeks.',
+        'Awards after a Yoga, Core or Run pick — the right belt color.',
       ],
     },
   ],
