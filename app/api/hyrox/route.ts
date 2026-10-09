@@ -1,100 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { query } from '@/lib/db';
 import { getCurrentUser } from '@/lib/auth';
-import { programUnlocked } from '@/lib/programUnlock';
-import { hyroxDisplayWeek, hyroxProgram } from '@/lib/hyroxProgram';
-import { hyroxWeeksElapsed, resumeNormalWeek, type HyroxStateRow } from '@/lib/hyroxState';
-import { findNextProgramDay, isSessionComplete, type WorkoutSessionRow } from '@/lib/nextWorkout';
-import { daysForWeekFn } from '@/lib/scheduleDays';
-import { lockedMainWeekCount } from '@/lib/lockedWeeks';
+import { hyroxProgram } from '@/lib/hyroxProgram';
+import {
+  hyroxSessionsThisRun,
+  hyroxWeeksElapsed,
+  loadHyroxRunSessions,
+  resumeNormalWeek,
+  type HyroxStateRow,
+} from '@/lib/hyroxState';
+import { isSessionComplete } from '@/lib/nextWorkout';
 import { mainProgramSnapshot } from '@/lib/overloadState';
-import { programBannerDue } from '@/lib/programBanner';
 import { closeProgramRun, markProgramBannerTapped, programActive, programStartRefusal } from '@/lib/morePrograms';
 
-type SessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
-  program_track?: string | null;
-  completed_at?: string | null;
-  created_at?: string | null;
-};
-
-async function loadSessions(userId: number): Promise<SessionRow[]> {
-  const result = await query(
-    'SELECT week_number, day_number, is_completed, program_track, completed_at, created_at FROM workout_sessions WHERE user_id = ?',
-    [userId]
-  );
-  return result.rows as SessionRow[];
-}
-
-/** Hyrox sessions from the CURRENT run only. Leaving and starting over always
- * begins at Week 1 — a prior (ended) run's completed sessions must not make
- * findNextProgramDay think locked weeks are already behind them. */
-function hyroxSessionsThisRun(sessions: SessionRow[], startedAt: string | null | undefined): SessionRow[] {
-  const cutoff = startedAt ? new Date(startedAt).getTime() : 0;
-  return sessions.filter((row) => {
-    if (row.program_track !== 'hyrox') return false;
-    if (!cutoff) return true;
-    const when = new Date(row.completed_at || row.created_at || 0).getTime();
-    return when >= cutoff;
-  });
-}
-
-export async function GET() {
-  const user = await getCurrentUser();
-  if (!user) {
-    return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
-  }
-
-  // Independent reads, one batch.
-  const [allSessions, stateResult, milestonesResult, diplomasResult, lockedWeeks, bannerSeenDue] = await Promise.all([
-    loadSessions(user.id),
-    query('SELECT * FROM hyrox_state WHERE user_id = ?', [user.id]),
-    query(
-      'SELECT milestone_number, result, decided_at FROM hyrox_milestones WHERE user_id = ? ORDER BY decided_at DESC',
-      [user.id]
-    ),
-    query('SELECT tier, earned_at FROM hyrox_diplomas WHERE user_id = ? ORDER BY tier ASC', [user.id]),
-    lockedMainWeekCount(user.id),
-    programBannerDue(user.id, 'banner_hyrox'),
-  ]);
-  const state = (stateResult.rows[0] as HyroxStateRow | undefined) || null;
-  const hyroxSessions = hyroxSessionsThisRun(allSessions, state?.started_at);
-
-  const active = Boolean(state?.active);
-  const next = active
-    ? findNextProgramDay(hyroxSessions as WorkoutSessionRow[], hyroxProgram, 1, daysForWeekFn(user.scheduleDaysPerWeek))
-    : null;
-
-  const eligible = programUnlocked(lockedWeeks);
-
-  return NextResponse.json({
-    eligible,
-    active,
-    // More programs menu ("N of 6 weeks locked") + Home's 3-day banner (lib/programBanner.ts).
-    lockedWeeks,
-    bannerDue: eligible && !active && bannerSeenDue,
-    state: state
-      ? {
-          hyroxWeek: next ? hyroxDisplayWeek(next.week.weekNumber) : null,
-          startedAt: state.started_at,
-          normalWeekAtStart: state.normal_week_at_start,
-        }
-      : null,
-    today: next
-      ? {
-          // Stored week_number and display week, same shape as GET /api/overload.
-          weekNumber: next.week.weekNumber,
-          week: hyroxDisplayWeek(next.week.weekNumber),
-          day: next.day.dayNumber,
-          name: next.day.name,
-          milestone: next.day.milestone ?? null,
-        }
-      : null,
-    phaseComplete: active && !next,
-    milestones: milestonesResult.rows,
-    diplomas: diplomasResult.rows,
-  });
-}
-
+/** Hyrox Training actions (start / milestone / drop / bannerSeen). Its state comes
+ * from GET /api/programs (lib/programStatus.ts). */
 export async function POST(request: NextRequest) {
   const user = await getCurrentUser();
   if (!user) {
@@ -155,7 +75,7 @@ export async function POST(request: NextRequest) {
     if (!milestoneDay) {
       return NextResponse.json({ error: 'Unknown milestone' }, { status: 400 });
     }
-    const allSessions = await loadSessions(user.id);
+    const allSessions = await loadHyroxRunSessions(user.id);
     const completedThisRun = hyroxSessionsThisRun(allSessions, state.started_at).some(
       (row) =>
         isSessionComplete({ is_completed: row.is_completed }) &&
@@ -188,7 +108,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No active Hyrox track' }, { status: 400 });
     }
 
-    const allSessions = await loadSessions(user.id);
+    const allSessions = await loadHyroxRunSessions(user.id);
     const hyroxSessions = hyroxSessionsThisRun(allSessions, state.started_at).filter((row) =>
       isSessionComplete({ is_completed: row.is_completed })
     );

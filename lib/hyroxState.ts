@@ -1,5 +1,7 @@
 import { requiredDays } from '@/lib/bonusDay';
 import { hyroxProgram } from '@/lib/hyroxProgram';
+import { query } from '@/lib/db';
+import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 
 export interface HyroxStateRow {
   user_id: number;
@@ -39,4 +41,32 @@ export function resumeNormalWeek(
   weeksElapsed: number
 ): number {
   return Number(state.normal_week_at_start) + weeksElapsed;
+}
+
+/** Every session row the Hyrox reads need (all tracks; filter with `hyroxSessionsThisRun`). */
+export type HyroxSessionRow = Pick<WorkoutSessionRow, 'week_number' | 'day_number' | 'is_completed'> & {
+  program_track?: string | null;
+  completed_at?: string | null;
+  created_at?: string | null;
+};
+
+export async function loadHyroxRunSessions(userId: number): Promise<HyroxSessionRow[]> {
+  const result = await query(
+    'SELECT week_number, day_number, is_completed, program_track, completed_at, created_at FROM workout_sessions WHERE user_id = ?',
+    [userId]
+  );
+  return result.rows as HyroxSessionRow[];
+}
+
+/** Hyrox sessions from the CURRENT run only. Leaving and starting over always
+ * begins at Week 1 — a prior (ended) run's completed sessions must not make
+ * findNextProgramDay think locked weeks are already behind them. */
+export function hyroxSessionsThisRun(sessions: HyroxSessionRow[], startedAt: string | null | undefined): HyroxSessionRow[] {
+  const cutoff = startedAt ? new Date(startedAt).getTime() : 0;
+  return sessions.filter((row) => {
+    if (row.program_track !== 'hyrox') return false;
+    if (!cutoff) return true;
+    const when = new Date(row.completed_at || row.created_at || 0).getTime();
+    return when >= cutoff;
+  });
 }

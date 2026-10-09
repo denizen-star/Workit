@@ -10,7 +10,13 @@ import { clearSessionCookieOptions, verifySessionToken, SESSION_COOKIE } from '@
 import { accountBlockId } from '@/lib/deviceBlock';
 import { createDeviceBlockToken, deviceBlockCookieOptions } from '@/lib/deviceBlockToken';
 import { athleteCallName } from '@/lib/profile';
-import { householdForUser } from '@/lib/household';
+import {
+  listHouseholdsForUser,
+  parseHouseholdsJson,
+  pickHousehold,
+  SQL_USER_HOUSES_JSON,
+  type Household,
+} from '@/lib/household';
 
 export type SessionUser = {
   id: number;
@@ -42,9 +48,26 @@ export type SessionUser = {
   createdAt: string | Date | null;
   gender: string;
   coachVoiceOn: boolean;
+  /** Every house the athlete is in (id order), read with the user at sign-in. */
+  households?: Household[];
 };
 
-let userSelectMode: 'guard' | 'house' | 'rest' | 'full' | 'tone' | 'base' | null = null;
+type SelectMode = 'houses' | 'guard' | 'house' | 'rest' | 'full' | 'tone' | 'base';
+
+/** Richest user select this database supports, learned on first use (null = not known yet,
+ * try from the top). Only `houses` and `guard` read `blocked_at`. */
+let userSelectMode: SelectMode | null = null;
+
+/** Lowest → richest. */
+const SELECT_MODE_RANK: SelectMode[] = ['base', 'tone', 'full', 'rest', 'house', 'guard', 'houses'];
+
+/** A write just proved `mode`'s columns exist: step the known mode up to it, never down
+ * (stepping down from `guard` would stop reading `blocked_at`). Unknown stays unknown, so
+ * the next read still tries the richest select first. */
+function raiseSelectMode(mode: SelectMode) {
+  if (userSelectMode == null) return;
+  if (SELECT_MODE_RANK.indexOf(userSelectMode) < SELECT_MODE_RANK.indexOf(mode)) userSelectMode = mode;
+}
 
 type UserRow = {
   id: number;
@@ -73,14 +96,21 @@ type UserRow = {
   gender?: string | null;
   coach_voice_on?: number | boolean | string | null;
   blocked_at?: string | Date | null;
+  /** 'houses' select only: the athlete's houses as JSON (`SQL_USER_HOUSES_JSON`). */
+  houses_json?: unknown;
 };
 
 const HOUSE_SELECT =
   'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes, noise_takeover, noise_effort, show_prs, schedule_days_per_week, schedule_days_asked_week, first_name, last_name, display_name, phone, body_weight_lb, photo IS NOT NULL as has_photo, waiver_accepted_at, email_verified_at, quickstart_seen_at, last_household_id, created_at, gender, coach_voice_on FROM users WHERE id = ? LIMIT 1';
 
+const GUARD_SELECT = HOUSE_SELECT.replace(' FROM users', ', blocked_at FROM users');
+
 const USER_SELECTS = {
+  // 'guard' + the athlete's houses in one JSON column: sign-in is one query, not two.
+  // Falls back to 'guard' (+ a separate house read) if the database can't run it.
+  houses: GUARD_SELECT.replace(' FROM users', `, ${SQL_USER_HOUSES_JSON} FROM users`),
   // 'house' + blocked_at (migrate-user-blocked.sql). Falls back to 'house' until that column exists.
-  guard: HOUSE_SELECT.replace(' FROM users', ', blocked_at FROM users'),
+  guard: GUARD_SELECT,
   house: HOUSE_SELECT,
   rest: 'SELECT id, name, email, pin_hash, coach_tone, sound_on, rest_extra_minutes FROM users WHERE id = ? LIMIT 1',
   full: 'SELECT id, name, email, pin_hash, coach_tone, sound_on FROM users WHERE id = ? LIMIT 1',
@@ -89,18 +119,9 @@ const USER_SELECTS = {
 } as const;
 
 async function selectUserRow(userId: number): Promise<UserRow | undefined> {
-  const order: Array<'guard' | 'house' | 'rest' | 'full' | 'tone' | 'base'> =
-    userSelectMode === 'base'
-      ? ['base']
-      : userSelectMode === 'tone'
-        ? ['tone', 'base']
-        : userSelectMode === 'full'
-          ? ['full', 'tone', 'base']
-          : userSelectMode === 'rest'
-            ? ['rest', 'full', 'tone', 'base']
-            : userSelectMode === 'house'
-              ? ['house', 'rest', 'full', 'tone', 'base']
-              : ['guard', 'house', 'rest', 'full', 'tone', 'base'];
+  // From the known mode down; unknown starts at the top.
+  const start = userSelectMode == null ? SELECT_MODE_RANK.length - 1 : SELECT_MODE_RANK.indexOf(userSelectMode);
+  const order = SELECT_MODE_RANK.slice(0, start + 1).reverse();
 
   for (const mode of order) {
     try {
@@ -160,7 +181,7 @@ function toSessionUser(
 export async function updateCoachTone(userId: number, tone: CoachTone): Promise<boolean> {
   try {
     await query('UPDATE users SET coach_tone = ? WHERE id = ?', [tone, userId]);
-    if (userSelectMode === 'base') userSelectMode = 'tone';
+    raiseSelectMode('tone');
     return true;
   } catch {
     return false;
@@ -179,7 +200,7 @@ export async function updateCoachVoiceOn(userId: number, coachVoiceOn: boolean):
 export async function updateSoundOn(userId: number, soundOn: boolean): Promise<boolean> {
   try {
     await query('UPDATE users SET sound_on = ? WHERE id = ?', [soundOn ? 1 : 0, userId]);
-    if (userSelectMode === 'base' || userSelectMode === 'tone') userSelectMode = 'full';
+    raiseSelectMode('full');
     return true;
   } catch {
     return false;
@@ -192,7 +213,7 @@ export async function updateRestExtraMinutes(userId: number, minutes: number): P
       normalizeRestExtraMinutes(minutes),
       userId,
     ]);
-    userSelectMode = 'rest';
+    raiseSelectMode('rest');
     return true;
   } catch {
     return false;
@@ -205,7 +226,7 @@ export async function updateScheduleDaysPerWeek(userId: number, days: number): P
       clampScheduleDays(days),
       userId,
     ]);
-    userSelectMode = 'house';
+    raiseSelectMode('house');
     return true;
   } catch {
     return false;
@@ -218,7 +239,7 @@ export async function updateGender(userId: number, gender: string): Promise<bool
       gender,
       userId,
     ]);
-    userSelectMode = 'house';
+    raiseSelectMode('house');
     return true;
   } catch {
     return false;
@@ -230,7 +251,7 @@ export async function updateGender(userId: number, gender: string): Promise<bool
 export async function markScheduleDaysAsked(userId: number, week: number): Promise<boolean> {
   try {
     await query('UPDATE users SET schedule_days_asked_week = ? WHERE id = ?', [week, userId]);
-    userSelectMode = 'house';
+    raiseSelectMode('house');
     return true;
   } catch {
     return false;
@@ -248,7 +269,7 @@ export async function updateNoisePrefs(
       prefs.showPrs ? 1 : 0,
       userId,
     ]);
-    userSelectMode = 'house';
+    raiseSelectMode('house');
     return true;
   } catch {
     return false;
@@ -288,9 +309,8 @@ export async function updateProfilePrefs(userId: number, prefs: ProfilePrefs): P
         userId,
       ]
     );
-    // Every column exists, so the full select works — but never step down from
-    // 'guard', which is the only select that reads `blocked_at`.
-    if (userSelectMode !== 'guard') userSelectMode = 'house';
+    // Every profile column exists (raiseSelectMode never steps down from 'guard').
+    raiseSelectMode('house');
   } catch {
     await updateCoachTone(userId, prefs.coachTone);
     await updateSoundOn(userId, prefs.soundOn);
@@ -377,25 +397,27 @@ export async function getCurrentUserOrBlocked(): Promise<SessionUser | 'blocked'
     return 'blocked';
   }
   const cookieStore = await cookies();
-  let house: { id: number | null; slug: string | null; name: string | null } = {
-    id: null,
-    slug: null,
-    name: null,
-  };
+  // The houses came with the user row ('houses' select), else one more read.
+  let households: Household[] = [];
   try {
-    const resolved = await householdForUser(userId, row.last_household_id ?? null);
-    if (resolved) house = { id: resolved.id, slug: resolved.slug, name: resolved.name };
+    households =
+      row.houses_json !== undefined ? parseHouseholdsJson(row.houses_json) : await listHouseholdsForUser(userId);
   } catch {
-    house = { id: null, slug: null, name: null };
+    households = [];
   }
-  return toSessionUser(
-    row,
-    {
-      tone: cookieStore.get(TONE_COOKIE)?.value,
-      sound: cookieStore.get(SOUND_COOKIE)?.value,
-    },
-    house
-  );
+  const resolved = pickHousehold(households, row.last_household_id ?? null);
+  const house = { id: resolved?.id ?? null, slug: resolved?.slug ?? null, name: resolved?.name ?? null };
+  return {
+    ...toSessionUser(
+      row,
+      {
+        tone: cookieStore.get(TONE_COOKIE)?.value,
+        sound: cookieStore.get(SOUND_COOKIE)?.value,
+      },
+      house
+    ),
+    households,
+  };
 }
 
 /** Session user, or null when signed out or blocked (a blocked session is evicted on the spot). */

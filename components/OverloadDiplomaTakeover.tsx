@@ -16,7 +16,7 @@ interface OverloadDiplomaTakeoverProps {
 const WEEK_FOR_TIER: Record<number, number> = { 1: 2, 2: 4, 3: 6 };
 
 /** One-time Home takeover for an earned Overload Progressions diploma tier
- * (`unseenDiploma` on GET /api/overload). Shows on normal Home too, since tier 3
+ * (`overload.unseenDiploma` on GET /api/programs). Shows on normal Home too, since tier 3
  * lands as the run closes. */
 export default function OverloadDiplomaTakeover({ tier, tone, name, onDone }: OverloadDiplomaTakeoverProps) {
   const [avatarSrc] = useState(() => coachPersonaSrc(tone, 'celebratory'));

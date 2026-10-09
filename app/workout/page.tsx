@@ -244,10 +244,11 @@ function WorkoutPageInner() {
     Promise.all([
       fetch('/api/me').then((res) => (res.ok ? res.json() : null)),
       fetch('/api/coach-catalog').then((res) => (res.ok ? res.json() : null)),
-      fetch('/api/hyrox').then((res) => (res.ok ? res.json() : null)),
-      fetch('/api/overload').then((res) => (res.ok ? res.json() : null)),
+      fetch('/api/programs').then((res) => (res.ok ? res.json() : null)),
     ])
-      .then(([data, catalog, hyroxData, overloadData]) => {
+      .then(([data, catalog, programs]) => {
+        const hyroxData = programs?.hyrox;
+        const overloadData = programs?.overload;
         setHyroxMode(Boolean(hyroxData?.active));
         setOverloadRun(overloadData?.running ? Number(overloadData.run) || 0 : 0);
         setHyroxLoaded(true);

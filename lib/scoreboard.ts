@@ -129,7 +129,9 @@ function toScoreboardRow(
   };
 }
 
-async function lastWorkoutByUser() {
+/** Each athlete's latest finished session (one house when `householdId` is given). */
+async function lastWorkoutByUser(householdId?: number | null) {
+  const house = sqlInHousehold('ws.user_id', householdId);
   const last = await query(
     `SELECT ws.user_id, ws.week_number, ws.workout_type, ws.completed_at
      FROM workout_sessions ws
@@ -139,7 +141,8 @@ async function lastWorkoutByUser() {
        WHERE is_completed = 1
        GROUP BY user_id
      ) latest ON latest.user_id = ws.user_id AND ws.completed_at = latest.last_at
-     WHERE ws.is_completed = 1`
+     WHERE ws.is_completed = 1${house.sql}`,
+    house.params
   );
   const lastByUser = new Map<number, LastRow>();
   for (const row of last.rows as (LastRow & { user_id: number })[]) {
@@ -148,7 +151,21 @@ async function lastWorkoutByUser() {
   return lastByUser;
 }
 
+/** The house board plus the two per-athlete lookups it read on the way, so a caller that
+ * also needs them (the empty snapshot row) doesn't read them again. */
+type HouseBoard = {
+  rows: HouseholdScoreboardRow[];
+  lockedByUser: Map<number, number>;
+  lastByUser: Map<number, LastRow>;
+};
+
 async function householdScoreboardFiltered(
+  ...args: Parameters<typeof loadHouseBoard>
+): Promise<HouseholdScoreboardRow[]> {
+  return (await loadHouseBoard(...args)).rows;
+}
+
+async function loadHouseBoard(
   sessionWindow: SqlWindow,
   optionalWindow: SqlWindow,
   badgeWindow: SqlWindow,
@@ -156,7 +173,7 @@ async function householdScoreboardFiltered(
   householdId?: number | null,
   /** Window length for the rank eligibility bar (lib/rankRule.ts); null = all time. */
   windowDays: number | null = null
-): Promise<HouseholdScoreboardRow[]> {
+): Promise<HouseBoard> {
   // Test Drive sessions (week 0) never reach the board (lib/testDrive.ts).
   sessionWindow = withoutTestDrive(sessionWindow, 'ws');
   optionalWindow = withoutTestDrive(optionalWindow, 'optws');
@@ -215,8 +232,8 @@ async function householdScoreboardFiltered(
           [...priorSessionWindow.params, ...house.params]
         )
       : Promise.resolve(null),
-    lockedWeeksByUserFromTable(),
-    lastWorkoutByUser(),
+    lockedWeeksByUserFromTable(householdId),
+    lastWorkoutByUser(householdId),
     query(
       `SELECT user_id, MAX(session_volume) as best_session, MAX(session_effort) as best_effort
        FROM (
@@ -259,7 +276,7 @@ async function householdScoreboardFiltered(
     effort_sets: number;
   }[];
 
-  if (rows.length === 0) return [];
+  if (rows.length === 0) return { rows: [], lockedByUser, lastByUser };
 
   const priorByUser = new Map<
     number,
@@ -306,7 +323,7 @@ async function householdScoreboardFiltered(
     scheduleDays: scheduleByUser.get(row.id),
     lockedWeeks: lockedByUser.get(row.id) || 0,
   });
-  return rows
+  const ranked = rows
     .map((row) => {
       const board = toScoreboardRow(
         { ...row, ...priorByUser.get(Number(row.id)) },
@@ -323,6 +340,7 @@ async function householdScoreboardFiltered(
       };
     })
     .sort((a, b) => compareRank(rankRow(a), rankRow(b), windowDays));
+  return { rows: ranked, lockedByUser, lastByUser };
 }
 
 export async function householdScoreboard(
@@ -339,13 +357,11 @@ export async function householdScoreboard(
   );
 }
 
-export async function householdScoreboardForPerformance(
-  period: PerformancePeriod,
-  householdId?: number | null
-): Promise<HouseholdScoreboardRow[]> {
+/** The house board for an Eastern performance window (T / T-1 / … / All). */
+function loadPerformanceHouseBoard(period: PerformancePeriod, householdId?: number | null): Promise<HouseBoard> {
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
   const prior = priorPeriodWindow(window);
-  return householdScoreboardFiltered(
+  return loadHouseBoard(
     sqlPeriodWindow(sqlSessionStamp('ws'), window),
     sqlPeriodWindow(sqlSessionStamp('optws'), window),
     sqlPeriodWindow('ub.earned_at', window),
@@ -355,16 +371,25 @@ export async function householdScoreboardForPerformance(
   );
 }
 
+export async function householdScoreboardForPerformance(
+  period: PerformancePeriod,
+  householdId?: number | null
+): Promise<HouseholdScoreboardRow[]> {
+  return (await loadPerformanceHouseBoard(period, householdId)).rows;
+}
+
 export async function emptySnapshotRow(
   userId: number,
   name: string,
-  period: PerformancePeriod
+  period: PerformancePeriod,
+  /** Already-loaded lookups (the house board read them); read here when omitted. */
+  loaded?: Pick<HouseBoard, 'lockedByUser' | 'lastByUser'>
 ): Promise<HouseholdScoreboardRow> {
   const window = performancePeriodWindow(normalizePerformancePeriod(period));
   const badgeWindow = sqlPeriodWindow('ub.earned_at', window);
   const [lockedByUser, lastByUser, badges] = await Promise.all([
-    lockedWeeksByUserFromTable(),
-    lastWorkoutByUser(),
+    loaded?.lockedByUser ?? lockedWeeksByUserFromTable(),
+    loaded?.lastByUser ?? lastWorkoutByUser(),
     query(
       `SELECT COUNT(*) as badges FROM user_badges ub WHERE ub.user_id = ?${badgeWindow.sql}`,
       [userId, ...badgeWindow.params]
@@ -417,10 +442,10 @@ export async function performanceSnapshot(
   period: PerformancePeriod,
   householdId?: number | null
 ): Promise<PerformanceSnapshot> {
-  const rows = await householdScoreboardForPerformance(period, householdId);
+  const board = await loadPerformanceHouseBoard(period, householdId);
   return (
-    snapshotFromRows(userId, name, rows) || {
-      row: await emptySnapshotRow(userId, name, period),
+    snapshotFromRows(userId, name, board.rows) || {
+      row: await emptySnapshotRow(userId, name, period, board),
       place: null,
       line: emptyWindowLine(name),
     }

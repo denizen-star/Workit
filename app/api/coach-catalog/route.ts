@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
-import { getCoachVoices, getLinePack, packIsUsable } from '@/lib/coachCatalog';
-import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
+import { coachCatalogPayload } from '@/lib/coachCatalogPayload';
 
 export async function GET() {
   try {
@@ -10,22 +9,7 @@ export async function GET() {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
     }
 
-    await loadCoachCatalogFromDb();
-    const master = getLinePack('master');
-    const luna = getLinePack('luna');
-    const james = getLinePack('james');
-
-    return NextResponse.json({
-      voices: getCoachVoices(),
-      packs:
-        packIsUsable(master) && packIsUsable(luna)
-          ? {
-              master,
-              luna,
-              ...(packIsUsable(james) ? { james } : {}),
-            }
-          : undefined,
-    });
+    return NextResponse.json(await coachCatalogPayload());
   } catch (error) {
     console.error('Error getting coach catalog:', error);
     return NextResponse.json({ error: 'Failed to get coach catalog' }, { status: 500 });

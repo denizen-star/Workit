@@ -3,7 +3,7 @@
 import DismissibleBanner from '@/components/DismissibleBanner';
 
 /** Prominent Hyrox-red "reward unlocked" nudge on Home. Shows until tapped or ✕'d, or
- * 3 days after unlocking (`bannerDue` from GET /api/hyrox, lib/programBanner.ts). */
+ * 3 days after unlocking (`hyrox.bannerDue` from GET /api/programs, lib/programBanner.ts). */
 export default function HyroxRewardBanner({ onClick, onDismiss }: { onClick: () => void; onDismiss: () => void }) {
   return (
     <DismissibleBanner onDismiss={onDismiss}>

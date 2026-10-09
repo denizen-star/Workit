@@ -30,7 +30,8 @@ import {
   normalizeName,
   normalizeOptionalText,
 } from '@/lib/profile';
-import { listHouseholdsForUser, setLastHousehold, userInHousehold } from '@/lib/household';
+import { setLastHousehold, userInHousehold } from '@/lib/household';
+import { mePayload } from '@/lib/mePayload';
 import { parsePhotoDataUrl } from '@/lib/photo';
 import { WAIVER_TEXT } from '@/lib/waiver';
 import { logBodyWeightChange, parseBodyWeightInput, saveBodyWeight } from '@/lib/bodyWeight';
@@ -46,19 +47,7 @@ export async function GET() {
     return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
   }
 
-  const [houses, done] = await Promise.all([
-    listHouseholdsForUser(user.id).catch(() => []),
-    query(
-      'SELECT COUNT(*) as total FROM workout_sessions WHERE user_id = ? AND is_completed = 1',
-      [user.id]
-    ).catch(() => ({ rows: [{ total: 0 }] })),
-  ]);
-
-  return NextResponse.json({
-    user,
-    houses,
-    completedWorkouts: Number((done.rows[0] as { total: number } | undefined)?.total || 0),
-  });
+  return NextResponse.json(await mePayload(user));
 }
 
 export async function PATCH(request: NextRequest) {

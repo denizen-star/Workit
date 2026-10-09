@@ -15,6 +15,12 @@ export function forgetMe() {
   cached = null;
 }
 
+/** Seed the cache with a `/api/me`-shaped body another call already returned
+ * (GET /api/home), so the menu doesn't fetch it again. */
+export function primeMe(data: unknown) {
+  cached = { at: Date.now(), result: { ok: true, status: 200, data } };
+}
+
 export function fetchMe(): Promise<MeResult> {
   if (cached && Date.now() - cached.at < FRESH_MS) return Promise.resolve(cached.result);
   if (pending) return pending;

@@ -119,7 +119,29 @@ export async function lockedWeekNumbers(userId: number): Promise<number[]> {
   return (result.rows as { week_number: number }[]).map((row) => Number(row.week_number));
 }
 
-export type LockedWeekRecord = { weekNumber: number; requiredCount: number; completedCount: number };
+export type LockedWeekRecord = {
+  weekNumber: number;
+  requiredCount: number;
+  completedCount: number;
+  /** When it locked (the More programs unlock moment is the 6th main one). */
+  lockedAt: string | null;
+};
+
+const isMainRecord = (record: LockedWeekRecord) =>
+  record.weekNumber >= MAIN_PROGRAM_WEEKS.first && record.weekNumber <= MAIN_PROGRAM_WEEKS.last;
+
+/** `lockedMainWeekCount` from already-loaded records (one `locked_weeks` read per Home load). */
+export function mainLockedCount(records: LockedWeekRecord[]): number {
+  return records.filter(isMainRecord).length;
+}
+
+/** `nthMainWeekLockedAt` from already-loaded records. */
+export function nthMainLockedAt(records: LockedWeekRecord[], n: number): string | null {
+  const main = records
+    .filter(isMainRecord)
+    .sort((a, b) => String(a.lockedAt).localeCompare(String(b.lockedAt)) || a.weekNumber - b.weekNumber);
+  return main[n - 1]?.lockedAt ?? null;
+}
 
 /** Full locked-week rows (required/completed count as they were at lock time) —
  * lets a display recompute "N / N completed" for an already-locked week using the
@@ -128,16 +150,17 @@ export type LockedWeekRecord = { weekNumber: number; requiredCount: number; comp
  * on `recordWeekLockIfNeeded`). */
 export async function lockedWeekRecords(userId: number): Promise<LockedWeekRecord[]> {
   const result = await query(
-    'SELECT week_number, required_count, completed_count FROM locked_weeks WHERE user_id = ? ORDER BY week_number ASC',
+    'SELECT week_number, required_count, completed_count, locked_at FROM locked_weeks WHERE user_id = ? ORDER BY week_number ASC',
     [userId]
   );
-  return (result.rows as { week_number: number; required_count: number; completed_count: number }[]).map(
-    (row) => ({
-      weekNumber: Number(row.week_number),
-      requiredCount: Number(row.required_count),
-      completedCount: Number(row.completed_count),
-    })
-  );
+  return (
+    result.rows as { week_number: number; required_count: number; completed_count: number; locked_at: unknown }[]
+  ).map((row) => ({
+    weekNumber: Number(row.week_number),
+    requiredCount: Number(row.required_count),
+    completedCount: Number(row.completed_count),
+    lockedAt: row.locked_at ? String(row.locked_at) : null,
+  }));
 }
 
 export async function lockedWeeksByUserFromTable(householdId?: number | null): Promise<Map<number, number>> {

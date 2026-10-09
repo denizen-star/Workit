@@ -115,8 +115,32 @@ export async function setLastHousehold(userId: number, householdId: number) {
   await query('UPDATE users SET last_household_id = ? WHERE id = ?', [householdId, userId]);
 }
 
-/** The athlete's current house: `preferred` if they're still in it, else their first. */
-export async function householdForUser(userId: number, preferred?: number | null): Promise<Household | null> {
-  const houses = await listHouseholdsForUser(userId);
+/** The athlete's current house from their list: `preferred` if they're still in it, else their first. */
+export function pickHousehold(houses: Household[], preferred?: number | null): Household | null {
   return houses.find((house) => preferred && house.id === preferred) ?? houses[0] ?? null;
+}
+
+/** The athlete's current house (see `pickHousehold`). */
+export async function householdForUser(userId: number, preferred?: number | null): Promise<Household | null> {
+  return pickHousehold(await listHouseholdsForUser(userId), preferred);
+}
+
+/** SQL for an athlete's houses as one JSON array column (`users` row alias `users`), so
+ * sign-in reads the user and their houses in a single query. Parse with `parseHouseholdsJson`. */
+export const SQL_USER_HOUSES_JSON = `(SELECT JSON_ARRAYAGG(JSON_OBJECT('id', h.id, 'slug', h.slug, 'name', h.name, 'public_join', h.public_join))
+   FROM household_members m INNER JOIN households h ON h.id = m.household_id
+   WHERE m.user_id = users.id) AS houses_json`;
+
+/** `SQL_USER_HOUSES_JSON`'s column → houses in id order (same shape and order as `listHouseholdsForUser`). */
+export function parseHouseholdsJson(raw: unknown): Household[] {
+  if (raw == null) return [];
+  const list = (typeof raw === 'string' ? JSON.parse(raw) : raw) as Array<Record<string, unknown>> | null;
+  return (list || [])
+    .map((row) => ({
+      id: Number(row.id),
+      slug: String(row.slug),
+      name: String(row.name),
+      public_join: Boolean(Number(row.public_join)),
+    }))
+    .sort((a, b) => a.id - b.id);
 }

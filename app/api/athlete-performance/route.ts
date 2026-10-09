@@ -32,7 +32,7 @@ export async function GET(request: NextRequest) {
     const track = trackParam === 'hyrox' || trackParam === 'overload' ? trackParam : undefined;
 
     const [board, cardioSeconds] = await Promise.all([
-      athletePerformanceWithSnapshot(user.id, user.callName, period, track),
+      athletePerformanceWithSnapshot(user.id, user.callName, period, track, user.householdId),
       athleteCardioSeconds(user.id, period),
     ]);
     return NextResponse.json({ hidden: false, ...board, cardioSeconds });

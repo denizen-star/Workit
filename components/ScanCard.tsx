@@ -4,6 +4,7 @@ import { useState, type ReactNode } from 'react';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { HelpTip } from '@/components/HelpSheet';
 import SpikeChart from '@/components/SpikeChart';
+import { trackAction } from '@/lib/analytics';
 
 export type ScanMetric = {
   label: string;
@@ -173,7 +174,12 @@ export function HomeFold({
       <div className="flex items-center gap-1">
         <button
           type="button"
-          onClick={() => setOpen((current) => !current)}
+          onClick={() => {
+            // Opens only (not closes): how often each card is looked at, and by whom
+            // (the server stamps the athlete on every event).
+            if (!open) trackAction('card_open', { cta_type: title });
+            setOpen(!open);
+          }}
           className="flex min-h-11 min-w-0 flex-1 items-center gap-2 text-left"
           aria-expanded={open}
         >

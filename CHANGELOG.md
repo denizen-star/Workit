@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 13.1.0 - 2026-10-09
+
+### Changed
+- **Home opens in one go.** Home now loads everything it needs in a single request instead of nine, with far less work on the server behind it.
+- **Medals opens faster.** The Medals page just shows your badges now. Badges are still earned the moment you finish a workout.
+- **Your house, your rank.** Your performance compares you with the athletes in your own house.
+
 ## 13.0.3 - 2026-10-08
 
 ### Changed

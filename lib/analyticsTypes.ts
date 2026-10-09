@@ -25,6 +25,8 @@ export const ALLOWED_EVENT_TYPES = [
   'push_disabled',
   'push_test',
   'push_sent',
+  // A fold card opened (HomeFold): cta_type = the card's title, page_url = where.
+  'card_open',
 ] as const;
 
 export type AnalyticsEventType = (typeof ALLOWED_EVENT_TYPES)[number];

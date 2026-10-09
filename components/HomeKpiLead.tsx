@@ -16,6 +16,11 @@ import type { OptInTrack } from '@/lib/programTrack';
 const homeBoardCache = new Map<string, AthletePerformanceBoard | null>();
 const homeBoardInflight = new Map<string, Promise<AthletePerformanceBoard | null>>();
 
+/** Seed the untracked board from GET /api/home (same t-15-else-all rule, done server-side). */
+export function primeHomeBoard(board: AthletePerformanceBoard | null) {
+  homeBoardCache.set('all', board);
+}
+
 function loadHomeBoard(track?: OptInTrack) {
   const key = track ?? 'all';
   const trackQuery = track ? `&track=${track}` : '';

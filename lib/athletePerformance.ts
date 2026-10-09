@@ -870,7 +870,9 @@ export async function athletePerformanceWithSnapshot(
   userId: number,
   name: string,
   rawPeriod: PerformancePeriod | string,
-  programTrack?: string
+  programTrack?: string,
+  /** The athlete's house: the snapshot ranks them against it, not every house. */
+  householdId?: number | null
 ) {
   // The house snapshot (vs pack average) only makes sense against the whole
   // household's normal-program numbers — skip it entirely for a track-scoped board.
@@ -878,7 +880,7 @@ export async function athletePerformanceWithSnapshot(
   // Independent reads: run the board and the snapshot together.
   const [board, snapshot] = await Promise.all([
     athletePerformance(userId, rawPeriod, programTrack),
-    performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod)).catch((error) => {
+    performanceSnapshot(userId, name, normalizePerformancePeriod(rawPeriod), householdId).catch((error) => {
       console.error('Error getting performance snapshot:', error);
       return null;
     }),

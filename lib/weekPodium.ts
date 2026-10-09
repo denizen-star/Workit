@@ -277,6 +277,27 @@ function isMissingSeenTable(error: unknown) {
  * Has this user already dismissed the podium/miss takeover for this week? Server-side
  * (keyed by account, not device) so it doesn't reappear on a different browser or PWA-vs-browser.
  */
+/** Which of `kinds` this athlete has already seen for `weekMonday`, in one read. */
+export async function seenTakeoverKinds(
+  userId: number,
+  weekMonday: string,
+  kinds: WeekTakeoverKind[]
+): Promise<Set<WeekTakeoverKind>> {
+  if (kinds.length === 0) return new Set();
+  try {
+    const result = await query(
+      `SELECT kind FROM week_takeover_seen WHERE user_id = ? AND week_monday = ? AND kind IN (${kinds
+        .map(() => '?')
+        .join(', ')})`,
+      [userId, weekMonday, ...kinds]
+    );
+    return new Set((result.rows as { kind: WeekTakeoverKind }[]).map((row) => row.kind));
+  } catch (error) {
+    if (isMissingSeenTable(error)) return new Set();
+    throw error;
+  }
+}
+
 export async function hasSeenWeekTakeover(
   userId: number,
   weekMonday: string,

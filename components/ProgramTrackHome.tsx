@@ -76,7 +76,7 @@ interface ProgramToday {
 }
 
 /** A running More program replaces Home: today's day, the week lock, week performance,
- * stories, and this run's diplomas. Reads `GET /api/<track>` + this track's sessions. */
+ * stories, and this run's diplomas. Reads `GET /api/programs` + this track's sessions. */
 export default function ProgramTrackHome({
   track,
   userName,
@@ -98,9 +98,10 @@ export default function ProgramTrackHome({
   const [leaveError, setLeaveError] = useState('');
 
   useEffect(() => {
-    fetch(`/api/${track}`)
+    fetch('/api/programs')
       .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
+      .then((programs) => {
+        const data = programs?.[track];
         if (!data) return;
         setToday(data.today || null);
         // Hyrox: out of built content. Overload: every week of the run locked.

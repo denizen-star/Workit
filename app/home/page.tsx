@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { Dumbbell, UserPlus } from 'lucide-react';
-import HomeKpiLead, { HomeTodayKpis } from '@/components/HomeKpiLead';
+import HomeKpiLead, { HomeTodayKpis, primeHomeBoard } from '@/components/HomeKpiLead';
 import PerformanceDesk from '@/components/PerformanceDesk';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
@@ -53,7 +53,7 @@ import { pickResumeLine, pickWeek1StartCopy } from '@/lib/coachLines';
 import { testDriveCountdown, testDriveTarget, type TestDriveState } from '@/lib/testDrive';
 import TestDriveDoneHero, { type TestDriveDoneSummary } from '@/components/TestDriveDoneHero';
 import { isWeekPlace, type WeekMissYou, type WeekPodiumYou } from '@/lib/weekPodium';
-import { fetchMe } from '@/lib/meClient';
+import { primeMe } from '@/lib/meClient';
 import { MORE_PROGRAMS, programFromSearch, programLabel } from '@/lib/programUnlock';
 import type { OptInTrack } from '@/lib/programTrack';
 import type { MoreProgramState } from '@/components/AppMenu';
@@ -149,7 +149,7 @@ export default function Home() {
   const [needsWaiver, setNeedsWaiver] = useState(false);
   const [showQuickstartTakeover, setShowQuickstartTakeover] = useState(false);
   const [showHowBanner, setShowHowBanner] = useState(false);
-  // More programs (docs/plans/PLAN_MORE_PROGRAMS.md): GET /api/hyrox and /api/overload.
+  // More programs (docs/plans/PLAN_MORE_PROGRAMS.md): GET /api/programs.
   const [programs, setPrograms] = useState<Partial<Record<OptInTrack, ProgramStatus>>>({});
   const [activeIntro, setActiveIntro] = useState<OptInTrack | null>(null);
   const [programStartError, setProgramStartError] = useState('');
@@ -164,20 +164,27 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadShell = async () => {
+    /** Home in one call (GET /api/home). Each part has its old route's shape; a part
+     * that failed is null and is skipped, like a failed call used to be. */
+    const loadHome = async () => {
       try {
-        const [meRes, sessionsRes, catalogRes, hyroxRes, overloadRes] = await Promise.all([
-          fetchMe(),
-          fetch('/api/sessions?home=1'),
-          fetch('/api/coach-catalog'),
-          fetch('/api/hyrox'),
-          fetch('/api/overload'),
-        ]);
-
+        const res = await fetch('/api/home');
+        if (cancelled) return;
+        // Admin blocked this account: the API already evicted the session.
+        if (res.status === 403) {
+          if ((await res.json().catch(() => null))?.blocked) window.location.replace('/blocked');
+          return;
+        }
+        if (!res.ok) return;
+        const home = await res.json();
         if (cancelled) return;
 
-        if (meRes.ok) {
-          const meData = meRes.data;
+        // The menu reads the same profile; seed its cache so it doesn't fetch again.
+        primeMe(home.me);
+        if (home.board !== undefined) primeHomeBoard(home.board?.hidden ? null : home.board);
+
+        const meData = home.me;
+        if (meData?.user) {
           const profile = profileFromMe(meData.user);
           setUserId(profile.id);
           setUserName(profile.callName);
@@ -199,8 +206,8 @@ export default function Home() {
           setShowHowBanner(Number(meData.completedWorkouts || 0) < 5);
         }
 
-        if (sessionsRes.ok) {
-          const sessionData = await sessionsRes.json();
+        const sessionData = home.sessions;
+        if (sessionData) {
           setSessions(sessionData.sessions || []);
           setResumeFloor(Number(sessionData.resumeFloor) || 1);
           setTestDrive(sessionData.testDrive || null);
@@ -220,19 +227,15 @@ export default function Home() {
           );
         }
 
-        if (catalogRes.ok) {
-          hydrateCoachCatalog(await catalogRes.json());
-        }
+        if (home.catalog) hydrateCoachCatalog(home.catalog);
 
+        // Both More programs.
         const loadedPrograms: Partial<Record<OptInTrack, ProgramStatus>> = {};
-        for (const [track, res] of [
-          ['hyrox', hyroxRes],
-          ['overload', overloadRes],
-        ] as const) {
-          if (!res.ok) continue;
-          const data = await res.json();
-          loadedPrograms[track] = programStatusFrom(data);
-          setMainLockedWeeks(Number(data.lockedWeeks) || 0);
+        if (home.programs) {
+          setMainLockedWeeks(Number(home.programs.lockedWeeks) || 0);
+          for (const { track } of MORE_PROGRAMS) {
+            if (home.programs[track]) loadedPrograms[track] = programStatusFrom(home.programs[track]);
+          }
         }
         setPrograms(loadedPrograms);
         // The More programs item on any other page can't open the intro directly (only
@@ -242,35 +245,22 @@ export default function Home() {
           setActiveIntro(handoff);
           window.history.replaceState(null, '', '/home');
         }
+
+        if (home.stats) setStats(home.stats);
+        if (home.podium) {
+          const you = home.podium.you as (WeekPodiumYou & { line: string; seen: boolean }) | null;
+          const miss = home.podium.miss as (WeekMissYou & { seen: boolean }) | null;
+          setWeekYou(you && isWeekPlace(you.place) ? you : null);
+          setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
+        }
       } catch (error) {
-        console.error('Error loading home shell:', error);
+        console.error('Error loading home:', error);
       } finally {
         if (!cancelled) setLoading(false);
       }
     };
 
-    const loadStats = async () => {
-      try {
-        const [statsRes, podiumRes] = await Promise.all([
-          fetch('/api/stats?home=1'),
-          fetch('/api/week-podium'),
-        ]);
-        if (cancelled) return;
-        if (statsRes.ok) setStats(await statsRes.json());
-        if (podiumRes.ok) {
-          const podium = await podiumRes.json();
-          const you = podium?.you as (WeekPodiumYou & { line: string; seen: boolean }) | null;
-          const miss = podium?.miss as (WeekMissYou & { seen: boolean }) | null;
-          setWeekYou(you && isWeekPlace(you.place) ? you : null);
-          setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
-        }
-      } catch (error) {
-        console.error('Error loading home stats:', error);
-      }
-    };
-
-    loadShell();
-    loadStats();
+    loadHome();
     return () => {
       cancelled = true;
     };
