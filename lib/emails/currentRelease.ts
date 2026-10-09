@@ -33,36 +33,30 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '13.0.3',
-  title: 'Calmer Home, smarter next step.',
-  subject: 'Home got calmer — Work-It',
+  version: '13.1.0',
+  title: 'Home opens in one go.',
+  subject: 'Home opens faster — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Quick one, and it's all about keeping you moving! Home is calmer now, and your next workout is the same wherever you look.",
+    "Quick one, and it's all about speed! Home now loads everything in one go, so you get to your workout faster.",
   mid:
-    "When there's news for you on Home, like a medal, a check-in or a note from me, it now comes one screen at a time instead of piling up. And if you've tried Hyrox Training or Overload Progressions and come back, your reminders and workout emails now point to exactly where you left off.",
+    "Behind the scenes, opening Home used to take nine separate trips to the server. Now it's one. The Medals page opens faster too, and your badges still land the second you finish a workout. Your performance now ranks you against your own house.",
   close:
-    "One screen, one next step, one more rep. I believe in you. Leave quit at the door. Let's go!",
+    "Less waiting, more lifting. I believe in every rep you've got. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'Calmer Home',
+      heading: 'Faster',
       wins: [
-        'Medals, check-ins, notes — one at a time, each waits its turn.',
-        'Everything — a little quicker to open.',
+        'Home — loads in one go instead of nine trips.',
+        'Medals — opens faster; badges still land when you finish.',
       ],
     },
     {
-      heading: 'Right next step',
-      wins: [
-        'Back from Hyrox or Overload — reminders and emails point to your real next workout.',
-        'Hyrox — Select Workout opens your current week.',
-        'Hyrox weeks — no belt shows up that you did not earn.',
-        'Program complete — only after the full 48 weeks.',
-        'Awards after a Yoga, Core or Run pick — the right belt color.',
-      ],
+      heading: 'Fairer',
+      wins: ['Your performance — ranks you against your own house.'],
     },
   ],
   wins: [],
