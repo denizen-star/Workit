@@ -37,25 +37,25 @@ export type ReleaseDef = {
 };
 
 export const CURRENT_RELEASE: ReleaseDef = {
-  version: '14.2.0',
-  title: 'Know which exercise is next.',
-  subject: 'Your current exercise now stands out',
+  version: '14.3.0',
+  title: 'Circuits are here.',
+  subject: 'New in Your pick: supersets, circuits and easy HIIT',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
-  intro: "Quick one, and you'll feel it on your very next workout! The exercise you're on now lights up.",
+  intro: "Big one, and it's ready for your next workout! Your pick now has a Circuits section: supersets, circuits and an easy HIIT.",
   mid:
-    "Mid-session, every card used to look the same. Now the one you're working gets a gold edge, finished ones dim down, and the screen glides to the next card when you wrap one up. In a circuit, it also tells you which round you're in.",
-  close: "Eyes on the gold, one set at a time. I believe in you. Leave quit at the door!",
+    "A superset pairs two moves back to back with no rest between them, then you rest and go again. A circuit strings three or more together, and one even starts every round with an easy run. Easy HIIT is 40 seconds on, 20 off, with a clock that moves you along. One move on screen at a time, your weight ready from the last round, and every one counts toward your week like any Your pick.",
+  close: "Pick one, go round by round. I believe in you. Leave quit at the door!",
   lead: '',
   groups: [
     {
-      heading: 'Easier to follow',
+      heading: 'New in Your pick',
       wins: [
-        'Current exercise: gold edge and glow.',
-        'Finished exercises: dimmed.',
-        'Next card: the screen scrolls to it after you finish one.',
-        'Circuits: shows Round N of M.',
+        'Supersets: Push / Pull and Legs.',
+        'Circuits: Run + lifts, and Full body.',
+        'Easy HIIT: 40 seconds on, 20 off, four rounds.',
+        'Counts: toward your week, belts and medals.',
       ],
     },
   ],

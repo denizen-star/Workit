@@ -1,6 +1,6 @@
 # Feature Implementation Plan — Circuits
 
-**Overall Progress:** `17%`
+**Overall Progress:** `67%` (Step 5 on hold until Kevin says go; Step 6 verification pending)
 
 ## TLDR
 Make the current exercise card obvious, then add a **Circuits** family (superset / circuit / HIIT) offered through Your pick, with its own round-based standalone live view. Stations log as normal `exercise_sets` rows, so history, PRs and the Library keep working. Hyrox moves its circuit blocks onto the shared component last.
@@ -26,32 +26,33 @@ Make the current exercise card obvious, then add a **Circuits** family (superset
   - [x] 🟩 Done: dimmed (opacity) — one-line fold deliberately skipped, finished cards already hide their setup chrome
   - [x] 🟩 Circuit badge shows "Round N of M · Step N of M" (`lib/currentCard.ts`)
 
-- [ ] 🟥 **Step 2: Circuit definitions and session type**
-  - [ ] 🟥 New `lib/circuits.ts`: template type (`superset` | `circuit` | `hiit`), stations, rounds, work/rest seconds, run leg
-  - [ ] 🟥 Write several templates (e.g. push/pull superset, lower superset, run + lifts circuit, easy HIIT)
-  - [ ] 🟥 Add `circuit` pick type, own day-number range, and Circuits category chip/group in `lib/yourPick.ts` + `YourPickSheet`
-  - [ ] 🟥 Validate server-side in `lib/yourPickStart.ts`; resolve via `resolveSessionDay` / `isFlowPickType`; session name `Your pick · Circuit · <name>`
-  - [ ] 🟥 Focus chip mapping in `lib/focusRotation.ts` `pickCategoriesForFocuses`
+- [x] 🟩 **Step 2: Circuit definitions and session type**
+  - [x] 🟩 New `lib/circuits.ts`: template type (`superset` | `circuit` | `hiit`), stations, rounds, work/rest seconds, run leg
+  - [x] 🟩 Write several templates (e.g. push/pull superset, lower superset, run + lifts circuit, easy HIIT)
+  - [x] 🟩 Add `circuit` pick type, own day-number range, and Circuits category chip/group in `lib/yourPick.ts` + `YourPickSheet`
+  - [x] 🟩 Validate server-side in `lib/yourPickStart.ts`; resolve via `resolveSessionDay` / `isFlowPickType`; session name `Your pick · Circuit · <name>`
+  - [x] 🟩 Focus chip mapping in `lib/focusRotation.ts` `pickCategoriesForFocuses`
 
-- [ ] 🟥 **Step 3: Standalone round-based live view (lifting + run circuits)**
-  - [ ] 🟥 New `components/CircuitFlow.tsx`, launched like `YourPickFlow` from `/workout`
-  - [ ] 🟥 Station screen: round/station header, current station, next-station preview, weight/reps (or time/distance for run), Done
-  - [ ] 🟥 Weight prefilled from previous round, editable; rows saved via existing `POST /api/exercises`
-  - [ ] 🟥 No rest between stations; shared rest timer once after the last station of each round
-  - [ ] 🟥 Add circuit stations to `isSkipExempt` (`lib/skippedSets.ts`)
-  - [ ] 🟥 Normal Finish: stars → recap → complete → awards; week count via Your pick rules
+- [x] 🟩 **Step 3: Standalone round-based live view (lifting + run circuits)**
+  - [x] 🟩 New `components/CircuitFlow.tsx`, launched like `YourPickFlow` from `/workout`
+  - [x] 🟩 Station screen: round/station header, current station, next-station preview, weight/reps (or time/distance for run), Done
+  - [x] 🟩 Weight prefilled from previous round, editable; rows saved via existing `POST /api/exercises`
+  - [x] 🟩 No rest between stations; shared rest timer once after the last station of each round
+  - [x] 🟩 Add circuit stations to `isSkipExempt` (`lib/skippedSets.ts`)
+  - [x] 🟩 Normal Finish: stars → recap → complete → awards; week count via Your pick rules
 
-- [ ] 🟥 **Step 4: HIIT variant**
-  - [ ] 🟥 Timed work/rest clock in `CircuitFlow` (auto-advance, manual Next/Skip rest, like Abs)
-  - [ ] 🟥 Time-only logging, end How hard, no weights
-  - [ ] 🟥 Credit via `lib/yourPickCredit.ts` (same rule as Yoga/Core) into `credit_lbs` at Finish
-  - [ ] 🟥 Treat as flow pick for Finish/credit paths (`isFlowPickType` / `isTimedPickType` as needed)
+- [x] 🟩 **Step 4: HIIT variant**
+  - [x] 🟩 Timed work/rest clock in its own `components/HiitFlow.tsx` (split from `CircuitFlow` — one responsibility each) (auto-advance, manual Next/Skip rest, like Abs)
+  - [x] 🟩 Time-only logging, end How hard, no weights
+  - [x] 🟩 Credit via `lib/yourPickCredit.ts` (same rule as Yoga/Core) into `credit_lbs` at Finish
+  - [x] 🟩 Treat as flow pick for Finish/credit paths (`isFlowPickType` / `isTimedPickType` as needed)
 
 - [ ] 🟥 **Step 5: Hyrox onto the shared component**
   - [ ] 🟥 Extract the station/round block from `CircuitFlow` for embedding in a mixed day
   - [ ] 🟥 Replace Hyrox circuit cards (`circuitGroup` / `noRestAfter` rendering in `ExerciseTracker`) with the shared block
   - [ ] 🟥 Remove the old red "Step N of M" badge once nothing uses it
 
-- [ ] 🟥 **Step 6: Docs and verification**
-  - [ ] 🟥 Update `CLAUDE.md` (Your pick, live view, skip exemption), `docs/WHAT_IS_WORKIT.md`, `app/help/page.tsx`
-  - [ ] 🟥 One typecheck; one API test on the server change; first screenshot (as Test user, PIN 0000)
+- [ ] 🟨 **Step 6: Docs and verification**
+  - [x] 🟩 Update `CLAUDE.md` (Your pick, live view, skip exemption), `docs/WHAT_IS_WORKIT.md`, `app/help/page.tsx`
+  - [x] 🟩 One typecheck; one API test on the server change (Test user: circuit + HIIT start, mode/day validation, back-to-back sets not skipped, HIIT credit)
+  - [ ] 🟥 First screenshot of the live views — no browser tool in the unmonitored run; Kevin to eyeball (see test list)

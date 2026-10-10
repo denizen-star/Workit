@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 14.3.0 - 2026-10-10
+
+### Added
+- **Circuits in Your pick.** A new Circuits category (Build muscle focus) with two supersets (Push / Pull, Legs), two circuits (Run + lifts, Full body) and an Easy HIIT. Supersets and circuits show one move at a time, back to back with no rest, then one rest after the round; weight and reps start from your last round. Easy HIIT runs 40 seconds on, 20 off, with a clock that moves on by itself. All of them count toward the week like any Your pick; HIIT scores like Yoga and Core.
+
 ## 14.2.0 - 2026-10-10
 
 ### Changed

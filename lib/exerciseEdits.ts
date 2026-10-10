@@ -86,7 +86,8 @@ function buildDefinitions(): Map<string, Exercise> {
   AB_CORE_POOL.forEach(add);
   for (const group of yourPickVariantGroups()) {
     for (const variant of group.variants) {
-      if (variant.type === 'core' || variant.type === 'yoga' || variant.type === 'run') continue;
+      // Flows and circuits are not add-able lifts (circuit stations are existing program lifts or the run leg).
+      if (['core', 'yoga', 'run', 'circuit', 'hiit'].includes(variant.type)) continue;
       (resolveYourPickDay(7, variant.dayNumber)?.exercises || []).forEach(add);
     }
   }

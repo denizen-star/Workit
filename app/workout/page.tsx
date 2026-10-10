@@ -18,6 +18,8 @@ import {
 import YourPickSheet, { type YourPickChoice } from '@/components/YourPickSheet';
 import YourPickIcon from '@/components/YourPickIcon';
 import YourPickFlow from '@/components/YourPickFlow';
+import HiitFlow from '@/components/HiitFlow';
+import CircuitFlow from '@/components/CircuitFlow';
 import YourPickExplainer from '@/components/YourPickExplainer';
 import { applyWorkoutMode, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { TRACKS, type ProgramTrack } from '@/lib/programTrack';
@@ -983,8 +985,11 @@ function WorkoutPageInner() {
     const liveRow = sessions.find((session) => Number(session.id) === currentSession);
     const timedPick =
       liveRow && isFlowPickType(liveRow.pick_type) && (liveRow.pick_mode === 'timed' || liveRow.pick_mode === 'done')
-        ? { type: liveRow.pick_type as 'yoga' | 'core' | 'run', mode: liveRow.pick_mode as 'timed' | 'done' }
+        ? { type: liveRow.pick_type as 'yoga' | 'core' | 'run' | 'hiit', mode: liveRow.pick_mode as 'timed' | 'done' }
         : null;
+    // Superset / circuit Your pick: rounds of stations (components/CircuitFlow.tsx) in place of
+    // the exercise cards; warmup, cooldown and Finish stay as they are.
+    const circuitPick = liveRow?.pick_type === 'circuit';
     return (
       <div
         className={redWash ? 'hyrox-session min-h-screen' : 'belt-session min-h-screen'}
@@ -1111,16 +1116,25 @@ function WorkoutPageInner() {
           ) : null}
           {timedPick ? (
             <>
-              <YourPickFlow
-                key={currentSession}
-                sessionId={currentSession}
-                weekNumber={selectedWeek}
-                type={timedPick.type}
-                mode={timedPick.mode}
-                dayNumber={Number(liveRow?.day_number)}
-                startedAt={startedAt}
-                onReadyChange={handlePickReady}
-              />
+              {timedPick.type === 'hiit' ? (
+                <HiitFlow
+                  key={currentSession}
+                  sessionId={currentSession}
+                  dayNumber={Number(liveRow?.day_number)}
+                  onReadyChange={handlePickReady}
+                />
+              ) : (
+                <YourPickFlow
+                  key={currentSession}
+                  sessionId={currentSession}
+                  weekNumber={selectedWeek}
+                  type={timedPick.type}
+                  mode={timedPick.mode}
+                  dayNumber={Number(liveRow?.day_number)}
+                  startedAt={startedAt}
+                  onReadyChange={handlePickReady}
+                />
+              )}
               <button
                 type="button"
                 disabled={pickHardness == null}
@@ -1139,6 +1153,22 @@ function WorkoutPageInner() {
             dayName={workout.name}
             onLbs={handleWarmupLbs}
           />
+          {circuitPick ? (
+            <CircuitFlow
+              key={currentSession}
+              sessionId={currentSession}
+              dayNumber={Number(liveRow?.day_number)}
+              exercises={workout.exercises}
+              onTotals={handleLiftTotals}
+              onDone={() => {
+                setLiftsDone(true);
+                window.requestAnimationFrame(() => {
+                  cooldownRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                });
+              }}
+              onRestBannerChange={({ active, height }) => setRestBannerLift(active ? height : 0)}
+            />
+          ) : (
           <ExerciseTracker
             ref={exerciseTrackerRef}
             sessionId={currentSession}
@@ -1162,6 +1192,7 @@ function WorkoutPageInner() {
             onCoachMoment={(moment) => coachBubbleRef.current?.announce(moment)}
             onRestBannerChange={({ active, height }) => setRestBannerLift(active ? height : 0)}
           />
+          )}
           <div ref={cooldownRef}>
             <OptionalCard
               sessionId={currentSession}

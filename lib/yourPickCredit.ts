@@ -53,7 +53,7 @@ export async function computeYourPickCredit(
 }
 
 /**
- * On Finish, stores `credit_lbs` (and `session_hardness`) on a Yoga/Core/Run Your pick.
+ * On Finish, stores `credit_lbs` (and `session_hardness`) on a Yoga/Core/Run/HIIT Your pick.
  * Runs before badges / daily stats so both already see the credit. No-op for any
  * other session. Returns the credit written (0 when none).
  */
@@ -63,7 +63,8 @@ export async function applyYourPickCredit(
   sessionHardness: unknown
 ): Promise<number> {
   const isRun = session.pick_type === 'run';
-  if (!isRun && !isTimedPickType(session.pick_type)) return 0;
+  // HIIT logs no sets, so like Yoga/Core it is scored as an average lifting session.
+  if (!isRun && !isTimedPickType(session.pick_type) && session.pick_type !== 'hiit') return 0;
   const raw = Number(sessionHardness);
   const hardness = Number.isFinite(raw) && raw >= 1 && raw <= 5 ? raw : null;
   // Run pays for the time actually run (start → Finish), like the optional run: 50 lb a

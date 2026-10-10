@@ -125,7 +125,7 @@ export function focusPickGroups(): YourPickVariantGroup[] {
 /** Which Your pick categories (`YourPickVariantGroup.label`) each focus covers. Run suits
  * every focus, so it appears under all of them. */
 const FOCUS_PICK_CATEGORIES: Record<Focus, readonly string[]> = {
-  build: ['Upper', 'Lower', 'Full body', 'Run'],
+  build: ['Upper', 'Lower', 'Full body', 'Run', 'Circuits'],
   core: ['Core & other', 'Pilates', 'Run'],
   home: ['Home · 2 Dumbbells', 'Run'],
   travel: ['Travel', 'Run'],

@@ -256,7 +256,8 @@ function buildLibrary(): MovementEntry[] {
   // new pack movement must land in the Library without anyone remembering to add it.
   for (const group of yourPickVariantGroups()) {
     for (const variant of group.variants) {
-      if (variant.type === 'core' || variant.type === 'yoga') continue;
+      // HIIT moves are intervals, not Library movements.
+      if (variant.type === 'core' || variant.type === 'yoga' || variant.type === 'hiit') continue;
       for (const exercise of resolveYourPickDay(7, variant.dayNumber)?.exercises || []) {
         addExercise(exercise.name, 'main', 'gym', variant.label);
       }

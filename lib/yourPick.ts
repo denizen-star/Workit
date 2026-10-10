@@ -1,4 +1,14 @@
 import { isEasternWeekend } from '@/lib/analyticsTime';
+import {
+  circuitDayNumber,
+  circuitPickType,
+  circuitTemplateForDay,
+  circuitVariants,
+  defaultCircuitTemplate,
+  isCircuitPickType,
+  resolveCircuitDay,
+  type CircuitPickType,
+} from '@/lib/circuits';
 import { CARDIO_LBS_PER_MINUTE, type OptionalCircuitStep } from '@/lib/optionals';
 import { yourPickCoreFlow, yourPickYogaFlow } from '@/lib/optionalCircuits';
 import { programWithRetiredDays, type Exercise, type WorkoutDay } from '@/lib/workoutData';
@@ -15,11 +25,13 @@ import { blockFor, EXTRA_UPPER_PACKS } from '@/lib/yearProgram';
  * session row with `resolveYourPickDay`.
  */
 
-export type YourPickType = 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'run';
-/** sets = normal live session. timed = Yoga/Core tap-through, or Run's countdown. done = Yoga/Core mark done. */
+export type YourPickType = 'upper' | 'lower' | 'yoga' | 'core' | 'full' | 'run' | CircuitPickType;
+/** sets = normal live session (or a lifting circuit). timed = Yoga/Core tap-through, Run's countdown, or HIIT. done = Yoga/Core mark done. */
 export type YourPickMode = 'sets' | 'timed' | 'done';
 
-export const YOUR_PICK_TYPES: YourPickType[] = ['upper', 'lower', 'yoga', 'core', 'full', 'run'];
+/** The types that own a rotating day number (20-25). Circuit and HIIT are deliberately not
+ * here: each has its own day-number range (lib/circuits.ts) and no rotating pack. */
+export const YOUR_PICK_TYPES: Exclude<YourPickType, CircuitPickType>[] = ['upper', 'lower', 'yoga', 'core', 'full', 'run'];
 
 const LABELS: Record<YourPickType, string> = {
   upper: 'Upper',
@@ -28,6 +40,8 @@ const LABELS: Record<YourPickType, string> = {
   core: 'Core',
   full: 'Full body',
   run: 'Run',
+  circuit: 'Circuit',
+  hiit: 'HIIT',
 };
 
 const FOCUS: Record<YourPickType, string> = {
@@ -37,6 +51,8 @@ const FOCUS: Record<YourPickType, string> = {
   core: 'Core holds',
   full: 'Full body',
   run: 'Easy run',
+  circuit: 'Rounds of stations',
+  hiit: 'Easy intervals',
 };
 
 /** First Your pick `day_number`. One per type (20-25; Run also owns 26-27, see RUN_PICK_DAYS), clear of the program's 1-5,
@@ -56,7 +72,7 @@ export const YOUR_PICK_DONE_MIN_SECONDS = 30 * 60;
 export const YOUR_PICK_NAME = 'Your pick';
 
 export function isYourPickType(value: unknown): value is YourPickType {
-  return YOUR_PICK_TYPES.includes(value as YourPickType);
+  return YOUR_PICK_TYPES.includes(value as (typeof YOUR_PICK_TYPES)[number]) || isCircuitPickType(value);
 }
 
 /** Run's day numbers → minutes. 25 is `yourPickDayNumber('run')`; 26/27 sit right after it. */
@@ -76,14 +92,14 @@ export function isTimedPickType(type: unknown): boolean {
   return type === 'yoga' || type === 'core';
 }
 
-/** Picks that run as a YourPickFlow (no exercise cards): Yoga, Core and Run. */
+/** Picks that run as a flow (no exercise cards): Yoga, Core, Run and HIIT. */
 export function isFlowPickType(type: unknown): boolean {
-  return isTimedPickType(type) || type === 'run';
+  return isTimedPickType(type) || type === 'run' || type === 'hiit';
 }
 
-/** Modes a type allows: lifting types only run as sets, Run only as its countdown. */
+/** Modes a type allows: lifting types (and circuits) only run as sets, Run and HIIT only as their clock. */
 export function pickModesFor(type: YourPickType): YourPickMode[] {
-  if (type === 'run') return ['timed'];
+  if (type === 'run' || type === 'hiit') return ['timed'];
   return isTimedPickType(type) ? ['timed', 'done'] : ['sets'];
 }
 
@@ -99,10 +115,13 @@ export function yourPickWorkoutType(type: YourPickType): string {
 }
 
 export function yourPickDayNumber(type: YourPickType): number {
+  if (isCircuitPickType(type)) return circuitDayNumber(defaultCircuitTemplate(type));
   return YOUR_PICK_DAY_BASE + YOUR_PICK_TYPES.indexOf(type);
 }
 
 export function pickTypeFromDayNumber(dayNumber: number): YourPickType | null {
+  const circuit = circuitTemplateForDay(dayNumber);
+  if (circuit) return circuitPickType(circuit);
   if (runPickMinutes(dayNumber) != null) return 'run';
   const variant = variantFromDayNumber(dayNumber);
   if (variant) return variant.type;
@@ -254,12 +273,13 @@ export function flowExercises(steps: OptionalCircuitStep[]): Exercise[] {
 }
 
 function exercisesFor(weekNumber: number, type: YourPickType): Exercise[] {
+  if (isCircuitPickType(type)) return resolveCircuitDay(yourPickDayNumber(type))?.exercises ?? [];
   if (type === 'run') return runExercises(10);
   if (isTimedPickType(type)) {
     return flowExercises(yourPickSteps(weekNumber, type));
   }
   const note = pickPhaseNote(weekNumber);
-  return rotate(LIFT_POOLS[type as 'upper' | 'lower' | 'full'], weekNumber).map((exercise) => ({
+  return rotate(LIFT_POOLS[type as LiftPickType], weekNumber).map((exercise) => ({
     ...exercise,
     notes: note,
   }));
@@ -267,6 +287,8 @@ function exercisesFor(weekNumber: number, type: YourPickType): Exercise[] {
 
 /** The Your pick day of `type` for a program week: rotating pack + phase note. */
 export function yourPickDay(weekNumber: number, type: YourPickType): WorkoutDay {
+  // Circuits have no rotating pack: the type's first template.
+  if (isCircuitPickType(type)) return resolveCircuitDay(yourPickDayNumber(type)) as WorkoutDay;
   return {
     dayNumber: yourPickDayNumber(type),
     name: yourPickWorkoutType(type),
@@ -420,6 +442,7 @@ export function yourPickVariantGroups(): YourPickVariantGroup[] {
       })),
     },
     { label: 'Run', variants: runVariants() },
+    { label: 'Circuits', variants: circuitVariants() },
   ];
 }
 
@@ -495,7 +518,7 @@ export function resolveYourPickDay(weekNumber: number, dayNumber: number): Worko
   const day = Number(dayNumber);
   const key = `${week}:${day}`;
   if (resolvedPickDays.has(key)) return resolvedPickDays.get(key);
-  const variant = variantDay(week, day) ?? runPickDay(day);
+  const variant = resolveCircuitDay(day) ?? variantDay(week, day) ?? runPickDay(day);
   const type = YOUR_PICK_TYPES[day - YOUR_PICK_DAY_BASE];
   const resolved = variant ?? (type ? yourPickDay(week, type) : undefined);
   resolvedPickDays.set(key, resolved);
@@ -503,7 +526,7 @@ export function resolveYourPickDay(weekNumber: number, dayNumber: number): Worko
 }
 
 /** What a Your pick can be — the line on the slot tile and on Home's Pick one button. */
-export const YOUR_PICK_CHOICES = 'Upper, Lower, Yoga, Core, Full body or Run';
+export const YOUR_PICK_CHOICES = 'Upper, Lower, Yoga, Core, Full body, Run or Circuits';
 
 /** A required "any Your pick" tile (see YOUR_PICK_SLOT_DAYS). */
 export function yourPickSlotDay(dayNumber: number): WorkoutDay {
