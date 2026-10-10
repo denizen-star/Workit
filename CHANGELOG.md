@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 14.1.4 - 2026-10-10
+
+### Fixed
+- **Everyone view: Effective no longer inflates.** With several athletes selected, someone with no earlier session of a lift had this period's volume counted as growth. Only athletes with a last time to compare to now count toward a lift's % change (selecting all five went from +14.0% to +10.4%).
+
 ## 14.1.3 - 2026-10-10
 
 ### Changed

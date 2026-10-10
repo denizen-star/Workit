@@ -37,25 +37,23 @@ export type ReleaseDef = {
 };
 
 export const CURRENT_RELEASE: ReleaseDef = {
-  version: '14.1.3',
-  title: 'Your performance, faster.',
-  subject: 'Your performance now opens faster',
+  version: '14.1.4',
+  title: 'A truer Effective number.',
+  subject: 'A truer Effective number on Your performance',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
-  intro:
-    "Quick one, and you'll feel it! Your performance page used to make you wait. Not anymore.",
+  intro: "Small fix, big on honesty! The Effective number on Your performance now tells the truth when more than one person is combined.",
   mid:
-    "Your lifts now show up the moment they're ready, and the house comparison fills in right behind them instead of holding everything up. Same numbers, less waiting.",
-  close: "Open it, see where you moved up, then go lift. I believe in you. Leave quit at the door!",
+    "Before, someone trying a lift for the first time could make the group number look better than it was, because there was nothing earlier to compare them to. Now only people with a last time to compare against count. Your own number never changed.",
+  close: "Real numbers, real progress. I believe in you. Leave quit at the door!",
   lead: '',
   groups: [
     {
-      heading: 'Faster to open',
+      heading: 'A truer number',
       wins: [
-        'Your performance: your lifts appear first, the house tile follows.',
-        'Home: the Effective number loads lighter.',
-        'After a workout: the recap comes up quicker.',
+        'Effective for a group: a first-time lift no longer reads as growth.',
+        'Your own number: unchanged.',
       ],
     },
   ],

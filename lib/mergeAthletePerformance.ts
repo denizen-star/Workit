@@ -82,6 +82,18 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
   const sparkWeight = addSparks(left.sparkWeight || [], right.sparkWeight || []);
   const sparkReps = addSparks(left.sparkReps || [], right.sparkReps || []);
   const effortVolume = (left.effortVolume ?? left.currentVolume) + (right.effortVolume ?? right.currentVolume);
+  const comparable = (line: PerformanceLine) => ({
+    weight: line.comparableWeight ?? (line.priorWeight != null ? line.currentWeight : 0),
+    volume: line.comparableVolume ?? (line.priorVolume != null ? line.currentVolume : 0),
+    effort:
+      line.comparableEffort ??
+      ((line.priorEffortVolume ?? line.priorVolume) != null ? (line.effortVolume ?? line.currentVolume) : 0),
+  });
+  const leftCmp = comparable(left);
+  const rightCmp = comparable(right);
+  const comparableWeight = leftCmp.weight + rightCmp.weight;
+  const comparableVolume = leftCmp.volume + rightCmp.volume;
+  const comparableEffort = leftCmp.effort + rightCmp.effort;
   const priorEffortVolume = addNullable(
     left.priorEffortVolume ?? left.priorVolume,
     right.priorEffortVolume ?? right.priorVolume
@@ -94,10 +106,13 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
     priorVolume,
     effortVolume,
     priorEffortVolume,
-    weightChangePct: pctChange(currentWeight, priorWeight),
-    volumeChangePct: pctChange(effortVolume, priorEffortVolume),
+    comparableWeight,
+    comparableVolume,
+    comparableEffort,
+    weightChangePct: pctChange(comparableWeight, priorWeight),
+    volumeChangePct: pctChange(comparableEffort, priorEffortVolume),
     progressionPct: spark.length > 1 ? pctChange(effortVolume, spark[0]) : null,
-    rawVolumeChangePct: pctChange(currentVolume, priorVolume),
+    rawVolumeChangePct: pctChange(comparableVolume, priorVolume),
     rawProgressionPct: sparkRaw.length > 1 ? pctChange(currentVolume, sparkRaw[0]) : null,
     spark,
     sparkRaw,
@@ -108,7 +123,7 @@ function mergeLineBase<T extends PerformanceLine>(left: T, right: T): T {
       0,
       priorWeight,
       0,
-      currentVolume,
+      comparableVolume,
       priorVolume
     ),
   };
@@ -132,7 +147,7 @@ function mergeWorkoutExercise(left: WorkoutExerciseTrend, right: WorkoutExercise
       currentReps,
       merged.priorWeight,
       priorReps,
-      merged.effortVolume,
+      merged.comparableEffort ?? merged.effortVolume,
       merged.priorEffortVolume
     ),
   };
@@ -163,7 +178,7 @@ function mergeExercise(left: ExerciseTrend, right: ExerciseTrend): ExerciseTrend
       currentReps,
       merged.priorWeight,
       priorReps,
-      merged.effortVolume,
+      merged.comparableEffort ?? merged.effortVolume,
       merged.priorEffortVolume
     ),
   };
@@ -186,7 +201,7 @@ function mergeSet(left: SetTrend, right: SetTrend): SetTrend {
       currentReps,
       merged.priorWeight,
       priorReps,
-      merged.effortVolume,
+      merged.comparableEffort ?? merged.effortVolume,
       merged.priorEffortVolume
     ),
   };
@@ -227,7 +242,7 @@ function mergeWorkout(left: WorkoutTrend, right: WorkoutTrend): WorkoutTrend {
       0,
       merged.priorWeight,
       0,
-      merged.effortVolume,
+      merged.comparableEffort ?? merged.effortVolume,
       merged.priorEffortVolume
     ),
     exercises,

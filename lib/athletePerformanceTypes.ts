@@ -51,6 +51,12 @@ export type PerformanceLine = {
   priorEffortVolume: number | null;
   rawVolumeChangePct: number | null;
   rawProgressionPct: number | null;
+  /** Merged boards only: this period's amounts from the athletes who have a last time
+   * for this line. A first-timer's volume has nothing to compare to, so it stays out of
+   * the % change instead of reading as growth. Absent on a single athlete's board. */
+  comparableWeight?: number;
+  comparableVolume?: number;
+  comparableEffort?: number;
 };
 
 export type ExerciseTrend = PerformanceLine & {
