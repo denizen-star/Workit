@@ -2,6 +2,14 @@
 
 ## Unreleased
 
+## 14.1.1 - 2026-10-10
+
+### Changed
+- **Focus chips are shorter:** Gym, Core, Dumbbell and Travel, and the Focus and Category rows each stay on one line in Your pick.
+- **"W8 - Your pick" fits on one line** on the Home card.
+
+## 14.1.0 - 2026-10-10
+
 ### Added
 - **A Workout box on Home.** **Start Next** starts your next day (it shows the focus and time, like "Legs est 52m"); **Pick one** opens Your pick for Upper, Lower, Yoga, Core, Full body or Run. On a Your pick day, Pick one is the only button.
 - **A note after a missed week.** On a Monday, if you trained two weeks in a row and missed last week, your coach says one week off is fine and it's time to get back to the iron.

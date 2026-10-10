@@ -264,9 +264,15 @@ function releaseGroups(input: ReleaseEmailInput): ReleaseGroup[] {
   return [];
 }
 
+/** A release win written "Label: fact" (older copy used "Label — fact") → [label, fact]; null when it is a plain line. */
+function splitReleaseFact(item: string): [string, string] | null {
+  const match = item.match(/^([^\n]+?)(?:\s+—\s+|:\s+)([\s\S]+)$/);
+  return match ? [match[1], match[2]] : null;
+}
+
 function releaseFactHtml(item: string) {
-  const parts = item.split(/\s+—\s+/);
-  if (parts.length < 2) {
+  const parts = splitReleaseFact(item);
+  if (!parts) {
     return (
       '<div style="margin:0 0 8px;font-size:15px;line-height:1.5;color:#f6f1e3;">' +
       esc(item) +
@@ -279,7 +285,7 @@ function releaseFactHtml(item: string) {
     esc(parts[0]) +
     '</td>' +
     '<td valign="top" style="padding:4px 0 8px;font-size:15px;line-height:1.45;color:#f6f1e3;">' +
-    esc(parts.slice(1).join(' — ')) +
+    esc(parts[1]) +
     '</td></tr>'
   );
 }
@@ -287,7 +293,7 @@ function releaseFactHtml(item: string) {
 function releaseGroupsHtml(groups: ReleaseGroup[]) {
   return groups
     .map((group) => {
-      const labeled = group.wins.some((item) => /\s+—\s+/.test(item));
+      const labeled = group.wins.some((item) => splitReleaseFact(item) != null);
       const body = labeled
         ? '<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;margin:0 0 14px;">' +
           group.wins.map(releaseFactHtml).join('') +

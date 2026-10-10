@@ -31,9 +31,12 @@ const MODE_COPY: Record<YourPickMode, { label: string; hint: string }> = {
   done: { label: 'Mark done', hint: 'Do it your way. Done unlocks at 30 minutes. Once a day.' },
 };
 
+/** A filter chip row: one line, scrolling sideways if the chips are wider than the sheet. */
+const chipRow = 'mt-2 flex flex-nowrap gap-2 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden';
+
 /** A filter chip (Focus / Category). */
 const chipClass = (active: boolean) =>
-  `min-h-11 rounded-full border px-4 text-sm font-black ${
+  `min-h-10 shrink-0 rounded-full border px-3.5 text-sm font-black ${
     active ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]' : 'border-white/15 text-[#f6f1e3]'
   }`;
 
@@ -151,7 +154,7 @@ export default function YourPickSheet({
         </p>
 
         <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Focus</p>
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Training focus">
+        <div className={chipRow} role="group" aria-label="Training focus">
           {FOCUS_OPTIONS.map((option) => (
             <button
               key={option.id}
@@ -160,13 +163,13 @@ export default function YourPickSheet({
               onClick={() => toggleFocus(option.id)}
               className={chipClass(focusSel.includes(option.id))}
             >
-              {option.short}
+              {option.chip}
             </button>
           ))}
         </div>
 
         <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Category</p>
-        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Workout category">
+        <div className={chipRow} role="group" aria-label="Workout category">
           {[null, ...inFocus.map((group) => group.label)].map((label) => (
             <button
               key={label ?? 'all'}

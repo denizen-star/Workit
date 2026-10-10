@@ -23,6 +23,8 @@ export type FocusOption = {
   label: string;
   /** Short name for chips and lists of more than one focus. */
   short: string;
+  /** One-word label for the Your pick sheet's Focus chips. */
+  chip: string;
   /** Neutral, plain description shown on the setup buttons. */
   description: string;
   /** What the athlete needs on hand. */
@@ -35,6 +37,7 @@ export const FOCUS_OPTIONS: FocusOption[] = [
     id: 'build',
     label: 'Build muscle · Gym',
     short: 'Build muscle',
+    chip: 'Gym',
     description: 'Strength training in a gym with barbells, dumbbells and machines, progressing week by week.',
     equipment: 'Gym',
   },
@@ -42,6 +45,7 @@ export const FOCUS_OPTIONS: FocusOption[] = [
     id: 'core',
     label: 'Core Inspired',
     short: 'Core Inspired',
+    chip: 'Core',
     description: 'A mat-based rotation of Pilates, yoga and core sessions for strength, mobility and posture.',
     equipment: 'A mat',
   },
@@ -49,6 +53,7 @@ export const FOCUS_OPTIONS: FocusOption[] = [
     id: 'home',
     label: 'Home · 2 Dumbbells',
     short: 'Home',
+    chip: 'Dumbbell',
     description: 'Full-body strength sessions with two dumbbells at home, alternating two workouts.',
     equipment: 'Two dumbbells and a chair',
   },
@@ -56,6 +61,7 @@ export const FOCUS_OPTIONS: FocusOption[] = [
     id: 'travel',
     label: 'No equipment · Travel',
     short: 'Travel',
+    chip: 'Travel',
     description: 'Bodyweight sessions you can do anywhere, in a hotel room or at home.',
     equipment: 'None',
   },

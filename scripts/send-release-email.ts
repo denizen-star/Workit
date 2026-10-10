@@ -84,6 +84,19 @@ async function householdRecipients() {
       return only.includes(full) || only.includes(first);
     }
   );
+  // Named extras (RELEASE.alsoAthletes): mailed whether or not they have finished a workout.
+  const also = (RELEASE.alsoAthletes || []).map((name) => name.trim().toLowerCase());
+  if (also.length > 0) {
+    const everyone = await query(
+      `SELECT u.id, u.name, u.email, u.coach_tone FROM users u
+       WHERE u.email IS NOT NULL AND u.email != '' AND ${SQL_NOT_BLOCKED_USER}
+       ORDER BY u.id ASC`
+    );
+    for (const row of everyone.rows as { id: number; name: string; email: string | null; coach_tone?: string | null }[]) {
+      const full = String(row.name || '').trim().toLowerCase();
+      if (also.includes(full) || also.includes(firstName(row.name).toLowerCase())) rows.push(row);
+    }
+  }
   const seen = new Set<string>();
   return rows.filter((row) => {
     const email = String(row.email).toLowerCase();

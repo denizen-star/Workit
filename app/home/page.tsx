@@ -777,7 +777,7 @@ export default function Home() {
                   bullets={HOME_TODAY_HELP.bullets}
                 />
               </p>
-              <h2 className="mt-3 text-[2.125rem] font-black tracking-tight text-white sm:text-[3.5rem]">
+              <h2 className="mt-3 text-[1.75rem] font-black tracking-tight text-white sm:text-[3.5rem]">
                 {shortWeekDay(today.week?.weekNumber, today.day?.name)}
               </h2>
               {testDriveOn && testDrive ? (
