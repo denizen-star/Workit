@@ -33,30 +33,27 @@ export const CURRENT_RELEASE: {
   wins: string[];
   also: string[];
 } = {
-  version: '13.1.0',
-  title: 'Home opens in one go.',
-  subject: 'Home opens faster — Work-It',
+  version: '13.1.1',
+  title: 'Home shows up sooner.',
+  subject: 'Home shows up sooner — Work-It',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
   intro:
-    "Quick one, and it's all about speed! Home now loads everything in one go, so you get to your workout faster.",
+    "Quick one! Home shows up sooner now, so you're one tap from your workout the moment you open the app.",
   mid:
-    "Behind the scenes, opening Home used to take nine separate trips to the server. Now it's one. The Medals page opens faster too, and your badges still land the second you finish a workout. Your performance now ranks you against your own house.",
+    "Your next workout, the Start button and your week lock appear right away. Your stats, medal and numbers fill in a moment later, and the whole page finishes loading faster than before.",
   close:
-    "Less waiting, more lifting. I believe in every rep you've got. Leave quit at the door. Let's go!",
+    "Open it, tap Start, get to work. I believe in you. Leave quit at the door. Let's go!",
   lead: '',
   groups: [
     {
-      heading: 'Faster',
+      heading: 'Faster Home',
       wins: [
-        'Home — loads in one go instead of nine trips.',
-        'Medals — opens faster; badges still land when you finish.',
+        'Next workout, Start, week lock — right away.',
+        'Stats, medal, numbers — a moment later.',
+        'Whole page — done sooner than before.',
       ],
-    },
-    {
-      heading: 'Fairer',
-      wins: ['Your performance — ranks you against your own house.'],
     },
   ],
   wins: [],
