@@ -586,7 +586,7 @@ function WorkoutPageInner() {
     // The board is a whole-history read and can be slow or time out right after Finish
     // (cold function + the Finish PUT's own work), so a miss retries once.
     const fetchBoard = () =>
-      fetch('/api/athlete-performance?period=t-15')
+      fetch('/api/athlete-performance?snapshot=none&period=t-15')
         .then((res) => (res.ok ? res.json() : null))
         .catch(() => null);
     const findMatch = (data: { workouts?: unknown } | null) => {

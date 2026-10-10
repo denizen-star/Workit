@@ -90,7 +90,8 @@ Overlays: resume / exit (no stars; leave early does not score the session) / res
 Header via `YouPageShell` (Dashboard back + title + menu). On for Test.
 
 - Tabs: Current · Progress · Analytics
-- Kevin only: athlete multi-select (Test in)
+- Kevin only: **Me | Everyone** switch. Me = the athlete view (default, same load as everyone). Everyone loads the household on tap, with the athlete multi-select (Test in)
+- Load: lifts (`snapshot=none`) and the house tile (`snapshot=only`) are separate requests, so lifts paint first; nothing waits on `/api/me`
 - **Current:** window four KPIs (Effort under Effective is How hard · factor, not a percent) · last session · best / held · This window · lifts (bars + last-time tick) · Hard sets / muscle
 - **Progress:** intro · up / down count · Summary · last session · By workout vs last same day · Moving up / Moving down / Held
 - **Analytics:** Eastern pills T / T-1 / T-7 / T-15 / T-30 / All · grain workout / exercise / set · workout multi-select · spikes and lists. Deep link: `?tab=analytics&period=t-15&grain=workout&workout=Lower%20Body%20B`

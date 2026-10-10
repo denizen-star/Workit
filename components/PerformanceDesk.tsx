@@ -32,6 +32,7 @@ import {
 } from '@/lib/kpiView';
 import { progressIntro, progressSummaryBody, progressVerdict, workoutWhy } from '@/lib/kpiWhy';
 import { mergeAthletePerformanceBoards } from '@/lib/mergeAthletePerformance';
+import { fetchMe } from '@/lib/meClient';
 import { firstName } from '@/lib/scoreboardTypes';
 
 const PERIOD_LABELS: Record<PerformancePeriod, string> = {
@@ -567,9 +568,13 @@ export default function PerformanceDesk({
   const [grain, setGrain] = useState<Grain>(() => parseGrain(searchParams.get('grain')) || 'workout');
   const [workouts, setWorkouts] = useState<string[]>(() => parseWorkouts(searchParams));
   const [board, setBoard] = useState<AthletePerformanceBoard | null>(null);
+  // The house tile arrives on its own request, after the lifts.
+  const [snapshot, setSnapshot] = useState<AthletePerformanceBoard['snapshot'] | null>(null);
   const [household, setHousehold] = useState<HouseholdRow[] | null>(null);
   const [selected, setSelected] = useState<number[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Admin only: Me is what every athlete sees; Everyone loads the household when tapped.
+  const [view, setView] = useState<'me' | 'everyone'>('me');
   const [cardioSeconds, setCardioSeconds] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -584,39 +589,53 @@ export default function PerformanceDesk({
     if (searchParams.has('workout')) setWorkouts(parseWorkouts(searchParams));
   }, [searchParams]);
 
+  // Only decides whether the Me | Everyone switch shows; nothing waits on it.
+  useEffect(() => {
+    if (!page) return;
+    let cancelled = false;
+    fetchMe().then((me) => {
+      if (!cancelled) setIsAdmin(Boolean(me.data?.user?.isAdmin));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [page]);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
+    setSnapshot(null);
     const load = async () => {
-      if (page) {
-        const me = await fetch('/api/me').then((res) => (res.ok ? res.json() : null));
-        const admin = Boolean(me?.user?.isAdmin);
-        const userId = Number(me?.user?.id);
+      if (page && view === 'everyone') {
+        const data = await fetch(
+          '/api/athlete-performance?household=1&includeTest=1&period=' + period
+        ).then((res) => (res.ok ? res.json() : null));
         if (cancelled) return;
-        setIsAdmin(admin);
-        if (admin) {
-          const data = await fetch(
-            '/api/athlete-performance?household=1&includeTest=1&period=' + period
-          ).then((res) => (res.ok ? res.json() : null));
-          if (cancelled) return;
-          const rows = ((Array.isArray(data?.rows) ? data.rows : []) as HouseholdRow[]).filter(boardHasActivity);
-          setHousehold(rows);
-          setCardioSeconds(0);
-          setSelected((current) => {
-            const keep = current.filter((id) => rows.some((row) => row.userId === id));
-            if (keep.length > 0) return keep;
-            return Number.isFinite(userId) && rows.some((row) => row.userId === userId)
-              ? [userId]
-              : rows[0]
-                ? [rows[0].userId]
-                : [];
-          });
-          return;
-        }
+        const rows = ((Array.isArray(data?.rows) ? data.rows : []) as HouseholdRow[]).filter(boardHasActivity);
+        setHousehold(rows);
+        setCardioSeconds(0);
+        setSelected((current) => {
+          const keep = current.filter((id) => rows.some((row) => row.userId === id));
+          if (keep.length > 0) return keep;
+          return rows[0] ? [rows[0].userId] : [];
+        });
+        return;
       }
-      const data = await fetch('/api/athlete-performance?period=' + period).then((res) =>
-        res.ok ? res.json() : null
-      );
+      // Everyone's own view: the lifts paint when the board lands, and the house tile
+      // (the slow part) arrives on its own request.
+      if (page) {
+        fetch('/api/athlete-performance?snapshot=only&period=' + period)
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data) => {
+            if (!cancelled) setSnapshot(data?.snapshot ?? null);
+          })
+          .catch(() => {
+            if (!cancelled) setSnapshot(null);
+          });
+      }
+      const data = await fetch('/api/athlete-performance?snapshot=none&period=' + period)
+        .then((res) => (res.ok ? res.json() : null))
+        .catch(() => null);
       if (cancelled) return;
       setHousehold(null);
       setBoard(data?.hidden ? null : (data as AthletePerformanceBoard));
@@ -635,15 +654,21 @@ export default function PerformanceDesk({
     return () => {
       cancelled = true;
     };
-  }, [page, period]);
+  }, [page, period, view]);
 
   const merged = useMemo(() => {
-    if (!household) return board;
+    if (!household) {
+      if (!board || !snapshot) return board;
+      return {
+        ...board,
+        snapshot: { ...snapshot, row: { ...snapshot.row, perception: board.summary.perception } },
+      };
+    }
     return mergeAthletePerformanceBoards(
       household.filter((row) => selected.includes(row.userId)),
       period
     );
-  }, [board, household, period, selected]);
+  }, [board, household, period, selected, snapshot]);
 
   const tabs: Tab[] = ['current', 'progress', 'analytics'];
   const empty = !loading && (!merged || (merged.exercises.length === 0 && merged.workouts.length === 0));
@@ -652,8 +677,30 @@ export default function PerformanceDesk({
 
   const body = (
     <div>
+      {page && isAdmin ? (
+        <div className="mb-3 grid grid-cols-2 gap-1">
+          {(['me', 'everyone'] as const).map((option) => (
+            <button
+              key={option}
+              type="button"
+              onClick={() => {
+                if (option === view) return;
+                setHousehold(null);
+                setView(option);
+              }}
+              className={`min-h-11 rounded-2xl border text-sm font-black ${
+                view === option
+                  ? 'border-[#e8c547] bg-[#e8c547]/15 text-[#e8c547]'
+                  : 'border-white/10 bg-black/25 text-[#f6f1e3]/70'
+              }`}
+            >
+              {option === 'me' ? 'Me' : 'Everyone'}
+            </button>
+          ))}
+        </div>
+      ) : null}
       {progressOnly ? null : <TabSwitch tab={tab} tabs={tabs} onPick={setTab} />}
-      {page && !isAdmin && cardioSeconds > 0 ? (
+      {page && view === 'me' && cardioSeconds > 0 ? (
         <div className="mb-3 rounded-2xl border border-white/10 bg-black/25 px-4 py-3">
           <p className="text-[11px] font-black uppercase tracking-[0.16em] text-[#e8c547]">
             Running &amp; cycling · {PERIOD_LABELS[period]}
@@ -661,7 +708,7 @@ export default function PerformanceDesk({
           <p className="mt-1 text-base font-black text-white">{formatDuration(cardioSeconds)}</p>
         </div>
       ) : null}
-      {page && isAdmin && household ? (
+      {page && view === 'everyone' && household ? (
         <div className="mb-3 flex flex-wrap gap-1">
           {household.map((row) => {
             const on = selected.includes(row.userId);

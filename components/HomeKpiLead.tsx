@@ -38,7 +38,7 @@ function loadHomeBoard(track?: OptInTrack) {
   const inflight = homeBoardInflight.get(key);
   if (inflight) return inflight;
   const promise = (async () => {
-    const first = await fetch(`/api/athlete-performance?period=t-15${trackQuery}`).then((res) =>
+    const first = await fetch(`/api/athlete-performance?snapshot=none&period=t-15${trackQuery}`).then((res) =>
       res.ok ? res.json() : null
     );
     if (first?.hidden) {
@@ -50,7 +50,7 @@ function loadHomeBoard(track?: OptInTrack) {
       homeBoardCache.set(key, board);
       return board;
     }
-    const fallback = await fetch(`/api/athlete-performance?period=all${trackQuery}`).then((res) =>
+    const fallback = await fetch(`/api/athlete-performance?snapshot=none&period=all${trackQuery}`).then((res) =>
       res.ok ? res.json() : null
     );
     const board = fallback?.hidden ? null : (fallback as AthletePerformanceBoard);

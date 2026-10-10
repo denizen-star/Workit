@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 14.1.3 - 2026-10-10
+
+### Changed
+- **Your performance opens faster.** The lifts show as soon as they're ready; the house tile fills in a moment later instead of holding everything up.
+- **Admins get a Me | Everyone switch** on Your performance. Me is exactly what an athlete sees; Everyone (the household, with the athlete chips) loads when tapped.
+- **Home's Effective number and the post-workout recap load lighter,** since they no longer fetch the house tile they never showed.
+
 ## 14.1.2 - 2026-10-10
 
 ### Changed
