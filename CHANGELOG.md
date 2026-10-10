@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 13.1.1 - 2026-10-10
+
+### Changed
+- **Home shows up sooner.** The top of Home (your next workout, Start and the week lock) appears right away, and your stats, medal and numbers fill in a moment later. Home is also fully loaded faster than before.
+
 ## 13.1.0 - 2026-10-09
 
 ### Changed

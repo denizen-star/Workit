@@ -31,9 +31,10 @@ import { daysForWeekFn } from '@/lib/scheduleDays';
  */
 export async function moreProgramsStatus(
   user: SessionUser,
-  /** This athlete's `locked_weeks` rows, when the caller already read them (GET /api/home). */
-  lockedRecords?: LockedWeekRecord[]
+  /** This athlete's `locked_weeks` rows, already read or in flight (GET /api/home). */
+  lockedRecordsIn?: LockedWeekRecord[] | Promise<LockedWeekRecord[]>
 ) {
+  const lockedRecords = lockedRecordsIn ? await lockedRecordsIn : undefined;
   const [lockedWeeks, banners] = await Promise.all([
     lockedRecords ? mainLockedCount(lockedRecords) : lockedMainWeekCount(user.id),
     programBannersDue(

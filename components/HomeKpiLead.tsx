@@ -16,9 +16,18 @@ import type { OptInTrack } from '@/lib/programTrack';
 const homeBoardCache = new Map<string, AthletePerformanceBoard | null>();
 const homeBoardInflight = new Map<string, Promise<AthletePerformanceBoard | null>>();
 
-/** Seed the untracked board from GET /api/home (same t-15-else-all rule, done server-side). */
-export function primeHomeBoard(board: AthletePerformanceBoard | null) {
-  homeBoardCache.set('all', board);
+/** Seed the untracked board from GET /api/home's `rest` part (same t-15-else-all rule,
+ * done server-side). Takes the pending result, so widgets that mount first wait on it
+ * instead of fetching; `undefined` (the part failed) falls back to the normal fetch. */
+export function primeHomeBoard(pending: Promise<AthletePerformanceBoard | null | undefined>) {
+  const key = 'all';
+  const promise = pending.then((board) => {
+    if (homeBoardInflight.get(key) === promise) homeBoardInflight.delete(key);
+    if (board === undefined) return loadHomeBoard();
+    homeBoardCache.set(key, board);
+    return board;
+  });
+  homeBoardInflight.set(key, promise);
 }
 
 function loadHomeBoard(track?: OptInTrack) {

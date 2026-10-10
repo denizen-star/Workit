@@ -1,10 +1,13 @@
-import { NextResponse } from 'next/server';
-import { homePayload } from '@/lib/homePayload';
+import { NextRequest, NextResponse } from 'next/server';
+import { homePayload, type HomePart } from '@/lib/homePayload';
 
-/** Home in one call (lib/homePayload.ts). A blocked account gets the same 403 as /api/me. */
-export async function GET() {
+/** Home on open (lib/homePayload.ts): `?part=top` / `?part=rest`, or both with no part.
+ * A blocked account gets the same 403 as /api/me. */
+export async function GET(request: NextRequest) {
   try {
-    const payload = await homePayload();
+    const partParam = request.nextUrl.searchParams.get('part');
+    const part: HomePart | undefined = partParam === 'top' || partParam === 'rest' ? partParam : undefined;
+    const payload = await homePayload(part);
     if (payload === 'blocked') {
       return NextResponse.json({ error: 'Blocked', blocked: true }, { status: 403 });
     }

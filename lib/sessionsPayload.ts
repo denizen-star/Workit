@@ -15,7 +15,12 @@ import { hasSeenWeekTakeover, markWeekTakeoverSeen } from '@/lib/weekPodium';
  */
 export async function sessionsPayload(
   user: SessionUser,
-  opts: { weekNumber?: string | null; home: boolean; lockedRecords?: LockedWeekRecord[] }
+  opts: {
+    weekNumber?: string | null;
+    home: boolean;
+    /** Already read or in flight (GET /api/home starts it before this part). */
+    lockedRecords?: LockedWeekRecord[] | Promise<LockedWeekRecord[]>;
+  }
 ) {
   const { weekNumber, home } = opts;
   let sql = `SELECT ws.*,

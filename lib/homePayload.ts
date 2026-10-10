@@ -32,30 +32,46 @@ async function homeBoardPayload(user: SessionUser) {
   return recent.exercises?.length || recent.window?.setCount ? recent : board('all');
 }
 
-/**
- * Everything Home shows on open, in one call (GET /api/home): profile, sessions, coach
- * lines, More programs, stats, last week's podium and the performance board. Signs in
- * once and reads `locked_weeks` once for every part. Each part has the same shape its
- * own route returns. The hold line stays its own call (it depends on today's target).
- */
-export async function homePayload() {
-  const user = await getCurrentUserOrBlocked();
-  if (user === 'blocked' || !user) return user;
-
-  const lockedRecords = await lockedWeekRecords(user.id);
-  const [sessions, catalog, programs, stats, podium, board] = await Promise.all([
+/** The top of Home — enough to paint the hero, Start and Week lock: profile, sessions,
+ * coach lines and More programs. `locked_weeks` is read once and shared, in flight,
+ * so no part waits for it before starting. */
+async function homeTop(user: SessionUser) {
+  const lockedRecords = lockedWeekRecords(user.id);
+  const [sessions, catalog, programs] = await Promise.all([
     orNull(sessionsPayload(user, { home: true, lockedRecords }), 'sessions'),
     orNull(coachCatalogPayload(), 'coach catalog'),
     orNull(moreProgramsStatus(user, lockedRecords), 'programs'),
-    orNull(
-      statsPayload(user, { home: true, excludeSession: 0, lockedWeeks: lockedRecords.map((row) => row.weekNumber) }),
-      'stats'
-    ),
-    orNull(weekPodiumPayload(user), 'week podium'),
-    orNull(homeBoardPayload(user), 'performance board'),
   ]);
   // The session rows already say how many workouts are finished.
   const completed = sessions?.sessions.filter((row) => Number(row.is_completed)).length;
   const me = await mePayload(user, completed);
-  return { me, sessions, catalog, programs, stats, podium, board };
+  return { me, sessions, catalog, programs };
+}
+
+/** The rest of Home, which fills in after the first paint: stats (Daily weight, house
+ * average), last week's podium and the performance board. */
+async function homeRest(user: SessionUser) {
+  const [stats, podium, board] = await Promise.all([
+    orNull(statsPayload(user, { home: true, excludeSession: 0 }), 'stats'),
+    orNull(weekPodiumPayload(user), 'week podium'),
+    orNull(homeBoardPayload(user), 'performance board'),
+  ]);
+  return { stats, podium, board };
+}
+
+export type HomePart = 'top' | 'rest';
+
+/**
+ * Home on open (GET /api/home): `part=top` paints the page, `part=rest` fills in the
+ * slower parts — Home fires both at once, so first paint never waits on stats or the
+ * board. No `part` returns both (one call). Each part has its own route's shape; a part
+ * that failed is null. The hold line stays its own call (it depends on today's target).
+ */
+export async function homePayload(part?: HomePart) {
+  const user = await getCurrentUserOrBlocked();
+  if (user === 'blocked' || !user) return user;
+  if (part === 'top') return homeTop(user);
+  if (part === 'rest') return homeRest(user);
+  const [top, rest] = await Promise.all([homeTop(user), homeRest(user)]);
+  return { ...top, ...rest };
 }

@@ -164,24 +164,43 @@ export default function Home() {
   useEffect(() => {
     let cancelled = false;
 
-    /** Home in one call (GET /api/home). Each part has its old route's shape; a part
-     * that failed is null and is skipped, like a failed call used to be. */
-    const loadHome = async () => {
-      try {
-        const res = await fetch('/api/home');
-        if (cancelled) return;
+    /** Home on open (GET /api/home): the top part paints the page; the rest (stats,
+     * podium, performance board) is fetched at the same moment and fills in after.
+     * Each part has its old route's shape; a part that failed is null and is skipped. */
+    const fetchPart = (part: 'top' | 'rest') =>
+      fetch(`/api/home?part=${part}`).then(async (res) => {
         // Admin blocked this account: the API already evicted the session.
         if (res.status === 403) {
           if ((await res.json().catch(() => null))?.blocked) window.location.replace('/blocked');
-          return;
+          return null;
         }
-        if (!res.ok) return;
-        const home = await res.json();
-        if (cancelled) return;
+        return res.ok ? res.json() : null;
+      });
+    const restPromise = fetchPart('rest').catch(() => null);
+    // The board widgets mount with the top half; they wait on this instead of fetching.
+    primeHomeBoard(
+      restPromise.then((rest) => (rest?.board ? (rest.board.hidden ? null : rest.board) : undefined))
+    );
+
+    const loadRest = async () => {
+      const rest = await restPromise;
+      if (cancelled || !rest) return;
+      if (rest.stats) setStats(rest.stats);
+      if (rest.podium) {
+        const you = rest.podium.you as (WeekPodiumYou & { line: string; seen: boolean }) | null;
+        const miss = rest.podium.miss as (WeekMissYou & { seen: boolean }) | null;
+        setWeekYou(you && isWeekPlace(you.place) ? you : null);
+        setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
+      }
+    };
+
+    const loadHome = async () => {
+      try {
+        const home = await fetchPart('top');
+        if (cancelled || !home) return;
 
         // The menu reads the same profile; seed its cache so it doesn't fetch again.
         primeMe(home.me);
-        if (home.board !== undefined) primeHomeBoard(home.board?.hidden ? null : home.board);
 
         const meData = home.me;
         if (meData?.user) {
@@ -246,13 +265,6 @@ export default function Home() {
           window.history.replaceState(null, '', '/home');
         }
 
-        if (home.stats) setStats(home.stats);
-        if (home.podium) {
-          const you = home.podium.you as (WeekPodiumYou & { line: string; seen: boolean }) | null;
-          const miss = home.podium.miss as (WeekMissYou & { seen: boolean }) | null;
-          setWeekYou(you && isWeekPlace(you.place) ? you : null);
-          setWeekMiss(miss?.weekMonday && miss.line ? miss : null);
-        }
       } catch (error) {
         console.error('Error loading home:', error);
       } finally {
@@ -261,6 +273,7 @@ export default function Home() {
     };
 
     loadHome();
+    loadRest();
     return () => {
       cancelled = true;
     };
