@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import EffectiveKpi from '@/components/EffectiveKpi';
 import { FourKpiSpike, KpiList, VolumeSpikeList } from '@/components/KpiList';
 import { HBar, KpiCard, LastSessionCard, LiftCard } from '@/components/KpiStory';
 import { PeriodPills } from '@/components/AthletePerformance';
@@ -386,8 +387,18 @@ function AnalyticsPane({
     );
   }
 
+  const effective = windowKpis?.find((kpi) => kpi.id === 'effective');
   return (
     <div className="space-y-3">
+      {/* Follows the Cut below: period, workout days and grain. */}
+      {effective ? (
+        <EffectiveKpi
+          row={effective}
+          period={period}
+          cut={allDays ? undefined : cutLabel}
+          className="rounded-2xl border border-white/10 bg-black/25 px-4 py-4"
+        />
+      ) : null}
       <div className="rounded-2xl border border-white/10 bg-black/20">
         <button
           type="button"

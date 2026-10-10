@@ -7,8 +7,8 @@ import { HOME_STORIES_HELP } from '@/lib/helpCopy';
 import { recapExerciseRows, sessionStoryRows } from '@/lib/compareTable';
 import { performanceRangeLabel, type AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { kpisFromBoard } from '@/lib/kpi';
-import { KpiList, KpiSpark, KpiSpike } from '@/components/KpiList';
-import { formatKpiPct, kpiStroke } from '@/lib/kpi';
+import EffectiveKpi from '@/components/EffectiveKpi';
+import { KpiList } from '@/components/KpiList';
 import { latestWorkout, weekVsLast } from '@/lib/kpiView';
 import type { OptInTrack } from '@/lib/programTrack';
 
@@ -102,29 +102,19 @@ export function HomeTodayKpis({ locked = false, track }: { locked?: boolean; tra
   );
 }
 
-/** Home hero's one headline number: Effective vs last time those lifts ran. */
+/** Home hero's one headline number: Effective vs last time those lifts ran. Taps through to
+ * Analytics on the same window (T-15, or All time when T-15 has no lifts yet). */
 export function HomeEffectiveKpi({ track }: { track?: OptInTrack }) {
   const board = useHomeBoard(track);
   const row = board ? kpisFromBoard(board)?.find((r) => r.id === 'effective') : null;
   if (!board || !row) return null;
-  const stroke = kpiStroke(row.pct, 'effective');
-  const days = performanceRangeLabel(board.period).replace(/^last /, '').replace(/ days$/, ' days');
   return (
-    <div className="mt-4 flex items-end justify-between gap-4 border-t border-white/10 pt-4">
-      <div className="min-w-0">
-        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/60">
-          Effective · {days}
-        </p>
-        <p className="mt-1 text-4xl font-black leading-none" style={{ color: stroke }}>
-          {formatKpiPct(row.pct)}
-        </p>
-      </div>
-      {row.spark && row.spark.length > 1 ? (
-        <KpiSpark values={row.spark} stroke={stroke} />
-      ) : (
-        <KpiSpike pct={row.pct} id="effective" />
-      )}
-    </div>
+    <EffectiveKpi
+      row={row}
+      period={board.period}
+      href={`/performance?tab=analytics&period=${board.period}`}
+      className="mt-4 border-t border-white/10 pt-4"
+    />
   );
 }
 

@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 14.1.2 - 2026-10-10
+
+### Changed
+- **Tap the Effective number on Home** to open Analytics on the same window (last 15 days).
+- **Analytics leads with the big Effective number.** It changes with the period, workout days and view you pick.
+
 ## 14.1.1 - 2026-10-10
 
 ### Changed
