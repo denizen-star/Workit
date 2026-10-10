@@ -15,18 +15,20 @@ import {
   type LibraryMuscleGroup,
 } from '@/lib/movementLibrary';
 
-type SectionFilter = 'all' | 'main' | 'optional' | 'hyrox';
+type SectionFilter = 'all' | 'main' | 'optional' | 'hyrox' | 'pilates';
 type ModeFilter = 'all' | MovementMode;
 
 function toSection(group: MovementGroup): Exclude<SectionFilter, 'all'> {
   if (group === 'main') return 'main';
   if (group === 'hyrox') return 'hyrox';
+  if (group === 'pilates') return 'pilates';
   return 'optional';
 }
 
 const SECTIONS: { key: SectionFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'main', label: 'Main Program' },
+  { key: 'pilates', label: 'Pilates' },
   { key: 'optional', label: 'Warmup & Cooldown' },
   { key: 'hyrox', label: 'Hyrox Training' },
 ];
@@ -35,6 +37,7 @@ const MODES: { key: ModeFilter; label: string }[] = [
   { key: 'all', label: 'All' },
   { key: 'gym', label: 'Gym' },
   { key: 'travel', label: 'Travel' },
+  { key: 'home', label: 'Home · Dumbbells' },
   { key: 'bodyweight', label: 'Bodyweight' },
 ];
 
@@ -42,6 +45,7 @@ const SECTION_LABEL: Record<Exclude<SectionFilter, 'all'>, string> = {
   main: 'Main',
   optional: 'Optional',
   hyrox: 'Hyrox',
+  pilates: 'Pilates',
 };
 
 function Card({ movement, onJump }: { movement: MovementEntry; onJump: (name: string) => void }) {
@@ -56,6 +60,11 @@ function Card({ movement, onJump }: { movement: MovementEntry; onJump: (name: st
         <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#f6f1e3]">
           {SECTION_LABEL[toSection(movement.group)]}
         </span>
+        {movement.mode === 'home' && (
+          <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#c08457]">
+            Home
+          </span>
+        )}
         {movement.mode === 'travel' && (
           <span className="absolute right-2 top-2 rounded-full bg-black/60 px-2 py-1 text-[10px] font-black uppercase tracking-wide text-[#7aaee0]">
             Travel

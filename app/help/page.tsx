@@ -570,6 +570,16 @@ export default function HelpPage() {
             change your pace later.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
+            Not training in a gym? Pick one or more <span className="font-black text-[#e8c547]">Training focus</span> options from the
+            menu: <span className="font-black text-[#e8c547]">Build muscle · Gym</span> (the program above),{' '}
+            <span className="font-black text-[#e8c547]">Core Inspired</span> (a mat rotation of Pilates, yoga and core),{' '}
+            <span className="font-black text-[#e8c547]">Home · 2 Dumbbells</span> (full-body days, with travel days mixed
+            in) or <span className="font-black text-[#e8c547]">No equipment · Travel</span>. You also choose the weekdays
+            you train — the number of days is your weekly count, and a reminder goes out at 9am on those days if
+            notifications are on. Pick more than one and your week alternates between them. On Home you can set different focuses for just next week. Every focus locks weeks and counts toward belts the same way (train one day a week and one workout locks it), and you can change
+            your mind any time. Your pick also offers Pilates, Home and Travel workouts under category filters.
+          </p>
+          <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
             Week 1 starts on a Monday. Joined mid-week? Your first workout off a Monday opens a{' '}
             <span className="font-black text-[#e8c547]">Test Drive</span>: 3 workouts from Tuesday, 2 from
             Wednesday–Friday, 1 on the weekend. They count for you, not for Week 1, belts or the house board. Leftovers

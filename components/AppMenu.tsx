@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import { createPortal } from 'react-dom';
 import { usePathname, useRouter } from 'next/navigation';
-import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell, ChevronsUp, Lock } from 'lucide-react';
+import { Menu, X, BarChart3, Mail, MessageSquare, Users, UserRound, UserPlus, LogOut, TrendingUp, Trophy, Award, GraduationCap, CircleHelp, ClipboardList, Sparkles, Flame, DoorOpen, Dumbbell, ChevronsUp, Lock, Target } from 'lucide-react';
 import EditProfileModal from '@/components/EditProfileModal';
+import FocusSetupTakeover from '@/components/FocusSetupTakeover';
 import InitialsAvatar from '@/components/InitialsAvatar';
 import InviteFriendModal from '@/components/InviteFriendModal';
 import RemindersMenuSection from '@/components/RemindersMenuSection';
@@ -98,6 +99,8 @@ export default function AppMenu({
   // `?profile=weight` deep link (docs/plans/PLAN_BODY_WEIGHT.md): open Edit profile on the Weight field.
   const [focusWeight, setFocusWeight] = useState(false);
   const [showInvite, setShowInvite] = useState(false);
+  // Training focus + days (docs/plans/PLAN_FOCUS_ONBOARDING.md), reopened on purpose from the menu.
+  const [showFocus, setShowFocus] = useState(false);
   // Which locked More program was tapped — shows its "N of 6 weeks locked" line.
   const [lockedTapped, setLockedTapped] = useState<'hyrox' | 'overload' | null>(null);
   const [houses, setHouses] = useState<{ id: number; slug: string; name: string }[]>([]);
@@ -375,6 +378,17 @@ export default function AppMenu({
                 </div>
               )}
               <div className="py-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOpen(false);
+                    setShowFocus(true);
+                  }}
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm font-semibold text-[#f6f1e3]/85 hover:bg-white/5"
+                >
+                  <Target className="h-4 w-4 shrink-0 text-[#e8c547]" />
+                  Training focus
+                </button>
                 {[
                   { href: '/performance', label: 'Your performance', Icon: TrendingUp },
                   { href: '/scoreboard', label: 'The house', Icon: Trophy },
@@ -516,6 +530,13 @@ export default function AppMenu({
         }}
       />
       <InviteFriendModal open={showInvite} onClose={() => setShowInvite(false)} />
+      <FocusSetupTakeover
+        open={showFocus}
+        hasWorkouts={false}
+        onClose={() => setShowFocus(false)}
+        // Every page holds its own copy of the week plan; a reload is the one place they all agree.
+        onDone={() => window.location.reload()}
+      />
     </>
   );
 }

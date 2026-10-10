@@ -949,3 +949,70 @@ export function yourPickYogaFlow(weekNumber: number): OptionalCircuitStep[] {
 export function yourPickCoreFlow(weekNumber: number): OptionalCircuitStep[] {
   return renderPick(rotate(PICK_CORE_PACKS, weekNumber), PICK_CORE_HOLD_SECONDS);
 }
+
+/* ---------------------------------------------------------------------------
+ * Pilates — two 30-minute mat routines (docs/plans/PLAN_FOCUS_ONBOARDING.md).
+ * Tap-through like Yoga/Core: each step advances on its timer or on a tap. Four phases
+ * (5 / 10 / 10 / 5 minutes) — warm-up, abdominal series, lateral + posterior chain,
+ * cool-down. Routine A leans on flexion and the front of the core; B on the back
+ * body, obliques and the hips. No equipment, a mat only.
+ * Steps reuse the stills/videos of the matching holds above; the few moves with no
+ * match have no stills yet (the card simply shows the text).
+ * ------------------------------------------------------------------------- */
+
+export type PilatesVariant = 'a' | 'b';
+export const PILATES_VARIANTS: PilatesVariant[] = ['a', 'b'];
+
+/** Seconds per step in each phase (5 / 10 / 10 / 5 minutes), so a routine adds up to
+ * exactly 30 minutes. Routine B's third phase has 3 steps instead of 4, so its steps run longer. */
+const PHASE_A = { warmup: 100, series: 150, side: 150, cooldown: 150 } as const;
+const PHASE_B = { warmup: 100, series: 150, side: 200, cooldown: 150 } as const;
+
+/** A step with its own wording, borrowing a hold's stills and video. */
+function pilatesStep(title: string, body: string, from?: Cue | { id?: string; videoId?: string }): FixedStep {
+  return { title, body, id: from?.id, videoId: from?.videoId };
+}
+
+const PILATES_A: Array<[FixedStep, number]> = [
+  // Phase 1 · warm-up and core activation (5 min).
+  [pilatesStep('Pelvic Curls', '8 reps. Knees bent, feet flat. Exhale, scoop the belly and roll up one bone at a time into a bridge. Inhale at the top, exhale to roll down.', { id: 'Pelvic_Tilt_Into_Bridge', videoId: 'H7H6PDvYeBE' }), PHASE_A.warmup],
+  [pilatesStep('Cat-Cow', '6 slow cycles on all fours. Arch and round the back, breathing wide into the sides of the ribs.', HOLD.catCow), PHASE_A.warmup],
+  [pilatesStep('The Hundred', '10 breathing cycles. Curl head and shoulders up, arms low, legs in tabletop or long at 45°. Pump the arms; inhale for 5 counts, exhale for 5.', HOLD.hundred), PHASE_A.warmup],
+  // Phase 2 · abdominal and core series (10 min).
+  [pilatesStep('Single-Leg Stretch', '10 per leg. Curl up, pull one knee toward the chest and reach the other leg long at 45°. Switch smoothly with a crisp exhale.', HOLD.singleLegStretch), PHASE_A.series],
+  [pilatesStep('Double-Leg Stretch', '8–10 reps. Hug both knees in. Inhale, reach arms overhead and legs long. Exhale, circle the arms around and hug the knees back in.', HOLD.doubleLeg), PHASE_A.series],
+  [pilatesStep('Criss-Cross', '10 per side. Hands behind the head, curl up, bring a shoulder toward the opposite knee while the other leg reaches long. Slow, no rocking in the pelvis.', HOLD.crissCross), PHASE_A.series],
+  [pilatesStep('The Roll-Up', '6 reps. Legs long, arms overhead. Inhale, reach to the ceiling. Exhale, peel the spine up into a wide C-curve toward the toes. Inhale to start the roll back, exhale to lower down bone by bone.', HOLD.rollUp), PHASE_A.series],
+  // Phase 3 · lateral stability and posterior chain (10 min).
+  [pilatesStep('Side-Lying Leg Lifts', '10 per side. Lift the top leg to hip height and lower it with control.', { id: 'Side_Leg_Raises', videoId: 'cFkdGI75SMA' }), PHASE_A.side],
+  [pilatesStep('Side-Lying Small Circles', '8 forward and 8 reverse per side. Hips stay stacked, the upper body does not wobble.', { id: 'Side_Leg_Raises', videoId: 'zE6A69TlqTg' }), PHASE_A.side],
+  [pilatesStep('Swimming', '3 rounds of 10 seconds. On the belly, arms forward. Lift chest, arms and legs a little and flutter opposite arm and leg, breathing steadily.', { id: 'Superman', videoId: 'bY6ZyiO_7ek' }), PHASE_A.side],
+  [pilatesStep('Bridge with Marching', '8 per leg. Lift into a shoulder bridge, keep the hip bones level and lift one foot at a time into tabletop.', HOLD.marchingBridge), PHASE_A.side],
+  // Phase 4 · cool-down and spinal decompression (5 min).
+  [pilatesStep('Mermaid Stretch', '3 per side. Sit in a Z-sit, reach one arm overhead and side-bend to open the side body and ribs.', HOLD.mermaid), PHASE_A.cooldown],
+  [pilatesStep("Child's Pose to Downward Dog", '45 seconds each. Walk the hands out in Child’s pose to stretch the lats, then lift the hips into Downward Dog to release calves, hamstrings and back.', HOLD.childs), PHASE_A.cooldown],
+];
+
+const PILATES_B: Array<[FixedStep, number]> = [
+  // Phase 1 · dynamic mobility and spine preparation (5 min).
+  [pilatesStep('Pelvic Clocks', '10 cycles. On the back, knees bent. Tilt the pelvis around an imaginary clock face to mobilize the low back and wake up the deep stabilizers.', { videoId: 'Ie9MNEKXfTI' }), PHASE_B.warmup],
+  [pilatesStep('Supine Spine Twist', '6 per side. Knees in tabletop, arms open in a T. Inhale, lower the knees halfway to one side. Exhale, use the obliques to bring them back to center.', HOLD.supineTwist), PHASE_B.warmup],
+  [pilatesStep('Bird-Dog', '8 per side. From all fours, reach the opposite arm and leg long without arching the low back.', HOLD.birdDog), PHASE_B.warmup],
+  // Phase 2 · obliques and lateral stability (10 min).
+  [pilatesStep('Side Kick: Front and Back', '10 per side. Side-lying, legs angled 30° forward. Swing the top leg forward with a double pulse, then sweep it back into hip extension.', HOLD.sideKick), PHASE_B.series],
+  [pilatesStep('Side Kick: Inner Thigh Lift', '10 per side. Cross the top leg over in front, keep the bottom leg long and lift it toward the ceiling.', { id: 'Side_Leg_Raises', videoId: 'MsIgL5dw1Vw' }), PHASE_B.series],
+  [pilatesStep('Side Plank Thread-the-Needle', '6 per side. Hold a side forearm plank. Reach the top arm to the ceiling, then scoop it under the torso while the hips lift slightly higher.', { id: 'Side_Bridge', videoId: 'kZ97gVuAT4M' }), PHASE_B.series],
+  [pilatesStep('The Saw', '6 reps. Sit tall with legs wide in a V and arms out to the sides. Rotate and reach the opposite hand toward the outer foot in three soft exhales.', HOLD.saw), PHASE_B.series],
+  // Phase 3 · posterior chain and spinal extension (10 min).
+  [pilatesStep('Single-Leg Kicks', '10 total. On the belly, propped on the forearms, chest open, shoulders back. Kick one heel toward the glutes twice with a pulse, then alternate.', { videoId: 'sAamLbKW-Zc' }), PHASE_B.side],
+  [pilatesStep('Double-Leg Kicks', '6 reps. On the belly, face turned to one side, hands clasped behind the low back. Kick both heels toward the glutes three times, then extend the legs long while the chest and arms reach back.', { videoId: '4uNmkmzfV4c' }), PHASE_B.side],
+  [pilatesStep('Single-Leg Bridge Drops', '8 per leg. Lift into a full bridge and extend one leg to the ceiling. Lower and lift that leg while the hips stay high and level.', HOLD.singleLegBridge), PHASE_B.side],
+  // Phase 4 · spine lengthening and cool-down (5 min).
+  [pilatesStep('Seal', '8 reps. Balance behind the sit bones, clap the feet three times under the legs, roll back onto the shoulder blades, clap three times at the top and roll back up with control.', { videoId: 'G5zO03AJlwU' }), PHASE_B.cooldown],
+  [pilatesStep('Seated Forward Fold and Chest Opener', '60 seconds. Hinge forward over straight legs to lengthen hamstrings and back, then interlace the fingers behind you to open the chest and shoulders.', { id: 'Seated_Floor_Hamstring_Stretch', videoId: 'Cka38QWoVeY' }), PHASE_B.cooldown],
+];
+
+/** One mat Pilates routine as tap-through steps — 30 minutes, A or B. */
+export function pilatesFlow(variant: PilatesVariant): OptionalCircuitStep[] {
+  return (variant === 'b' ? PILATES_B : PILATES_A).map(([step, seconds]) => renderFixed([step], seconds)[0]);
+}

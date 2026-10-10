@@ -243,16 +243,20 @@ function runExercises(minutes: number): Exercise[] {
   return [{ name: 'Easy run', sets: 1, reps: `${minutes} minutes`, estimatedMinutes: minutes }];
 }
 
+/** One row per hold so Select Workout can list a tap-through flow and estimate its length. */
+export function flowExercises(steps: OptionalCircuitStep[]): Exercise[] {
+  return steps.map((step) => ({
+    name: step.title,
+    sets: 1,
+    reps: `${step.holdSeconds} seconds`,
+    estimatedMinutes: Number(step.holdSeconds || 0) / 60,
+  }));
+}
+
 function exercisesFor(weekNumber: number, type: YourPickType): Exercise[] {
   if (type === 'run') return runExercises(10);
   if (isTimedPickType(type)) {
-    // One row per hold so Select Workout can list the flow and estimate its length.
-    return yourPickSteps(weekNumber, type).map((step) => ({
-      name: step.title,
-      sets: 1,
-      reps: `${step.holdSeconds} seconds`,
-      estimatedMinutes: Number(step.holdSeconds || 0) / 60,
-    }));
+    return flowExercises(yourPickSteps(weekNumber, type));
   }
   const note = pickPhaseNote(weekNumber);
   return rotate(LIFT_POOLS[type as 'upper' | 'lower' | 'full'], weekNumber).map((exercise) => ({

@@ -5,6 +5,7 @@ import { loadCoachCatalogFromDb } from '@/lib/coachCatalogDb';
 import { query } from '@/lib/db';
 import { loginUrl, whoUrl } from '@/lib/emailLayout';
 import { formatEstimateMinutes, estimateWorkoutSeconds } from '@/lib/estimateDuration';
+import { loadFocusLookup } from '@/lib/focusState';
 import { mainProgramTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { mainResumeFloor, mainResumeFloors } from '@/lib/overloadState';
 import { claimAndSend } from '@/lib/emails/send';
@@ -97,7 +98,7 @@ export async function owedWorkoutToday(
   const { weekday, date } = todayIn(timeZone);
   const scheduleDays = clampScheduleDays(user.schedule_days_per_week);
   // Same position Home shows: main track, past any Hyrox / Overload resume floor.
-  const target = mainProgramTarget(sessions, resumeFloor, scheduleDays);
+  const target = mainProgramTarget(sessions, resumeFloor, scheduleDays, await loadFocusLookup(user.id));
 
   if (target.type === 'done') return { skipped: 'program-complete' } as const;
   if (target.type === 'hold') return { skipped: 'week-holds-until-monday' } as const;

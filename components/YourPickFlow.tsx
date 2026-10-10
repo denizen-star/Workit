@@ -7,6 +7,7 @@ import VideoModal from '@/components/VideoModal';
 import YourPickIcon from '@/components/YourPickIcon';
 import { formatClock } from '@/lib/formatDuration';
 import { formatCompact } from '@/lib/athletePerformanceTypes';
+import { focusFlowSteps } from '@/lib/focusRotation';
 import { cardioCreditLbs } from '@/lib/optionals';
 import type { HardnessScore } from '@/lib/hardness';
 import { youtubeThumbUrl } from '@/lib/exerciseMedia';
@@ -84,7 +85,10 @@ export default function YourPickFlow({
   startedAt: number | null;
   onReadyChange: (sessionHardness: number | null) => void;
 }) {
-  const steps = useMemo(() => yourPickSteps(weekNumber, type), [weekNumber, type]);
+  const steps = useMemo(
+    () => focusFlowSteps(weekNumber, Number(dayNumber)) ?? yourPickSteps(weekNumber, type),
+    [weekNumber, type, dayNumber]
+  );
   // Mounted keyed by session (app/workout/page.tsx), and only ever client-side (a live
   // session never server-renders), so saved progress can load in the initializer.
   const [flow, setFlow] = useState<Flow>(() => ({ ...readProgress(sessionId), holdStartedAt: Date.now(), rating: false }));

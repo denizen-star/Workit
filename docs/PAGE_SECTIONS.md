@@ -35,6 +35,7 @@ Public waiver text.
 
 - Header: gold dumbbell + Work-It. Photo sits left of the hamburger. Menu: house dropdown if in more than one; one house is a text label. Top of the menu: **Reminders** (on/off, time, Mon–Sun days, Allow notifications, Send a test, `?` = Home Screen needed; open for the first 2 menu opens on a device, then folded to one line — tap to open; ✕ folds early)
 - First visit without waiver: Update your profile (prefilled) + required waiver
+- **Training setup** takeover, once for everyone (until `focus_chosen_at` is set; right after Quickstart for new athletes): 1+ focus buttons (Build muscle · Gym / Core Inspired / Home · 2 Dumbbells / No equipment · Travel, neutral descriptions), M–S weekday buttons (count = weekly workouts, cap 5), red rest-day warning when Home/Travel lands on back-to-back days, 9am reminder checkbox, **Continue as is** (athletes with finished workouts). Same screen = menu **Training focus**
 - How to use banner until 5 finished workouts (links to `/quickstart`)
 - Overload Progressions / Hyrox unlocked banners: 3 days after 6 locked weeks, until tapped (opens intro) or ✕'d
 - Today card (`gold-hero`)
@@ -43,6 +44,7 @@ Public waiver text.
   - Hold line or resume line
   - Start WO / Resume WO · Select WO · Invite (Invite hidden for Test)
   - Restart (open session)
+  - **Focus chip** (outlined gold, under the buttons): `This week · …` / `Next week · …` — the focuses of the next unstarted week; tap → pick 1+ for that week only
   - Last-week medal in the header row if you placed (not over the whole card)
   - Four window KPIs (last 15 days vs last time those lifts ran). Totals abbreviate (`12k`) app-wide; logged set load stays exact. Effort under Effective is How hard · factor (`4.3 · 1.13`), not a percent.
 - Week lock (1-5 required days per your own setting; volume + % vs last time on tiles; an already-locked week's count stays fixed even after you change your setting; optionals n/8 under the row)
@@ -138,7 +140,7 @@ Single-page user guide, replacing the old `/how` and `/about`. Linked from the m
 
 ## Menu (home + You pages + admin)
 
-Athlete: **More programs** (Home's menu only: Hyrox Training · Overload Progressions; locked = dimmed + lock + "Unlocks after 6 locked weeks", tap → "N of 6 weeks locked"; hidden while Overload runs) · Your performance · The house · Completed log · Medals · Belts · The Library · Help · Why Work-It. Your performance + Belts on for Test. You vs still hidden on Home / The house.
+Athlete: **More programs** (Home's menu only: Hyrox Training · Overload Progressions; locked = dimmed + lock + "Unlocks after 6 locked weeks", tap → "N of 6 weeks locked"; hidden while Overload runs) · Training focus · Your performance · The house · Completed log · Medals · Belts · The Library · Help · Why Work-It. Your performance + Belts on for Test. You vs still hidden on Home / The house.
 
 Pinned footer: Edit profile · Invite a friend (not Test) · Switch profile.
 

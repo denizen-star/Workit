@@ -171,6 +171,14 @@ const MEDIA: Record<string, ExerciseMedia> = {
   "db single-leg rdls": { images: gym.hotel, videoId: "2iP-TfS1tXo" },
 
   // Hyrox Training stations
+  // Home · 2 Dumbbells moves (lib/focusPacks.ts).
+  "dumbbell floor press": { images: gym.bench, videoId: "jjlekYs1cfQ" },
+  "dumbbell sumo deadlifts": { images: gym.deadlift, videoId: "CrHQYx1yL5A" },
+  "renegade row to push-ups": { images: gym.core, videoId: "clVj2dQ_GoY" },
+  "dumbbell arnold press": { images: gym.dumbbell, videoId: "jed2lb8XjKc" },
+  "dumbbell floor flyes": { images: gym.bench, videoId: "YVf07mALj1U" },
+  "dumbbell single-leg deadlifts with row": { images: gym.deadlift, videoId: "prk8h5d87Ko" },
+  "dumbbell woodchoppers": { images: gym.core, videoId: "8u6lYQBpFiQ" },
   "floor plate push (sled push substitute)": { images: gym.squat, videoId: "ZlxfUs1wVdw" },
   "off-treadmill drive": { images: gym.squat, videoId: "ZlxfUs1wVdw" },
   "wall balls": { images: gym.core, videoId: "c9d9VmwcZd4" },

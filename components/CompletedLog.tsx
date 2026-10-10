@@ -9,6 +9,7 @@ import { formatDuration } from '@/lib/formatDuration';
 import { resolveSessionDay } from '@/lib/resolveDay';
 import { workoutProgram } from '@/lib/workoutData';
 import { resolveTestDriveDay, TEST_DRIVE_NAME, TEST_DRIVE_WEEK } from '@/lib/testDrive';
+import { focusLookupFromInfo, type FocusInfo } from '@/lib/focus';
 import { athleteRequiredDays, clampScheduleDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { setVolume } from '@/lib/exerciseKind';
 import { setIsSkipped } from '@/lib/skippedSets';
@@ -31,6 +32,7 @@ export default function CompletedLog({
   const [expandedWeek, setExpandedWeek] = useState<number | null>(focusWeek);
   const [openSessionId, setOpenSessionId] = useState<number | null>(null);
   const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  const [focusInfo, setFocusInfo] = useState<FocusInfo | null>(null);
   const [lockedWeeksDetail, setLockedWeeksDetail] = useState<
     Map<number, { requiredCount: number; completedCount: number }>
   >(new Map());
@@ -44,6 +46,7 @@ export default function CompletedLog({
         const rows = Array.isArray(data?.sessions) ? (data.sessions as HistorySession[]) : [];
         setSessions(rows);
         setScheduleDays(clampScheduleDays(data?.scheduleDays));
+        setFocusInfo(data?.focusInfo ?? null);
         setLockedWeeksDetail(
           new Map(
             (data?.lockedWeeksDetail || []).map(
@@ -181,7 +184,7 @@ export default function CompletedLog({
       {!loading &&
         workoutProgram.map((week) => {
           const weekSessions = byWeek.get(week.weekNumber) || [];
-          const required = athleteRequiredDays(week, scheduleDays);
+          const required = athleteRequiredDays(week, scheduleDays, focusLookupFromInfo(focusInfo)?.(week.weekNumber));
           const progress = weekProgress(
             weekSessions.map((session) => ({ ...session, is_completed: 1 })),
             week,

@@ -5,7 +5,8 @@
 export const REMINDER_DAY_LABELS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'] as const;
 
 export const DEFAULT_REMINDER_DAYS = '1111111';
-export const DEFAULT_REMINDER_TIME = '18:00';
+/** 9am: the focus setup (docs/plans/PLAN_FOCUS_ONBOARDING.md) reminds on the chosen weekdays. */
+export const DEFAULT_REMINDER_TIME = '09:00';
 
 /** The cron checks every 15 minutes, so times come in 15-minute steps. */
 export const REMINDER_TIMES: readonly string[] = Array.from({ length: 96 }, (_, index) => {

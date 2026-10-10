@@ -1,5 +1,6 @@
 import type { SessionUser } from '@/lib/auth';
 import { query } from '@/lib/db';
+import { loadFocusInfo } from '@/lib/focusState';
 import { lockedWeekRecords, type LockedWeekRecord } from '@/lib/lockedWeeks';
 import { mainResumeFloor } from '@/lib/overloadState';
 import { isTestDriveWeek } from '@/lib/testDrive';
@@ -57,9 +58,10 @@ export async function sessionsPayload(
     week1Start = !(await hasSeenWeekTakeover(user.id, testDrive.firstMonday, 'week1_start'));
     if (week1Start) await markWeekTakeoverSeen(user.id, testDrive.firstMonday, 'week1_start');
   }
-  const [lockedWeeksDetail, resumeFloor] = await Promise.all([
+  const [lockedWeeksDetail, resumeFloor, focusInfo] = await Promise.all([
     opts.lockedRecords ?? lockedWeekRecords(user.id),
     mainResumeFloor(user.id),
+    loadFocusInfo(user.id),
   ]);
   return {
     sessions: rows,
@@ -68,6 +70,8 @@ export async function sessionsPayload(
     // (lib/nextWorkout.ts `mainProgramTarget`).
     resumeFloor,
     lockedWeeksDetail,
+    // Default focus + per-week overrides: shapes each week's days (lib/focusRotation.ts).
+    focusInfo,
     testDrive: testDrive ? { ...testDrive, summary } : null,
     week1Start,
   };

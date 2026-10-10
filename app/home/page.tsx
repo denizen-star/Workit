@@ -7,11 +7,14 @@ import HomeKpiLead, { HomeTodayKpis, primeHomeBoard } from '@/components/HomeKpi
 import PerformanceDesk from '@/components/PerformanceDesk';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
+import FocusSetupTakeover from '@/components/FocusSetupTakeover';
+import WeekFocusChip from '@/components/WeekFocusChip';
 import WeekLock from '@/components/WeekLock';
 import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
 import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
+import { DEFAULT_FOCUS_INFO, focusLookupFromInfo, type Focuses, type FocusInfo } from '@/lib/focus';
 import { homePerformanceFocus, mainProgramTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import {
   DEFAULT_SCHEDULE_DAYS,
@@ -100,9 +103,10 @@ function homeTarget(
   sessions: WorkoutSessionRow[],
   testDrive: TestDriveState | null,
   resumeFloor: number,
-  scheduleDays: number
+  scheduleDays: number,
+  focusFor?: (weekNumber: number) => Focuses
 ) {
-  return testDriveTarget(testDrive, sessions) ?? mainProgramTarget(sessions, resumeFloor, scheduleDays);
+  return testDriveTarget(testDrive, sessions) ?? mainProgramTarget(sessions, resumeFloor, scheduleDays, focusFor);
 }
 
 function earliestCompletedDate(sessions: WorkoutSessionRow[]) {
@@ -157,6 +161,11 @@ export default function Home() {
   const [mainLockedWeeks, setMainLockedWeeks] = useState(0);
   // Where the 48-week program resumes after a Hyrox or Overload run (the later of the two).
   const [resumeFloor, setResumeFloor] = useState(1);
+  // Default focus + per-week overrides (lib/focus.ts): shape each week's days.
+  const [focusInfo, setFocusInfo] = useState<FocusInfo>(DEFAULT_FOCUS_INFO);
+  const focusFor = useMemo(() => focusLookupFromInfo(focusInfo), [focusInfo]);
+  // The one-time focus setup waits for the sessions payload so it never flashes.
+  const [focusLoaded, setFocusLoaded] = useState(false);
   // Test Drive (lib/testDrive.ts): before Week 1's Monday, plus the one-time Monday takeover.
   const [testDrive, setTestDrive] = useState<(TestDriveState & { summary: TestDriveDoneSummary | null }) | null>(null);
   const [week1Start, setWeek1Start] = useState(false);
@@ -229,6 +238,8 @@ export default function Home() {
         if (sessionData) {
           setSessions(sessionData.sessions || []);
           setResumeFloor(Number(sessionData.resumeFloor) || 1);
+          setFocusInfo(sessionData.focusInfo ?? DEFAULT_FOCUS_INFO);
+          setFocusLoaded(Boolean(sessionData.focusInfo));
           setTestDrive(sessionData.testDrive || null);
           setWeek1Start(Boolean(sessionData.week1Start));
           // Quickstart shows on every Home open until Week 1's Monday during a Test Drive.
@@ -290,12 +301,12 @@ export default function Home() {
   }, [userId, weekMiss, weekYou]);
 
   useEffect(() => {
-    if (homeTarget(sessions, testDrive, resumeFloor, userScheduleDays).type !== 'resume') {
+    if (homeTarget(sessions, testDrive, resumeFloor, userScheduleDays, focusFor).type !== 'resume') {
       setResumeLine('');
       return;
     }
     setResumeLine(pickResumeLine(userTone, userName));
-  }, [sessions, testDrive, userTone, userName, resumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, userTone, userName, resumeFloor, userScheduleDays, focusFor]);
 
   const week1Line = useMemo(() => {
     if (!week1Start) return '';
@@ -304,7 +315,7 @@ export default function Home() {
   }, [week1Start, userTone, userName]);
 
   useEffect(() => {
-    const target = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays);
+    const target = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays, focusFor);
     const typeName = target.day?.name;
     // A Your pick slot has no fixed workout yet, so there's no last-time line to hold.
     if (!typeName || target.type === 'hold' || target.type === 'done' || isYourPickSlot(target.day)) {
@@ -323,9 +334,9 @@ export default function Home() {
     return () => {
       cancelled = true;
     };
-  }, [sessions, testDrive, resumeFloor, userScheduleDays]);
+  }, [sessions, testDrive, resumeFloor, userScheduleDays, focusFor]);
 
-  const today = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays);
+  const today = homeTarget(sessions, testDrive, resumeFloor, userScheduleDays, focusFor);
   const testDriveOn = Boolean(testDrive?.active);
   const testDriveDone = testDriveOn && Boolean(testDrive?.allDone) && today.type !== 'resume';
   const todayWeekNumber = today.week?.weekNumber ?? null;
@@ -439,6 +450,21 @@ export default function Home() {
       ),
     },
     {
+      key: 'focus-setup',
+      // Everyone sees it once: new athletes right after Quickstart, existing ones with Continue as is.
+      due: onNormalHome && focusLoaded && !focusInfo.chosenAt,
+      render: () => (
+        <FocusSetupTakeover
+          open
+          hasWorkouts={sessions.some((session) => Number(session.is_completed) === 1)}
+          onDone={(info, days) => {
+            setFocusInfo(info);
+            if (days != null) setUserScheduleDays(days);
+          }}
+        />
+      ),
+    },
+    {
       key: 'week-podium',
       due: onNormalHome && weekTakeover && Boolean(weekYou),
       render: () => (
@@ -501,6 +527,14 @@ export default function Home() {
     },
   ];
   const takeover = takeovers.find((item) => item.due) ?? null;
+  // The week the hero's focus chip changes: this week while it has no session, else the next one.
+  const focusWeek = (() => {
+    const week = today.week?.weekNumber;
+    if (week == null || week < 1 || week > 48) return null;
+    const started = sessions.some((session) => Number(session.week_number) === week);
+    return started ? (week < 48 ? week + 1 : null) : week;
+  })();
+
 
   if (runningTrack) {
     return (
@@ -837,6 +871,15 @@ export default function Home() {
             </>
           )}
           <div className="clear-both" />
+          {focusWeek != null && !testDriveOn && !testDriveDone ? (
+            <WeekFocusChip
+              weekNumber={focusWeek}
+              weekLabel={focusWeek === today.week?.weekNumber ? 'This week' : 'Next week'}
+              focuses={focusFor?.(focusWeek) ?? focusInfo.focuses}
+              defaultFocuses={focusInfo.focuses}
+              onChanged={setFocusInfo}
+            />
+          ) : null}
           </div>
           <HomeTodayKpis locked={today.type === 'hold'} />
         </div>
@@ -850,6 +893,7 @@ export default function Home() {
                   week={today.week}
                   sessions={sessions}
                   scheduleDays={userScheduleDays}
+                  focuses={today.week ? focusFor?.(today.week.weekNumber) : undefined}
                   lockedRecord={today.week ? lockedWeeksDetail.get(today.week.weekNumber) : undefined}
                 />
                 <WeekPerformance week={today.week} />

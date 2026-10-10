@@ -17,6 +17,7 @@ import {
 } from '@/lib/emails/templates';
 import { createEmailVerifyToken } from '@/lib/emailVerify';
 import { BELTS, getBelts } from '@/lib/belts';
+import { loadFocusLookup } from '@/lib/focusState';
 import { mainProgramNextDay, type WorkoutSessionRow } from '@/lib/nextWorkout';
 import { mainResumeFloor } from '@/lib/overloadState';
 import { claimUrl, resetUrl } from '@/lib/emailLayout';
@@ -291,7 +292,7 @@ export async function sendWorkoutCompleteBundle(opts: {
   // `locked_weeks` (they count toward belts) but never finish the program.
   const mainLocked = lockRecords.filter((record) => programTrackForWeek(record.weekNumber) === 'main').length;
   const programComplete = mainLocked >= MAIN_PROGRAM_WEEKS.last;
-  const next = mainProgramNextDay(sessions.rows as WorkoutSessionRow[], resumeFloor, scheduleDays);
+  const next = mainProgramNextDay(sessions.rows as WorkoutSessionRow[], resumeFloor, scheduleDays, await loadFocusLookup(opts.userId));
   const nextLabel = next ? 'Week ' + next.week.weekNumber + ' · ' + next.day.name : null;
 
   // Belt and badge, if either was earned by this same session, roll into the one

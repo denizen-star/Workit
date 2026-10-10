@@ -1,4 +1,5 @@
 import { easternYmd } from '@/lib/analyticsTime';
+import { resolveFocusDay } from '@/lib/focusRotation';
 import { query } from '@/lib/db';
 import { lockedWeekNumbers } from '@/lib/lockedWeeks';
 import { parseDbTime } from '@/lib/optionals';
@@ -94,7 +95,8 @@ export async function validateYourPickStart(
   // this type's. Without one (older clients), the week's rotating pack.
   let day = yourPickDay(weekNumber, pickType);
   if (input.pickDay != null && input.pickDay !== '') {
-    const chosen = resolveYourPickDay(weekNumber, Number(input.pickDay));
+    // Core Inspired / Travel's flow days (Pilates, Yoga, Core) run as Core/Yoga picks too.
+    const chosen = resolveYourPickDay(weekNumber, Number(input.pickDay)) ?? resolveFocusDay(weekNumber, Number(input.pickDay));
     if (!chosen || chosen.pick !== pickType) return { ok: false, error: 'Unknown Your pick workout' };
     day = chosen;
   }

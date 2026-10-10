@@ -14,14 +14,15 @@ import { overloadProgram } from './overloadProgram';
 import { toTravelExercise } from './travelExercises';
 import { ALT_EXERCISES } from './altExercises';
 import { isTravelFriendly } from './travelFriendly';
-import { resolveYourPickDay, yourPickVariantGroups } from './yourPick';
+import { FULL_BODY_PACKS, resolveYourPickDay, yourPickVariantGroups } from './yourPick';
+import { HOME_PACKS } from './focusPacks';
 import { getExerciseImages } from './exerciseImages';
 import { getExerciseMedia } from './exerciseMedia';
-import { guidedOptionalCircuit, guidedYogaCircuit, absCircuit } from './optionalCircuits';
+import { guidedOptionalCircuit, guidedYogaCircuit, absCircuit, pilatesFlow, PILATES_VARIANTS } from './optionalCircuits';
 import type { OptionalLevel, OptionalRegion, OptionalSlot } from './optionals';
 
-export type MovementGroup = 'main' | 'hyrox' | 'optional-stretch-core' | 'optional-yoga' | 'optional-abs';
-export type MovementMode = 'gym' | 'travel' | 'bodyweight';
+export type MovementGroup = 'main' | 'hyrox' | 'optional-stretch-core' | 'optional-yoga' | 'optional-abs' | 'pilates';
+export type MovementMode = 'gym' | 'travel' | 'bodyweight' | 'home';
 
 /** Same 12-group taxonomy as lib/muscleGroups.ts's `MuscleGroup`, but this file tags every
  * atomic movement name (180 of them), not just the 47 raw program exercise names. */
@@ -140,7 +141,7 @@ const ATOMIC_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
   'Wall Lateral ISO Raises': 'Shoulders',
   'Bicycle Crunches': 'Core', 'Forearm Plank': 'Core', 'Reverse Crunches': 'Core', 'Russian Twists': 'Core',
   'Crunches': 'Core', 'Hanging Leg Raises': 'Core', 'Cable Woodchops': 'Core', 'Lying Leg Raises': 'Core',
-  'Inchworm Walkouts': 'Core', 'Backpack Woodchops': 'Core', 'Decline Dumbbell Bench Press': 'Chest',
+  'Inchworm Walkouts': 'Core', 'Backpack Woodchops': 'Core', 'Dumbbell Floor Press': 'Chest', 'Dumbbell Sumo Deadlifts': 'Hamstrings', 'Renegade Row to Push-Ups': 'Core', 'Dumbbell Arnold Press': 'Shoulders', 'Dumbbell Floor Flyes': 'Chest', 'Dumbbell Single-Leg Deadlifts with Row': 'Hamstrings', 'Dumbbell Woodchoppers': 'Core',  'Decline Dumbbell Bench Press': 'Chest',
   'Adductors': 'Quads', 'Bear hold': 'Core', 'Bird dog': 'Core', 'Boat': 'Core', 'Breathe down': 'Core',
   'Butterfly': 'Mobility', 'Calves': 'Calves', 'Cat-cow': 'Mobility', 'Chest': 'Chest',
   "Child's pose": 'Mobility', 'Clams': 'Glutes', 'Cow-face arms': 'Shoulders', 'Criss-cross': 'Core',
@@ -163,6 +164,26 @@ const ATOMIC_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
   'Sun Salutation A Flow': 'Mobility', 'Supine Figure-Four Twist': 'Mobility', 'Supine Spinal Twist': 'Mobility',
   'Wide-Leg Forward Fold': 'Mobility',
 };
+
+/** Pilates moves that train something other than the core (the rest default to Core). */
+const PILATES_MUSCLE_GROUP: Record<string, LibraryMuscleGroup> = {
+  'Cat-Cow': 'Mobility',
+  'Mermaid Stretch': 'Mobility',
+  "Child's Pose to Downward Dog": 'Mobility',
+  'Seated Forward Fold and Chest Opener': 'Mobility',
+  'Pelvic Curls': 'Glutes',
+  'Pelvic Clocks': 'Mobility',
+  'Swimming': 'Back',
+  'Single-Leg Kicks': 'Hamstrings',
+  'Double-Leg Kicks': 'Back',
+  'Bridge with Marching': 'Glutes',
+  'Single-Leg Bridge Drops': 'Glutes',
+  'Side-Lying Leg Lifts': 'Glutes',
+  'Side-Lying Small Circles': 'Glutes',
+  'Side Kick: Front and Back': 'Glutes',
+  'Side Kick: Inner Thigh Lift': 'Glutes',
+  'Supine Spine Twist': 'Mobility',
+}
 
 function buildLibrary(): MovementEntry[] {
   const rows = new Map<string, MovementEntry>();
@@ -241,6 +262,17 @@ function buildLibrary(): MovementEntry[] {
       }
     }
   }
+
+  // Training focus days (lib/focusPacks.ts, lib/focusRotation.ts), filed under main like the
+  // Your pick packs: Home · 2 Dumbbells, and the Travel focus's no-equipment full-body days.
+  HOME_PACKS.forEach((pack, index) => {
+    for (const exercise of pack) addExercise(exercise.name, 'main', 'home', `Home · Full-Body ${index + 1}`);
+  });
+  FULL_BODY_PACKS.forEach((pack, index) => {
+    for (const exercise of pack) {
+      addExercise(toTravelExercise(exercise).name, 'main', 'travel', `Travel · Full Body ${String.fromCharCode(65 + index)}`);
+    }
+  });
 
   // Alt Exercise options for main-program lifts (lib/altExercises.ts) — athletes can swap
   // onto these mid-session, so they belong here too (Chest Dips, Dumbbell Flyes, ...).
@@ -337,6 +369,27 @@ function buildLibrary(): MovementEntry[] {
       start: step.start ?? '',
       end: step.end,
     });
+  }
+
+  // Pilates routines A and B (30-minute mat flows). A move that is already here under the
+  // same name in another case ("The hundred" / "The Hundred") stays one card.
+  const known = new Set([...rows.keys()].map((name) => name.toLowerCase()));
+  for (const variant of PILATES_VARIANTS) {
+    for (const step of pilatesFlow(variant)) {
+      if (known.has(step.title.toLowerCase())) continue;
+      known.add(step.title.toLowerCase());
+      rows.set(step.title, {
+        name: step.title,
+        group: 'pilates',
+        mode: 'bodyweight',
+        muscleGroup: PILATES_MUSCLE_GROUP[step.title] ?? 'Core',
+        category: `Pilates ${variant.toUpperCase()}`,
+        pairedWith: null,
+        occurrences: 1,
+        start: step.start ?? '',
+        end: step.end,
+      });
+    }
   }
 
   return [...rows.values()].sort((a, b) => a.name.localeCompare(b.name));

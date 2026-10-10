@@ -2,6 +2,7 @@ import { query } from '@/lib/db';
 import { sqlInHousehold } from '@/lib/household';
 import { completedInWeek } from '@/lib/bonusDay';
 import { MAIN_PROGRAM_WEEKS, programTrackForWeek, trackForWeek } from '@/lib/programTrack';
+import { loadFocusLookup } from '@/lib/focusState';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { isTestDriveWeek } from '@/lib/testDrive';
 
@@ -75,7 +76,8 @@ export async function refreshWeekLock(opts: {
   if (isTestDriveWeek(weekNumber)) return { locked: false, lockedWeeks: null };
   const sessions = opts.sessions ?? (await loadWeekSessions(userId, programTrackForWeek(weekNumber)));
   const completed = completedInWeek(sessions, weekNumber).length;
-  const required = requiredCountForWeek(scheduleDays)(weekNumber);
+  // The bar is the week's own days under the athlete's focus for that week (lib/focus.ts).
+  const required = requiredCountForWeek(scheduleDays, await loadFocusLookup(userId))(weekNumber);
   const locked = completed >= required;
   if (!locked || !trackForWeek(weekNumber).locksWeeks) return { locked, lockedWeeks: null };
   await recordWeekLockIfNeeded(userId, weekNumber, completed, required);

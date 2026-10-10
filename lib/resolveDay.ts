@@ -1,3 +1,4 @@
+import { resolveFocusDay } from '@/lib/focusRotation';
 import { getHyroxWorkoutDay } from '@/lib/hyroxProgram';
 import { getOverloadWorkoutDay } from '@/lib/overloadProgram';
 import { programTrackForWeek } from '@/lib/programTrack';
@@ -11,8 +12,8 @@ import { resolveYourPickDay } from '@/lib/yourPick';
  * a Hyrox day (weeks 101-200, lib/hyroxProgram.ts), a Test Drive day (week 0, 30-32 —
  * checked first so week 0 never reaches the program resolvers), an Overload
  * Progressions day (weeks 201+, lib/overloadProgram.ts), a static program day (or a
- * retired bonus day, via `getWorkoutDay`), a Your pick day (20-27) or a 1-3 day
- * athlete's full-body day (6-8). Every day lookup goes through here — never a plain
+ * retired bonus day, via `getWorkoutDay`), a Your pick day (20-27), a focus day (110-134,
+ * Core Inspired / Home / Travel) or a 1-3 day athlete's full-body day (6-8). Every day lookup goes through here — never a plain
  * `week.days.find(dayNumber)`, which misses the synthesized days and silently blanks
  * a Start / resume / render. Each resolver returns cached objects, so the same row
  * always resolves to the same `WorkoutDay`.
@@ -28,6 +29,8 @@ export function resolveSessionDay(weekNumber: number, dayNumber: number): Workou
     // Your pick (20-27) before full body: resolveFullBodyDay only owns 6-8, but
     // checking picks first keeps a Lower/Upper pick from ever rendering as full body.
     resolveYourPickDay(week, day) ??
+    // Focus days (110-134, lib/focusRotation.ts) own their own band, so order only matters for speed.
+    resolveFocusDay(week, day) ??
     resolveFullBodyDay(week, day)
   );
 }

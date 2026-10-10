@@ -8,6 +8,7 @@ import { coveredDayNumbers, weekProgress, yourPickCountInWeek } from '@/lib/bonu
 import { formatCompact } from '@/lib/athletePerformanceTypes';
 import type { WorkoutSessionRow } from '@/lib/nextWorkout';
 import { optionalCountInWeek, sessionOptionalLbs } from '@/lib/optionals';
+import type { Focuses } from '@/lib/focus';
 import { athleteRequiredDays, DEFAULT_SCHEDULE_DAYS } from '@/lib/scheduleDays';
 import { dayPctLabel, dayVolumeStats, weekDoneVolume } from '@/lib/weekLockStats';
 import type { WeekPlan, WorkoutDay } from '@/lib/workoutData';
@@ -39,6 +40,7 @@ export default function WeekLock({
   week,
   sessions,
   scheduleDays = DEFAULT_SCHEDULE_DAYS,
+  focuses,
   lockedRecord,
 }: {
   week: WeekPlan | null;
@@ -46,6 +48,8 @@ export default function WeekLock({
   /** Athlete's chosen `schedule_days_per_week` (1-5) — governs how many days this
    * week requires and, for 1-3 day athletes, swaps in full-body content. */
   scheduleDays?: number;
+  /** The focuses this week runs under (lib/focus.ts); omitted = Build muscle. */
+  focuses?: Focuses;
   /** Persisted `locked_weeks` row for this week, if already locked (`lib/lockedWeeks.ts`).
    * Only affects the header count / fill bar below — the per-day slot cards still
    * reflect the athlete's *current* schedule, since there's no way to retroactively
@@ -58,7 +62,7 @@ export default function WeekLock({
 
   if (!week) return null;
 
-  const required = athleteRequiredDays(week, scheduleDays);
+  const required = athleteRequiredDays(week, scheduleDays, focuses);
   const progress = weekProgress(sessions, week, required, lockedRecord);
   const nextUnpaid = required.find((day) => !isDayDone(day, week, sessions, required));
   const workouts = board?.workouts || [];

@@ -4,6 +4,8 @@ import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'rea
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { ArrowLeft, Check, ChevronDown, ChevronUp, Clock, RotateCcw, Volume2, VolumeX } from 'lucide-react';
+import { DEFAULT_FOCUS_INFO, focusLookupFromInfo, type FocusInfo } from '@/lib/focus';
+import { focusFlowPick } from '@/lib/focusRotation';
 import { coveredDayNumbers, sessionIsRetiredDay, weekProgress, weekProgressLabel } from '@/lib/bonusDay';
 import {
   isFlowPickType,
@@ -165,6 +167,9 @@ function WorkoutPageInner() {
   const [showWeightEdit, setShowWeightEdit] = useState(false);
   const [soundOn, setSoundOn] = useState(true);
   const [scheduleDays, setScheduleDays] = useState(DEFAULT_SCHEDULE_DAYS);
+  // Default focus + per-week overrides (lib/focus.ts): shape each week's days.
+  const [focusInfo, setFocusInfo] = useState<FocusInfo>(DEFAULT_FOCUS_INFO);
+  const focusFor = useMemo(() => focusLookupFromInfo(focusInfo), [focusInfo]);
   // Persisted count from `locked_weeks` (server), not recomputed locally — see
   // lib/lockedWeeks.ts.
   const [lockedWeeks, setLockedWeeks] = useState(0);
@@ -438,6 +443,7 @@ function WorkoutPageInner() {
         setSessions(rows);
         setTestDrive(data.testDrive || null);
         setLockedWeeks(Number(data.lockedWeeks || 0));
+        setFocusInfo(data.focusInfo ?? DEFAULT_FOCUS_INFO);
         setLockedWeeksDetail(
           new Map(
             (data.lockedWeeksDetail || []).map(
@@ -451,7 +457,7 @@ function WorkoutPageInner() {
         if (!selectWeekInit.current) {
           selectWeekInit.current = true;
           // The day count asks each week's own track, so this fits every track.
-          let opened = defaultSelectWeek(rows, program, 1, daysForWeekFn(scheduleDays));
+          let opened = defaultSelectWeek(rows, program, 1, daysForWeekFn(scheduleDays, focusLookupFromInfo(data.focusInfo)));
           // Weekend hold: Home stays on the locked week through Sunday. Open that
           // week here too, so Add a workout files on it instead of the next one.
           if (track.yourPick && opened != null) {
@@ -530,7 +536,9 @@ function WorkoutPageInner() {
             workoutMode: mode,
             scheduledDate: new Date().toISOString().split('T')[0],
             // Your pick: the server validates week/swap/mode and sets day + type itself.
-            ...(options?.pick ?? {}),
+            // A focus day that runs as a tap-through flow (Pilates, Yoga, Core) starts the
+            // same way, timed, on its own day number.
+            ...(options?.pick ?? focusFlowPick(day.pick, dayNumber)),
           }),
         });
       } finally {
@@ -1303,7 +1311,7 @@ function WorkoutPageInner() {
     const coveredByPick =
       !isCompleted &&
       !incomplete &&
-      coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays)).has(
+      coveredDayNumbers(sessions, week.weekNumber, athleteRequiredDays(week, scheduleDays, focusFor?.(week.weekNumber))).has(
         day.dayNumber
       );
     if (track.yourPick && (isYourPickSlot(day) || coveredByPick)) {
@@ -1428,7 +1436,7 @@ function WorkoutPageInner() {
             !testDriveDay &&
             !incomplete &&
             pickAllowed(week.weekNumber) &&
-            yourPickSwapTargets(week.weekNumber, athleteRequiredDays(week, scheduleDays), sessions).some(
+            yourPickSwapTargets(week.weekNumber, athleteRequiredDays(week, scheduleDays, focusFor?.(week.weekNumber)), sessions).some(
               (target) => target.dayNumber === day.dayNumber
             ) ? (
               <button
@@ -1496,7 +1504,7 @@ function WorkoutPageInner() {
                       weekProgress(
                         sessions,
                         week,
-                        daysForWeekFn(scheduleDays)(week),
+                        daysForWeekFn(scheduleDays, focusFor)(week),
                         lockedWeeksDetail.get(week.weekNumber)
                       )
                     )}
@@ -1514,7 +1522,7 @@ function WorkoutPageInner() {
                   <p className="mb-4 text-sm text-[#f6f1e3]/65">{week.description}</p>
 
                   <div className="grid gap-3">
-                    {athleteWeekDays(week, scheduleDays).map((day) => renderDayCard(week, day))}
+                    {athleteWeekDays(week, scheduleDays, focusFor?.(week.weekNumber)).map((day) => renderDayCard(week, day))}
                   </div>
                   {track.yourPick ? renderYourPickSection(week.weekNumber) : null}
                 </div>
@@ -1548,7 +1556,7 @@ function WorkoutPageInner() {
         swapTargets={(() => {
           const weekPlan = workoutProgram.find((item) => item.weekNumber === pickSheetWeek);
           return weekPlan
-            ? yourPickSwapTargets(weekPlan.weekNumber, athleteRequiredDays(weekPlan, scheduleDays), sessions)
+            ? yourPickSwapTargets(weekPlan.weekNumber, athleteRequiredDays(weekPlan, scheduleDays, focusFor?.(weekPlan.weekNumber)), sessions)
             : [];
         })()}
         onStart={(choice) => {

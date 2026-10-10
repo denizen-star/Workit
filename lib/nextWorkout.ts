@@ -5,6 +5,7 @@ export { isSessionComplete };
 import { workoutProgram, type WeekPlan, type WorkoutDay } from "@/lib/workoutData";
 import { resolveSessionDay } from "@/lib/resolveDay";
 import { programTrackForWeek } from "@/lib/programTrack";
+import type { Focuses } from "@/lib/focus";
 import { daysForWeekFn } from "@/lib/scheduleDays";
 
 export interface WorkoutSessionRow {
@@ -236,13 +237,23 @@ export function getTodayTarget(
  * athlete's own day count and `getTodayTarget`'s weekend hold. Test Drive sits on top
  * of this where it applies (Home `testDriveTarget`, nudge `testDriveState`).
  */
-export function mainProgramTarget(sessions: WorkoutSessionRow[], resumeFloor: number, scheduleDays: number) {
+export function mainProgramTarget(
+  sessions: WorkoutSessionRow[],
+  resumeFloor: number,
+  scheduleDays: number,
+  focusFor?: (weekNumber: number) => Focuses
+) {
   const main = sessions.filter((session) => programTrackForWeek(Number(session.week_number)) === "main");
-  return getTodayTarget(main, resumeFloor, daysForWeekFn(scheduleDays));
+  return getTodayTarget(main, resumeFloor, daysForWeekFn(scheduleDays, focusFor));
 }
 
 /** The next unfinished main-program day under the same rule (no resume, no weekend hold). */
-export function mainProgramNextDay(sessions: WorkoutSessionRow[], resumeFloor: number, scheduleDays: number) {
+export function mainProgramNextDay(
+  sessions: WorkoutSessionRow[],
+  resumeFloor: number,
+  scheduleDays: number,
+  focusFor?: (weekNumber: number) => Focuses
+) {
   const main = sessions.filter((session) => programTrackForWeek(Number(session.week_number)) === "main");
-  return findNextProgramDay(main, workoutProgram, resumeFloor, daysForWeekFn(scheduleDays));
+  return findNextProgramDay(main, workoutProgram, resumeFloor, daysForWeekFn(scheduleDays, focusFor));
 }

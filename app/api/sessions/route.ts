@@ -14,6 +14,7 @@ import { parseExerciseModes, serializeExerciseModes } from '@/lib/exerciseModes'
 import { liveExerciseName, parseExerciseAlts, serializeExerciseAlts } from '@/lib/exerciseAlts';
 import { exerciseGroupNames } from '@/lib/exerciseKey';
 import { canEditExercises, parseExerciseEdits, serializeExerciseEdits } from '@/lib/exerciseEdits';
+import { loadFocusInfo } from '@/lib/focusState';
 import { resolveSessionDay } from '@/lib/resolveDay';
 import { requiredCountForWeek } from '@/lib/scheduleDays';
 import { loadWeekSessions, lockedWeekRecords, refreshWeekLock } from '@/lib/lockedWeeks';
@@ -253,8 +254,9 @@ export async function GET(request: NextRequest) {
       const ids = sessions.map((row) => row.id);
       const placeholders = ids.map(() => '?').join(', ');
       // Independent reads: the lock records and this athlete's completed sets.
-      const [lockedWeeksDetail, setResult] = await Promise.all([
+      const [lockedWeeksDetail, focusInfo, setResult] = await Promise.all([
         lockedWeekRecords(user.id),
+        loadFocusInfo(user.id),
         ids.length
           ? query(
               `SELECT workout_session_id, exercise_name, set_number, target_reps, actual_reps, weight_lbs, bodyweight_lb, is_skipped
@@ -267,7 +269,7 @@ export async function GET(request: NextRequest) {
       ]);
 
       if (!setResult) {
-        return NextResponse.json({ sessions: [], scheduleDays: user.scheduleDaysPerWeek, lockedWeeksDetail });
+        return NextResponse.json({ sessions: [], scheduleDays: user.scheduleDaysPerWeek, lockedWeeksDetail, focusInfo });
       }
 
       const setsBySession = new Map<number, typeof setResult.rows>();
@@ -291,6 +293,7 @@ export async function GET(request: NextRequest) {
         })),
         scheduleDays: user.scheduleDaysPerWeek,
         lockedWeeksDetail,
+        focusInfo,
       });
     }
 

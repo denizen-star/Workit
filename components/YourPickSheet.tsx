@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import YourPickIcon from '@/components/YourPickIcon';
+import { focusPickGroups, resolveFocusDay } from '@/lib/focusRotation';
 import type { WorkoutDay } from '@/lib/workoutData';
 import {
   defaultYourPickVariant,
@@ -33,8 +34,9 @@ function shortName(name: string) {
 }
 
 /**
- * Your pick picker (docs/plans/PLAN_YOUR_PICK.md): a grouped dropdown of specific
- * workouts (Upper / Lower / Full body / Core & other) → (Yoga/Core) Timed or Mark
+ * Your pick picker (docs/plans/PLAN_YOUR_PICK.md): category filters (Upper, Lower, Full
+ * body, Core & other, Run, Pilates, Home, Travel) over a dropdown of specific workouts →
+ * (Yoga/Core/Pilates) Timed or Mark
  * done → Add to the week, or Swap for an unstarted program day. Holds no network
  * calls — the caller starts the session, same pattern as AltExerciseTakeover. The
  * caller mounts it only while open, so every open starts from a fresh choice.
@@ -56,14 +58,20 @@ export default function YourPickSheet({
   onStart: (choice: YourPickChoice) => void;
   onClose: () => void;
 }) {
-  const groups = useMemo(() => yourPickVariantGroups(), []);
+  const groups = useMemo(() => [...yourPickVariantGroups(), ...focusPickGroups()], []);
+  // Category filter over the dropdown (null = every workout).
+  const [category, setCategory] = useState<string | null>(null);
   const [pickDay, setPickDay] = useState<number>(() => defaultYourPickVariant(weekNumber).dayNumber);
   const [pickMode, setPickMode] = useState<YourPickMode>('sets');
   const [swapForDay, setSwapForDay] = useState<number | null>(initialSwapForDay);
 
   const variant = groups.flatMap((group) => group.variants).find((item) => item.dayNumber === pickDay);
   const pickType: YourPickType = variant?.type ?? 'upper';
-  const preview = useMemo(() => resolveYourPickDay(weekNumber, pickDay), [weekNumber, pickDay]);
+  const preview = useMemo(
+    () => resolveYourPickDay(weekNumber, pickDay) ?? resolveFocusDay(weekNumber, pickDay),
+    [weekNumber, pickDay]
+  );
+  const shownGroups = category ? groups.filter((group) => group.label === category) : groups;
 
   if (!open) return null;
 
@@ -72,6 +80,12 @@ export default function YourPickSheet({
     if (!next) return;
     setPickDay(dayNumber);
     setPickMode(pickModesFor(next.type)[0]);
+  };
+  /** A category chip: shows only that category's workouts, moving the pick to its first if the current one is hidden. */
+  const chooseCategory = (label: string | null) => {
+    setCategory(label);
+    const visible = (label ? groups.filter((group) => group.label === label) : groups).flatMap((group) => group.variants);
+    if (visible.length > 0 && !visible.some((item) => item.dayNumber === pickDay)) chooseWorkout(visible[0].dayNumber);
   };
   const pill = (active: boolean) =>
     `min-h-11 rounded-2xl border px-3 text-sm font-black ${
@@ -89,6 +103,23 @@ export default function YourPickSheet({
           Any body part, any day. It counts toward the week, belts and medals.
         </p>
 
+        <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Category</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Workout category">
+          {[null, ...groups.map((group) => group.label)].map((label) => (
+            <button
+              key={label ?? 'all'}
+              type="button"
+              aria-pressed={category === label}
+              onClick={() => chooseCategory(label)}
+              className={`min-h-11 rounded-full border px-4 text-sm font-black ${
+                category === label ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]' : 'border-white/15 text-[#f6f1e3]'
+              }`}
+            >
+              {label ?? 'All'}
+            </button>
+          ))}
+        </div>
+
         <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Workout</p>
         <select
           value={pickDay}
@@ -96,7 +127,7 @@ export default function YourPickSheet({
           aria-label="Workout"
           className="mt-2 min-h-12 w-full rounded-2xl border border-[#e8c547] bg-[#1a1404] px-3 text-base font-black text-[#f6f1e3]"
         >
-          {groups.map((group) => (
+          {shownGroups.map((group) => (
             <optgroup key={group.label} label={group.label}>
               {group.variants.map((item) => (
                 <option key={item.dayNumber} value={item.dayNumber}>

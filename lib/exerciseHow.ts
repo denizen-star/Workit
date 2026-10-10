@@ -95,6 +95,24 @@ const HOW: Record<string, string> = {
     'On the back, hands by the ears. Elbow to the opposite knee while the other leg reaches long. Slow and controlled.',
   'Russian Twists':
     'Sit, lean back a little, chest tall. Rotate the shoulders side to side. Feet down or up. Spine stays long.',
+  'Goblet Squats':
+    'Hold one dumbbell upright at the chest. Feet a little wider than the hips. Sit deep between the knees, chest tall, knees over the toes. Drive back up.',
+  'Reverse Lunges':
+    'Dumbbells at the sides. Step back and lower the back knee toward the floor. Front heel stays down. Push through the front foot to stand.',
+  'Dumbbell Floor Press':
+    'Lie on the floor, knees bent. Dumbbells over the chest. Lower until the upper arms touch the floor, elbows about 45° from the body. Press straight up.',
+  'Dumbbell Sumo Deadlifts':
+    'Wide stance, toes turned out about 45°. Dumbbells hang between the legs. Hinge at the hips, back flat, then stand and squeeze the glutes at the top.',
+  'Renegade Row to Push-Ups':
+    'Plank on two dumbbells, feet wide. Do a push-up, then row one dumbbell to the hip without letting the hips twist. Alternate sides each rep.',
+  'Dumbbell Arnold Press':
+    'Dumbbells at the chest, palms facing you. Press overhead while turning the palms forward. Reverse the turn on the way down. Ribs stay down.',
+  'Dumbbell Floor Flyes':
+    'Lie on the floor, knees bent, dumbbells above the chest with a soft bend in the elbows. Open the arms wide until the upper arms touch the floor. Squeeze back up.',
+  'Dumbbell Single-Leg Deadlifts with Row':
+    'Hinge on one leg, the other leg reaching back. Hold the bottom, row both dumbbells to the ribs, lower them, then stand. Hips stay level.',
+  'Dumbbell Woodchoppers':
+    'Hold one dumbbell in both hands low by one knee. Pivot the feet and sweep it up across the body above the opposite shoulder. Control it back down.',
   'Cable Woodchops':
     'Cable high and to one side. Arms long. Pull it down and across the body, pivoting the back foot. Control it back up.',
   'Lying Leg Raises':

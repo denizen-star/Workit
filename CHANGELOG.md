@@ -2,6 +2,25 @@
 
 ## Unreleased
 
+## 14.0.0 - 2026-10-10
+
+### Added
+- **Pick your training focus.** Not training in a gym? Choose one or more: **Build muscle · Gym** (the program you know), **Core Inspired** (Pilates, yoga and core on a mat), **Home · 2 Dumbbells**, or **No equipment · Travel**. You see the screen once on Home; **Continue as is** keeps things the way they are, and you can change your mind any time from **Training focus** in the menu.
+- **Pick more than one.** With two or more, your week alternates between them, and a different focus leads each week. Build muscle + Core Inspired at 4 days might be Upper A, Pilates, Lower, Yoga.
+- **Choose your training days.** Seven buttons, M–S. The number you pick is your weekly number (most a week asks for is 5), and a reminder goes out at 9am on those days if notifications are on. One day a week and one workout locks the week; two days and it takes two.
+- **Focus for just next week.** A chip on the Home card shows the focus of your next unstarted week. Tap it to pick different ones for that week only.
+- **Two 30-minute mat Pilates routines.** Pilates A (core strength and mobility) and Pilates B (back body, obliques and hips). Four phases, tap through or let the clock move you on. Every move has a video.
+- **Home · 2 Dumbbells.** Two full-body days that alternate: A/B/A at 3 days, A/B/A/B/A at 5, then B first the following week. Seven new moves, each with a video, a how-to and form photos: Dumbbell Floor Press, Sumo Deadlift, Renegade Row to Push-Ups, Arnold Press, Floor Flyes, Single-Leg Deadlift with Row and Woodchoppers.
+- **Rest-day heads-up.** If you pick full-body days (Home or Travel) on back-to-back days, the setup warns you: muscles rebuild on the rest day, so skipping it raises the risk of overuse, soreness and injury.
+- **Your pick has filters.** Categories across the top of the Your pick card: Upper, Lower, Full body, Core & other, Run, Pilates, Home and Travel. Pick Pilates A or B, Home Full-Body 1 or 2 or Travel Full Body A, B or C any time Your pick is open.
+- **The Library has new sections.** A Pilates filter with every move from both routines, a Home · Dumbbells filter, and the Travel full-body moves.
+- **New swaps (Alt).** The new moves show up as Alt choices on the lifts they replace (Floor Press for bench, Arnold Press for overhead press, Floor Flyes for the chest fly, Sumo and Single-Leg Deadlifts for RDLs, Woodchoppers for woodchops and Russian twists), and each has its own list of swaps.
+
+### Changed
+- **Your weekly number comes from your days.** Pick your training days and your weekly workout count follows (it replaces the old fixed 4-a-week start). A week you already locked stays locked.
+- **9am is the new default reminder time** for anyone setting up reminders. Reminders you already set keep their time.
+
+
 ## 13.1.1 - 2026-10-10
 
 ### Changed

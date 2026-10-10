@@ -1,4 +1,6 @@
 import { requiredDays } from '@/lib/bonusDay';
+import { focusWeekDays } from '@/lib/focusRotation';
+import { DEFAULT_FOCUSES, isBuildOnly, type Focuses } from '@/lib/focus';
 import { trackForWeek } from '@/lib/programTrack';
 import { getLegacyBonusDay, workoutProgram, type WeekPlan, type WorkoutDay } from '@/lib/workoutData';
 import { FULL_BODY_PACKS, YOUR_PICK_SLOT_DAYS, yourPickSlotDay } from '@/lib/yourPick';
@@ -58,14 +60,23 @@ function weekCap(week: WeekPlan): number {
  * - 1-3 days: that many full-body days, replacing the split entirely so a short week
  *   still hits every muscle group instead of risking e.g. two upper days with no legs.
  *
+ * - Any focus besides Build muscle on its own (lib/focus.ts) replaces all of the above with
+ *   the focuses' own days for the week, one per day the athlete trains, alternating between
+ *   the focuses they chose (lib/focusRotation.ts); Build muscle's share is the real split days.
+ *
  * Any week always locks at this many finished sessions of any kind; Your pick
  * (lib/yourPick.ts) is open to every athlete on top of these.
  */
-export function athleteRequiredDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
+export function athleteRequiredDays(
+  week: WeekPlan,
+  scheduleDays: number,
+  focuses: Focuses = DEFAULT_FOCUSES
+): WorkoutDay[] {
   // Only the main program is reshaped by the day count. Overload weeks are already
   // built from it and Hyrox weeks are fixed (lib/programTrack.ts `reshapesWeek`).
   if (!trackForWeek(week.weekNumber).reshapesWeek) return requiredDays(week);
   const count = clampScheduleDays(scheduleDays);
+  if (!isBuildOnly(focuses)) return focusWeekDays(focuses, week.weekNumber, count, requiredDays(week));
   if (count >= DEFAULT_SCHEDULE_DAYS) {
     const split = requiredDays(week);
     const programDays = new Set(split.map((day) => day.dayNumber));
@@ -96,8 +107,8 @@ export function resolveFullBodyDay(weekNumber: number, dayNumber: number): Worko
 /** Everything Select Workout should offer this athlete as the week's plan. Same as
  * `athleteRequiredDays` now that the optional bonus day is retired — Your pick is
  * offered separately (an "Add a workout" row), not as a day in this list. */
-export function athleteWeekDays(week: WeekPlan, scheduleDays: number): WorkoutDay[] {
-  return athleteRequiredDays(week, scheduleDays);
+export function athleteWeekDays(week: WeekPlan, scheduleDays: number, focuses: Focuses = DEFAULT_FOCUSES): WorkoutDay[] {
+  return athleteRequiredDays(week, scheduleDays, focuses);
 }
 
 /** Days-per-week slider hint (join wizard + Edit profile): the count is what locks
@@ -115,8 +126,11 @@ export function scheduleDaysHint(scheduleDays: number): string {
 
 /** Curried `athleteRequiredDays` for passing into `findNextProgramDay`/`getTodayTarget`/
  * `defaultSelectWeek`'s `daysForWeek` param, bound to one athlete's chosen count. */
-export function daysForWeekFn(scheduleDays: number): (week: WeekPlan) => WorkoutDay[] {
-  return (week) => athleteRequiredDays(week, scheduleDays);
+export function daysForWeekFn(
+  scheduleDays: number,
+  focusFor?: (weekNumber: number) => Focuses
+): (week: WeekPlan) => WorkoutDay[] {
+  return (week) => athleteRequiredDays(week, scheduleDays, focusFor?.(week.weekNumber));
 }
 
 /** Home re-asks whether the athlete's day count still fits every 6 program weeks,
@@ -137,9 +151,14 @@ export function isScheduleDaysAskWeek(weekNumber: number): boolean {
  * itself (capped at 4) for a week no track has, e.g. Test Drive's week 0.
  * For passing into `recordWeekLockIfNeeded` (`lib/lockedWeeks.ts`) and similar
  * per-week-count SQL. */
-export function requiredCountForWeek(scheduleDays: number): (weekNumber: number) => number {
+export function requiredCountForWeek(
+  scheduleDays: number,
+  focusFor?: (weekNumber: number) => Focuses
+): (weekNumber: number) => number {
   return (weekNumber) => {
     const week = trackForWeek(weekNumber).weekPlan(weekNumber, scheduleDays);
-    return week ? athleteRequiredDays(week, scheduleDays).length : Math.min(scheduleDays, DEFAULT_SCHEDULE_DAYS);
+    return week
+      ? athleteRequiredDays(week, scheduleDays, focusFor?.(weekNumber)).length
+      : Math.min(scheduleDays, DEFAULT_SCHEDULE_DAYS);
   };
 }
