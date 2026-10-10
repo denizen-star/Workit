@@ -35,6 +35,7 @@ import { normalizeWorkoutMode, type WorkoutMode } from '@/lib/workoutMode';
 import { DEFAULT_HARDNESS, parseHardness, type HardnessScore } from '@/lib/hardness';
 import { type NoiseLevel } from '@/lib/noisePref';
 import LiveSetKpis from '@/components/LiveSetKpis';
+import { circuitRound, currentCardKey } from '@/lib/currentCard';
 import { isSkipExempt, setIsSkipped, SKIP_WINDOW_MS, withinSkipWindow } from '@/lib/skippedSets';
 import { playSetChime, unlockAudio } from '@/lib/playChime';
 import { HowTrigger } from './HelpSheet';
@@ -1234,6 +1235,27 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
     const sets = setsForCard(exerciseSets, gym.name, exercise.name);
     return { gym, exercise, mode, sets, locked: sets.some((item) => item.is_completed) };
   });
+  // The card the athlete is on (first with a planned set left) — gets the gold highlight and
+  // is scrolled to when the card before it finishes (lib/currentCard.ts).
+  const cardSetsFor = (item: (typeof groupedSets)[number]) => ({
+    key: item.gym.name,
+    planned: item.sets.filter((set) => set.set_number <= item.exercise.sets),
+  });
+  const currentCard = currentCardKey(groupedSets.map(cardSetsFor));
+  const previousCurrentCardRef = useRef<string | null | undefined>(undefined);
+  useEffect(() => {
+    const previous = previousCurrentCardRef.current;
+    previousCurrentCardRef.current = currentCard;
+    // Skip the first paint (resume / load) and the hand-off to "all done": only follow a move
+    // from one card to the next. Wait out the finished card's celebration before scrolling.
+    if (previous === undefined || previous === null || !currentCard || previous === currentCard) return;
+    const timer = window.setTimeout(() => {
+      document
+        .querySelector(`[data-exercise-card="${CSS.escape(currentCard)}"]`)
+        ?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, CELEBRATION_MS);
+    return () => window.clearTimeout(timer);
+  }, [currentCard]);
   const completedSetCount = exerciseSets.filter((item) => item.is_completed).length;
   const totalSetCount = exerciseSets.length;
   const allSetsComplete = totalSetCount > 0 && completedSetCount === totalSetCount;
@@ -1299,20 +1321,28 @@ const ExerciseTracker = forwardRef<ExerciseTrackerHandle, ExerciseTrackerProps>(
           ? circuitSiblings.findIndex((item) => item.gym.name === gym.name)
           : -1;
         const circuitRounds = circuitSiblings[0]?.exercise.sets;
+        const circuitCurrentRound = circuitGroup
+          ? circuitRound(circuitSiblings.map(cardSetsFor), circuitRounds ?? 1)
+          : 0;
+        const isCurrentCard = currentCard === gym.name;
         const circuitOrder = circuitSiblings.map((item) => item.exercise.name).join(' → ');
 
         return (
           <div
             key={gym.name}
-            className={`glass-card relative overflow-hidden p-5 ${celebrating ? 'exercise-card-pulse' : ''}`}
-            style={circuitGroup ? { borderColor: 'rgba(228, 3, 46, 0.45)' } : undefined}
+            data-exercise-card={gym.name}
+            className={`glass-card relative overflow-hidden p-5 transition-opacity ${celebrating ? 'exercise-card-pulse' : ''} ${
+              isCurrentCard ? 'exercise-card-current' : exerciseFullyDone && !celebrating ? 'opacity-60' : ''
+            }`}
+            // Current = gold (this one, now); circuit members keep their red edge otherwise.
+            style={circuitGroup && !isCurrentCard ? { borderColor: 'rgba(228, 3, 46, 0.45)' } : undefined}
           >
             {celebrating && <div className="exercise-card-sweep pointer-events-none absolute inset-0" />}
             {circuitGroup && (
               <div className="mb-3 rounded-xl border border-[#e4032e]/35 bg-[#e4032e]/10 px-3 py-2">
                 <p className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-[#ff5c6c]">
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-[#e4032e]" />
-                  {circuitGroup} · Step {circuitIndex + 1} of {circuitSiblings.length}
+                  {circuitGroup} · Round {circuitCurrentRound} of {circuitRounds} · Step {circuitIndex + 1} of {circuitSiblings.length}
                 </p>
                 {circuitIndex === 0 && (
                   <p className="mt-1.5 text-xs font-semibold leading-snug text-[#f6f1e3]/80">

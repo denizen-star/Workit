@@ -37,23 +37,25 @@ export type ReleaseDef = {
 };
 
 export const CURRENT_RELEASE: ReleaseDef = {
-  version: '14.1.4',
-  title: 'A truer Effective number.',
-  subject: 'A truer Effective number on Your performance',
+  version: '14.2.0',
+  title: 'Know which exercise is next.',
+  subject: 'Your current exercise now stands out',
   onlyAthletesWithWorkouts: true,
   activeInDays: 14,
   includeNewAthletes: false,
-  intro: "Small fix, big on honesty! The Effective number on Your performance now tells the truth when more than one person is combined.",
+  intro: "Quick one, and you'll feel it on your very next workout! The exercise you're on now lights up.",
   mid:
-    "Before, someone trying a lift for the first time could make the group number look better than it was, because there was nothing earlier to compare them to. Now only people with a last time to compare against count. Your own number never changed.",
-  close: "Real numbers, real progress. I believe in you. Leave quit at the door!",
+    "Mid-session, every card used to look the same. Now the one you're working gets a gold edge, finished ones dim down, and the screen glides to the next card when you wrap one up. In a circuit, it also tells you which round you're in.",
+  close: "Eyes on the gold, one set at a time. I believe in you. Leave quit at the door!",
   lead: '',
   groups: [
     {
-      heading: 'A truer number',
+      heading: 'Easier to follow',
       wins: [
-        'Effective for a group: a first-time lift no longer reads as growth.',
-        'Your own number: unchanged.',
+        'Current exercise: gold edge and glow.',
+        'Finished exercises: dimmed.',
+        'Next card: the screen scrolls to it after you finish one.',
+        'Circuits: shows Round N of M.',
       ],
     },
   ],

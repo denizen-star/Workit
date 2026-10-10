@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 14.2.0 - 2026-10-10
+
+### Changed
+- **The exercise you're on now stands out.** During a workout, the current card gets a gold edge and glow, finished cards dim, and the screen scrolls to the next card when you finish one. Circuit cards also show which round you're on.
+
 ## 14.1.4 - 2026-10-10
 
 ### Fixed
