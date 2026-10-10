@@ -20,7 +20,7 @@ export const KPI_CALC_BULLETS = [
 
 export const HOME_TODAY_HELP = {
   title: 'Today',
-  lead: 'This card is the next move. Gold starts or resumes the day. Select WO opens the list. The four numbers are last 15 days vs last time those lifts ran — not a rest-day score when the week is locked.',
+  lead: 'This card is the next move. Gold starts or resumes the day. Pick one opens other workouts (Upper, Lower, Yoga, Core, Full body or Run). The Effective number is the last 15 days vs last time those lifts ran — not a rest-day score when the week is locked.',
   bullets: KPI_CALC_BULLETS,
 } as const;
 

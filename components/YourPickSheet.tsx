@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from 'react';
 import YourPickIcon from '@/components/YourPickIcon';
-import { focusPickGroups, resolveFocusDay } from '@/lib/focusRotation';
+import { FOCUS_OPTIONS, type Focus, type Focuses } from '@/lib/focus';
+import { focusPickGroups, pickCategoriesForFocuses, resolveFocusDay } from '@/lib/focusRotation';
 import type { WorkoutDay } from '@/lib/workoutData';
 import {
   defaultYourPickVariant,
@@ -12,6 +13,7 @@ import {
   yourPickVariantGroups,
   type YourPickMode,
   type YourPickType,
+  type YourPickVariantGroup,
 } from '@/lib/yourPick';
 
 export type YourPickChoice = {
@@ -29,13 +31,30 @@ const MODE_COPY: Record<YourPickMode, { label: string; hint: string }> = {
   done: { label: 'Mark done', hint: 'Do it your way. Done unlocks at 30 minutes. Once a day.' },
 };
 
+/** A filter chip (Focus / Category). */
+const chipClass = (active: boolean) =>
+  `min-h-11 rounded-full border px-4 text-sm font-black ${
+    active ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]' : 'border-white/15 text-[#f6f1e3]'
+  }`;
+
+/** One side of the Add/Swap switch. */
+const segClass = (active: boolean) =>
+  `min-h-10 flex-1 rounded-full px-2 text-sm font-black ${active ? 'bg-[#e8c547] text-[#1a1404]' : 'text-[#f6f1e3]'}`;
+
+/** The categories the chosen focuses cover. */
+function groupsInFocus(groups: YourPickVariantGroup[], focuses: readonly Focus[]) {
+  const labels = pickCategoriesForFocuses(focuses);
+  return groups.filter((group) => labels.has(group.label));
+}
+
 function shortName(name: string) {
   return name.replace(' Body ', ' ');
 }
 
 /**
  * Your pick picker (docs/plans/PLAN_YOUR_PICK.md): category filters (Upper, Lower, Full
- * body, Core & other, Run, Pilates, Home, Travel) over a dropdown of specific workouts →
+ * body, Core & other, Run, Pilates, Home, Travel) under a FOCUS filter (Build muscle, Core
+ * Inspired, Home, Travel) over a dropdown of specific workouts →
  * (Yoga/Core/Pilates) Timed or Mark
  * done → Add to the week, or Swap for an unstarted program day. Holds no network
  * calls — the caller starts the session, same pattern as AltExerciseTakeover. The
@@ -46,6 +65,7 @@ export default function YourPickSheet({
   weekNumber,
   swapTargets,
   initialSwapForDay = null,
+  focuses,
   onStart,
   onClose,
 }: {
@@ -55,13 +75,21 @@ export default function YourPickSheet({
   initialSwapForDay?: number | null;
   /** Unstarted program days a pick can replace (`yourPickSwapTargets`). */
   swapTargets: WorkoutDay[];
+  /** The athlete's focus for this week — the FOCUS filter starts on it. */
+  focuses: Focuses;
   onStart: (choice: YourPickChoice) => void;
   onClose: () => void;
 }) {
   const groups = useMemo(() => [...yourPickVariantGroups(), ...focusPickGroups()], []);
-  // Category filter over the dropdown (null = every workout).
+  // FOCUS filter (the athlete's own focus to start; tap more to widen) narrows the
+  // categories; the Category filter narrows within it (null = every category shown).
+  const [focusSel, setFocusSel] = useState<Focus[]>(() => [...focuses]);
   const [category, setCategory] = useState<string | null>(null);
-  const [pickDay, setPickDay] = useState<number>(() => defaultYourPickVariant(weekNumber).dayNumber);
+  const [pickDay, setPickDay] = useState<number>(() => {
+    const wanted = defaultYourPickVariant(weekNumber).dayNumber;
+    const open = groupsInFocus(groups, focusSel).flatMap((group) => group.variants);
+    return open.some((item) => item.dayNumber === wanted) ? wanted : (open[0]?.dayNumber ?? wanted);
+  });
   const [pickMode, setPickMode] = useState<YourPickMode>('sets');
   const [swapForDay, setSwapForDay] = useState<number | null>(initialSwapForDay);
 
@@ -71,7 +99,8 @@ export default function YourPickSheet({
     () => resolveYourPickDay(weekNumber, pickDay) ?? resolveFocusDay(weekNumber, pickDay),
     [weekNumber, pickDay]
   );
-  const shownGroups = category ? groups.filter((group) => group.label === category) : groups;
+  const inFocus = groupsInFocus(groups, focusSel);
+  const shownGroups = category ? inFocus.filter((group) => group.label === category) : inFocus;
 
   if (!open) return null;
 
@@ -81,16 +110,34 @@ export default function YourPickSheet({
     setPickDay(dayNumber);
     setPickMode(pickModesFor(next.type)[0]);
   };
-  /** A category chip: shows only that category's workouts, moving the pick to its first if the current one is hidden. */
+  /** Moves the pick to the first visible workout when the current one just got filtered out. */
+  const keepPickVisible = (visibleGroups: YourPickVariantGroup[]) => {
+    const visible = visibleGroups.flatMap((group) => group.variants);
+    if (visible.length > 0 && !visible.some((item) => item.dayNumber === pickDay)) chooseWorkout(visible[0].dayNumber);
+  };
+  /** A category chip: shows only that category's workouts. */
   const chooseCategory = (label: string | null) => {
     setCategory(label);
-    const visible = (label ? groups.filter((group) => group.label === label) : groups).flatMap((group) => group.variants);
-    if (visible.length > 0 && !visible.some((item) => item.dayNumber === pickDay)) chooseWorkout(visible[0].dayNumber);
+    keepPickVisible(label ? inFocus.filter((group) => group.label === label) : inFocus);
+  };
+  /** A focus chip toggles it on or off (never off the last one) and resets the category. */
+  const toggleFocus = (focus: Focus) => {
+    const next = focusSel.includes(focus)
+      ? focusSel.length > 1
+        ? focusSel.filter((item) => item !== focus)
+        : focusSel
+      : [...focusSel, focus];
+    setFocusSel(next);
+    setCategory(null);
+    keepPickVisible(groupsInFocus(groups, next));
   };
   const pill = (active: boolean) =>
     `min-h-11 rounded-2xl border px-3 text-sm font-black ${
       active ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]' : 'border-white/15 text-[#f6f1e3]'
     }`;
+  // Right side of the Add/Swap switch: the day's name once it's known (one target, or chosen).
+  const swapTarget = swapTargets.find((day) => day.dayNumber === swapForDay) ?? (swapTargets.length === 1 ? swapTargets[0] : null);
+  const swapLabel = swapTarget ? `Swap for ${shortName(swapTarget.name)}` : 'Swap for…';
 
   return (
     <div className="fixed inset-0 z-[70] flex items-end justify-center bg-black/70 p-4 sm:items-center">
@@ -103,17 +150,30 @@ export default function YourPickSheet({
           Any body part, any day. It counts toward the week, belts and medals.
         </p>
 
+        <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Focus</p>
+        <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Training focus">
+          {FOCUS_OPTIONS.map((option) => (
+            <button
+              key={option.id}
+              type="button"
+              aria-pressed={focusSel.includes(option.id)}
+              onClick={() => toggleFocus(option.id)}
+              className={chipClass(focusSel.includes(option.id))}
+            >
+              {option.short}
+            </button>
+          ))}
+        </div>
+
         <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">Category</p>
         <div className="mt-2 flex flex-wrap gap-2" role="group" aria-label="Workout category">
-          {[null, ...groups.map((group) => group.label)].map((label) => (
+          {[null, ...inFocus.map((group) => group.label)].map((label) => (
             <button
               key={label ?? 'all'}
               type="button"
               aria-pressed={category === label}
               onClick={() => chooseCategory(label)}
-              className={`min-h-11 rounded-full border px-4 text-sm font-black ${
-                category === label ? 'border-[#e8c547] bg-[#e8c547] text-[#1a1404]' : 'border-white/15 text-[#f6f1e3]'
-              }`}
+              className={chipClass(category === label)}
             >
               {label ?? 'All'}
             </button>
@@ -166,22 +226,45 @@ export default function YourPickSheet({
           </>
         ) : null}
 
-        <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">This week</p>
-        <div className="mt-2 flex flex-col gap-2">
-          <button type="button" onClick={() => setSwapForDay(null)} className={pill(swapForDay == null)}>
-            Add to the week
-          </button>
-          {swapTargets.map((day) => (
-            <button
-              key={day.dayNumber}
-              type="button"
-              onClick={() => setSwapForDay(day.dayNumber)}
-              className={pill(swapForDay === day.dayNumber)}
-            >
-              Swap for {shortName(day.name)}
-            </button>
-          ))}
-        </div>
+        {swapTargets.length > 0 ? (
+          <>
+            <p className="mt-5 text-[11px] font-black uppercase tracking-[0.16em] text-[#f6f1e3]/50">This week</p>
+            {/* One-row switch: add on top of the week, or stand in for an unstarted program day. */}
+            <div className="mt-2 flex gap-1 rounded-full border border-white/15 p-[3px]" role="group" aria-label="Add or swap">
+              <button
+                type="button"
+                aria-pressed={swapForDay == null}
+                onClick={() => setSwapForDay(null)}
+                className={segClass(swapForDay == null)}
+              >
+                Add to the week
+              </button>
+              <button
+                type="button"
+                aria-pressed={swapForDay != null}
+                onClick={() => setSwapForDay(swapForDay ?? swapTargets[0].dayNumber)}
+                className={segClass(swapForDay != null)}
+              >
+                {swapLabel}
+              </button>
+            </div>
+            {/* Several days could be swapped out: pick which one. */}
+            {swapForDay != null && swapTargets.length > 1 ? (
+              <select
+                value={swapForDay}
+                onChange={(event) => setSwapForDay(Number(event.target.value))}
+                aria-label="Program day to swap"
+                className="mt-2 min-h-11 w-full rounded-2xl border border-white/15 bg-[#1a1404] px-3 text-sm font-black text-[#f6f1e3]"
+              >
+                {swapTargets.map((day) => (
+                  <option key={day.dayNumber} value={day.dayNumber}>
+                    Swap for {shortName(day.name)}
+                  </option>
+                ))}
+              </select>
+            ) : null}
+          </>
+        ) : null}
 
         <button
           type="button"

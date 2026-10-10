@@ -275,7 +275,7 @@ function releaseFactHtml(item: string) {
   }
   return (
     '<tr>' +
-    '<td valign="top" style="padding:4px 12px 8px 0;font-size:13px;font-weight:800;color:#e8c547;white-space:nowrap;">' +
+    '<td valign="top" width="34%" style="width:34%;padding:4px 12px 8px 0;font-size:13px;line-height:1.35;font-weight:800;color:#e8c547;">' +
     esc(parts[0]) +
     '</td>' +
     '<td valign="top" style="padding:4px 0 8px;font-size:15px;line-height:1.45;color:#f6f1e3;">' +

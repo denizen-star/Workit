@@ -126,17 +126,14 @@ export async function checkAndAwardBadges(userId: number): Promise<AwardedBadge[
     const requiredForWeek = requiredCountForWeek(scheduleDays);
 
     const completedWeeks = weeks.length;
+    // Longest back-to-back run anywhere in the locked weeks (ascending). Counting only from
+    // the first locked week meant one gap froze the streak, so later runs never earned the
+    // 4/5/6-week badges. Badges are permanent, so the best run is what matters.
     let consecutiveWeeks = 0;
-    if (weeks.length > 0) {
-      let streak = 1;
-      for (let i = 1; i < weeks.length; i++) {
-        if (weeks[i] === weeks[i - 1] + 1) {
-          streak++;
-        } else {
-          break;
-        }
-      }
-      consecutiveWeeks = streak;
+    let run = 0;
+    for (let i = 0; i < weeks.length; i++) {
+      run = i > 0 && weeks[i] === weeks[i - 1] + 1 ? run + 1 : 1;
+      consecutiveWeeks = Math.max(consecutiveWeeks, run);
     }
 
     const extra = extraStats.rows[0] as {

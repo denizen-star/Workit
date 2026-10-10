@@ -40,7 +40,7 @@ const GETTING_STARTED: GuideStep[] = [
   {
     title: 'Start your first workout',
     description:
-      "Home shows today's focus. Tap the gold Start WO button — that's the one action that matters right now.",
+      "Home shows today's focus. Tap the gold Start Next button — that's the one action that matters right now.",
     image: '/help/start-first-workout.png',
   },
 ];
@@ -49,7 +49,7 @@ const RUNNING_A_WORKOUT: GuideStep[] = [
   {
     title: 'Start your session',
     description:
-      "Tap Start WO on Home. Left one open yesterday? It says Resume WO instead, and picks up right where you stopped. Choose Gym or Travel if you're away from your equipment.",
+      "Tap Start Next on Home. Left one open yesterday? It says Resume instead, and picks up right where you stopped. Choose Gym or Travel if you're away from your equipment.",
     image: '/help/workout-start.png',
   },
   {
@@ -346,7 +346,7 @@ const GLOSSARY: GlossaryTerm[] = [
 
 const SUMMARY: { id: string; title: string; description: string }[] = [
   { id: 'start', title: 'Getting Started', description: 'Add the app to your phone, log in, and fire off your first workout.' },
-  { id: 'workout', title: 'Running a Workout', description: 'What actually happens during a session, from Start WO to Finish it.' },
+  { id: 'workout', title: 'Running a Workout', description: 'What actually happens during a session, from Start Next to Finish it.' },
   {
     id: 'coach',
     title: 'Your Coach',
@@ -577,7 +577,7 @@ export default function HelpPage() {
             in) or <span className="font-black text-[#e8c547]">No equipment · Travel</span>. You also choose the weekdays
             you train — the number of days is your weekly count, and a reminder goes out at 9am on those days if
             notifications are on. Pick more than one and your week alternates between them. On Home you can set different focuses for just next week. Every focus locks weeks and counts toward belts the same way (train one day a week and one workout locks it), and you can change
-            your mind any time. Your pick also offers Pilates, Home and Travel workouts under category filters.
+            your mind any time. Your pick has a matching Focus row (it starts on yours; tap more to widen it) over its category filters, so Pilates, Home and Travel workouts are one tap away.
           </p>
           <p className="mt-3 text-sm leading-relaxed text-[#f6f1e3]/80">
             Week 1 starts on a Monday. Joined mid-week? Your first workout off a Monday opens a{' '}

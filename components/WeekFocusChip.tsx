@@ -7,7 +7,8 @@ import { FOCUS_OPTIONS, focusesLabel, parseFocuses, sameFocuses, type Focus, typ
 /**
  * Home hero control (docs/plans/PLAN_FOCUS_ONBOARDING.md): the focuses of the athlete's
  * next unstarted week, with a sheet to pick different ones (one or more) for just that
- * week. Choosing their own default clears the override. A week that has started is never offered.
+ * week. Choosing their own default clears the override. The pill spans the card width,
+ * text centered (it sits under the Effective number in `HomeHeroFooter`). A week that has started is never offered.
  */
 export default function WeekFocusChip({
   weekNumber,
@@ -67,7 +68,7 @@ export default function WeekFocusChip({
           setPicked([...focuses]);
           setOpen(true);
         }}
-        className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-full border border-[#e8c547]/40 px-4 text-sm font-semibold text-[#e8c547]"
+        className="mt-4 flex min-h-11 w-full items-center justify-center gap-2 rounded-full border border-[#e8c547]/40 px-4 text-sm font-semibold text-[#e8c547]"
       >
         <Target className="h-4 w-4" />
         {weekLabel} · {focusesLabel(focuses)}

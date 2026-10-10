@@ -2,8 +2,10 @@
 
 import { useState, useEffect, useMemo, Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
-import { Dumbbell, UserPlus } from 'lucide-react';
-import HomeKpiLead, { HomeTodayKpis, primeHomeBoard } from '@/components/HomeKpiLead';
+import { Dumbbell } from 'lucide-react';
+import HomeHeroFooter from '@/components/HomeHeroFooter';
+import HomeKpiLead, { primeHomeBoard } from '@/components/HomeKpiLead';
+import HomeWorkoutBox from '@/components/HomeWorkoutBox';
 import PerformanceDesk from '@/components/PerformanceDesk';
 import AppMenu from '@/components/AppMenu';
 import DailyWeightChart from '@/components/DailyWeightChart';
@@ -12,7 +14,7 @@ import WeekFocusChip from '@/components/WeekFocusChip';
 import WeekLock from '@/components/WeekLock';
 import WeekPerformance from '@/components/WeekPerformance';
 import YouVsLeader from '@/components/YouVsLeader';
-import { estimateWorkoutSeconds, formatEstimateMinutes } from '@/lib/estimateDuration';
+import { estimateWorkoutSeconds, formatEstimateShort } from '@/lib/estimateDuration';
 import { applyWorkoutMode } from '@/lib/workoutData';
 import { DEFAULT_FOCUS_INFO, focusLookupFromInfo, type Focuses, type FocusInfo } from '@/lib/focus';
 import { homePerformanceFocus, mainProgramTarget, type WorkoutSessionRow } from '@/lib/nextWorkout';
@@ -35,8 +37,8 @@ import {
   HOME_YOU_VS_HELP,
 } from '@/lib/helpCopy';
 import InviteFriendModal from '@/components/InviteFriendModal';
-import YourPickIcon from '@/components/YourPickIcon';
-import { isYourPickSlot, yourPickCurrentWeek, yourPickWeekAllowed } from '@/lib/yourPick';
+import { streakBrokeLastWeek } from '@/lib/streakBreak';
+import { YOUR_PICK_CHOICES, isYourPickSlot, yourPickCurrentWeek, yourPickWeekAllowed } from '@/lib/yourPick';
 import BeltChest from '@/components/BeltChest';
 import { HomeFold } from '@/components/ScanCard';
 import WeekMedal from '@/components/WeekMedal';
@@ -374,18 +376,17 @@ export default function Home() {
       : 'gym';
   const todayDay = today.day != null ? applyWorkoutMode(today.day, todayMode) : null;
   const todayEstimate =
-    todayDay != null && !isYourPickSlot(todayDay) ? formatEstimateMinutes(estimateWorkoutSeconds(todayDay)) : null;
+    todayDay != null && !isYourPickSlot(todayDay) ? formatEstimateShort(estimateWorkoutSeconds(todayDay)) : null;
+  // The next slot is a Your pick day: nothing to "start next", so Pick one is the one button.
+  const pickSlotToday = today.type === 'start' && today.day != null && isYourPickSlot(today.day);
+  // Start button's second line: the day's focus + estimate, e.g. "Legs est 52m".
+  const startSub = [today.day?.focus, todayEstimate ? `est ${todayEstimate}` : null].filter(Boolean).join(' ');
   const restartHref =
     today.type === 'resume' && today.week && today.day
       ? `/workout?week=${today.week.weekNumber}&day=${today.day.dayNumber}&restart=1`
       : null;
 
   const canInvite = !isTestUserName(userName);
-  const inviteLinkClass =
-    'inline-flex min-h-12 shrink-0 items-center gap-1.5 px-2 text-sm font-black text-[#e8c547] sm:min-h-14 sm:px-3 sm:text-base';
-  const heroBtn =
-    'inline-flex min-h-12 flex-1 items-center justify-center rounded-2xl px-3 text-sm font-black sm:min-h-14 sm:px-5 sm:text-base';
-
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -740,30 +741,13 @@ export default function Home() {
               <p className="mt-3 text-lg text-[#f6f1e3]/75">
                 Week {(today.week?.weekNumber || 0) + 1} starts Monday.
               </p>
-              <div className="mt-6 flex items-center gap-2">
-                <Link
-                  href="/workout"
-                  className={`${heroBtn} border border-[#e8c547]/50 text-[#e8c547]`}
-                >
-                  Select WO
-                </Link>
-                {pickHref && (
-                  <Link
-                    href={pickHref}
-                    className={inviteLinkClass}
-                    aria-label="Your pick"
-                  >
-                    <YourPickIcon className="h-5 w-5 text-[#e8c547]" />
-                    Pick
-                  </Link>
-                )}
-                {canInvite && (
-                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                    <UserPlus className="h-4 w-4" />
-                    Invite
-                  </button>
-                )}
-              </div>
+              <HomeWorkoutBox
+                primary={
+                  pickHref
+                    ? { href: pickHref, label: 'Pick one', sub: YOUR_PICK_CHOICES }
+                    : { href: '/workout', label: 'Browse', sub: 'Every week, any session' }
+                }
+              />
             </>
           ) : today.type === 'done' ? (
             <>
@@ -777,23 +761,10 @@ export default function Home() {
                 />
               </p>
               <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
-                All 6 weeks complete
+                All 48 weeks complete
               </h2>
               <p className="mt-3 text-lg text-[#f6f1e3]/75">Open the list if you want to run a session again.</p>
-              <div className="mt-6 flex items-center gap-2">
-                <Link
-                  href="/workout"
-                  className={`${heroBtn} bg-[#e8c547] text-[#1a1404]`}
-                >
-                  Browse WO
-                </Link>
-                {canInvite && (
-                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                    <UserPlus className="h-4 w-4" />
-                    Invite
-                  </button>
-                )}
-              </div>
+              <HomeWorkoutBox primary={{ href: '/workout', label: 'Browse', sub: 'Every week, any session' }} />
             </>
           ) : (
             <>
@@ -806,14 +777,9 @@ export default function Home() {
                   bullets={HOME_TODAY_HELP.bullets}
                 />
               </p>
-              <h2 className="mt-3 text-4xl font-black tracking-tight text-white sm:text-6xl">
+              <h2 className="mt-3 text-[2.125rem] font-black tracking-tight text-white sm:text-[3.5rem]">
                 {shortWeekDay(today.week?.weekNumber, today.day?.name)}
               </h2>
-              <p className="mt-3 truncate text-lg text-[#f6f1e3]/75">
-                {[today.day?.focus, todayEstimate ? `Est. ${todayEstimate}` : null]
-                  .filter(Boolean)
-                  .join(' · ')}
-              </p>
               {testDriveOn && testDrive ? (
                 <p className="mt-3 text-lg font-black text-[#e8c547]">{testDriveCountdown(testDrive)}</p>
               ) : null}
@@ -823,42 +789,21 @@ export default function Home() {
               {today.type === 'resume' && resumeLine && (
                 <p className="mt-3 text-lg leading-relaxed text-[#f6f1e3]/90">{resumeLine}</p>
               )}
-              <div className="mt-6 flex items-center gap-2">
-                <Link
-                  href={todayHref}
-                  onClick={() =>
+              <HomeWorkoutBox
+                primary={{
+                  href: todayHref,
+                  onClick: () =>
                     trackAction(today.type === 'resume' ? 'workout_resume' : 'workout_start', {
                       category: 'home',
                       cta_type: todayMode,
-                    })
-                  }
-                  className={`${heroBtn} bg-[#e8c547] text-[#1a1404]`}
-                >
-                  {today.type === 'resume' ? 'Resume WO' : 'Start WO'}
-                </Link>
-                <Link
-                  href="/workout"
-                  className={`${heroBtn} border border-[#e8c547]/50 text-[#e8c547]`}
-                >
-                  Select WO
-                </Link>
-                {pickHref && (
-                  <Link
-                    href={pickHref}
-                    className={inviteLinkClass}
-                    aria-label="Your pick"
-                  >
-                    <YourPickIcon className="h-5 w-5 text-[#e8c547]" />
-                    Pick
-                  </Link>
-                )}
-                {canInvite && (
-                  <button type="button" onClick={() => setInviteOpen(true)} className={inviteLinkClass}>
-                    <UserPlus className="h-4 w-4" />
-                    Invite
-                  </button>
-                )}
-              </div>
+                    }),
+                  label: today.type === 'resume' ? 'Resume' : pickSlotToday ? 'Pick one' : 'Start Next',
+                  sub: pickSlotToday ? YOUR_PICK_CHOICES : startSub,
+                }}
+                secondary={
+                  pickSlotToday ? undefined : { href: pickHref ?? '/workout', label: 'Pick one', sub: YOUR_PICK_CHOICES }
+                }
+              />
               {restartHref && (
                 <Link
                   href={restartHref}
@@ -871,17 +816,24 @@ export default function Home() {
             </>
           )}
           <div className="clear-both" />
-          {focusWeek != null && !testDriveOn && !testDriveDone ? (
-            <WeekFocusChip
-              weekNumber={focusWeek}
-              weekLabel={focusWeek === today.week?.weekNumber ? 'This week' : 'Next week'}
-              focuses={focusFor?.(focusWeek) ?? focusInfo.focuses}
-              defaultFocuses={focusInfo.focuses}
-              onChanged={setFocusInfo}
-            />
-          ) : null}
           </div>
-          <HomeTodayKpis locked={today.type === 'hold'} />
+          <HomeHeroFooter
+            tone={userTone}
+            showBreakNote={
+              (today.type === 'start' || today.type === 'resume') && !testDriveOn && streakBrokeLastWeek(sessions)
+            }
+            onInvite={canInvite && !testDriveDone ? () => setInviteOpen(true) : undefined}
+          >
+            {focusWeek != null && !testDriveOn && !testDriveDone ? (
+              <WeekFocusChip
+                weekNumber={focusWeek}
+                weekLabel={focusWeek === today.week?.weekNumber ? 'This week' : 'Next week'}
+                focuses={focusFor?.(focusWeek) ?? focusInfo.focuses}
+                defaultFocuses={focusInfo.focuses}
+                onChanged={setFocusInfo}
+              />
+            ) : null}
+          </HomeHeroFooter>
         </div>
 
         <div className="mt-6 divide-y divide-white/10 [&>section]:py-5 [&>section:first-child]:pt-0 [&>section:last-child]:pb-0 [&>section:empty]:hidden">

@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home hero options</title>
+<style>
+  :root{
+    --bg:#0a0a0b; --card:#0f0f12; --line:#3a3217; --gold:#e3c765; --gold-ink:#1a1505;
+    --cream:#f3ecd9; --dim:#9a968a; --green:#6d8b6e; --copper:#c08457; --red:#a35d52;
+  }
+  *{box-sizing:border-box;margin:0}
+  body{background:var(--bg);color:var(--cream);font-family:-apple-system,"Helvetica Neue",Arial,sans-serif;padding:24px 16px 64px}
+  h1{font-size:20px;margin-bottom:4px}
+  .intro{color:var(--dim);font-size:14px;margin-bottom:28px}
+  .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:36px;max-width:1500px}
+  .opt h2{font-size:13px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold);margin-bottom:2px}
+  .opt p.note{font-size:13px;color:var(--dim);margin-bottom:12px;max-width:380px}
+  .card{max-width:380px;background:linear-gradient(135deg,#231d0c 0%,var(--card) 38%);border:1px solid var(--line);border-radius:28px;padding:24px 22px}
+  .eyebrow{font-size:12px;letter-spacing:.3em;color:var(--gold);font-weight:700;display:flex;align-items:center;gap:10px}
+  .q{width:20px;height:20px;border:1.5px solid var(--gold);border-radius:50%;font-size:12px;display:inline-grid;place-items:center;letter-spacing:0}
+  .title{font-size:28px;font-weight:800;line-height:1.05;margin-top:12px}
+  .sub{color:var(--dim);font-size:15px;margin-top:8px}
+  .row{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+  .medal{flex:none;text-align:center}
+  .medal b{display:grid;place-items:center;width:52px;height:52px;border-radius:50%;border:2px solid #c9c9c9;background:radial-gradient(#34343a,#101013);font-size:15px}
+  .medal i{display:block;font-style:normal;font-size:9px;letter-spacing:.2em;color:var(--gold);font-weight:700;margin-top:5px}
+  .medal.sm b{width:34px;height:34px;font-size:11px;border-width:1.5px}
+  .btn{border:0;border-radius:16px;font-weight:800;font-size:15px;padding:13px 18px;cursor:pointer}
+  .gold{background:var(--gold);color:var(--gold-ink)}
+  .ghost{background:transparent;color:var(--cream);border:1.5px solid var(--line)}
+  .btn.full{width:100%;font-size:17px;padding:16px}
+  .links{display:flex;gap:18px;justify-content:center;margin-top:14px;font-weight:700;font-size:14px;color:var(--gold)}
+  .links span{opacity:.9}
+  .spark{width:70px;height:26px}
+  .up{color:var(--green);font-weight:800}
+  /* B */
+  .big{display:flex;align-items:flex-end;justify-content:space-between;margin-top:20px;padding-top:16px;border-top:1px solid #22221f}
+  .big .lbl{font-size:11px;letter-spacing:.2em;color:var(--dim);font-weight:700}
+  .big .num{font-size:44px;font-weight:800;color:var(--green);line-height:1}
+  .big .cap{font-size:12px;color:var(--dim);margin-top:4px}
+  /* C */
+  .chips{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:18px}
+  .chip{border:1px solid #26261f;border-radius:14px;padding:10px 12px}
+  .chip .k{font-size:10px;letter-spacing:.18em;font-weight:700}
+  .chip .v{font-size:20px;font-weight:800;color:var(--green);margin-top:2px}
+  .k.w{color:#6f87a8}.k.r{color:#9a80b8}.k.v2{color:#4fa59b}.k.e{color:#c0607f}
+  .btnrow{display:flex;gap:10px;margin-top:18px}
+  .btnrow .btn{flex:1}
+  /* D */
+  .verdict{margin-top:16px;font-size:16px;line-height:1.35}
+  .verdict em{font-style:normal;color:var(--green);font-weight:800}
+  .dots{display:flex;gap:6px;margin-top:12px}
+  .dots span{height:6px;flex:1;border-radius:3px;background:var(--green)}
+  .more{margin-top:14px;font-size:13px;color:var(--gold);font-weight:700;display:flex;justify-content:space-between}
+</style>
+</head>
+<body>
+<h1>Home hero — 4 options</h1>
+<p class="intro">Sample data from your screenshot (W8 · Your pick, 2nd last week). Everything removed from the hero would still live in its existing home: Week performance, Daily weight, Your performance, the menu.</p>
+
+<div class="grid">
+
+<!-- Original -->
+<section class="opt">
+  <h2>Original (today)</h2>
+  <p class="note">For comparison. Everything here: label + ? help, last-week medal, title, subtitle, Start / Select / Pick / Invite, the 15-day caption, and four KPI rows with sums, sparklines and %.</p>
+  <img src="hero-original.png" alt="Original hero" style="width:100%;max-width:380px;border-radius:28px;display:block">
+</section>
+
+<!-- A -->
+<section class="opt">
+  <h2>A · Just go</h2>
+  <p class="note">One job: start. No numbers on the hero. Select / Pick / Invite drop to quiet text links. Medal shrinks to a badge by the label.</p>
+  <div class="card">
+    <div class="row">
+      <div class="eyebrow">TODAY <span class="q">?</span></div>
+      <div class="medal sm"><b>2nd</b></div>
+    </div>
+    <div class="title">W8 · Your pick</div>
+    <div class="sub">Upper, Lower, Yoga, Core, Full body or Run</div>
+    <div style="margin-top:20px"><button class="btn gold full">Start WO</button></div>
+    <div class="links"><span>Select WO</span><span>Pick</span><span>Invite</span></div>
+  </div>
+</section>
+
+<!-- B -->
+<section class="opt">
+  <h2>B · One number</h2>
+  <p class="note">Keep a single KPI — Effective, the one that combines load, reps and how hard it felt. Other three live on Week performance. Two buttons; Pick and Invite move to the menu.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Your pick</div>
+      </div>
+      <div class="medal"><b>2nd</b><i>LAST WEEK</i></div>
+    </div>
+    <div class="btnrow"><button class="btn gold">Start WO</button><button class="btn ghost">Select WO</button></div>
+    <div class="big">
+      <div>
+        <div class="lbl">EFFECTIVE · 15 DAYS</div>
+        <div class="num">+19.2%</div>
+        <div class="cap">211k vs last time those lifts ran</div>
+      </div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg>
+    </div>
+  </div>
+</section>
+
+<!-- C -->
+<section class="opt">
+  <h2>C · Four chips</h2>
+  <p class="note">All four KPIs stay, but only the % change — no sums, no sparklines, no truncated captions. Medal sits beside the title; Pick and Invite removed.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Your pick</div>
+      </div>
+      <div class="medal sm"><b>2nd</b></div>
+    </div>
+    <div class="btnrow"><button class="btn gold">Start WO</button><button class="btn ghost">Select WO</button></div>
+    <div class="chips">
+      <div class="chip"><div class="k w">WEIGHT</div><div class="v">+0.4%</div></div>
+      <div class="chip"><div class="k r">REPS</div><div class="v">+8.8%</div></div>
+      <div class="chip"><div class="k v2">VOLUME</div><div class="v">+16.9%</div></div>
+      <div class="chip"><div class="k e">EFFECTIVE</div><div class="v">+19.2%</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- D -->
+<section class="opt">
+  <h2>D · One sentence</h2>
+  <p class="note">The numbers become a verdict. Four bars show which KPIs are up (green) or down (red); tap "See the numbers" to open Week performance. Start only, with Select as a link.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Your pick</div>
+      </div>
+      <div class="medal"><b>2nd</b><i>LAST WEEK</i></div>
+    </div>
+    <p class="verdict">All four are <em>up</em> on last time. Biggest jump: effort-weighted work, <em>+19.2%</em>.</p>
+    <div class="dots"><span></span><span></span><span></span><span></span></div>
+    <div class="more"><span>See the numbers →</span></div>
+    <div style="margin-top:18px"><button class="btn gold full">Start WO</button></div>
+    <div class="links" style="margin-top:12px"><span>Select WO</span></div>
+  </div>
+</section>
+
+<!-- E -->
+<section class="opt">
+  <h2>E · Workout box — normal day</h2>
+  <p class="note">One box called Workout. Start Next starts the next program day (named underneath). Pick one opens the combined picker for anything else.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Lower B</div>
+      </div>
+      <div class="medal sm"><b>2nd</b></div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Start Next</span><small>Legs est 52m</small></button>
+        <button class="btn ghost"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- F -->
+<section class="opt">
+  <h2>F · Workout box — Your pick day</h2>
+  <p class="note">When the next slot is a Your pick day there is nothing to "start next", so Pick one becomes the gold button and opens the picker straight away.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Your pick</div>
+      </div>
+      <div class="medal sm"><b>2nd</b></div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- G1 -->
+<section class="opt">
+  <h2>G1 · Combined — Invite in the header</h2>
+  <p class="note">Workout box + Effective. Invite sits top-right as a small gold pill, where the medal used to be; the medal moves into the Effective row.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Lower B</div>
+      </div>
+      <div class="invpill">＋ Invite</div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Start Next</span><small>Legs est 52m</small></button>
+        <button class="btn ghost"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+    <div class="big">
+      <div>
+        <div class="lbl">EFFECTIVE · 15 DAYS</div>
+        <div class="num">+19.2%</div>
+        <div class="cap">211k vs last time those lifts ran</div>
+      </div>
+      <div class="medal sm"><b>2nd</b><i>LAST WK</i></div>
+    </div>
+  </div>
+</section>
+
+<!-- G2 -->
+<section class="opt">
+  <h2>G2 · Combined — Invite as a footer row</h2>
+  <p class="note">Same content. Invite is a thin full-width row at the very bottom of the card, quieter than the buttons. Medal stays top-right.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Lower B</div>
+      </div>
+      <div class="medal"><b>2nd</b><i>LAST WEEK</i></div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Start Next</span><small>Legs est 52m</small></button>
+        <button class="btn ghost"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+    <div class="big" style="margin-top:16px;padding-top:14px">
+      <div>
+        <div class="lbl">EFFECTIVE · 15 DAYS</div>
+        <div class="num">+19.2%</div>
+      </div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg>
+    </div>
+    <div class="invrow">＋ Invite a friend</div>
+  </div>
+</section>
+
+<!-- I -->
+<section class="opt">
+  <h2>I · G2 on a Monday after a one-week break</h2>
+  <p class="note">Shows only on a Monday when an athlete trained two weeks in a row, missed last week, and has not trained yet this week. The line sits above Invite.</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Lower B</div>
+      </div>
+      <div class="medal"><b>2nd</b><i>LAST WEEK</i></div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Start Next</span><small>Legs est 52m</small></button>
+        <button class="btn ghost"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+    <div class="big" style="margin-top:16px;padding-top:14px">
+      <div>
+        <div class="lbl">EFFECTIVE · 15 DAYS</div>
+        <div class="num">+19.2%</div>
+      </div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg>
+    </div>
+    <div class="breakline"><img src="personas/eli-happy.png" alt=""><p>One week break is fine. Let's get back to the iron.</p></div>
+    <div class="invrow" style="margin-top:12px">＋ Invite a friend</div>
+  </div>
+</section>
+
+<!-- H -->
+<section class="opt">
+  <h2>H · Combined — Your pick day</h2>
+  <p class="note">Same card on the day the athlete has to choose: Pick one is the gold button and Start Next is gone. Invite stays in the header (G1 style).</p>
+  <div class="card">
+    <div class="row">
+      <div>
+        <div class="eyebrow">TODAY <span class="q">?</span></div>
+        <div class="title">W8 · Your pick</div>
+      </div>
+      <div class="invpill">＋ Invite</div>
+    </div>
+    <div class="wbox">
+      <div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div>
+    </div>
+    <div class="big">
+      <div>
+        <div class="lbl">EFFECTIVE · 15 DAYS</div>
+        <div class="num">+19.2%</div>
+        <div class="cap">211k vs last time those lifts ran</div>
+      </div>
+      <div class="medal sm"><b>2nd</b><i>LAST WK</i></div>
+    </div>
+  </div>
+</section>
+
+</div>
+<style>
+  .invpill{flex:none;color:var(--gold);border:1.5px solid var(--line);border-radius:999px;padding:7px 12px;font-size:13px;font-weight:800;white-space:nowrap}
+  .breakline{margin-top:14px;padding:10px 12px;display:flex;align-items:center;gap:12px;border-radius:18px;background:rgba(227,199,101,.08);border:1px solid rgba(227,199,101,.22)}
+  .breakline img{width:44px;height:44px;border-radius:50%;object-fit:cover;flex:none;border:1.5px solid rgba(227,199,101,.5)}
+  .breakline p{font-size:15px;font-weight:400;line-height:1.35;color:var(--cream)}
+  .invrow{margin-top:14px;padding-top:12px;border-top:1px solid #22221f;text-align:center;color:var(--gold);font-weight:800;font-size:14px}
+  .wbox{margin-top:20px;border:1px solid var(--line);border-radius:20px;padding:14px;background:rgba(227,199,101,.04)}
+  .wlbl{font-size:11px;letter-spacing:.25em;color:var(--gold);font-weight:700}
+  .wbox .btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:left}
+  .wbox .btnrow{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));gap:10px}
+  .wbox .btn{min-height:84px;justify-content:center}
+  .wbox .btn small{line-height:1.25;font-size:11px;font-weight:600;opacity:.65}
+</style>
+<h1 style="margin-top:56px">Pick one → what opens</h1>
+<p class="intro">J shows the tap. The sheet is the existing Your pick sheet, unchanged, floating over the Select Workout page (<code>/workout?yourPick=8</code>). Closing it leaves you on the full week list.</p>
+<div class="grid">
+
+<section class="opt">
+  <h2>J1 · Home — tap Pick one</h2>
+  <p class="note">Same hero as G2, with the finger on Pick one.</p>
+  <div class="card">
+    <div class="row">
+      <div><div class="eyebrow">TODAY <span class="q">?</span></div><div class="title">W8 · Lower B</div></div>
+      <div class="medal"><b>2nd</b><i>LAST WEEK</i></div>
+    </div>
+    <div class="wbox"><div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px">
+        <button class="btn gold"><span>Start Next</span><small>Legs est 52m</small></button>
+        <button class="btn ghost" style="outline:2px solid var(--gold);outline-offset:3px"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button>
+      </div></div>
+    <div class="big" style="margin-top:16px;padding-top:14px"><div><div class="lbl">EFFECTIVE · 15 DAYS</div><div class="num">+19.2%</div></div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg></div>
+    <div class="invrow">＋ Invite a friend</div>
+  </div>
+</section>
+
+<section class="opt">
+  <h2>J2 · The sheet over Select Workout</h2>
+  <p class="note">Category chips, workout dropdown with its description, Add to the week or Swap for an unstarted day, then Start. The week list stays visible, dimmed, behind it.</p>
+  <div class="card phone">
+    <div class="behind">
+      <div class="eyebrow">SELECT WORKOUT</div>
+      <div class="title" style="font-size:22px">Week 8</div>
+      <div class="dayrow"><b>Upper A</b><span>Done</span></div>
+      <div class="dayrow"><b>Lower B</b><span>Now</span></div>
+      <div class="dayrow"><b>Upper B</b><span>—</span></div>
+      <div class="dayrow"><b>Your pick slot</b><span>—</span></div>
+    </div>
+    <div class="sheet">
+      <div class="slbl">YOUR PICK</div>
+      <h3>Your pick</h3>
+      <p class="sdim">Add a workout or swap one in. Any mix locks the week.</p>
+      <div class="slbl" style="margin-top:14px">CATEGORY</div>
+      <div class="chips2"><span class="on">All</span><span>Upper</span><span>Lower</span><span>Full body</span><span>Core &amp; other</span></div>
+      <div class="slbl" style="margin-top:14px">WORKOUT</div>
+      <div class="sel">Upper · Pack A ▾</div>
+      <div class="sdesc"><b>Chest, back and shoulders</b><ul><li>Dumbbell press</li><li>Rows</li><li>Lateral raises</li></ul></div>
+      <div class="slbl" style="margin-top:14px">THIS WEEK</div>
+      <div class="seg"><span class="on">Add to the week</span><span>Swap for Upper B</span></div>
+      <div class="startb">🎲 Start Upper · Pack A</div>
+      <div class="closeb">Close</div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<h1 style="margin-top:56px">Rest-day and “all complete” hero</h1>
+<p class="intro">Same layout as the new Home: Workout box, Effective, Invite footer. Only the box contents change.</p>
+<div class="grid">
+
+<section class="opt">
+  <h2>K · Rest day (week locked, next starts Monday)</h2>
+  <p class="note">Was: Select WO + Pick + Invite. Now: no Start Next (nothing to start), so Pick one is the gold button for an extra session. The medal and Invite footer stay.</p>
+  <div class="card">
+    <div class="row">
+      <div><div class="eyebrow">REST <span class="q">?</span></div><div class="title">Week 8 locked</div><div class="sub">Week 9 starts Monday.</div></div>
+      <div class="medal sm"><b>2nd</b></div>
+    </div>
+    <div class="wbox"><div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px"><button class="btn gold"><span>Pick one</span><small>Upper, Lower, Yoga, Core, Full body or Run</small></button></div></div>
+    <div class="big" style="margin-top:16px;padding-top:14px"><div><div class="lbl">EFFECTIVE · 15 DAYS</div><div class="num">+19.2%</div></div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg></div>
+    <div class="invrow">＋ Invite a friend</div>
+  </div>
+</section>
+
+<section class="opt">
+  <h2>L · All complete</h2>
+  <p class="note">Was: Browse WO + Invite. Now: one gold Browse button in the Workout box, then Effective and the Invite footer.</p>
+  <div class="card">
+    <div class="row">
+      <div><div class="eyebrow">PROGRAM <span class="q">?</span></div><div class="title">All 48 weeks complete</div><div class="sub">Run any session again.</div></div>
+    </div>
+    <div class="wbox"><div class="wlbl">WORKOUT</div>
+      <div class="btnrow" style="margin-top:10px"><button class="btn gold"><span>Browse</span><small>Every week, any session</small></button></div></div>
+    <div class="big" style="margin-top:16px;padding-top:14px"><div><div class="lbl">EFFECTIVE · 15 DAYS</div><div class="num">+19.2%</div></div>
+      <svg class="spark" viewBox="0 0 70 26" fill="none" stroke="#6d8b6e" stroke-width="2"><path d="M0 4 L12 18 L24 10 L36 21 L52 14 L70 10"/></svg></div>
+    <div class="invrow">＋ Invite a friend</div>
+  </div>
+</section>
+
+</div>
+
+<h1 style="margin-top:56px">Pick one → Category as Focus filters</h1>
+<p class="intro">Two readings of “focus”. M1 uses your training focus setups (Gym / Core / Home / Travel). M2 uses muscle focus (Chest, Back, Legs…).</p>
+<div class="grid">
+<section class="opt">
+  <h2>M1 · Focus as the filter (your training setup)</h2>
+  <p class="note">Your four focus setups become the filter row: Gym, Core, Home, Travel. It starts on your own focus; tap more than one to widen it. Category stays under it and narrows the dropdown further.</p>
+  <div class="card phone" style="min-height:600px">
+    <div class="behind"><div class="eyebrow">SELECT WORKOUT</div><div class="title" style="font-size:22px">Week 8</div>
+      <div class="dayrow"><b>Upper A</b><span>Done</span></div><div class="dayrow"><b>Lower B</b><span>Now</span></div></div>
+    <div class="sheet">
+      <div class="slbl">YOUR PICK</div><h3>Your pick</h3>
+      <div class="slbl" style="margin-top:14px">FOCUS</div>
+      <div class="chips2"><span class="on">Gym</span><span>Core</span><span>Home · 2 DB</span><span>Travel</span></div>
+      <div class="slbl" style="margin-top:12px">CATEGORY</div>
+      <div class="chips2"><span class="on">All</span><span>Upper</span><span>Lower</span><span>Full body</span></div>
+      <div class="slbl" style="margin-top:14px">WORKOUT</div>
+      <div class="sel">Upper · Pack A ▾</div>
+      <div class="sdesc"><b>Chest, back and shoulders</b><ul><li>Dumbbell press</li><li>Rows</li><li>Lateral raises</li></ul></div>
+      <div class="slbl" style="margin-top:14px">THIS WEEK</div>
+      <div class="seg"><span class="on">Add to the week</span><span>Swap for Upper B</span></div>
+      <div class="startb">🎲 Start Upper · Pack A</div><div class="closeb">Close</div>
+    </div>
+  </div>
+</section>
+<section class="opt">
+  <h2>M2 · Muscle focus as the filter</h2>
+  <p class="note">Replaces the broad Upper / Lower chips with what you want to hit today. Choosing Legs lists the lower packs and Lower A/B; Core lists the Core flow and ab work. Yoga and Run sit under Mobility and Cardio.</p>
+  <div class="card phone" style="min-height:600px">
+    <div class="behind"><div class="eyebrow">SELECT WORKOUT</div><div class="title" style="font-size:22px">Week 8</div>
+      <div class="dayrow"><b>Upper A</b><span>Done</span></div><div class="dayrow"><b>Lower B</b><span>Now</span></div></div>
+    <div class="sheet">
+      <div class="slbl">YOUR PICK</div><h3>Your pick</h3>
+      <div class="slbl" style="margin-top:14px">FOCUS</div>
+      <div class="chips2"><span class="on">All</span><span>Chest</span><span>Back</span><span>Shoulders</span><span>Arms</span><span>Legs</span><span>Glutes</span><span>Core</span><span>Mobility</span><span>Cardio</span></div>
+      <div class="slbl" style="margin-top:14px">WORKOUT</div>
+      <div class="sel">Lower · Hinge ▾</div>
+      <div class="sdesc"><b>Hamstrings, glutes and back</b><ul><li>Romanian deadlifts</li><li>Hip thrusts</li><li>Back extensions</li></ul></div>
+      <div class="slbl" style="margin-top:14px">THIS WEEK</div>
+      <div class="seg"><span class="on">Add to the week</span><span>Swap for Upper B</span></div>
+      <div class="startb">🎲 Start Lower · Hinge</div><div class="closeb">Close</div>
+    </div>
+  </div>
+</section>
+</div>
+<style>
+  .phone{position:relative;padding:0;overflow:hidden;min-height:640px}
+  .behind{padding:22px;opacity:.35}
+  .dayrow{display:flex;justify-content:space-between;border:1px solid #2a2a25;border-radius:14px;padding:14px;margin-top:10px;font-size:14px}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:#121214;border-top:1px solid var(--line);border-radius:24px 24px 0 0;padding:18px;box-shadow:0 -20px 40px rgba(0,0,0,.6)}
+  .slbl{font-size:10px;letter-spacing:.18em;color:rgba(243,236,217,.5);font-weight:800}
+  .sheet h3{font-size:22px;margin-top:2px}
+  .sdim{font-size:13px;color:var(--dim);margin-top:6px}
+  .chips2{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+  .chips2 span{border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:6px 12px;font-size:12px;font-weight:800}
+  .chips2 span.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+  .sel{margin-top:8px;border:1px solid var(--gold);border-radius:14px;padding:11px 12px;font-weight:800;font-size:14px;background:#1a1404}
+  .sdesc{margin-top:8px;border:1px solid var(--gold);border-radius:14px;padding:10px 12px;background:#000;font-size:12px}
+  .sdesc ul{margin:6px 0 0 18px;color:var(--cream)}
+  .seg{display:flex;margin-top:8px;border:1px solid rgba(255,255,255,.18);border-radius:999px;padding:3px;gap:3px}
+  .seg span{flex:1;text-align:center;border-radius:999px;padding:9px 6px;font-size:13px;font-weight:800;color:var(--cream)}
+  .seg span.on{background:var(--gold);color:var(--gold-ink)}
+  .pillb{margin-top:6px;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:9px 14px;font-size:13px;font-weight:800}
+  .pillb.on{background:var(--gold);color:var(--gold-ink);border-color:var(--gold)}
+  .startb{margin-top:14px;background:var(--gold);color:var(--gold-ink);border-radius:16px;padding:13px;text-align:center;font-weight:800;font-size:14px}
+  .closeb{text-align:center;margin-top:10px;color:rgba(243,236,217,.55);font-size:13px;font-weight:600}
+</style>
+</body>
+</html>

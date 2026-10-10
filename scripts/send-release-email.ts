@@ -5,6 +5,8 @@
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts            # Kevin only
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts --house    # household
  *   npx tsx --env-file=.env.local scripts/send-release-email.ts --from=tom@workitapp.fit
+ *   npx tsx --env-file=.env.local scripts/send-release-email.ts --release=training-focus-v14   # a saved release by name
+ *   npx tsx --env-file=.env.local scripts/send-release-email.ts --list                         # the saved names
  *
  * `--from=` swaps only the address (display name stays): Zoho 553-rejects the
  * news@ group until send-as is enabled, while the coach aliases deliver.
@@ -14,15 +16,20 @@
 import { query } from '../lib/db';
 import { isEmailEnabled, sendEmail } from '../lib/mailClient';
 import { CURRENT_RELEASE } from '../lib/emails/currentRelease';
+import { NAMED_RELEASES } from '../lib/emails/releases';
 import { buildReleaseEmail } from '../lib/emails/templates';
 import { SQL_EXCLUDE_TEST_USER, SQL_NOT_BLOCKED_USER } from '../lib/householdUsers';
 import { firstName } from '../lib/profile';
 import { BROADCAST_TONE } from '../lib/mailFrom';
 
+/** `--release=<name>` sends a saved release (lib/emails/releases); default is the current one. */
+const RELEASE_NAME = process.argv.find((arg) => arg.startsWith('--release='))?.slice('--release='.length).trim() || null;
+const RELEASE = RELEASE_NAME ? NAMED_RELEASES[RELEASE_NAME] : CURRENT_RELEASE;
+
 async function householdRecipients() {
-  const onlyWorked = CURRENT_RELEASE.onlyAthletesWithWorkouts;
-  const includeNew = Boolean(CURRENT_RELEASE.includeNewAthletes);
-  const activeDays = Math.max(0, Math.trunc(Number(CURRENT_RELEASE.activeInDays || 0)));
+  const onlyWorked = RELEASE.onlyAthletesWithWorkouts;
+  const includeNew = Boolean(RELEASE.includeNewAthletes);
+  const activeDays = Math.max(0, Math.trunc(Number(RELEASE.activeInDays || 0)));
   const recent =
     onlyWorked && activeDays > 0
       ? ` AND COALESCE(ws.completed_at, ws.started_at, ws.created_at) >= DATE_SUB(UTC_TIMESTAMP(), INTERVAL ${activeDays} DAY)`
@@ -65,7 +72,7 @@ async function householdRecipients() {
            AND ${SQL_NOT_BLOCKED_USER}
          ORDER BY u.id ASC`
   );
-  const only = (CURRENT_RELEASE.onlyAthletes || []).map((name) =>
+  const only = (RELEASE.onlyAthletes || []).map((name) =>
     name.trim().toLowerCase()
   );
   const rows = (result.rows as { id: number; name: string; email: string | null; coach_tone?: string | null }[]).filter(
@@ -93,7 +100,7 @@ function withFromAddress(from: string): string {
   return FROM_OVERRIDE ? from.replace(/<[^>]*>$/, `<${FROM_OVERRIDE}>`) : from;
 }
 
-/** `--house` sends to the household audience in CURRENT_RELEASE; without it, Kevin only. */
+/** `--house` sends to the household audience in RELEASE; without it, Kevin only. */
 const TO_HOUSE = process.argv.includes('--house');
 
 type Recipient = { id: number; name: string; email: string | null; coach_tone?: string | null };
@@ -110,6 +117,15 @@ async function kevinRecipient(): Promise<Recipient[]> {
 }
 
 async function main() {
+  if (process.argv.includes('--list')) {
+    console.log('Saved releases:', Object.keys(NAMED_RELEASES).join(', ') || '(none)');
+    return;
+  }
+  if (RELEASE_NAME && !RELEASE) {
+    console.error(`[send-release-email] no saved release "${RELEASE_NAME}". Saved: ${Object.keys(NAMED_RELEASES).join(', ')}`);
+    process.exitCode = 1;
+    return;
+  }
   if (!isEmailEnabled()) {
     console.error('[send-release-email] EMAIL_ENABLED is off');
     process.exitCode = 1;
@@ -117,7 +133,7 @@ async function main() {
   }
 
   const recipients = TO_HOUSE ? await householdRecipients() : await kevinRecipient();
-  console.log('[send-release-email] audience:', TO_HOUSE ? 'household (--house)' : 'Kevin only');
+  console.log('[send-release-email] release:', RELEASE_NAME ?? 'current', '| audience:', TO_HOUSE ? 'household (--house)' : 'Kevin only');
   if (recipients.length === 0) {
     console.error('[send-release-email] no users with email');
     process.exitCode = 1;
@@ -128,18 +144,18 @@ async function main() {
   for (const user of recipients) {
     // Release notes go to the whole house in one voice (Eli), whoever their own coach is.
     const voiced =
-      firstName(user.name).toLowerCase() === 'kevin' && CURRENT_RELEASE.kevin
-        ? CURRENT_RELEASE.kevin
+      firstName(user.name).toLowerCase() === 'kevin' && RELEASE.kevin
+        ? RELEASE.kevin
         : null;
     const copy = voiced
       ? {
-          ...CURRENT_RELEASE,
-          intro: voiced.intro ?? CURRENT_RELEASE.intro,
-          mid: voiced.mid ?? CURRENT_RELEASE.mid,
-          close: voiced.close ?? CURRENT_RELEASE.close,
-          groups: voiced.groups ?? CURRENT_RELEASE.groups,
+          ...RELEASE,
+          intro: voiced.intro ?? RELEASE.intro,
+          mid: voiced.mid ?? RELEASE.mid,
+          close: voiced.close ?? RELEASE.close,
+          groups: voiced.groups ?? RELEASE.groups,
         }
-      : CURRENT_RELEASE;
+      : RELEASE;
     const email = buildReleaseEmail({
       name: user.name,
       ...copy,

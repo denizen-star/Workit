@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+### Added
+- **A Workout box on Home.** **Start Next** starts your next day (it shows the focus and time, like "Legs est 52m"); **Pick one** opens Your pick for Upper, Lower, Yoga, Core, Full body or Run. On a Your pick day, Pick one is the only button.
+- **A note after a missed week.** On a Monday, if you trained two weeks in a row and missed last week, your coach says one week off is fine and it's time to get back to the iron.
+- **Focus filter in Your pick.** Build muscle, Core Inspired, Home and Travel chips sit above the categories. It starts on your own focus; tap more to widen it.
+
+### Changed
+- **A simpler Home card.** One number, **Effective** (last 15 days vs last time), replaces the four. The Focus pill for next week now spans the card under it, and **Invite a friend** is a row at the bottom. Select WO, Pick and Invite are no longer buttons up top; Pick one covers them, and Select Workout is right behind it.
+- **Add or Swap is one switch** in Your pick. With several days to swap you choose which.
+- **Rest days and a finished program** use the same card: Pick one on a rest day, Browse when all 48 weeks are done (it used to say 6).
+
+### Fixed
+- **Streak badges keep growing after a missed week.** They now count your best run of locked weeks in a row; a gap no longer freezes them. Earned badges are never taken back.
+
 ## 14.0.0 - 2026-10-10
 
 ### Added

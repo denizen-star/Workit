@@ -79,6 +79,14 @@ export function estimateWorkoutSeconds(day: WorkoutDay, restSeconds = REST_SECON
   return Math.round(total);
 }
 
+/** Compact form for tight spots (Home's Start button): "52m", "1h 5m". */
+export function formatEstimateShort(totalSeconds: number): string {
+  const minutes = Math.max(1, Math.round(totalSeconds / 60));
+  if (minutes < 60) return `${minutes}m`;
+  const rem = minutes % 60;
+  return rem === 0 ? `${Math.floor(minutes / 60)}h` : `${Math.floor(minutes / 60)}h ${rem}m`;
+}
+
 export function formatEstimateMinutes(totalSeconds: number): string {
   const minutes = Math.max(1, Math.round(totalSeconds / 60));
   if (minutes < 60) return `~${minutes} min`;

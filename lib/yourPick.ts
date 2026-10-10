@@ -502,12 +502,15 @@ export function resolveYourPickDay(weekNumber: number, dayNumber: number): Worko
   return resolved;
 }
 
+/** What a Your pick can be — the line on the slot tile and on Home's Pick one button. */
+export const YOUR_PICK_CHOICES = 'Upper, Lower, Yoga, Core, Full body or Run';
+
 /** A required "any Your pick" tile (see YOUR_PICK_SLOT_DAYS). */
 export function yourPickSlotDay(dayNumber: number): WorkoutDay {
   return {
     dayNumber,
     name: YOUR_PICK_NAME,
-    focus: 'Upper, Lower, Yoga, Core, Full body or Run',
+    focus: YOUR_PICK_CHOICES,
     suggestedDay: 'Saturday',
     pick: 'slot',
     exercises: [],

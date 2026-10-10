@@ -11,7 +11,7 @@ export const QUICKSTART_LEAD = 'No manual required. Start it, move through it, f
 export const QUICKSTART_STEPS: QuickstartStep[] = [
   {
     title: 'Start it',
-    body: "Open Home. Tap the gold Start WO button. That's the workout the plan already picked for today — no deciding, just go.",
+    body: "Open Home. Tap the gold Start Next button. That's the workout the plan already picked for today — no deciding, just go.",
   },
   {
     title: 'Move through it',

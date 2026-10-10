@@ -122,6 +122,20 @@ export function focusPickGroups(): YourPickVariantGroup[] {
   return [...groups.values()];
 }
 
+/** Which Your pick categories (`YourPickVariantGroup.label`) each focus covers. Run suits
+ * every focus, so it appears under all of them. */
+const FOCUS_PICK_CATEGORIES: Record<Focus, readonly string[]> = {
+  build: ['Upper', 'Lower', 'Full body', 'Run'],
+  core: ['Core & other', 'Pilates', 'Run'],
+  home: ['Home · 2 Dumbbells', 'Run'],
+  travel: ['Travel', 'Run'],
+};
+
+/** The picker's categories for a set of focuses (the sheet's FOCUS filter row). */
+export function pickCategoriesForFocuses(focuses: readonly Focus[]): Set<string> {
+  return new Set(focuses.flatMap((focus) => FOCUS_PICK_CATEGORIES[focus]));
+}
+
 // Resolved days are static per week + day, so hand back the same object every time
 // (the live session re-resolves on every render — see lib/yourPick.ts resolvedPickDays).
 const resolvedDays = new Map<string, WorkoutDay | undefined>();

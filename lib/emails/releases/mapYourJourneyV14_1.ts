@@ -1,40 +1,12 @@
+import type { ReleaseDef } from '@/lib/emails/currentRelease';
+
 /**
- * User-facing release notes. `/document` rewrites this from CHANGELOG Unreleased,
- * then runs `npm run mail:release`. Written in Eli Sparks's voice (every athlete gets
- * the same letter, whoever their coach is). Household tone only — no Netlify, env vars, or admin tooling.
+ * v14.1.0 release notes (v14.0.0's focus letter + the simpler Home), kept by name so any agent can send them again:
+ *   npm run mail:release -- --release=map-your-journey-v14-1            # Kevin only
+ *   npm run mail:release -- --release=map-your-journey-v14-1 --house    # household, only when Kevin asks
+ * (`/release` rewrites lib/emails/currentRelease.ts for each new version; this copy stays.)
  */
-
-export type ReleaseGroup = {
-  heading: string;
-  wins: string[];
-};
-
-export type ReleaseCopy = {
-  intro?: string;
-  mid?: string;
-  close?: string;
-  groups?: ReleaseGroup[];
-};
-
-export type ReleaseDef = {
-  version: string;
-  title: string;
-  subject?: string;
-  onlyAthletesWithWorkouts?: boolean;
-  activeInDays?: number;
-  onlyAthletes?: string[];
-  includeNewAthletes?: boolean;
-  lead?: string;
-  intro?: string;
-  mid?: string;
-  close?: string;
-  groups: ReleaseGroup[];
-  kevin?: ReleaseCopy;
-  wins: string[];
-  also: string[];
-};
-
-export const CURRENT_RELEASE: ReleaseDef = {
+export const MAP_YOUR_JOURNEY_V14_1: ReleaseDef = {
   version: '14.1.0',
   title: 'Map your journey.',
   subject: 'Map your journey — pick your focus, your days, and a simpler Home — Work-It',

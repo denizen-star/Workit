@@ -7,7 +7,8 @@ import { HOME_STORIES_HELP } from '@/lib/helpCopy';
 import { recapExerciseRows, sessionStoryRows } from '@/lib/compareTable';
 import { performanceRangeLabel, type AthletePerformanceBoard } from '@/lib/athletePerformanceTypes';
 import { kpisFromBoard } from '@/lib/kpi';
-import { KpiList } from '@/components/KpiList';
+import { KpiList, KpiSpark, KpiSpike } from '@/components/KpiList';
+import { formatKpiPct, kpiStroke } from '@/lib/kpi';
 import { latestWorkout, weekVsLast } from '@/lib/kpiView';
 import type { OptInTrack } from '@/lib/programTrack';
 
@@ -97,6 +98,32 @@ export function HomeTodayKpis({ locked = false, track }: { locked?: boolean; tra
           : `${range.charAt(0).toUpperCase()}${range.slice(1)} vs last time those lifts ran.`}
       </p>
       <KpiList rows={rows} />
+    </div>
+  );
+}
+
+/** Home hero's one headline number: Effective vs last time those lifts ran. */
+export function HomeEffectiveKpi({ track }: { track?: OptInTrack }) {
+  const board = useHomeBoard(track);
+  const row = board ? kpisFromBoard(board)?.find((r) => r.id === 'effective') : null;
+  if (!board || !row) return null;
+  const stroke = kpiStroke(row.pct, 'effective');
+  const days = performanceRangeLabel(board.period).replace(/^last /, '').replace(/ days$/, ' days');
+  return (
+    <div className="mt-4 flex items-end justify-between gap-4 border-t border-white/10 pt-4">
+      <div className="min-w-0">
+        <p className="text-[11px] font-black uppercase tracking-[0.2em] text-[#f6f1e3]/60">
+          Effective · {days}
+        </p>
+        <p className="mt-1 text-4xl font-black leading-none" style={{ color: stroke }}>
+          {formatKpiPct(row.pct)}
+        </p>
+      </div>
+      {row.spark && row.spark.length > 1 ? (
+        <KpiSpark values={row.spark} stroke={stroke} />
+      ) : (
+        <KpiSpike pct={row.pct} id="effective" />
+      )}
     </div>
   );
 }

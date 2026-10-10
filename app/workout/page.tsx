@@ -1553,6 +1553,7 @@ function WorkoutPageInner() {
         open
         weekNumber={pickSheetWeek ?? 1}
         initialSwapForDay={pickSheetSwapDay}
+        focuses={focusFor?.(pickSheetWeek) ?? focusInfo.focuses}
         swapTargets={(() => {
           const weekPlan = workoutProgram.find((item) => item.weekNumber === pickSheetWeek);
           return weekPlan
